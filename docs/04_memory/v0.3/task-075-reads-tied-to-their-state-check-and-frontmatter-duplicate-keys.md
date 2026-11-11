@@ -69,3 +69,196 @@ AC-11)
   coordinator.
 
 ## Execution Notes
+
+### design (2026-11-11)
+
+Read (definition-of-done 1.4 *build › design*): this task, bug-034, bug-037; task-059's `### design
+(2026-11-09)` as committed on its branch (D59-13, D59-14, probes P5, P6, Q2, Q3) and its `### design
+approved (2026-11-11, W2-6)` (Q2 (a), Q3 (a)); the Execution Notes of task-055 (D55-6 the reuse by
+`(path, blob id)`, bug-032's linear duplicate check and its review's *Checked out of scope*) and
+task-068 (D68-5 the `ui.yaml` mark, bug-033, review round 1 m6 — the origin of bug-034); spec-012
+§8, spec-004 §5, spec-001 §4.2 and their Process Notes. The code: `server/src/snapshot/snapshot.ts`
+(`view()` and its two memos, `runCheck`, `headBlobs`, `referenceIndex`), `fingerprint.ts`,
+`snapshots.ts` (the watcher's `repo` handler, the 100 ms debounce), `watcher.ts`,
+`server/src/reads/` (`confine.ts`, `project-reads.ts`, `memory-yaml.ts`, `element.ts`,
+`directive.ts`, `ui-yaml.ts`, `frontmatter.ts`), `server/src/references/cache.ts`, `read.ts`, and
+`node_modules/js-yaml/lib/loader.js` (`storeMappingPair`) and `lib/type/*.js` of `js-yaml@4.3.2`,
+the version the pinned `wingfoil@0.3.1` declares (`"js-yaml": "^4.3.2"` in
+`node_modules/wingfoil/package.json`) and the one installed. Parallel work: task-059 adds
+`SnapshotView.contentDerived` (the read memo under a `content\0` prefix), which this design
+covers without touching it (D75-7).
+
+#### Re-check of D59-13 and D59-14 against the code
+
+- D59-13 holds, with three corrections: (1) a read with **no comparable mark** must not drop the
+  memo — an ignored element file, a status entry fingerprinted by `stat:`, or an unreadable HEAD
+  tree would then drop it on every request and re-run every CLI read each time (REQ-PERF-05's
+  0-process reopen broken for that project): such reads are kept as today, a declared residual
+  (D75-4, Q1); (2) a clean file whose bytes never hash to its HEAD blob (`core.autocrlf`, a
+  clean/smudge filter, `assume-unchanged`, `skip-worktree`, invalid UTF-8 the read decodes; task-055
+  D55-6 lists the first ones) would drop the memo on every new state: a mismatch confirmed by a
+  later check is accepted (D75-5); (3) a drop needs a `repo` event even when the follow-up check
+  finds the same key, or a page that received the untied value keeps it (D75-6, Q2).
+- The watcher's debounce is 100 ms (`DEFAULT_DEBOUNCE_MS`), not the 1.5 s bug-034 names; the
+  window is shorter but the sequence is the same (P2).
+- D59-14 holds; the probe P3 below confirms each case of AC-2 and adds: `0b11:`/`3:`, `.NaN:`/`"NaN":`,
+  `-.inf:`/`"-Infinity":`, `2026-02-30:`/`2026-03-02:` (js-yaml's `Date.UTC` rolls the day over),
+  `? [~, a]`/`",a":` (an array's `null` item prints empty), `12345678901234567890:`/
+  `"12345678901234567000":`, a quoted `"<<":` twice (a string key in both libraries, while the
+  server skips every `<<`) — all refused by js-yaml and read by the server; `? [[a]]` (js-yaml:
+  "nested arrays are not supported inside keys") read by the server. Already agreeing: `1.0:`/`1:`,
+  `0x1:`/`1:`, `07:`/`7:`, `0o7:`/`7:`, `-0:`/`0:`, `+1:`/`1:`, `1e2:`/`100:`, `True:`/`true:`,
+  `Null:`/`~:`, `!!str 1:`/`"1":`, a block key against its quoted text; accepted by both: `1_0:`/`10:`
+  (js-yaml 4 has no `_` in decimals), `0x_1:`/`1:`, `1:30:`/`90:`, a merge then an explicit key.
+
+#### Probes (load about 9.7; scratch scripts outside the repository and a temporary vitest file in this worktree, removed before the commit; no `wfui-*` entry left)
+
+| # | What | Result |
+|---|------|--------|
+| P1 | The kanban fixture with the real `watchRepository` on its root, `.git` and `.wingfoil`/element folders; a view's every CLI read (`memory search`, `dna show`, `paths`, `workflow list`, `directives list`, `--version`, `memory history`), `memoryTypes()`, `uiConfig()`, `referenceIndex()`, `element()`, then one more `check()`, counting the watcher's `repo()` calls | **0 events** during the check and after all reads (17 processes): no read of the console makes the watcher fire, so counting its events (D75-6) cannot loop. An edit and a revert of an element file: 4 events. |
+| P2 | bug-034 at `642beabe`: a view at K1, an element file not yet read edited (`title: "EDITED"`), `view.element()`, the file reverted, `check()`, a new view, `element()` again | the check returns **K1 again** and the new view serves `EDITED` — the direct read of an element file (task-059's P5 showed `ui.yaml` and `memory search`). |
+| P3 | 40 key pairs through `js-yaml@4.3.2` `load` (default schema) and the server's parse (`yaml@2.9.1`, `FRONTMATTER_PARSE_OPTIONS`, the current `Set` of `key.value`) | the table above; P6 of task-059 confirmed for every case of AC-2. `yaml` treats a quoted `"<<"` as a plain key (no merge) as js-yaml does: only the check skips it wrongly. `!!binary aGk=:` → js-yaml `"104,105"`, `yaml` `"hi"`; `!!timestamp 2026-01-01:` the same `Date` string in both; `!!set` refused by js-yaml's parser. Out of scope found: an empty key (`: a`) js-yaml refuses ("incomplete explicit mapping pair") and the server reads — not a duplicate key, a parse divergence of its own (reported to the coordinator as a bug candidate). |
+
+#### Decisions (D75-n)
+
+- **D75-1 — The marks of a state.** `Fingerprinter` keeps the marks of its last call
+  (`lastMarks`: project-relative path → `sha:<hex>`, `stat:…`, `link:…`, `other:…`, `via:…` or
+  `missing`), as it keeps `lastReads` — checks never overlap (`running`/`queued`), so
+  `fingerprint()`'s signature is unchanged. `runCheck` stores, with `last`, a `StateMarks`: those
+  marks, the `ui.yaml` mark it already takes, the check's sequence number (counted at its start) and
+  the watcher's event count read at its start (D75-6). No process, no read added to the check.
+- **D75-2 — HEAD blobs for the clean files.** `headBlobs` lists `.wingfoil` with the Memory
+  directories (`['.wingfoil', ...memoryDirectories(memoryYaml)]`, sorted, nested ones folded as
+  `memoryDirectories` does): one `git ls-tree -r` per HEAD and directory set, shared by the index
+  and the ties, read at the first tie of a clean file in a new HEAD. **+1 git process per new HEAD
+  where no index is built** (a cold Today, the Memory list, the DNA), no CLI process; the process
+  audits' git counts move by one (AC-1). When `memory.yaml` cannot be read, `.wingfoil` alone.
+- **D75-3 — Direct reads report what they consumed.** `ProjectReads` takes an optional `witness`
+  (`{ file(rel, text), uiYaml(mark) }`) and wraps its `ReadFs` so each confined read reports the
+  project-relative path and the text it returned (`memory.yaml`, an element file, a directive file
+  under `.wingfoil/`); the snapshot builds a `ProjectReads` per memo entry with its own witness (the
+  class holds options only). `UiYamlEntry` gains `mark` (additive: `inspect` already computes the
+  refusal marks; a text's mark is `sha:<its sha256>`), which `uiYaml()` reports. The index passes
+  the witness-wrapped `ReadFs` to `readIndexEntry`; values reused by `(path, blob id)` are not read
+  and tied by construction (D55-6). `server/src/reads/` stays read-only; no new read on the
+  allow-list.
+- **D75-4 — The tie, when an entry completes.** Each reported file is compared with the state:
+  a status entry with a `sha:` mark against the SHA-256 of the text's UTF-8 bytes; a file not in the
+  status against its HEAD blob (`gitBlobId` of the text, the index's own function); `ui.yaml` mark
+  against mark. Kept when every comparable report matches. **No comparable mark** (a `stat:`,
+  `link:`, `other:`, `via:` or `missing` mark, a path outside the HEAD listing — an ignored or
+  symlink-resolved file —, an unreadable HEAD tree): kept as before this task, a declared residual
+  (Q1). A mismatch: the value still answers the entry's callers, the state's memo is dropped
+  (D75-7). The entry's promise settles after its verdict, so a value built on it (the index on
+  `memoryTypes()`, `uiConfig()` on `memory.yaml`) never sees a kept memo built from untied bytes.
+- **D75-5 — A mismatch a check confirms.** On a mismatch the snapshot records a suspect
+  `(path, observed hash, expected mark, check sequence)` (at most one per path, pruned to the paths
+  of the newest state's reads, at most 1 000); a later read with the same observed and expected
+  values under a state whose check **started after** the suspect was recorded is accepted — git's
+  own view of the file did not move although its bytes differ (autocrlf, filters,
+  `assume-unchanged`, `skip-worktree`, invalid UTF-8): one drop per file content, then cached as
+  today. Declared residual: an edit, a read, a revert, a check, the same edit and a read again —
+  before the next check — keeps that second read (two edit/revert cycles across a check, with the
+  same bytes).
+- **D75-6 — CLI reads by the watcher's event count (Q2 (a)).** `ProjectSnapshot.touched()`
+  counts the watcher's `repo` callbacks; `Snapshots` calls it on every callback, before the
+  debounce. An entry that ran a CLI command (`--version`, `dna show`, `paths`, `workflow list`,
+  `directives list`, `memory search` with or without `--status`, `memory history`, the detected
+  version) is kept only if the count equals the one its state's check read at its start. Declared
+  residual (spec-012 §8): an edit and revert the watcher does not report — degraded watching
+  (periodic checks only), a type with no static folder, an ignored file outside the watched
+  folders — between two checks keeps a CLI read's output until the state moves.
+- **D75-7 — The drop.** Both memos of the state (reads, `derived\0`, and task-059's `content\0`
+  under the read memo) are cleared and marked dead: a view still holding them computes its reads
+  but stores nothing. The snapshot then asks a check (`check()`, coalesced) and, when **that** check
+  ends, publishes `repo {pid, state}` even when the key did not move (Q2), so a page that received
+  the untied value refetches. Transient errors keep their current rule (not kept).
+- **D75-8 — What changes in `snapshot.ts`** (for task-059's coordination): `view()` (the memo
+  closure: a third, internal argument `'cli' | 'direct'`, the witness per entry, the verdict, the
+  dead flag), `runCheck()` (the marks, sequence and event count stored with `last`, the forced
+  publish), `headBlobs()` (its directories), `referenceIndex()` (the widened directories, the
+  witness-wrapped `ReadFs`), the new `touched()`; each `SnapshotView` read passes its kind to the
+  memo. `derived()` and `contentDerived()` keep their signatures and behaviour; the `Memo` type is
+  private to the file. Elsewhere: `fingerprint.ts` (`lastMarks`), `snapshots.ts` (one line in the
+  `repo` handler), `reads/project-reads.ts` (`witness`), `reads/ui-yaml.ts` (`mark`).
+- **D75-9 — Keys as js-yaml stores them (Q3 (a)).** A new pure module
+  `server/src/reads/yaml-keys.ts`: the key form of a `yaml` node under js-yaml 4.3.2's default
+  schema — a quoted or block scalar, or one tagged `!!str`, its string; a plain scalar (or `!`)
+  through js-yaml's implicit resolvers in its order (null → `"null"`; bool → `"true"`/`"false"`;
+  int: decimal, `0b`, `0o`, `0x`, no `_`, `String(Number)`; float: js-yaml's pattern, `.inf`,
+  `.nan`; timestamp: its date and date-time patterns, built with `Date.UTC` as js-yaml does, then
+  `String(date)` — the time zone of the server, which the CLI child inherits), else its text;
+  `!!int`/`!!float`/`!!bool`/`!!null`/`!!timestamp` through that resolver; an alias the form of its
+  anchored node; a map `[object Object]`; a sequence its items' forms as `Array.prototype.toString`
+  joins them (`null` empty, a map item `[object Object]`), a nested sequence refused as js-yaml
+  does ("unsupported key … nested sequence"). Any other tag (`!!binary`, `!!set`, a local tag) is
+  refused as an unsupported key — fail closed: a declared residual where the CLI would list the file.
+  A merge key is skipped only as `yaml` resolves one (plain `<<` or `!!merge`), so `"<<"` twice is a
+  duplicate. `duplicateKey` keeps one `Set<string>` per map, one pass, the message `duplicate key
+  <the key's source text> (line, column)` as today. It applies to `memory.yaml` as well (the same
+  parse, the CLI's same loader). Declared residual of values: where the server now reads a file
+  with `2026-01-01:` and `"2026-01-01":`, `toJS` keeps one of the two values under `"2026-01-01"`
+  (the CLI keeps both, under different keys): at most one value of that file is missed by the index.
+- **D75-10 — The differential test.** `js-yaml@4.3.2` exact, as a devDependency (it is only a
+  transitive dependency today): a table of keys (every P3 row and each resolver's edge — signs,
+  bases, exponents, `.inf`/`.nan` spellings, dates with and without time, fraction and offset)
+  run as two-key mappings through `parseYaml` and `js-yaml`'s `load`, asserting the same verdict;
+  plus the real pinned CLI on a fixture element for AC-2's two directions.
+- **D75-11 — Docs.** spec-012 §8 and spec-004 §5: dated Process Notes (each read of a state tied to
+  its check — the rule, the +1 `ls-tree`, the forced `repo`, the residuals); spec-001 §4.2: a dated
+  Process Note (duplicate keys compared as WingFoil's js-yaml stores them, the unsupported keys);
+  `CHANGELOG.md` *Unreleased* *Fixed* (bug-034, bug-037, appended); `test/README.md` the new suites
+  (version line appended).
+
+#### File layout
+
+- `server/src/snapshot/snapshot.ts`, `fingerprint.ts`, `snapshots.ts`; a new
+  `server/src/snapshot/tie.ts` (the pure verdict: reports × marks × blobs × suspects → kept /
+  mismatch / no mark, unit-testable without git).
+- `server/src/reads/project-reads.ts`, `ui-yaml.ts`, `frontmatter.ts`; new `server/src/reads/yaml-keys.ts`.
+- `server/src/references/` unchanged but for the `ReadFs` the snapshot passes.
+- Tests below; `package.json` / `package-lock.json` (the devDependency, D75-10).
+
+#### Test plan (AC → file › title)
+
+| AC | Test |
+|----|------|
+| AC-1 red first, direct reads | `test/server/snapshot/read-tie.test.ts` (new) › "AC-1 bug-034 red first: an element file edited, read and reverted between two checks — the next read serves the reverted content", "… `ui.yaml` through `uiConfig()`", "… `memory.yaml`", "… the reference index", "… a directive file"; `test/server/http/ui-config-route.test.ts` › "AC-1 bug-034 `/config` after an edit and a revert between two checks serves the reverted `ui`" |
+| AC-1 CLI read | `read-tie.test.ts` › "AC-1 a CLI read completing after a watcher event is not kept" (a `watchRepository` stand-in that fires `repo()` during the read), "a CLI read with no event is kept: 0 processes on the second view" |
+| AC-1 residuals and confirmation | `read-tie.test.ts` › "a stable mismatch (`core.autocrlf`, `assume-unchanged`) is cached after one confirming check, and on the next state with the same content", "a `stat:` mark (an element over 1 MiB) is kept as before — declared residual", "a drop publishes `repo` after its check, also with the same key" |
+| AC-1 units | `test/server/snapshot/tie.test.ts` (new) › each verdict row; `fingerprint.test.ts` › "lastMarks: one mark per entry, as hashed"; `test/server/reads/ui-yaml-mark.test.ts` › "the entry's mark equals `uiYamlMark` for each kind" |
+| AC-1 processes | `test/server/snapshot/process-audit.test.ts` › "a cold view adds one `git ls-tree` per new HEAD and no CLI process" (and the counts it changes); "a reopened view with no change starts 0 processes" kept |
+| AC-2 red first | `test/server/reads/frontmatter.test.ts` › "AC-2 bug-037 refused as a duplicate with its line: `1:`/`"1":`, `true:`/`"true":`, `~:`/`"null":`, `.inf:`/`"Infinity":`, two spellings of one timestamp, an alias key, a repeated complex key", "AC-2 `2026-01-01:` with `"2026-01-01":` is read", "a quoted `<<` twice is a duplicate; a merge key is not", "a nested sequence key and an unknown tag are refused"; bug-032's "thousands of distinct keys parse" kept, plus thousands of int and date keys |
+| AC-2 differential | `test/server/reads/yaml-keys.test.ts` (new) › "AC-2 the server and js-yaml 4.3.2 agree on every row of the key table"; `test/server/reads/frontmatter-cli.test.ts` (new) › "AC-2 the pinned CLI leaves out the `1:`/`"1":` element and lists the date one; the server agrees" (a fixture commit: strict-identity run) |
+| AC-3 | CHANGELOG, `test/README.md`, `docs:api`, the gates below, `check_tasks.py v0.3` in the Execution Notes |
+
+#### Gates and where they run
+
+Local: `typecheck`, `lint`, `format:check`, `docs:api`, targeted `npx vitest run <files>`
+(`read-tie`, `frontmatter-cli` and `process-audit` also under the strict-identity recipe, dl-011),
+`check_tasks.py v0.3`, `test/docs/public-text.test.ts` before each push. On `gates.yml` (the push of
+this branch): `test:coverage`, `test:contract`, `test:e2e:chromium`; no own e2e spec (no UI
+change).
+
+#### Size (RP3-20 G2)
+
+About **1.2 active days**: bug-034 0.8 (marks and blobs 0.1, the witness 0.1, the tie, suspects,
+drop and forced event 0.25, the event count 0.05, tests 0.25, spec notes 0.05); bug-037 0.3 (the key
+forms 0.15, tests and differential 0.15); docs and gates 0.1. Just above one day: a split is
+offered (Q3).
+
+#### Questions (one recommendation each)
+
+- **Q1 — A read with no comparable mark.** (a) Kept as before this task, declared residual
+  (D75-4). (b) As D59-13.2 wrote: the memo dropped — every request re-reads and re-runs the CLI
+  for a project with such a file. (c) Not kept, the memo kept — the values built on it would need
+  their dependencies tracked. **Recommended (a)**: it closes bug-034 for every file the state check
+  marks by content, and costs nothing where it cannot.
+- **Q2 — The `repo` event after a drop.** (a) Published when the follow-up check ends, also with
+  the same key (D75-7). (b) Only on a new key, as today — after a revert, a page that received the
+  edited value keeps it until the next change. **Recommended (a)**: one refetch per drop, the page
+  ends on what the state stands for.
+- **Q3 — Split (RP3-20 G2).** (a) No split, about 1.2 days, two independent halves committed
+  separately (bug-037 red/green first, then bug-034). (b) bug-037 to a new task (about 0.35 day),
+  this one keeps bug-034 (about 0.9). **Recommended (a)**: each half is small, the split adds a task's
+  governance round for little, and the reviews can still go one bug at a time.
