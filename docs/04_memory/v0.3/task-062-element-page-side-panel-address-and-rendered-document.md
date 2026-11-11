@@ -463,3 +463,10 @@ split (W2-7); `a9744c80` red; `ec083543` green with the docs.
   heading shows the address's id until the element answers; passed on Firefox and WebKit). The test
   now waits for the read (`.type-tag`), then asserts the header's id and the heading's title; G-01.5
   the same way.
+- **Run `43080129023` on `2216c68e`: success** — checks, contract, coverage, smoke, publish-smoke,
+  e2e-chromium (both shards) and the own specs on Firefox and WebKit (`element-page`,
+  `element-panel` and every spec moved to the page) all green; `e2e-wave` skipped (task scope).
+- **Refactor:** none beyond `element.css`'s header (the `.drawer*` rules kept for task-077's side
+  panel), in `45b453c1`. The strict-identity recipe (dl-011): the only suite that commits through the
+  console here is G-01.7's e2e, which runs on the CI runner (a fresh account with no identity of its
+  own, task-071); no server or git code changed.
