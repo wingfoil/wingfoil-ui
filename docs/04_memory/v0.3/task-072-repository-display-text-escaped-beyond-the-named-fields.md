@@ -415,3 +415,15 @@ On `8452257c` (local):
   repository with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation):
   `repository-text`, `text-sweep`, `commit-text`, `harness/git-identity` and `element-writes` —
   5 files, 112 tests passed.
+
+On `gates.yml`:
+
+- Run `43079411130` (a dispatch on `ea089787`, task scope, with the own specs
+  `documentation`, `directives`, `team`, `project-header`, `projects`, `element-panel` and `dna`)
+  passed every job: `checks`, `coverage` (230 files passed, 1 skipped), `contract`,
+  `e2e-chromium` (both shards), `own-specs` on Firefox and WebKit, `smoke` and `publish-smoke`.
+- The push run of the same commit, `43079240438`, was cancelled by that dispatch: the workflow's
+  concurrency group is the ref.
+- The design commit's run, `43046517666`, failed only in `e2e-chromium`'s *Chromium and its system
+  packages* step (`Temporary failure resolving 'azure.archive.ubuntu.com'`). The runner's network
+  failed, not a test; the code commits supersede that run.
