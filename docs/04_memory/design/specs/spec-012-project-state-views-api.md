@@ -562,3 +562,10 @@ every object `additionalProperties: false`, as the other API schemas.
   §9); `pendingGates` applies the descriptor's own hold rule (spec-005 §4a), so the figure and the
   descriptors' `approveHeld` never differ. §8 `/progress`'s body and the flag set are memoised per
   content key, as the index (they read no copy against the remote).
+- 2026-11-11 — clarified in task-059 review round 1 (F-2, F-5; plan `backlog-item-rel-v0.3-plan`).
+  No shape changes. §1 *In scope* and spec-005 §4a's count: a `version` field that is the empty
+  string is no version — empty template fields carry `""`, so it would scope every element holding
+  one — and §3 *Scope*'s tie order puts it with the elements without a `version`. §1 *Cost*:
+  `/config` builds the index too when `progress.scope` names a type in `sequence` mode, to derive
+  `ui.progress.scope.current` (§2); the reuse of §8 keeps that to the changed files, and no CLI
+  process is added.

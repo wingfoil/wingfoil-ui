@@ -488,3 +488,24 @@ parti, il resto come proponi".
   `playwright test --project=<engine> --reporter=github,html --pass-with-no-tests
   test/e2e/performance.spec.ts` and exiting 0 with no test selected (Playwright prints no line for
   it with these reporters).
+
+### review round 1 (2026-11-11)
+
+Adversarial and security review on `aa9bfe24` (the coordinator's merge of the phase branch, W0-7;
+`test/README.md` reconciled to 0.71; run `43071709263` on it green on every job): FAIL on one
+major. Red first in `6a0916aa`; where a new test passed at once, the guard it covers was removed
+and the test seen failing (recorded per finding).
+
+| # | Finding | Fix | Red evidence |
+|---|---------|-----|--------------|
+| F-1 (major) | `/progress`'s held-gate exclusion not guarded at the API: `held: () => false` left every suite green | `progress-routes` › "review round 1 F-1: a held gate is no pending gate (releasing: minor-v0.1)" and "(line: rl-v1)" — the preset with `submitToReleasing` / `addReleaseLine`; `pendingGates.ids` excludes the held gate and equals, in natural order, the `/elements` gates with no `approveHeld` | passes on the code; with `held: () => false` in `progressOf` both fail (2 failed, 32 skipped), code restored |
+| F-2 (minor) | an empty `version` scopes every element carrying an empty template field and wins the tie | `server/src/references/build.ts` (task-055's shared index, one line): `inScope` uses `c.version` only when non-empty — also the `when-references-done` count, which reads the same rule; `server/src/project-state/current.ts`: an empty `version` sorts with the elements without one; spec-012 Process Note (2026-11-11, round 1) | `figures` › "review round 1 F-2: …" and `progress-routes` › "… a current release with an empty version scopes nothing — tasks 0/0, no-linked-elements" (preset + `addSecondRelease` + `version: ""` on `minor-v0.2`) failed before the fix |
+| F-3 (minor) | D59-4's exact mean not guarded | `figures` › "rounds half up in integers": (0/1, 5/8, 1/5) → 28, the float mean's `Math.round` → 27 | passes on the code; with `Math.round(100 × float mean)` in `meanOf` it fails, code restored |
+| F-4 (minor) | bug-038's *Expected Behavior* wants a line; `--pass-with-no-tests` was silent | the own-specs step counts first: `npx playwright test --list --pass-with-no-tests --project="$ENGINE" "${specs[@]}" \| grep -q '^Total: 0 tests'` → `echo "no test of the own specs runs on $ENGINE: nothing to run"`, `exit 0`; else install and run **without** `--pass-with-no-tests` (a list format Playwright changes runs, and fails on "No tests found", never passes silently). Pins, permissions, triggers, the expression allow-list and the quoting unchanged; `test/README.md` *CI gates* 0.72 | `gates-workflow` › D71-6's exact lines and "own-specs: listed specs that select no test on the engine pass with a line that says so" failed (2 failed, 45 passed). Probe: `npx playwright test --list --project=firefox test/e2e/performance.spec.ts` → "Error: No tests found." exit 1; with `--pass-with-no-tests` → "Total: 0 tests in 0 files" exit 0; on Chromium "Total: 13 tests in 1 file" |
+| F-5 (nit) | `/config` builds the index when a scope type is set, not in spec-012 §1 *Cost* | the same spec-012 Process Note names it | — |
+| F-6 (nit) | the test plan's files merged; `pendingGates.ids`'s order unasserted; no direct test of `contentDerived` | deviation logged: the plan's `current`, `percent`, `order`, `missing` and `traceability` unit files are one `test/server/project-state/figures.test.ts` (the traceability part is task-074's), the AC-5 process-audit tests are in `server/http/progress-routes` (› "caching and processes") rather than `server/snapshot/process-audit`; T-13.1 asserts the exact natural order; `test/server/snapshot/content-derived.test.ts` (one content key shared, kept when only the full key moves — a remote added —, recomputed on a commit, never across projects) | the new file passes; with `contentDerived` on the `derived` prefix its first test fails, code restored |
+
+Checks after the fixes: `npm run typecheck`, `lint`, `format:check` clean; `npx vitest run
+test/package test/server/project-state test/server/references test/server/descriptor` 224 passed;
+`progress-routes`, `held-gates-routes`, `snapshot/content-derived`, `snapshot/reference-index`,
+`ui-config-route` under the strict-identity `git` wrapper 61 passed; `check_tasks.py v0.3` OK.
