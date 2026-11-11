@@ -9,7 +9,7 @@ module: "server"             # optional — server | web | contracts (dna.yaml m
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3", "t2", "r5", "m2", "progress", "traceability"]               # optional — additional labels, e.g. [today, a11y]
 ref: "TT-STATE-08"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-038-own-e2e-specs-fail-on-an-engine-that-excludes-every-test-of-the-spec"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -117,6 +117,10 @@ TT-STATE-08's R-01 scenarios are delivered by task-074-traceability-api (W2-6).
   (W2-6).
 - **AC-11** — bug-037: moved to task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys
   (W2-6).
+- **AC-12 — bug-038** (absorbed 2026-11-11, the approver: "per task 59 vai con a"): red first — a
+  case in `test/package/gates-workflow.test.ts` that requires the own-specs job's Playwright run to
+  pass when the listed specs select no test on its engine; then the fix; the task-scope run green on
+  Firefox and WebKit with `performance.spec.ts` as the only own spec.
 
 ## Implementation Notes
 
