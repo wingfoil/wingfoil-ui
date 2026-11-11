@@ -46,6 +46,20 @@ it('exchanges the fragment token for the session and removes the fragment', asyn
   expect(init.body).toBeUndefined();
 });
 
+// task-063 AC-8 (the approver, "stripFragment a"): the address without the fragment is built from
+// the whole URL, so a path starting with `//` stays a path of this origin, never another host.
+it('AC-8 — removes the fragment of a `//host/…` path, keeping the address on this origin', async () => {
+  history.replaceState(null, '', `${location.origin}//evil.test/x?q=1#token=${TOKEN}`);
+  const replace = vi.spyOn(history, 'replaceState');
+  fetchAnswering(204);
+  expect(await bootstrapSession()).toBe('connected');
+  expect(replace).toHaveBeenCalledExactlyOnceWith(null, '', `${location.origin}//evil.test/x?q=1`);
+  replace.mockRestore();
+  expect(location.hash).toBe('');
+  expect(location.origin + location.pathname + location.search).toBe(`${location.origin}//evil.test/x?q=1`);
+  expect(location.href).not.toContain(TOKEN);
+});
+
 it('removes the fragment before the request answers', async () => {
   history.replaceState(null, '', `/#token=${TOKEN}`);
   let hashDuringFetch: string | undefined;
