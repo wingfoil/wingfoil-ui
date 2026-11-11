@@ -137,7 +137,9 @@ test.describe('US-T-02 — Requires you (v0.3)', () => {
     await expect(requiresYou(page).locator('li[data-eid]')).toHaveCount(10);
     const ids = await idsOf(requiresYou(page));
     expect(ids.slice(0, 2)).toEqual(['task-001-login-form', 'bug-001-crash-on-save']);
-    const toggle = requiresYou(page).getByRole('button', { name: 'Show all (13)', exact: true });
+    // The toggle by its class: its accessible name changes with its label.
+    const toggle = requiresYou(page).locator('.today-toggle');
+    await expect(toggle).toHaveAccessibleName('Show all (13)');
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     // From the keyboard, with visible focus.
     await tabUntil(page, toggle);
