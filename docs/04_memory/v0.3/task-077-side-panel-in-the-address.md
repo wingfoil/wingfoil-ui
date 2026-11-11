@@ -4,41 +4,64 @@ type: task
 title: "Side panel in the address"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "governance", "web", "element"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-062-element-page-side-panel-address-and-rendered-document"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The side panel addressed by `?panel=<full id>`, split from task-062-element-page-side-panel-address-and-rendered-document at its design (the approver,
+2026-11-11, task-062 Q4 (a); `backlog-item-rel-v0.3-plan` W2-7; RP3-20 G2: task-062 was about 3.1
+active days): task-062 keeps the element page and its addresses; this task opens Today's rows and
+the notification bell's items in the side panel over the current view (N5, RP3-17 E1, spec-011
+§2, §6).
+
+**Backlog items:** GOV (governance — the side panel split from task-062: G-01.8, S-21.4, its former
+AC-5's panel parts and AC-6; US-G-01 and US-S-21 stay listed by task-062, which cites G-01.8 and
+S-21.4 as delivered here)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+The criteria are task-062's as they stood before the split (`0019812e`), for the side panel only;
+its design's decisions D62-6 … D62-8, D62-10 and the approver's answer Q1 (a) apply.
+
+- **AC-1 — G-01.8** Open an element from Requires you in the side panel and keep it on reload
+  (`docs/02_requirements/02_bdd/features/g/element-panel.feature`).
+- **AC-2 — S-21.4** Open an item of the bell in the side panel of the current view
+  (`docs/02_requirements/02_bdd/features/s/shell.feature`); on the element page a bell item opens
+  that item's element page (Q1 (a), a spec-011 Process Note); S-21.1 … S-21.3 still pass.
+- **AC-3 — Addresses** (former AC-5, the panel): opening pushes a history entry, a reload keeps the
+  panel over the same view, closing removes `panel=` and keeps every other search parameter;
+  `panel=` on `/p/<pid>/e/…` is ignored; a short value is replaced by the full id in place; 409
+  candidates are `?panel=<full id>` links on the same view; *Close* and Escape keep the view and
+  return the focus to the opener (bug-018's rules).
+- **AC-4 — Hostile values** (former AC-6): `../x`, `https://example.test/x`, `.`, `..`, an empty
+  value and another project's element id show the panel's *not found* and navigate nowhere (path
+  and other parameters unchanged); every element link built with `encodeURIComponent` and
+  `elementPath`'s refusal of `''`, `.` and `..` (D62-9, from task-062).
+- **AC-5 — Screen and accessibility**: the panel non-modal (W4-8), keyboard path and visible focus,
+  axe-core 0 serious/critical in both themes, strings from the catalogue, `SCREENS` entries, the
+  e2e specs on Chromium, Firefox and WebKit.
+- **AC-6 — Docs and gates**: spec-011 Process Note; `CHANGELOG.md` *Unreleased*; the checks of
+  `CLAUDE.md` (heavy gates on `gates.yml`), `check_tasks.py v0.3`, with commands and results in the
+  Execution Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- After task-062 is merged: start from its design and Execution Notes, re-checked against the
+  merged page.
+- Security: `panel=` is an address input — a security-adversarial reviewer who runs the tools
+  checks it is only ever looked up as an element id of the current project (spec-011 §6).
+- task-061's Today filters live in component state: the panel keeps Today mounted (task-061 Q3).
 
 ## Execution Notes
-
-<!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
-     incrementally per phase, not written after the fact. Raw material for the release's Execution
-     Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (`definition-of-done` › design).
-     - red/green/refactor: deviations from the plan above, blockers, scope surprises.
-     - review: rejection reasons and what changed on the next pass. -->

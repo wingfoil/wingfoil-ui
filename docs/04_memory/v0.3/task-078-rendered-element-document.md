@@ -4,41 +4,61 @@ type: task
 title: "Rendered element document"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "governance", "web", "element", "documentation"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-062-element-page-side-panel-address-and-rendered-document", "task-077-side-panel-in-the-address"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The element's document rendered, split from task-062-element-page-side-panel-address-and-rendered-document at its design (the approver, 2026-11-11,
+task-062 Q4 (a); `backlog-item-rel-v0.3-plan` W2-7): the summary rendered as Markdown and *Open
+document* with the whole body (N6, dl-012 R2, RP3-15 S5, RP3-16 P2), so that a decision-log is
+read as a document and decided from its element (US-G-03, US-G-08).
+
+**Backlog items:** GOV (governance — the rendered document split from task-062: its former AC-1,
+AC-2 and AC-7 and their screens; US-G-03 and US-G-08 stay listed by task-062, which cites them as
+delivered here)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+The criteria are task-062's as they stood before the split (`0019812e`), for the document only;
+its design's decisions D62-13 … D62-17 and the approver's answers Q2 (b) (HTML comments left out of
+the rendered element document only; *Source* keeps them) and Q3 (a) (no Content-Security-Policy
+here; a console-wide one goes through `bug-ingest`) apply.
+
+- **AC-1 — US-G-03** (former AC-1): G-03.1 … G-03.4
+  (`docs/02_requirements/02_bdd/features/g/decision-log.feature`); G-03.4 opens a linked element
+  from a summary in the main region.
+- **AC-2 — US-G-08** (former AC-2): G-08.1 … G-08.3 (same file), on the v0.2 gate footer.
+- **AC-3 — The document** (former AC-7): the summary — the body's first paragraph — rendered as
+  Markdown ("No summary in the document." otherwise); the dialog rendered by default, *Source*
+  shows the Markdown as written in a monospace block; "No content yet" for an empty body; *Close*
+  and Escape give the focus back to *Open document*; raw HTML shown as text; relative links
+  resolved against the element file's folder and classified by `web/src/docs/links.ts`; images
+  never loaded — the e2e asserts no image request — with their alternative text shown and marked.
+- **AC-4 — Screen and accessibility**: `ux-reference.md` §4.2 v0.3 and §4.9; the dialog modal,
+  keyboard path, visible focus, axe-core 0 serious/critical in both themes, strings from the
+  catalogue, `SCREENS` entries, the e2e specs on Chromium, Firefox and WebKit.
+- **AC-5 — Docs and gates**: `CHANGELOG.md` *Unreleased*; the checks of `CLAUDE.md` (heavy gates on
+  `gates.yml`), `check_tasks.py v0.3`, with commands and results in the Execution Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- After task-077 (G-03.4 needs the side panel): start from task-062's design and the Execution
+  Notes of task-020 (the documentation renderer, its links, W3-36) and `adr-002`.
+- Security: a security-adversarial reviewer who runs the tools checks that no raw HTML, script URL
+  or image load passes the renderer, and that the Documentation view is unchanged.
+- G-08.x commit through the console: the strict-identity recipe of `test/README.md` *Git identity*
+  (dl-011).
 
 ## Execution Notes
-
-<!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
-     incrementally per phase, not written after the fact. Raw material for the release's Execution
-     Notes / the retrospective, not the retrospective itself.
-     - design: tech-specs found missing/needing revision (`definition-of-done` › design).
-     - red/green/refactor: deviations from the plan above, blockers, scope surprises.
-     - review: rejection reasons and what changed on the next pass. -->
