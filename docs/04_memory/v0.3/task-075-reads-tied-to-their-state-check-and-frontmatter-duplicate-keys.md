@@ -273,3 +273,55 @@ Relayed by the coordinator, the approver: "tutto come consigliato".
 
 The out-of-scope finding of P3 (an empty key) is bug-040, open, triage pending: not implemented
 here unless the coordinator relays that it is absorbed.
+
+### red / green / refactor (2026-11-11)
+
+- **Dependencies** (`9d2f09e0`, a commit of its own for the lock): `js-yaml` 4.3.2 exact and
+  `@types/js-yaml` as devDependencies (D75-10).
+- **bug-037 red** (`6c10a755`): `test/server/reads/frontmatter.test.ts` 10 failed of 17 (its old
+  characterization line `1:`/`"1":` read was turned into the refusal), `yaml-keys.test.ts` (the
+  differential table, 104 rows) 49 failed of 106, `frontmatter-cli.test.ts` 1 failed of 1 (the
+  pinned CLI half passed; the server half failed).
+- **bug-037 green** (`29d59b43`): `server/src/reads/yaml-keys.ts` and `duplicateKey` of
+  `frontmatter.ts`; all three files pass. Deviations from D75-9, none of behaviour: the refusal
+  quotes the key's source text by its range — the first line, at most 64 code points; a tag is not
+  part of the range, so `!!binary aGk=` is quoted `aGk=` at its column. An aliased sequence's form
+  is kept per parse (a `forms` map): many aliases of one long sequence cost its length once —
+  "an aliased sequence's form is computed once per parse" fails with the map removed (the guard
+  check, recorded). The table row `!!null ""` was dropped: js-yaml refuses it for its tag, not its
+  key ("cannot resolve a node with !<tag:yaml.org,2002:null> explicit tag"), replaced by
+  `!!null null`. spec-001 Process Note, CHANGELOG *Fixed*.
+- **bug-034 red** (`311c1849`): `read-tie.test.ts` 7 failed of 9 (an element file, `ui.yaml`,
+  `memory.yaml`, the index, a directive file, a CLI read after a watcher event, the `repo` after a
+  drop; the two passing tests guard what must stay cached), `tie.test.ts` 19 failed of 19 (the
+  verdict module as a stub), the `/config` sequence of `ui-config-route.test.ts` 1 failed.
+- **bug-034 green** (`445aee29`): D75-1 … D75-8 as designed. Deviations, none of behaviour:
+  - the `ui.yaml` mark is returned beside the entry (`readMarkedUiYaml`, `readUiYaml` unchanged)
+    rather than added to `UiYamlEntry`, so no consumer of the entry changes;
+  - a witnessed read also reports a file that does not resolve or cannot be read (`undefined`):
+    a clean file deleted and put back between two checks is tied too;
+  - the `repo`-after-a-drop test uses `assume-unchanged`: with a plain edit the drop's own check
+    finds the edited state (a new key, published anyway), so only a check that git keeps on the
+    same key shows the forced event; guard check recorded (the test fails without the forced
+    publish), as for the suspects (the `assume-unchanged` test fails without their acceptance);
+  - the `/config` test takes the state key from the first view, before the drop's check.
+  - The process audits count the one `git ls-tree` (D75-2): `process-audit` cold Memory list 8 → 9
+    git, the cold `/config` with an ignored `ui.yaml` gains `ls-tree`; `memory-events` reads
+    `memory.yaml` before counting the two git processes of the events; `reference-index` asserts one
+    `ls-tree` for the state and none started by the index; `held-gates-routes` D55-9 one `ls-tree`
+    (the ties') and still one element file read (no index). No CLI process was added anywhere.
+- **Functions changed in `server/src/snapshot/snapshot.ts`** (for task-059): `view()` (its memo:
+  an optional third argument `kind`, the per-entry witness and verdict, the dead holders),
+  `runCheck()` (the marks, sequence, event count, the forced publish), `headBlobs()` (its folders,
+  `blobDirectories`), `referenceIndex()` (`blobs(memoryYaml)`, the witnessed `fs` from the memo's
+  tools), the new `touched()`; each `SnapshotView` read passes its kind. `derived()` and a
+  `contentDerived()` built on `this.memo(name, compute)` need no change (kind `none`).
+- **Refactor**: none beyond the `bound` holder that replaced a late-assigned `let` (lint
+  `prefer-const`); the view's memo keeps its closures next to the state they tie.
+- **Local checks** (load 9.7–18.4): `npm run typecheck`, `lint`, `format:check` clean; `npm run
+  docs:api` generated; `check_tasks.py v0.3` OK; `npx vitest run test/server` 2 248 tests, 25 failed
+  — 18 in `reads/ui-yaml*`, `reads/project-reads` (files edited during that run, all passing
+  re-run alone: 51 passed) and the 7 expected audit counts above, then 19 passed after the update;
+  the strict-identity run (a `git` wrapper outside the repository with `-c user.useConfigOnly=true`
+  and the `followRemoteHEAD` emulation, *Git identity*) of `read-tie`, `frontmatter-cli`,
+  `process-audit`, `ui-config-route`: 33 passed.
