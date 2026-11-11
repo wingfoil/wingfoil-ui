@@ -9,7 +9,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies, each validated against its schema */
 import { Ajv } from 'ajv';
 import type { FastifyInstance } from 'fastify';
-import { readdir, readFile, realpath } from 'node:fs/promises';
+import { readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Writable } from 'node:stream';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -75,7 +75,22 @@ const VARIANTS = {
     await git(fx.dir, ['checkout', '-q', 'main'], fx.env);
   },
 } satisfies Record<string, (fx: Fixture) => Promise<void>>;
-type Variant = keyof typeof VARIANTS;
+
+/** The kanban variants (review round 1 F-2): every type shares `defaults.states`. */
+const KANBAN_VARIANTS = {
+  // `defaults.states` with `limits: { approved: 1 }`: `task-003-logout` holds the task's slot,
+  // no bug is `approved` — the count is per type.
+  perType: async (fx: Fixture) => {
+    const file = path.join(fx.dir, '.wingfoil/memory.yaml');
+    const text = await readFile(file, 'utf8');
+    const line = '    sequence: [ draft, pending, approved ]\n';
+    if (!text.includes(line)) throw new Error('the kanban defaults no longer have the sequence this variant extends');
+    await writeFile(file, text.replace(line, `${line}    limits: { approved: 1 }\n`));
+    await git(fx.dir, ['add', '.wingfoil/memory.yaml'], fx.env);
+    await git(fx.dir, ['commit', '-q', '-m', 'chore(wingfoil): one approved per type (test variant)'], fx.env);
+  },
+} satisfies Record<string, (fx: Fixture) => Promise<void>>;
+type Variant = keyof typeof VARIANTS | keyof typeof KANBAN_VARIANTS;
 
 let ws: TempWorkspace;
 const variants = {} as Record<Variant, Fixture>;
@@ -89,6 +104,11 @@ beforeAll(async () => {
   const template = await buildFixture('custom', { root: path.join(root, 'custom') });
   for (const [name, prepare] of Object.entries(VARIANTS) as [Variant, (fx: Fixture) => Promise<void>][]) {
     variants[name] = await copyFixture(template, path.join(root, `variant-${name}`));
+    await prepare(variants[name]);
+  }
+  const kanban = await buildFixture('kanban', { root: path.join(root, 'kanban') });
+  for (const [name, prepare] of Object.entries(KANBAN_VARIANTS) as [Variant, (fx: Fixture) => Promise<void>][]) {
+    variants[name] = await copyFixture(kanban, path.join(root, `variant-${name}`));
     await prepare(variants[name]);
   }
 }, 600_000);
@@ -212,5 +232,26 @@ describe('state-limit through the routes (spec-003 §6 rule 5)', () => {
     expectSchema('write.refusal.schema.json', res.body);
     expect(res.body.error.code).toBe('cli-refused');
     expect(res.body.error.message).toMatch(/WIP limit reached for 'active' on type 'sprint' \(limit 1\)/);
+  }, 300_000);
+
+  it('review F-2 — the count is per type: a task holds the limited state, the bug’s approve stays enabled', async () => {
+    const c = await start('perType');
+    const list = await c.get(`/api/p/${c.pid}/elements`);
+    expect(list.status, JSON.stringify(list.body)).toBe(200);
+    expectSchema('elements.schema.json', list.body);
+    const approveOf = (id: string) => descriptorOf(list.body, id).verbs.find((v: any) => v.verb === 'approve');
+    expect(approveOf('task-001-login-form')).toEqual({
+      verb: 'approve',
+      to: 'approved',
+      role: 'approver',
+      enabled: false,
+      reason: { code: 'state-limit', state: 'approved', limit: 1 },
+    });
+    expect(approveOf('bug-001-crash-on-save')).toEqual({
+      verb: 'approve',
+      to: 'approved',
+      role: 'approver',
+      enabled: true,
+    });
   }, 300_000);
 });

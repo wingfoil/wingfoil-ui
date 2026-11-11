@@ -218,3 +218,19 @@ describe('parseMemoryYaml — limits (task-073)', () => {
     expect(resolveStates(parsed, 'a')).toEqual({ sequence: ['draft', 'doing', 'done'], limits: { doing: 1 } });
   });
 });
+
+describe('parseMemoryYaml — limits keyed by an Object built-in name (task-073 review F-1)', () => {
+  it.each(['constructor', 'toString', '__proto__'])(
+    'keeps a limit on %s as an own entry, and reads no other',
+    (name) => {
+      const parsed = parseMemoryYaml(
+        `version: 1\ntypes:\n  a:\n    path: a/{id}.md\n    states:\n      sequence: [ draft, "${name}", done ]\n      limits: { "${name}": 2 }\n`,
+        FILE,
+      );
+      const limits = parsed.types.a?.states?.limits;
+      expect(limits && Object.hasOwn(limits, name)).toBe(true);
+      expect(limits?.[name]).toBe(2);
+      expect(Object.keys(limits ?? {})).toEqual([name]);
+    },
+  );
+});

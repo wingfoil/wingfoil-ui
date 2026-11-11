@@ -137,3 +137,38 @@ describe('state-limit — the descriptor (spec-003 §6 rule 5)', () => {
     expect(asked).toEqual(['sprint/active']);
   });
 });
+
+// Review round 1 F-1: a state named after an Object built-in is no limit unless `limits` declares it
+// (a plain-object lookup returned `Object.prototype`'s member: `limit` a function, or `{}`).
+describe('state-limit — a state named after an Object built-in (review F-1)', () => {
+  const machineWith = (name: string, limits: string) =>
+    parseMemoryYaml(
+      `version: 1\ntypes:\n  a:\n    path: a/{id}.md\n    states:\n      sequence: [ draft, "${name}", done ]\n      limits: ${limits}\n`,
+    );
+  const describeIn = (name: string, limits: string, count: number) =>
+    describeElement(el('a', 'draft'), [], {
+      memoryYaml: machineWith(name, limits),
+      members,
+      enablement: ENABLED,
+      occupancy: () => count,
+    });
+
+  it.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf', '__proto__'])(
+    'a next state %s that declares no limit: the submit is enabled',
+    (name) => {
+      const d = describeIn(name, '{ done: 1 }', 0);
+      expect(d.verbs).toEqual([{ verb: 'submit', to: name, role: null, enabled: true }]);
+    },
+  );
+
+  it.each(['constructor', 'toString', '__proto__'])('a limit declared on a state named %s applies', (name) => {
+    const d = describeIn(name, `{ "${name}": 1 }`, 1);
+    expect(d.verbs[0]).toEqual({
+      verb: 'submit',
+      to: name,
+      role: null,
+      enabled: false,
+      reason: { code: 'state-limit', state: name, limit: 1 },
+    });
+  });
+});
