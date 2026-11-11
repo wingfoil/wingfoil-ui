@@ -78,3 +78,200 @@ its design's decisions (D59-1 … D59-15, Q2 … Q7 as approved) apply.
   regenerated, never merged by hand.
 
 ## Execution Notes
+
+### design (2026-11-11)
+
+Read (dl-015): this task; task-059's file in full (design D59-1 … D59-15, the approved Q1 (c),
+Q2 … Q7, red / green / refactor, review rounds 1 … 3 with F-1 … F-9, the checker's G-1, N-1, N-3,
+N-4); spec-012 §1, §4, §7 … §11 and every Process Note; spec-004 §3, §5; the scenarios of
+`r/traceability.feature` and `02_bdd/00_conventions.md` *Preset variant*; directive
+`definition-of-done` 1.4 *build › design*. The merged code it builds on (`f3dc2130`):
+`server/src/project-state/` (`bodies.ts`, `current.ts`, `figures.ts`, `missing.ts`, `order.ts`,
+`percent.ts`), `server/src/references/index.ts` (the index interface), `server/src/http/
+project-routes.ts` (`ProjectRead`, `elements`, `progressOf`, `missingOf`, the `route` helper),
+`server/src/snapshot/snapshot.ts` (`derived`, `contentDerived`), `server/src/presets/api.ts`,
+`contracts/api/progress.schema.json`, `elements.schema.json`, `contracts/src/progress.ts`; the
+tests `test/server/http/progress-routes.test.ts`, `text-sweep.test.ts`, `project-routes.test.ts`
+(the `failLog` events failure), `test/server/project-state/support.ts`, `figures.test.ts`,
+`test/contracts/progress-api-schema.test.ts`, `test/e2e/performance.spec.ts` (task-059's AC-7
+block), `test/harness/fixtures/progress.ts`.
+
+No new probe: the route adds no process and no read beyond those task-059's P1 and P4 listed for
+a cold Traceability (the index, `memory search`, `memory.yaml`, `ui.yaml`, the DNA and the
+events, each once per state); the process audit of AC-3 is the check. The figures behind R-01.1
+are P1's (completion 25 %, coverage 3/5).
+
+#### Re-check of task-059's module against the merged code
+
+- D59-1 named `traceability.ts` in the module; task-059 did not create it (split, W2-6): it is
+  this task's. There is no coverage figure yet (`/progress` has none): new here.
+- D59-8 checked `scope` "through a Fastify query schema … after the `:pid` lookup (404 first)":
+  Fastify validates the query before the handler, so a schema would answer 400 for an unknown
+  `:pid` with a bad `scope` (`/elements?archived=` already does — `project-routes.test.ts` checks
+  the 400 on a known `:pid` only). The check moves into the handler, as `/progress` and `/today`
+  do (D74-3).
+- D59-9 memoised the body "per full key through `derived`". The merged `/elements` reads the
+  Memory events per request and does not keep a failed read (`ProjectRead.events`), and `/today`
+  keeps its rows per state but writes the descriptor texts per request (the sanitiser's roots,
+  task-056 review round 1). A memoised body carrying `eventsError` or pre-sanitised descriptors
+  would break both: D74-5.
+- `figures.ts` keys a reference by `referenceKey` (target id, or escaped value) without its kind;
+  D59-8 keys a traceability row by `(element, id)`. They differ only when an element carries its
+  **own** id as a value that a pattern matches (rule 1 excludes the own id, rule 2 may apply):
+  Q3.
+
+#### Decisions (D74-n)
+
+- **D74-1 — The rows in `server/src/project-state/traceability.ts`** (pure, no I/O, as D59-1):
+  `traceabilityRows({ index, ui, current, applied })` → the reference rows; `coverageFigure` in
+  `figures.ts` beside the others; `traceabilityBody` in `bodies.ts` (the one place the body is
+  written, D59-10). The route in `project-routes.ts` only gathers the reads.
+- **D74-2 — Rows (spec-012 §4, D59-8 as approved).** For each readable element in the applied
+  scope (`inScopeElements`: the current element's scope with `applied: current`, every listed
+  element with `project`), each of its references **with a category** (TQ-1 (b): every category,
+  not only `requirement`/`feature`) adds the element to the row keyed by `(kind, key)` — `key` =
+  `referenceKey` (the target's id, or the escaped value, §9). `element: true` for an element
+  reference; its `category` the target type's; a pattern row's category the matching entry's (two
+  raw values with one escaped text and different entries: the category of the first one met in
+  index order, then value order — Q3). With `project`, each listed element whose type's category
+  is `requirement` or `feature` (`COMPLETION_CATEGORIES`) and that no element references adds a
+  row `{ element: true, linked: [], done: 0, total: 0, percent: null, status: no-elements }`.
+  `linked` in natural order; `done` = finished linked, `percent` = `percentOf`, `null` when
+  `total` is 0; `status` `completed` / `in-progress` / `not-started` / `no-elements` as §4. Rows in
+  natural id order, ties (same id, two kinds) element row first. The status words and `done`
+  through `server/src/presets/api.ts` (`in-progress` and `done` are fixture state names,
+  REQ-ARC-05).
+- **D74-3 — The query (§4, §10).** Checked in the handler after the `:pid` lookup: no key but
+  `scope`, and `scope` absent, `current` or `project` (a repeated `scope` arrives as an array →
+  400 `invalid-request`). Then the refusals in `/progress`'s order: `memory.yaml` (502
+  `read-error`), `ui.yaml` read, `memory search` (its CLI envelope), so no partial body.
+- **D74-4 — The body.** `ui` = `ui.status`; `patterns` = the effective pattern list is non-empty;
+  `scope { type (escaped, as /progress), current (ElementRef | null), applied }` with `applied` =
+  `current` only when asked and `currentElement` finds one; `figures.completion` =
+  `completionFigure` over the applied scope (`current` passed as `undefined` with `project`);
+  `phaseCompletion` the `read-only` of `/progress` (the `workflow-position` reason);
+  `coverage` — `no-requires` when `requires` is empty, else `total` the listed readable elements
+  whose type has `requires`, `carrying` those `missingCategories` does not name, `percent`
+  `percentOf` (Q2 for `total` 0); `referencesWithoutElements` the `no-elements` rows (0 with
+  `current`); `missing` = `missingOf` (the `/elements` flag, its content-key memo reused) as
+  `{ id, categories }` in natural order; `elements` = every id `linked`, `missing` or an element
+  row's `id` names, once, natural order, each the `/elements` row (D74-6) plus `done` (the
+  index's `finished`) and `inScope` (Q1); `unreadable`, `capped` from the index in natural order;
+  `eventsError` as `/elements`.
+- **D74-5 — Caching (AC-3, §8).** The structural part — rows, figures, `missing`, the element ids
+  and their raw descriptors — is a `derived` value per full key and per `applied` (`traceability
+  rows\0current|project`; descriptors read the copy, rule 4), computed only when the Memory events
+  were read: with `eventsError` it is computed for that request and not kept, as `/elements`
+  keeps nothing of a failed events read. The descriptor texts and the titles are written per
+  request with the request's sanitiser (`descriptorBody`, `matchBody`), as `/today` does. The
+  index, `missingOf` and `currentRef` stay task-059's content-key memos. No new event; every
+  answer carries `X-Repo-State`.
+- **D74-6 — One row builder.** The `/elements` item moves to `elements.schema.json`
+  `definitions.row` (shape unchanged, `elements.items` a `$ref`); in `project-routes.ts` the row of
+  `elements()` becomes `listedRow(match, localChanges, …)`, used by both routes. The traceability
+  rows carry no `missingCategories` (the `missing` section holds them).
+- **D74-7 — Contracts.** `contracts/api/traceability.schema.json` (new, every object
+  `additionalProperties: false`): `completion` and `readOnly` by `$ref` to `progress.schema.json`
+  (its `completion` moved to `definitions.completion`, shape unchanged), `ids` its `definitions.ids`,
+  `elementRef` `ui-config.schema.json`'s, the row `elements.schema.json#/definitions/row` plus
+  `done`, `inScope` — draft-07 has no `unevaluatedProperties`, so the traceability item is
+  `allOf: [row]` with its own `properties` naming the row's keys (`true`) plus `done`, `inScope`,
+  and `additionalProperties: false`; `definitions.row` keeps its own closure, so a row key the
+  item does not name fails, and a key added to the row fails the contract test until it is named
+  here; `eventsError` `error.schema.json`. `contracts/src/traceability.ts` (types), exported from
+  `contracts/src/index.ts` (append-only).
+- **D74-8 — K1 (AC-4, §9).** Titles (`elements[].title`, `scope.current.title`) through
+  `matchBody` / `elementRef`; pattern row ids and `completion.references[].id` the escaped keys;
+  `scope.type` escaped; ids, types, states, `linked`, `missing[].id` as `memory search` returns
+  them. The only inputs are `:pid` and `scope` (an enum checked by equality): no path, regular
+  expression or command.
+- **D74-9 — The text sweep** (append-only, task-072 adds its guards to the same file): the routes
+  `['traceability', '/traceability']` and `['traceability', '/traceability?scope=project']`, and
+  rules for the fields: `.ui.warning.failure` (a); `.scope.type`, `.scope.current.title`,
+  `.references[].id`, `.figures.completion.references[].id`, `.elements[].title` (b);
+  `.scope.current.(id|shortId|type|status)`, `.references[].linked[]`,
+  `.figures.completion.ids[]`, `.missing[].id`, `.elements[].(path|id|shortId|type|status|tags[])`,
+  `.unreadable[]`, `.capped[]` (c); `.figures.phaseCompletion.reason.*`, `.eventsError.code` (e);
+  `.eventsError.message` (a); the row descriptors by the existing `DESCRIPTOR` rule.
+- **D74-10 — Timing (AC-5, REQ-PERF-04).** A third test in task-059's `performance.spec.ts` block
+  (its `presetConsole`): `/traceability` and `/traceability?scope=project` warm p95 ≤ 1.0 s on the
+  `large` fixture with the preset, budget asserted under `test:timing` only (task-059 Q7 (a): the
+  coordinator's run at the wave gate is the evidence); in `test:e2e:chromium` it runs unasserted.
+
+#### Acceptance criteria: red first or characterization
+
+All red first (the route, the schema, the rows, the coverage figure do not exist), but:
+characterization — the `/elements` schema and responses after the row moves to
+`definitions.row` (the existing `elements` suites stay green); "unknown `:pid` → 404" with a bad
+`scope` passes before the route exists (Fastify's own 404): after green it is seen failing with the
+check moved to a Fastify query schema, then restored (recorded).
+
+#### Files
+
+New: `contracts/api/traceability.schema.json`, `contracts/src/traceability.ts`,
+`server/src/project-state/traceability.ts`, `test/server/http/traceability-routes.test.ts`,
+`test/server/project-state/traceability.test.ts`, `test/contracts/traceability-api-schema.test.ts`.
+Changed: `contracts/api/elements.schema.json` (`definitions.row`), `contracts/api/progress.schema.json`
+(`definitions.completion`), `contracts/src/index.ts`, `server/src/project-state/figures.ts`
+(`coverageFigure`), `bodies.ts` (`traceabilityBody`), `server/src/presets/api.ts` (status words),
+`server/src/http/project-routes.ts` (route, `listedRow`, module table), `test/server/http/
+text-sweep.test.ts` (D74-9), `test/e2e/performance.spec.ts` (D74-10), `test/README.md` (0.78),
+`CHANGELOG.md` *Unreleased*, spec-012 Process Note (Q1 … Q3, D74-3) with the green commit. The
+route test file builds its own variants once (bug-028) with a console helper like
+`progress-routes`' (the two files stay apart: one console per test, bug-023). spec-004 §3 already
+lists the route: no change.
+
+#### Test plan (AC and scenario → file › title)
+
+| AC / scenario | Test |
+|---------------|------|
+| AC-1 shape: schema on the custom fixture (preset, plain), the unknown fixture, both scopes; `applied`; `patterns`; rows of every category and the `no-elements` rows with `project`; `elements` with `done`/`inScope`; figures | `test/server/http/traceability-routes.test.ts` › "AC-1 …"; units in `test/server/project-state/traceability.test.ts` (rows by kind and key, status codes, the `current` omission, natural order and the tie, `percent: null`, coverage and `no-requires`, Q1 … Q3) |
+| AC-1 contract | `test/contracts/traceability-api-schema.test.ts` (Ajv strict; module bodies pass; an unknown key, a bad `status`, a `percent` above 100, a bad `applied` fail; `elements` still valid with `definitions.row`) |
+| AC-2 §10 rows | `traceability-routes` › "§10 unknown :pid → 404 (also with a bad scope)", "a bad scope, another parameter, a repeated scope → 400", "memory search fails (exit 1, 2) → the CLI envelope, as /elements", "memory.yaml unreadable → 502 read-error", "ui.yaml missing / ignored → 200, inferred values", "an unreadable file and one with 201 values → unreadable / capped", "events fail → eventsError, descriptors without events", "dna show fails → no field, member actors fall back" |
+| AC-3 caching and processes | `traceability-routes` › "a repeated /traceability (both scopes) starts 0 processes; X-Repo-State", "a cold Traceability: each CLI command at most once, one ls-tree, none per element", "an events failure is not kept: the next request reads the events again" |
+| AC-4 K1 | `traceability-routes` › "K1 a bidi and a C1 control in a title and in a reference value come back escaped"; `test/server/http/text-sweep.test.ts` (D74-9) |
+| AC-5 timing | `test/e2e/performance.spec.ts` › "AC-5 (task-074) — /traceability answers within 1.0 s (p95, warm cache), both scopes" (`@perf`; `test:timing` the coordinator's) |
+| R-01.1 | `traceability-routes` › "R-01.1 List references with their completion — 25 %, coverage 3/5, US-M-01 50 % · 1/2, US-S-01 0 % · 0/1" |
+| R-01.5 | › "R-01.5 Show the rows outside the current release under the whole project — US-S-09 with scope=project only" (`setFrontmatterValue` dl-001 `ref: US-S-09`) |
+| R-01.6 | › "R-01.6 Show a pattern reference by its id only — element false, no title" |
+| R-01.7 | › "R-01.7 List references between Memory elements without ui.yaml — patterns false, dl-001 decision, linked task-001" (`related:` on task-001, no `ui.yaml`) |
+| R-01.8 | › "R-01.8 Open the elements missing required references in Memory — missing = task-004-themes, adr-001-local-server" |
+| R-01.9 | › "R-01.9 Filter references by category — the requirement rows US-M-01 and US-S-01" |
+| R-01.2, R-01.3, R-01.4 (their e2e in task-067; API facts only) | › "R-01.2 … the linked elements' rows: task-002 done, task-003's descriptor" (pre-packs + preset), "R-01.3 … no row completed", "R-01.4 … unknown fixture: references [], patterns false" |
+
+#### Gates and where they run
+
+Local: `typecheck`, `lint`, `format:check`, `docs:api`, targeted `npx vitest run <files>
+--maxWorkers=2` (the git-touching route file also under the strict-identity recipe, dl-011),
+`check_tasks.py v0.3`, `test/docs/public-text.test.ts` before each push. On `gates.yml` (the
+push of this branch): `test:coverage`, `test:contract`, `test:e2e:chromium`, the smokes; the own
+spec `performance.spec.ts` (no test on Firefox/WebKit: "nothing to run", task-059 F-4). No local
+Playwright (2026-11-11 rule). `test:timing`: the coordinator's, at the wave gate.
+
+#### Size (RP3-20 G2)
+
+About **0.9 active day**: contracts 0.1; `traceability.ts`, coverage, the body 0.25; the route,
+`listedRow`, caching 0.15; unit, contract and route tests (8 scenarios, §10, K1, audit) 0.3;
+sweep, timing test, docs 0.1. No split.
+
+#### Questions (one recommendation each)
+
+- **Q1 — `inScope` under `applied: project`.** §4 says "`inScope` the rule of §1", and §1 puts
+  every element in scope when there is no current element. With `scope=project` while a current
+  element exists: (a) `inScope` relative to the current element whenever one exists, whatever
+  `applied` (all `true` only with no current element); (b) all `true` with `applied: project`.
+  **Recommended (a)**: the Whole project view can still mark the current release's elements, and
+  `inScope` means one thing in both scopes.
+- **Q2 — `coverage` when `requires` names types with no listed readable element** (`total` 0):
+  (a) `{ carrying: 0, total: 0, percent: null }` (`percent` `integer | null`, as a row's);
+  (b) `percent: 100`; (c) `unavailable` with `no-requires`. **Recommended (a)**: no invented
+  figure, the same rule as a reference row with `total` 0, and `no-requires` keeps its meaning
+  ("nothing is required").
+- **Q3 — Row identity in two edge cases** (no fixture has either): an element carrying its own id
+  as a value a pattern matches (a pattern row and an element row with one id), and two raw values
+  with one escaped text matched by different pattern entries. (a) Keep D59-8: rows keyed by
+  `(kind, key)`, the category of the first value met in index order; `completion` stays §3's (one
+  key per id, as `/progress`), so its hover list may merge what the rows split; both written in
+  the spec-012 Process Note. (b) Key `completion` by `(kind, key)` too (changes `/progress` for
+  the edge, two hover entries with one id). **Recommended (a)**: `/progress` and Traceability's
+  figure stay the same function, and the edge is declared, not hidden.
