@@ -388,4 +388,18 @@ describe('the preset fixture variant (task-054 AC-7, D54-10)', () => {
       ),
     );
   });
+
+  it('review round 2 F-8: a root preset commit (an orphan branch, task-060 F-7) is read with its path and accepted', async () => {
+    await git(dir, ['checkout', '-q', '--orphan', 'fresh'], env);
+    await git(dir, ['rm', '-rq', '--cached', '.'], env);
+    await mkdir(path.join(dir, '.wingfoil'), { recursive: true });
+    await commit(UI, 'version: 1\n', PRESET);
+    const [root] = await sessionCommits(dir, env, {
+      before: before.head,
+      head: await head(),
+      remoteBrought: before.head,
+    });
+    expect(root).toMatchObject({ subject: PRESET, parents: [], files: [UI] });
+    expect(isPresetCommit(root!, [])).toBe(true);
+  });
 });
