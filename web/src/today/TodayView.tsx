@@ -11,7 +11,10 @@
  * - *Waiting on others* — rows linking to the panel, with who must act (D36-6); hidden when empty;
  * - the all-roles summary of a member holding several roles, between the greeting and Requires you
  *   (task-042, D42-5; `RoleSummary.tsx`): a switch from it moves the focus to the Requires you
- *   heading once the new view is read (D42-6).
+ *   heading once the new view is read (D42-6);
+ * - v0.3 (task-061, D61-4 … D61-10): each card's type and state filters and its 10-row limit
+ *   (`CardRows.tsx`, keyed by the role view), and in each row the short id and the date its element
+ *   entered its state (`RowParts.tsx`).
  *
  * A refusal of `GET /today` (no partial Today, D31-3) is an error, never an empty list. A refetch
  * that changed the rows is announced in a polite status region (D36-11). Rows, order, actor, tone
@@ -31,6 +34,8 @@ import { useHowToJoin } from '../project/HowToJoin.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { greetingName, identityNote, rowReason, waitingWho } from './model.js';
 import { RoleSummary } from './RoleSummary.js';
+import { CardRows } from './CardRows.js';
+import { RowId, RowSince } from './RowParts.js';
 import './today.css';
 
 type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
@@ -130,6 +135,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
   return (
     <li className="today-row" data-eid={element.id}>
       <span className="type-tag today-tag">{element.type}</span>
+      <RowId element={element} />
       <span className="today-names">
         <Link
           className="today-title"
@@ -141,7 +147,10 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
         >
           {element.title}
         </Link>
-        <Reason row={row} now={now} />
+        <span className="today-meta">
+          <Reason row={row} now={now} />
+          <RowSince since={descriptor.since} />
+        </span>
       </span>
       <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
       <Button
@@ -213,8 +222,10 @@ function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
         }}
       >
         <span className="type-tag today-tag">{element.type}</span>
+        <RowId element={element} />
         <span className="today-waiting-title">{element.title}</span>
         <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
+        <RowSince since={descriptor.since} />
         <span className="today-who">
           <Who row={row} />
         </span>
@@ -398,11 +409,11 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
                   <FormattedMessage id="today.requiresYou.empty" />
                 </p>
               ) : (
-                <ul className="today-rows">
-                  {rows.map((row) => (
-                    <RequiresYouRow key={row.element.id} pid={pid} row={row} now={now} />
-                  ))}
-                </ul>
+                <CardRows
+                  key={data.view ?? ''}
+                  rows={rows}
+                  renderRow={(row) => <RequiresYouRow key={row.element.id} pid={pid} row={row} now={now} />}
+                />
               )}
             </section>
           )}
@@ -411,11 +422,11 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
               <h2 className="today-card-title" id={waitingId}>
                 <FormattedMessage id="today.waiting.title" />
               </h2>
-              <ul className="today-rows">
-                {data.waitingOnOthers.map((row) => (
-                  <WaitingRow key={row.element.id} pid={pid} row={row} />
-                ))}
-              </ul>
+              <CardRows
+                key={data.view ?? ''}
+                rows={data.waitingOnOthers}
+                renderRow={(row) => <WaitingRow key={row.element.id} pid={pid} row={row} />}
+              />
             </section>
           )}
         </>
