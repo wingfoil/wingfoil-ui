@@ -331,8 +331,11 @@ describe('GET /api/p/:pid/progress — the figures on the fixtures (TT-STATE-08)
     300_000,
   );
 
-  it('TT-STATE-08 fit criterion (checker N-3): pre-packs states and the preset — pending gates 3, then 2 once bug-001 is triaged (a gate and a waiting state)', async () => {
+  it('TT-STATE-08 fit criterion (checker N-3): pre-packs states and the preset — pending gates 3', async () => {
     expect((await progress(await start('prePacks'))).figures.pendingGates.count).toBe(3);
+  }, 300_000);
+
+  it('TT-STATE-08 fit criterion (checker N-3): pending gates 2 once bug-001 is triaged (a gate and a waiting state)', async () => {
     const c = await start('prePacksTriaged');
     const body = await progress(c);
     const list = await c.get(`/api/p/${c.pid}/elements`);

@@ -560,6 +560,9 @@ and a test-plan row out of date). Fixed in one round:
   pending gates 3, then 2 once bug-001 is triaged" (`usePrePacksStates` + `usePresetUiConfig`, then
   Morgan's `memory approve` of `bug-001-toast-overlap` → `triaged`, descriptor kind `gate-waiting`,
   pending gates 2 without it). Both pass on the code; with `pendingGatesFigure` counting
-  `gate-waiting` too both fail (1 failed each), code restored.
+  `gate-waiting` too both fail (1 failed each), code restored. Run `43090822255` (`160d3d94`): every
+  job green but coverage — `test/lint/one-console-per-test` (bug-023): the API case started two
+  consoles; split into "… pending gates 3" and "… pending gates 2 once bug-001 is triaged" (`test/lint`
+  121 passed locally, the two cases 2 passed under the strict-identity wrapper).
 - N-4: AC-9 amended with a dated note (heavy gates on `gates.yml`, `test:timing` the
   coordinator's); the test plan's T-12.x row cites TT-STATE-08's list.
