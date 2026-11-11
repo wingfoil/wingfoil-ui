@@ -64,3 +64,270 @@ It runs after task-070, which changes the same adapter and its warnings.
 ## Execution Notes
 
 <!-- Running log per phase: design, red / green / refactor, review. -->
+
+### design (2026-11-11)
+
+Read (definition-of-done 1.4 › build › design): this task, bug-035; task-056's Execution Notes
+(its AC-1 enumeration, D56-1 … D56-13, review rounds 1–2: `rejection_reason`, the m2/m3
+reclassifications that grew bug-035); task-070's (D70-3 `mergeToolLines`, D70-11 the sweep's
+`cli.refusal` row, R2-F2 `capMessage`); spec-004 §3, §5 and its Process Notes; spec-012 §9;
+the stage plan's W2-1 … W2-6. The code at `642beabe`: `server/src/git/redact.ts` (`neutralise`,
+`neutraliseKeepingBackslashes`, `redactLocalPaths`, `capMessage`), `server/src/http/serialise.ts`,
+`server/src/http/project-routes.ts` (`header`, `config`, `directives`, `directive`, `docs`, the
+file routes, history, `refusalOf`), `server/src/http/projects.ts`, `server/src/projects/project-list.ts`
+(`already-listed`), `server/src/identity/identity.ts` (`matchIdentity`), `server/src/cli/commands.ts`
+(`toolText`), `server/src/writes/governed.ts` (`incomplete`), `server/src/launcher/start.ts` (the
+route registrars); `test/server/http/text-sweep.test.ts`, `test/harness/fixtures/hostile.ts`; the
+schemas of `contracts/api/` and `contracts/cli/dna-show.schema.json`, `workflow-list.schema.json`;
+the web's consumers of every field below (`team/model.ts`, `today/model.ts`, `project/model.ts`,
+`project/join.ts`, `dna/DnaView.tsx`, `directives/`, `docs/DocsIndex.tsx`, `docs/pages.tsx`,
+`docs/DocumentView.tsx`, `element/History.tsx`, `element/footer.ts`, `shell/ProjectSwitcher.tsx`,
+`shell/page-title.ts`, `shell/add-project.tsx`, `api/error-message.ts`).
+
+#### Probes (2026-11-11; one scratch project in the session's scratch folder, `init --template Kanban`, the pinned 0.3.1)
+
+| # | What | Result |
+|---|------|--------|
+| P1 | `dna show` with `project.name`, `description` and a member's `name`, `email` holding U+202E, ESC and BEL (written as YAML double-quoted escapes) | exit 0, every value returned **raw** (`'Proj \u202eeman\x1b[31m end'`, `'ann\u202e@example.test'`): no CLI-side refusal of control characters in the DNA |
+| P2 | `directives list` with a custom directive's `name` and `title` holding U+202E, ESC, BEL | returned raw, no warning |
+| P3 | `workflow list` with a workflow `description` holding U+202E and ESC | raw once **committed** (0.3.1 reads the committed baseline: the working-tree edit is not seen until then); no diagnostic |
+| P4 | a hand-committed `status: "bk\u202eg\x1b"` (scratch only) | `memory history` → `to` raw (`from: draft`); `memory search` → `status` raw — a key (D72-8, Q5) |
+| P5 | `git remote add origin` with U+202E and ESC in the URL; a committed file name holding ESC and U+202E under `docs/guide/` | git accepts both; `remote get-url origin` prints them raw |
+
+No console was started and no heavy gate ran. The task adds no process (D72-15): what the console
+runs, with which environment, and the `.git` snapshot are those of task-056's P6–P8.
+
+#### AC-1 — the enumeration (every string field of every API body that carries repository text)
+
+Classes as task-056's table: **(a)** tool and commit text → `redactLocalPaths`; **(b)** repository
+display text → `neutralise`; **(c)** key → raw; **(d)** document content → as written. Server-made
+or validated strings (e) — fixed messages, enums, shas, dates, numbers, the caller's own input — are
+left out of the table (task-056's table lists them). *Now* is the code at `642beabe`; **bold**
+rows change here. A value that is a key *and* shown gets a display sibling (D72-6).
+
+| Route (schema) | Field | Source | Class | Now | Here |
+|----------------|-------|--------|-------|-----|------|
+| `GET /api/p/:pid` (`project`) | **`name`** | DNA `project.name`, else the stored name | **(b)** | raw | escaped (D72-4) |
+| | **`identity.name`**, **`identity.members[]`** | DNA member names | **(b)** | raw | escaped (D72-3) |
+| | **`identity.email`** | the user's effective git email (not committed text) | **(b)** (Q3) | raw | escaped, after the match (D72-3) |
+| | `identity.roles[]`, `roleViews[]`, `roleView` | DNA roles | (c) | raw | — (the page sends a role view back) |
+| | `repository.branch`, `upstream`, `sync.update.lastError.detail.files[]` | git | (b) | escaped | — |
+| | `wingfoil.text`, `dnaError.message`, `sync.*.lastError.message` | tools | (a) | sanitised | — |
+| `GET /config` (`config`) | **`dna.data.*`** — every string leaf: `project.*`, `modules[].name`, `description`, `path`, `stacks.*`, `team.members[].name`, `email`, `team.roles[].description`, `team.agents[].name`, `paths.<key>[]`, and any field a newer CLI adds | `dna show` | **(b)** | raw | escaped by default (D72-2) |
+| | `dna.data.team.roles[].name`, `team.members[].roles[]`, `team.agents[].executes_as[]` | `dna show` | (c) | raw | — (role keys) |
+| | `paths.data.<key>[]` | `paths` | (c) | raw | — (addresses) |
+| | **`workflows.data`** 0.2.x: `workflows[].description`, `phases[].description`, `phases[].actions[]`, `phases[].produces[]`; 0.3.x: `workflows[].description`; any field a newer CLI adds | `workflow list` | **(b)** | raw | escaped by default (D72-2) |
+| | `workflows.data` `manifest.include[]`, `workflows[].name`, `kind`, `element`, `phases[].name`, `role`, `approval.by_role`, `fallback.step`, `fallback.set_state`, `include`, `iterate_over` | `workflow list` | (c) | raw | — |
+| | `workflows.data.message`, `diagnostics[].*`; `*.warnings[]`, `*.error.message` | tools | (a) | sanitised | — (never escaped twice, D72-2) |
+| | `types.data.*` | `memory.yaml` | (c) | raw | — |
+| | `ui.*` (`ECHOED_UI_FIELDS`), `ui.progress.scope.current.title` | `ui.yaml`, task-059 | (b) | escaped | — |
+| `GET /elements`, `/elements/:eid`, `/today` | `*.title`, candidates' `title` | `memory search` | (b) | escaped | — |
+| | `id`, `shortId`, `type`, `status`, `path`, `tags[]`, `descriptor.{id,type,status,verbs[].to,verbs[].role,actor.role}` | `memory search`, `memory.yaml`, roles | (c) | raw | — (Q5) |
+| | **`descriptor.actor.member.name`**, **`.email`**, **`actor.members[]`** | DNA members | **(b)** | raw | escaped (D72-3) |
+| | `descriptor.rejection.*`, `frontmatter.rejection_reason`, `warnings[]`, `message`, `*Error.message` | commit text, tools | (a) | sanitised | — |
+| | `frontmatter.*` (but `rejection_reason`), `body` | the element file | (d) | as written | — |
+| `GET …/history` (`history`) | **`entries[].from`**, **`to`** | the file's `status:` at each commit (P4) | **(b)** | raw | escaped (D72-8) |
+| | `id`, `path` | `memory history` | (c) | raw | — |
+| | `entries[].subject`, `reason`, `author`, `approver` | commit text | (a) | sanitised | — |
+| `GET /events/memory` | `events[].type`, `id`, `from`, `to` | commit subject and patch | (c) | raw | — (keys the page compares, D56-8) |
+| | `events[].author`, `approver`, `reason` | commit text | (a) | sanitised | — |
+| `GET /directives` (`directives`) | **`entries[].frontmatter.name`**, **`title`** | `directives list` | **(b)** | raw | escaped (D72-5) |
+| | `entries[].path`, `frontmatter.{id,type,kind,tags[],ref[]}`, `roles[]`, `assignment` | `directives list` | (c) | raw | — |
+| | `warnings[]` | `directives list` | (a) | sanitised | — |
+| `GET /directives/:did` (`directive`) | **`entry.frontmatter.name`**, **`title`**, **`frontmatter.name`**, **`title`** (the heading and the page title) | the directive file | **(b)** | raw | escaped (D72-5) |
+| | the other `frontmatter.*`, `body` | the directive file | (d) | as written | — |
+| `GET /docs` (`docs`) | `documents[].path` | the working tree | (c) — the link's target, `/files/content?path=`, compared with the document links | raw | — |
+| | **`documents[].label`** (new) | the same path | **(b)** | — | added (D72-6) |
+| | `roots[]` | `paths.docs` | (c) — the `/files/tree` address, not shown | raw | — |
+| `GET /files/tree` (`file-tree`) | **`entries[].name`** | the working tree | **(b)** | raw | escaped (D72-7) |
+| | `path`, `entries[].path` | the working tree, the query | (c) | raw | — |
+| `GET /files/content` (`file-content`) | `path` | the query | (c) | raw | — |
+| | **`label`** (new) | the same path | **(b)** | — | added (D72-6) |
+| | `content` | the file | (d) | as written | — |
+| Error envelope (`error`), `read-error` | **`message`** (`Cannot read <file>: <kind>`), **`detail.file`** | a path from `memory search` or `directives list` | **(b)** — shown through `error.readError` | raw | the file escaped in both (D72-9) |
+| `write.refusal`, `write-incomplete` | **`detail.file`** | the element path or the path the CLI answered | **(b)** — shown through its catalogue line | raw | escaped (D72-9) |
+| `GET /api/projects`, `POST /api/projects`, `/projects/clone` (`projects.*`) | **`name`**, **`remote`** | DNA name (stored), `origin` without userinfo (P5) | **(b)** | raw | escaped (D72-4) |
+| `projects.refusal` `already-listed` | **`detail.name`**, the name in **`message`** | the stored name | **(b)** | raw | escaped (D72-4) |
+| `git.response` | `repository.*` | as the header | as the header | — | — |
+
+The error envelope's `detail` is an open object in `error.schema.json` (`detail: {}`), so the schema
+walk of the sweep cannot see `read-error`'s `detail.file`: its producers are enumerated by code
+here (`read-error`: `file`, `kind`; `not-found`: `kind`; `ambiguous-id`, `cli-refused`,
+`write-incomplete`, the project-list codes by their own schemas) and the case gets a route test
+(test plan). No other body takes repository text: `/api/server`, `/api/settings`, the event stream
+and `write.response` (`result` keys, `commits[].subject` checked equal to the CLI's form, `push.message`
+(a)) were re-checked.
+
+#### Decisions (D72-n)
+
+- **D72-1 — The class, for spec-004 §5 (AC-1).** *Repository display text* is any string a body
+  takes from the project — a committed or working-tree file (the DNA, a directive, a workflow,
+  `memory.yaml`, `ui.yaml`, an element), a file or folder name, the project's git configuration
+  (`origin`), the user's git email, or the console's stored copy of one — that the page only shows:
+  it passes through `repositoryText` (`neutralise`) where the route serialises it. A *key* is a
+  value the page sends back to the API, builds an address from, or compares with another key: it
+  stays raw. A value that is both gets a display sibling (D72-6). Commit and tool text (a) and
+  document content (d) keep their rules. spec-004 §5 names this class instead of a list, with a
+  dated Process Note; the field list lives in `serialise.ts`'s header and in the sweep.
+- **D72-2 — Open CLI sections are escaped by default.** `dna show` and `workflow list` accept
+  fields a newer CLI adds (their schemas allow additional properties) and `/config` passes their
+  data whole. `serialise.ts` gains `dnaBody(data)` and `workflowsBody(data)`: every string leaf is
+  escaped except the key paths of the table above (listed by path, as `ECHOED_UI_FIELDS` is) and,
+  in `workflow list` 0.3.x, the fields the adapter already sanitised (`message`, `diagnostics[]`;
+  `baseline.commit` a sha) — so nothing is escaped twice. Object keys are never changed (a record's
+  keys stay keys: `dna.data.paths.<key>`). A new CLI field is display text until it is listed as
+  a key — the safe direction. `dna.data.paths.<key>[]` values are display text (the DNA view shows
+  them; the addresses are `/config` `paths` and `/docs` `roots`, both (c)).
+- **D72-3 — Member names and emails escaped the same way in every body.** The DNA's
+  `team.members[].name`/`email`, `identity.name`, `identity.members[]`, `identity.email` and the
+  descriptor's `actor.member.name`, `.email`, `actor.members[]` all pass through the one function
+  after the server's own matching on the raw values (the identity by email, spec-002 §1; the
+  descriptor's actor). The web compares names across these bodies (Team's "you" and pending gates
+  `team/model.ts`, Today's greeting, the footer's members): equal raw values stay equal escaped,
+  and a test pins it. The Today rows' memo keeps the raw descriptor; the actor is written per
+  request with the title (task-056 n6's rule).
+- **D72-4 — The project's name and remote.** The header's `name`, and `name` and `remote` of every
+  project-list item (`GET /api/projects`, the answers of `POST /api/projects` and `/projects/clone`)
+  through one `projectItemBody`; `already-listed`'s `detail.name` and the name inside its `message`
+  escaped. The stored entry stays raw (`refreshEntry`, the duplicate-remote check `sameRemote`
+  compare raw values); `remote` is escaped after `stripUserinfo`.
+- **D72-5 — Directives.** `frontmatter.name` and `title` of each list entry and of the detail (its
+  `entry` and its `frontmatter`): the list's rows, the page's heading, the page title and the
+  article's label. `mine` is computed on the raw entries before. Every other frontmatter value stays
+  (d) or (c), as task-056 decided.
+- **D72-6 — A shown address gets a display sibling.** `documents[].path` is the link's target
+  (`documentHref`), the `/files/content` query and the set the document links are classified
+  against (`docs/pages.tsx`): it stays raw. `docs.schema.json` gains a required
+  `documents[].label` and `file-content.schema.json` a required `label`, each
+  `repositoryText(path)`; the TypeScript types follow (`contracts/src/api.ts`, appended). The
+  index shows the label (its folder and file name split from the label at the last `/`: the
+  escape never writes nor removes a `/`); the document page's heading and its page title show
+  `content.label` (the project name only until the content answers, so no raw path is ever
+  shown). spec-004 §3 amended with a dated Process Note.
+- **D72-7 — The file tree.** `entries[].name` escaped; `path` and `entries[].path` stay keys (no
+  web view reads the tree in v0.3; the Files view is v0.4's, RP3-7).
+- **D72-8 — A history entry's states.** `from` and `to` are only shown (`element/History.tsx`,
+  through `element.history.transition`); a hand-committed `status:` reaches them raw (P4): escaped
+  in `historyBody`. The element's own `status` stays a key (Q5).
+- **D72-9 — Error details shown through the catalogue.** `api/error-message.ts` puts every string
+  of `detail` into the catalogue's values: `read-error`'s `detail.file` (and the file inside its
+  `message`) and `write-incomplete`'s `detail.file` are repository paths, escaped in `refusalOf`
+  and `incomplete`; `kind`, `pid`, `command`, `commit` and the caller's own `path` are (e).
+- **D72-10 — The sweep after this task (AC-3) and the fields added after it.** In
+  `test/server/http/text-sweep.test.ts` the class (r) is removed from `TextClass` (no "known gap"
+  class remains) and its rows become (b) or (c) as above. Three guards, each failing for a field
+  or route added later — task-059's `/progress`, task-074's `/traceability`, task-062's element
+  page, whichever merges after this task — until it is handled:
+  1. *Schema leaves* (task-056's, unchanged): every string leaf of every response schema of
+     `contracts/api/` has a class.
+  2. *Route coverage* (new): the test app registers the route modules the launcher registers —
+     the registrar names read from `server/src/launcher/start.ts`, so a new module fails until the
+     sweep registers it — with an `onRoute` hook; every `GET` route is in the sweep's route table
+     (url → schema) or in a short exempt list with its reason (`/api/server`, `/api/settings`:
+     server-made; `/api/events`: the stream).
+  3. *Per-field reach* (new, AC-2): every (b) leaf of every swept schema is observed on the hostile
+     fixture holding the visible escapes `\u202e` and `\x1b` exactly once escaped (never
+     `\\u202e`); a leaf the pinned fixture cannot reach is listed with the test that covers it (the
+     0.2.x workflow fields, `identity.members[]`, the error details). A new display field fails
+     until the fixture reaches it.
+  The (c) leaves of the swept routes are compared with the CLI's values as today; the `ui`
+  section is still escaped once.
+- **D72-11 — The fixture (AC-2).** `test/harness/fixtures/hostile.ts` gains
+  `addHostileRepositoryText(fixture)` (appended; `addHostileText` unchanged, the commit-text suite
+  keeps it): on a kanban copy, U+202E and ESC in the DNA's project name, description, a module, a
+  technology, a methodology, a role description and an agent name; a member whose name and email
+  hold them, who is the fixture's identified user and holds a gate role (so `identity.name`,
+  `actor.member.*` and `actor.members[]` carry them); a custom directive's `name` and `title`; a
+  custom workflow's `description` (committed, P3); a hand-committed `status:` through the
+  harness's `handTransition` on the copy (as task-059 T-12.5, W2-6); an `origin` URL (P5, never
+  fetched: the test app runs no scheduler); a documentation file name. CLI verbs where the CLI has
+  one (`dna add …`), the DNA file written otherwise; fixture commits under the harness identity.
+- **D72-12 — The web (AC-4).** The web shows the strings as it gets them: no web code escapes, so
+  nothing is escaped twice; the only web changes are D72-6's (`docs/DocsIndex.tsx`,
+  `docs/pages.tsx`, `docs/DocumentView.tsx`). How to join's command (`project/join.ts`) then holds
+  an escaped email as written for such an email (Q3).
+- **D72-13 — Tests in files of their own** (W1-4 hot spots): `test/server/http/repository-text.test.ts`,
+  `test/web/docs/labels.test.tsx`, `test/web/team/escaped-names.test.tsx`,
+  `test/web/shell/repository-text.test.tsx`, `test/contracts/api-docs-label-schema.test.ts`;
+  appended cases in `test/server/http/serialise.test.ts`; `text-sweep.test.ts` changes as D72-10
+  (its `RULES` kept append-friendly for task-059 and task-074).
+- **D72-14 — Docs (AC-5).** spec-004 §3 (the two `label` fields) and §5 (the class, D72-1; the
+  "not escaped yet: bug-035" sentence replaced) with one dated Process Note, after the approver's
+  answers; spec-012 §9 holds as written (it states the class and the keys). `CHANGELOG.md`
+  *Unreleased* › *Fixed* (bug-035); `docs/user-guide.md` (task-056's *shown safely* paragraph
+  widened to every repository text); `test/README.md` version line and suites; `npm run docs:api`.
+- **D72-15 — No new process, no new cost class.** No CLI or git call is added: TT-PERF-05 and the
+  process audits are unchanged. The escape is linear and uncapped, as for titles (K1); an escaped
+  text may be up to six times its length, as K1 accepted.
+
+#### Test plan (red-first or characterization, scenario → file)
+
+| AC | Scenario | Kind | File |
+|----|----------|------|------|
+| AC-1 | the table above as the sweep's rules; no (r) class | characterization of the table | `test/server/http/text-sweep.test.ts` |
+| AC-2 | every (b) leaf of the swept routes reached with `\u202e` and `\x1b` once escaped | **red** (every bold row is raw today) | same (per-field reach) |
+| AC-2 | exact values: the header's name and identity, the projects list's name and remote, the DNA texts, a directive's name and title (list and page), a workflow description, history `from`/`to`, a file-tree name, the docs and content `label`; keys raw (roles, `paths`, `status`, `documents[].path` usable in `/files/content`) | **red** | `test/server/http/repository-text.test.ts` |
+| AC-2 | the same escaped name in `/config` `dna`, the header's `identity` and the descriptors' actor | **red** | same |
+| AC-2 | `already-listed`'s `detail.name` and `message`; an ambiguous identity's `members[]`; a `read-error` on a hostile path; `write-incomplete`'s `detail.file` | **red** | same (route cases; a unit case of the mapping where a route cannot reach it) |
+| AC-2 | `dnaBody`/`workflowsBody`: keys untouched, an unknown field escaped, the 0.2.2 sample's phase texts escaped, 0.3.x diagnostics not escaped twice | **red** | `test/server/http/serialise.test.ts` (appended) |
+| AC-3 | a GET route outside the route table, a registrar the sweep does not register, a (b) leaf not reached: each fails | **red** (the guards are new; guard-removal shown) | `test/server/http/text-sweep.test.ts` |
+| AC-4 | the docs index shows the label, links to the raw path; the document page's heading and title show `content.label` | **red** | `test/web/docs/labels.test.tsx` |
+| AC-4 | Team's "you" and pending gates with escaped names | characterization (equal stays equal) | `test/web/team/escaped-names.test.tsx` |
+| AC-4 | the header, the switcher, the directives list and page, the history line show `\u202e` as text, not twice | characterization | `test/web/shell/repository-text.test.tsx` |
+| AC-4 | the schemas with `label` | **red** | `test/contracts/api-docs-label-schema.test.ts` |
+| AC-5 | docs | — | review |
+| AC-6 | gates | — | below |
+
+Strict identity: `repository-text`, `text-sweep`, `commit-text`, `harness/git-identity` under the
+recipe of `test/README.md` *Git identity* before each push. e2e: no new spec (Q2); the specs of
+the screens touched run on the three engines.
+
+#### Gates and where (AC-6; dev rules Wave 2, W1-10, W2-4)
+
+- Local: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`,
+  `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`, targeted `npx vitest run <files>`, the
+  strict-identity suites, `npx vitest run test/docs/public-text.test.ts` before each push.
+- On `gates.yml` (the pushes of this branch; own specs `documentation.spec.ts`,
+  `directives.spec.ts`, `team.spec.ts`, `project-header.spec.ts`, `projects.spec.ts`,
+  `element-panel.spec.ts`, `dna.spec.ts`): `test:coverage`, `test:contract`,
+  `test:e2e:chromium`, the own specs on Firefox and WebKit. No smoke (no packaging, launcher or
+  bin change). Evidence: run id, commit, result.
+
+#### Size
+
+About **1.65 active days**: the server bodies (D72-2 … D72-9) 0.35; contracts and types 0.1; the
+fixture 0.25; the sweep's guards and the route suite 0.4; the web (D72-6) and its component tests
+0.25; docs 0.1; gates and the runs on GitHub 0.2. Over the one-day line: Q1.
+
+#### Questions
+
+- **Q1 — Split (RP3-20 G2).** (a) Two tasks: task-072 keeps the sweep's guards, the fixture and
+  the team texts (DNA, identity, actor, project name and list; ~1.0 d) and a new task takes the
+  directives, the documentation `label` (contract and web), the history states, the file tree,
+  the workflows and the error details (~0.65 d), the (r) class kept for its rows until it lands;
+  (b) no split, ~1.65 d. **Recommended (b)**: one security seam (one class, one sweep, one
+  hostile fixture, one adversarial review), the second half depends on the first's guards (no
+  parallel gain), and a split keeps the gap class open again, as task-056's split did.
+- **Q2 — e2e (AC-4).** (a) Component tests of the screens (above) and the screens' existing specs
+  on the three engines, no new spec, as task-056; (b) also a new `repository-text.spec.ts` on a
+  hostile fixture over the header, switcher, Team, directives, documentation and history
+  (+0.3 d). **Recommended (a)**: the server sweep asserts every body and the components assert
+  the rendering; the browser adds nothing to a text React renders as text.
+- **Q3 — `identity.email`.** It is the user's own effective git email, not committed text, but it
+  is shown (header, footer, How to join) and a project's git configuration can set it. (a) Escape
+  it like the member emails (bug-035's list); How to join's command then holds the escape for an
+  email with a control character — such an email is not a usable git email anyway; (b) keep it
+  raw as the caller's own input. **Recommended (a)**: a raw bidi character in a command made for
+  pasting into a shell is the worse outcome.
+- **Q4 — Shown addresses (D72-6).** (a) The server's `label` siblings (`/docs`, `/files/content`);
+  (b) a web-side copy of the escape kept equal to `neutralise` by a unit test (the
+  `working-directory.ts` precedent), applied to the paths it shows; (c) classify the documentation
+  paths as keys, shown raw, declared. **Recommended (a)**: one implementation of the rule, on the
+  server, covered by the sweep.
+- **Q5 — Keys shown raw (the residual).** Ids, types, states (an element's `status` from a
+  hand-committed file, P4), roles, tags, the `paths` keys and the workflow names stay raw by
+  spec-012 §9 and are rendered as text. (a) Declare it in spec-004 §5 (D72-1) and open a new bug
+  through `bug-ingest` (the coordinator's) for a later display escape of shown keys; (b) declare
+  it only; (c) fix it here (a web-side escape of every shown key, +~0.5 d). **Recommended (a)**:
+  the escape of keys needs a web-side rule (Q4 (b)'s form) that this task does not otherwise need,
+  and the residual stays tracked.
