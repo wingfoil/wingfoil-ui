@@ -3,12 +3,12 @@ id: bug-038-own-e2e-specs-fail-on-an-engine-that-excludes-every-test-of-the-spec
 type: bug
 title: "Own e2e specs fail on an engine that excludes every test of the spec"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,45 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The `own-specs` job of `.github/workflows/gates.yml` fails with `Error: No tests found` on Firefox and
+WebKit when every spec file the branch changes holds only `@perf` tests, which `playwright.config.ts`
+runs on Chromium only (`grepInvert: PERF` on the `firefox` and `webkit` projects): a task whose only
+changed e2e spec is `test/e2e/performance.spec.ts` can never have a green task-scope run.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. On a `task/*` branch cut from `design/dev-loop_v0.3`, change only `test/e2e/performance.spec.ts`
+   among the e2e spec files (for example add a `@perf` test) and push.
+2. `gates.yml` runs in the task scope: `scripts/e2e-own-specs.mjs` lists
+   `test/e2e/performance.spec.ts`, and the job runs `npm run test:e2e -- --project=<engine> …` with it.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+An engine on which the listed specs select no test passes with a line that says so, as the job
+already does when the list is empty (task-071 AC-2: "none: the job passes with a line that says
+so").
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+Playwright exits non-zero with `Error: No tests found.`, so `own-specs (firefox)` and
+`own-specs (webkit)` fail and the run's conclusion is `failure`, while every test that applies passed.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+Run `43054778990` on `task/task-059-progress-traceability-and-missing-reference-api` at `55ce600b`
+(rerun of the failed jobs, 2026-11-11): jobs `130672885815` (Firefox) and `130672885116` (WebKit)
+log `Error: No tests found.`; `e2e-chromium` (1) and (2), which run `performance.spec.ts`'s `@perf`
+tests, succeeded, as did every other job.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Medium: it blocks the task-scope evidence of any task whose only own spec is `@perf`-only
+(task-059 now, task-074 next). Fix direction: pass `--pass-with-no-tests` to the job's Playwright
+run (the empty-list branch already exits 0 with a line), with a case in
+`test/package/gates-workflow.test.ts`; or have `scripts/e2e-own-specs.mjs` leave out, per engine,
+the specs that select no test there. Workaround until then: none on push; a dispatch with `specs`
+naming another spec runs that spec instead. Proposed to be absorbed into task-059 (the approver,
+2026-11-11).
 
 ## Triage & Execution Notes
 
