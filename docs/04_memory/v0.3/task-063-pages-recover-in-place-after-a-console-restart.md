@@ -307,7 +307,7 @@ exactly, with a dated Process Note on adr-003; Q3 (a) the explicit 4xx code list
   says. `npx vitest run test/server/http`: 19 files, 529 tests passed.
 - **Web red** (`47876e70`): `test/web/session/recovery.test.ts` (new, 19 tests) failed on the
   missing module, and *announces a session after a 204 exchange* of `session.test.ts` failed
-  (`expected [] to deeply equal [{ name: 'wfui-session', data: null }]`). **Green** (`f28821b2`):
+  (`expected [] to deeply equal [ { name: undefined, data: null } ]` — the constant did not exist yet). **Green** (`f28821b2`):
   `web/src/session/recovery.ts`, the announce in `session.ts`, `main.tsx`, the catalogue value of
   Q2. Deviation from D63-1's layout: `announceSession` and `SESSION_CHANNEL` live in `session.ts`
   (the bootstrap calls it; `recovery.ts` imports from `session.ts`, so no import cycle). Guard
