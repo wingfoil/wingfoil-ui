@@ -431,3 +431,6 @@ Local checks after the fixes:
 - under the strict-identity recipe, the route, contract, descriptor, `memory-yaml`, schema and
   text-sweep files: 10 files, 180 passed (load 24);
 - `test/wingfoil-feedback.test.ts test/docs`: passed.
+- `gates.yml` run `43071319215` on `326bcd63` (task scope): **success**. Every job passed
+  (`checks`, `contract`, `coverage`, `e2e-chromium` on both shards, `own-specs` on Firefox and
+  WebKit, `smoke`, `publish-smoke`); `e2e-wave` skipped.
