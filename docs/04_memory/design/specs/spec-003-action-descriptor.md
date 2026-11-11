@@ -160,7 +160,7 @@ For the current user `U` with role view `R`:
 { view: string | null,                          # the role view used; null when there is no role view (not identified, or a member holding no role)
   requiresYou: [Row & { action }] | null,       # null when the user is not identified (T-01.2)
   waitingOnOthers: [Row],
-  summary?: [{ role, count, items: [Row & { action }], more }] }
+  summary?: [{ role, count }] }                 # v0.2 also had items and more (dropped in v0.3, task-076)
 Row = { element: { id, type, title, status, localChanges }, descriptor }   # descriptor: §8
 ```
 
@@ -185,11 +185,11 @@ Row = { element: { id, type, title, status, localChanges }, descriptor }   # des
   events every actor would fall back to `tech-lead`; without the DNA the user would look
   unidentified).
 - `summary` — the all-roles summary (S5): one line per role the member holds, in the order of
-  `dna.team.members[].roles`; `count` = the length of Requires you of that role view, `items` its
-  first ≤ 3 rows, `more` = `count − 3` when positive, else 0 (REQ-PERF-11, S-23.4). **Absent**
-  for a member holding one role (S-23.3). In v0.3 *Your roles* is one line of counts (N1;
-  `ux-reference.md` §4.1 v0.3, S-23.4, S-23.5): `items` and `more` are no longer shown and are kept
-  in the output, unused (no decision to drop them).
+  `dna.team.members[].roles`, `{ role, count }`; `count` = the length of Requires you of that role
+  view (REQ-PERF-11 v0.3, S-23.4). **Absent** for a member holding one role (S-23.3). *Your roles*
+  is one line of role tags with their counts (N1; `ux-reference.md` §4.1 v0.3, S-23.4, S-23.5). The
+  v0.2 `items` (the first ≤ 3 rows) and `more` (`count − 3` when positive) were dropped in v0.3
+  (task-076, Process Notes).
 - The bell's *Updates* are not part of this output: `GET /api/p/:pid/events/memory?limit=10`
   (spec-004 §3, spec-002).
 
@@ -391,3 +391,7 @@ element list; `web/` renders it and never re-derives it.
   "TQ-1…TQ-6, X1 e K1–K3 come consigliato"): §1 and §3 the `when-references-done` hold reads
   spec-012 §1's shared reference index; §8 what a failed input does to the descriptor, `dnaError`
   as the code has it (on the project header only). No rule changes.
+- 2026-11-11 — amended in task-076 (minor-v0.3 Wave 2, plan `backlog-item-rel-v0.3-plan` W2-7;
+  task-061's Q2 (a), decided by the approver): §5 the summary's `items` and `more` dropped from the
+  output — a line is `{ role, count }` (`contracts/api/today.schema.json`), REQ-PERF-11 v0.3's "one
+  tag per role with its count and no item"; it supersedes the 2026-11-03 note's "kept but unused".
