@@ -140,6 +140,22 @@ const MAPPINGS: readonly string[] = [
   // A quoted empty `!!merge` key (review round 2 F-7): js-yaml cannot resolve it.
   "!!merge '': {c: 1}\n",
   '!!merge "": {c: 1}\n',
+  // An empty key (bug-040): refused by js-yaml in a block mapping unless it is explicit (`?`) or
+  // carries a tag or an anchor; read in a flow collection.
+  ': a\nb: c\n',
+  ':\n',
+  '- : a\n',
+  'x:\n  : a\n',
+  '? : a\n',
+  'a: 1\n# c\n: 3\n',
+  '? \n: a\nb: c\n',
+  '?\n: a\n',
+  'x: {: a}\n',
+  'x: [: a]\n',
+  'x: {a, : b}\n',
+  '!!null : a\n',
+  '!!str : a\n',
+  '&x : a\n',
 ];
 
 /** A pair row's text: an explicit `?` key ends with its line break, so its `:` starts the next line. */
@@ -149,7 +165,7 @@ function pairText(first: string, second: string): string {
 
 // A tag js-yaml does not accept on a key's node (the table tags keys only): refused for that key.
 const KEY_ERRORS =
-  /^(duplicated mapping key|nested arrays are not supported inside keys|unknown tag !<[^>]+>|unacceptable node kind for !<[^>]+> tag.*|cannot resolve a node with !<tag:yaml\.org,2002:merge> explicit tag)$/;
+  /^(duplicated mapping key|nested arrays are not supported inside keys|unknown tag !<[^>]+>|unacceptable node kind for !<[^>]+> tag.*|incomplete explicit mapping pair; a key node is missed; or followed by a non-tabulated empty line|cannot resolve a node with !<tag:yaml\.org,2002:merge> explicit tag)$/;
 
 function jsYamlVerdict(text: string): 'refused' | 'read' | 'other' {
   try {

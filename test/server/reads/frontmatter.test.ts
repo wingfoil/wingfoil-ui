@@ -163,3 +163,17 @@ describe('alias keys resolved in one pass (task-075 review round 1 F-1)', () => 
     expect(performance.now() - started).toBeLessThan(5_000);
   }, 120_000);
 });
+
+describe('parseYaml an empty key (bug-040, task-075 AC-4)', () => {
+  it('AC-4 an implicit empty key of a block mapping is refused with its line, as js-yaml refuses it', () => {
+    expect(() => parseYaml(': a\nb: c\n', 'f.md')).toThrow(/^f\.md: invalid YAML \(empty key \(line 1, column 1\)\)$/);
+    expect(() => parseYaml('x:\n  : a\n', 'f.md')).toThrow(/empty key \(line 2, column 3\)/);
+    expect(() => parseYaml('- : a\n', 'f.md')).toThrow(/empty key/);
+  });
+
+  it('AC-4 an explicit, tagged, anchored or flow empty key is read, as js-yaml reads it', () => {
+    for (const text of ['? \n: a\n', '!!null : a\n', '&x : a\n', 'x: {: a}\n', 'x: [: a]\n']) {
+      expect(() => parseYaml(text, 'f.md'), text).not.toThrow();
+    }
+  });
+});
