@@ -115,3 +115,189 @@ Today, clearer (release-planning v0.3, RP3-7 N1–N4; RP3-14 D1; RP3-15 F1, F5, 
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-11)
+
+Read (dl-015): this task; the Execution Notes of task-055 (D55-8 … D55-13), task-057 (D57-1,
+D57-2, D57-7: `shortId` on the Today rows), task-069 (D69-10, D69-11: `waitingWho` `held`,
+`HoldText`, the hold texts) and task-070 (refusal reasons: no Today change); task-073's W2-6 Q4 (a)
+(Today's placement unchanged); task-036 and task-042 (D36-3 … D36-11, D42-5 … D42-7, bug-018's
+opener rules); spec-003 §5, §8 and its Process Notes; spec-004 §3; spec-008; spec-011 §1;
+`ux-reference.md` §4.1 (v0.2, v0.2 summary, v0.3), §5; the prototype (its Today has no filters or
+limit — the v0.3 text of §4.1 is the reference; its Memory list's type and state chips with counts
+are the nearest pattern); SARD REQ-PERF-09, REQ-PERF-11; `requires-you.feature` T-02.1 … T-02.7,
+`shell.feature` S-23.1 … S-23.5; release-planning v0.3 RP3-7 N1 … N4, RP3-14 D1, RP3-15 F1, F5, F9,
+S4, RP3-16 P1, P4; the stage plan W2-1 … W2-6; directives `definition-of-done` 1.4,
+`ux-consistency`, `accessibility`. The code: `server/src/descriptor/today.ts`,
+`contracts/{api/today.schema.json,src/today.ts}`, `web/src/today/{model.ts,TodayView.tsx,
+RoleSummary.tsx,today.css}`, `web/src/project/ProjectHeader.tsx` (`RoleViewSelect`, the React
+Aria `Select` this task reuses), `web/src/memory/MemoryList.tsx` (`Age`, `<time>`),
+`web/src/element/HoldText.tsx`; the tests `test/server/descriptor/today.test.ts`,
+`test/server/http/today-routes.test.ts`, `test/web/today/*`, `test/e2e/{today,notification-bell}.spec.ts`,
+`test/e2e/support/screens.ts`, `test/harness/fixtures/{held-gates,long-id,project}.ts`.
+
+#### Probes
+
+| # | What | Result |
+|---|------|--------|
+| P1 | `today()` of this build on the WingFoil 0.3.1 samples (`test/contracts/samples/wingfoil-0.3.1/{kanban,custom}`, `describeElement` with no holds), Morgan in the `approver` view; a throwaway vitest file, removed after the run | kanban: *Requires you* `task-001-login-form`, `bug-001-crash-on-save` (both `pending`, `since` set); *Waiting on others* `task-002-password-reset`, `task-004-session-timeout` (both `draft`) — T-02.4's "All (2)", "task (1)", "bug (1)", "pending (2)" hold, and the other card has rows to stay unfiltered. custom: *Requires you* holds `dl-002-use-fastify` (`in-discussion`), *Waiting on others* holds `minor-v0.1` (`planning`, a member actor) — T-02.7's two rows exist on the packs' governance (no pre-packs variant needed). Every row of both samples has `since` |
+| P2 | The rows' `shortId` (task-057's `project-routes.test.ts` "serves no shortId for ids without a number") | `dl-002-use-fastify` → `dl-002`; `minor-v0.1` (`{kind}-{version}`) has none — T-02.7's fallback to the full id is the API's, not the web's |
+| P3 | Who reads `summary[].items` / `more` (`grep -rn summary web/src server/src contracts/src`) | Only `RoleSummary.tsx`; the bell reads `requiresYou` (D31-6), the process audit reads `summary[].role` — dropping `items` and `more` touches no other consumer |
+
+No console was started, no `wfui-*` entry created, nothing committed by the probes.
+
+#### Decisions (D61-n)
+
+- **D61-1 — Size and split.** About 1.5 active days (estimate below), above the one-day mark of
+  RP3-20 G2: Q1 proposes moving N1 (US-S-23) to a task of its own. The decisions cover the whole
+  scope; Q1 says which half each goes to (*[A]* the cards, *[B]* the role tags).
+- **D61-2 — [B] The summary without items (AC-5, REQ-PERF-11 v0.3).** `today()` serves
+  `summary: [{ role, count }]` — `items`, `more` and `SUMMARY_ITEMS` go; `count` is still the
+  length of *Requires you* of that role view, in the DNA order, absent for a single-role member.
+  `contracts/api/today.schema.json` (`summary` items `required: [role, count]`,
+  `additionalProperties: false`) and `TodaySummaryLine` change in the same commit as the contract
+  test (RP-55: contracts first). spec-003 §5 says `items` and `more` are "kept in the output,
+  unused (no decision to drop them)" while this task's AC-5 drops them: Q2.
+- **D61-3 — [B] *Your roles* as one line (N1, S-23.4, S-23.5).** `RoleSummary.tsx` keeps its
+  region "Your roles" and renders its heading and one list of tags on one wrapping line: a tag per
+  role, "approver · 2" (`today.summary.line`, unchanged); a non-current tag is a React Aria `Button`
+  described by the `hidden` "Switches the role view" hint (R7, R2-3 of task-042), the current one
+  a non-interactive tag with `aria-current="true"`, the pressed style and the visible "current
+  view" text (as v0.2). No items, no "N more": `today.summary.more` and `today.summary.moreLabel`
+  leave the catalogue. The switch, its refusal outside the card and the focus to the *Requires you*
+  heading are TodayView's, unchanged (D42-6).
+- **D61-4 — [A] The card model (N2, N3; pure, `web/src/today/model.ts`).** Over the rows of one
+  card as the server sends them (no new query, no re-derivation): `facetsOf(rows, pick)` → the
+  distinct values of `element.type` (or `element.status`) with their counts over the card's
+  **unfiltered** rows (T-02.4: with `bug` chosen the state filter still offers "All (2)",
+  "pending (2)"), sorted with `Intl.Collator` (stable across refetches; the scenario fixes no
+  order); `filterCard(rows, { type?, state? })` keeps the server's order; `ROW_LIMIT = 10`;
+  `limited(rows, expanded)` → the first 10 unless expanded. The filters apply before the limit,
+  the type and the state filter together (AND). The greeting and the bell keep reading
+  `requiresYou.length` (unfiltered, S4). No type or state literal (REQ-ARC-05); the property names
+  are `type`/`state`, which are no fixture names.
+- **D61-5 — [A] The filter controls.** Per card, two React Aria `Select`s ("Type", "State") in a
+  filter bar under the card's heading, built like the header's `RoleViewSelect` (one small
+  component `CardFilters.tsx`): options "All (<n>)" first, then "<value> (<n>)"; the trigger shows
+  the selection. The bar is shown when the card has rows; its labels are unique inside each card's
+  region. A combination with no row shows "No row matches the filters" in the card (a new key),
+  never "Nothing requires you" (which stays the unfiltered empty state, T-07.1).
+- **D61-6 — [A] Filter and expansion state.** Component state per card in `TodayView`
+  (`useState`), each card its own (T-02.4: the other card is not filtered); reset to *All* and
+  collapsed when the role view changes (another list); a chosen value that is no longer among the
+  card's rows after a refetch falls back to *All* (AC-3: options list only the card's values).
+  The state is not kept when Today unmounts — at present opening an element navigates to
+  `/p/$pid/e/$eid`; task-062 (in parallel) opens Today's elements in a side panel over the view,
+  which keeps Today mounted and so the filters: Q3.
+- **D61-7 — [A] The 10-row limit (N2, N3, T-02.6, AC-4).** Under a list of more than 10 filtered
+  rows, a `Button` "Show all (<n>)" (n = the filtered count) toggles to "Show fewer"; it carries
+  `aria-expanded` and `aria-controls` (the list's id), keeps the focus on itself in both
+  directions (same element, its label changes), and is absent at ≤ 10 rows. The bug-018 opener
+  return: when the remembered opener's row is past the limit (collapsed after a remount), the
+  existing fallback to `#main` applies (D61-6).
+- **D61-8 — [A] The entry date (N2, T-02.5).** Each row of both cards with `descriptor.since`
+  shows `<time className="today-since" dateTime={since}>` with "since <date>" (a new key
+  `today.since`, the date `formatDate(since, { dateStyle: 'medium' })`), described
+  (`aria-describedby`) by a `hidden` span holding the full time, `formatDate(since, { dateStyle:
+  'full', timeStyle: 'long' })` — not `title`, which would become the `time` element's name and
+  enter the Waiting row link's name. Placed after the reason in *Requires you*, before who must act
+  in *Waiting on others*; nothing when `since` is absent (AC-3). The reason "pending for 3 days"
+  is unchanged (T-02.1).
+- **D61-9 — [A] Short ids (N4, T-02.7, AC-6).** Each row shows `element.shortId ?? element.id`
+  in a mono `today-id` span beside the title (as the Memory list's `memory-id`); the web derives
+  none. `data-eid` stays the full id; the action's accessible name keeps the full id ("Approve
+  task-001-login-form", unique, the v0.2 tests): Q4.
+- **D61-10 — [A] Held gates (F1, AC-3).** Their *Waiting on others* rows (task-069's
+  `waitingWho` `held`, `HoldText`) are ordinary rows of the card: filtered, counted and limited
+  like the others; S-24.5 and S-24.6 (`held-gates.spec.ts`) stay green unchanged.
+- **D61-11 — Catalogue (spec-008, X-09.1; sorted, inserted in place).** [A] `today.filter.all`
+  "All ({count})", `today.filter.option` "{value} ({count})", `today.filter.state` "State",
+  `today.filter.type` "Type", `today.filter.none` "No row matches the filters",
+  `today.rows.showAll` "Show all ({count})", `today.rows.showFewer` "Show fewer", `today.since`
+  "since {date}"; [B] `today.summary.more` and `today.summary.moreLabel` removed.
+- **D61-12 — The fixture Givens (RP3-16 P4).** A scenario-local helper
+  `test/harness/fixtures/pending-tasks.ts` `addPendingTasks(fixture, n)`: on a copy of the
+  `kanban` fixture, `n` tasks added by Jordan and submitted (`FixtureProject` verbs, dated after
+  the fixture's clock, W-34: no hand-set `status:`), like `long-id.ts`. T-02.6 uses `n = 11`
+  (13 pending); [B] S-23.4 uses `n = 3` (5 pending) instead of its three CLI calls. Git-touching:
+  its unit test runs under the strict-identity recipe of `test/README.md` *Git identity* (dl-011).
+- **D61-13 — Screens and a11y (AC-7).** `SCREENS` (append-only): [A] *today — filters open*
+  (Morgan on kanban, the *Requires you* type filter's listbox open) and *today — all rows* (the
+  T-02.6 copy expanded); the existing *today* screen already shows Morgan's role tags, the dates
+  and the short ids. axe 0 serious/critical in both themes on each; the keyboard path: Tab to each
+  `Select`, Enter/arrow keys/Enter to choose, Tab to "Show all", Space; visible focus checked with
+  `expectFocusVisible`.
+- **D61-14 — Cost.** No new query or route; the server does less (no `items`); the process audits
+  (TT-PERF-05) and the Today route tests stay as they are, but `today-routes.test.ts`'s S-23.1
+  assertion on `items`/`more` becomes "no other key than `role` and `count`".
+- **D61-15 — Docs.** `CHANGELOG.md` *Unreleased* *Changed* (*Your roles* one line, [B]) and
+  *Added* (filters, 10 rows, entry dates, short ids, [A]); `docs/user-guide.md` *Today*; spec-003
+  §5 Process Note (Q2) in the green commit; `test/README.md` version line and the suites;
+  `ux-reference.md` unchanged (no deviation recorded unless the review asks for one).
+
+#### File layout
+
+[A]: `web/src/today/{model.ts,TodayView.tsx,CardFilters.tsx (new),today.css}`,
+`web/src/i18n/en.json`, `test/web/today/{model.test.ts,today.test.tsx,cards.test.tsx (new)}`,
+`test/e2e/today-cards.spec.ts` (new, `prebuild: ['kanban', 'custom']`),
+`test/harness/fixtures/pending-tasks.ts` (new) and its unit test in `test/harness/fixtures.test.ts`,
+`test/e2e/support/screens.ts`. [B]: `server/src/descriptor/today.ts`,
+`contracts/{api/today.schema.json,src/today.ts}`, `web/src/today/{RoleSummary.tsx,today.css}`,
+`web/src/i18n/en.json`, `test/server/descriptor/today.test.ts`,
+`test/server/http/today-routes.test.ts`, `test/contracts/api-element-schema.test.ts` (the Today
+summary cases), `test/web/today/summary.test.tsx`, `test/e2e/notification-bell.spec.ts`. Both:
+`CHANGELOG.md`, `docs/user-guide.md`, `test/README.md`, spec-003 (Q2). Merge hot spots:
+`TodayView.tsx` with task-062 (Today's links), `en.json`, `today.css`, `SCREENS`.
+
+#### Test plan
+
+| AC / scenario | Kind | Where (file: title) |
+|---|---|---|
+| T-02.4 | red-first | e2e `today-cards.spec.ts`: "T-02.4 — Filter a card by type and by state" (choose `bug` in the *Requires you* type filter → 1 row; the options' accessible names "All (2)", "task (1)", "bug (1)"; the state filter "All (2)", "pending (2)"; *Waiting on others* still lists its 2 rows, its filters on *All*). Unit `model.test.ts`: "facets count the card's unfiltered rows", "type and state filters combine, the order kept"; `cards.test.tsx`: "a filter applies to its own card only", "a value gone after a refetch falls back to All", "a combination with no row says so" |
+| T-02.5 | red-first | e2e: "T-02.5 — Show when each element entered its current state" (the row of `task-001-login-form` shows "since <date>" where the date is the submit commit's, read with the harness git on the copy and formatted in the page with `Intl`; `toHaveAccessibleDescription` the full time). Unit `today.test.tsx`: "a row without since shows no date" (AC-3) |
+| T-02.6 | red-first | e2e: "T-02.6 — Show the first 10 rows, then all of them on request" (`addPendingTasks(copy, 11)`; 10 rows, then "Show all (13)" → 13 rows and "Show fewer", `aria-expanded`; greeting "Morgan, 13 things require you"; the bell's count 13). Unit `cards.test.tsx`: "filters apply before the limit", "Show fewer keeps the focus" |
+| T-02.7 | red-first | e2e (custom): "T-02.7 — Name each row's element by its short id" (`dl-002`; `minor-v0.1` in *Waiting on others*). Unit `today.test.tsx`: "the short id is the API's, else the full id" |
+| T-02.1 … T-02.3 | characterization | `today.spec.ts` unchanged, green |
+| S-23.4 [B] | red-first | e2e `notification-bell.spec.ts`: "S-23.4 — Show the count of a role, not its items" (`addPendingTasks(copy, 3)`; tag "approver · 5"; no `li[data-eid]`, no link or button "more" in the region). Server `today.test.ts`: "S-23.4: the count of a role, no items" (replaces "at most 3 items per role, and N more") |
+| S-23.5 [B] | red-first | e2e `notification-bell.spec.ts`: "S-23.5 — Switch the role view from the line of role tags" (Alex, `developer` → click "approver · 2" → header "approver"; 7 tags in one line — one list, every tag's top equal at 1280 px; "approver · 2" `aria-current`; focus on the *Requires you* heading) |
+| S-23.1 … S-23.3 [B] | updated (F9) | `notification-bell.spec.ts` S-23.1 asserts the 7 tags and their counts (no items); S-23.2, S-23.3 unchanged; `summary.test.tsx` "summarises each role with its count, no items (S-23.1, S-23.4)" |
+| AC-3 held gates | characterization | `held-gates.spec.ts` S-24.5, S-24.6 unchanged; `cards.test.tsx` "a held row is filtered and limited like the others" |
+| AC-4 | covered | by T-02.6, S-23.4 (REQ-PERF-11's fit criterion) |
+| AC-5 [B] | red-first | `test/contracts/api-element-schema.test.ts` (Today summary: `{role, count}` accepted, an `items` key refused); `today-routes.test.ts` schema checks; the TT-PERF-09/-11 citations in the touched files kept consistent |
+| AC-6 | gates | `npm run lint` (REQ-ARC-05), the process audits on `gates.yml` |
+| AC-7 | e2e | the new SCREENS entries in `accessibility.spec.ts`; keyboard path in "T-02.4" and "T-02.6"; the task's specs (`today-cards.spec.ts`, `notification-bell.spec.ts`) on the three engines through `gates.yml`'s own-specs; catalogue checks `test/web/i18n/*` |
+| AC-8 | gates | typecheck, lint, format:check, `docs:api`, `check_tasks.py v0.3` local; `test:coverage`, `test:e2e:chromium`, the own specs on Firefox and WebKit on `gates.yml` (run ids in the notes) |
+
+e2e closure: T-02.4, T-02.5, T-02.6, T-02.7 → `test/e2e/today-cards.spec.ts`; S-23.4, S-23.5 →
+`test/e2e/notification-bell.spec.ts`.
+
+#### Questions
+
+- **Q1 — Split (RP3-20 G2).** (a) No split, about 1.5 days. (b) Split by backlog item: this task
+  keeps US-T-02 — the cards [A]: filters, limit, entry dates, short ids, held rows (AC-1, AC-3,
+  AC-4's card half, AC-6, AC-7, AC-8), about 1.0 day; a new governance-planned task takes US-S-23 —
+  the role tags and the server summary without items [B] (AC-2, AC-4's summary half, AC-5), about
+  0.5 day. The halves share only `en.json`, `today.css` and `CHANGELOG.md` (B lives in
+  `RoleSummary.tsx`, the server and the contracts; A in `TodayView.tsx`, `model.ts` and a new
+  spec), so they can run in parallel, and each item stays in one task. (c) Split by layer (server
+  and contracts / web): no, both halves would carry US-S-23. **Recommended (b).**
+- **Q2 — `summary.items` and `more` (spec-003 §5 vs AC-5).** (a) Drop them as AC-5 says, with a
+  dated spec-003 §5 Process Note (the output shrinks to `{ role, count }`; P3: no other consumer).
+  (b) Keep them unused as spec-003 says, and amend AC-5. **Recommended (a)**: REQ-PERF-11 v0.3
+  says "no item", and an unused field in a strict contract is a trap for the next consumer.
+- **Q3 — Filters lost when an element opens (D61-6).** (a) Component state now; task-062's side
+  panel keeps Today mounted, so they survive once both are merged — merge task-062 first if
+  possible, else the second to merge re-applies Today's link changes. (b) A per-project module
+  store (like `returnOpener`), kept across remounts. (c) URL search parameters (survive a reload;
+  touch the route and task-062's `panel=` handling). **Recommended (a)**: no spec asks for
+  persistence, and (b)/(c) add state that task-062 makes unnecessary.
+- **Q4 — The action's accessible name (D61-9).** (a) Keep the full id ("Approve
+  task-001-login-form"): unique, a short id can be ambiguous (RP3-14 D3), the v0.2 tests hold.
+  (b) Use the short id as shown. **Recommended (a).**
+
+#### Size estimate
+
+[A] about 1.0 active day: model and filters 0.25, limit, dates and short ids 0.15, unit tests 0.2,
+e2e (four scenarios, fixture helper, two screens) 0.3, docs and gates 0.1. [B] about 0.5: server and
+contracts 0.1, role tags 0.1, F9 test updates and S-23.4/S-23.5 e2e 0.2, docs and gates 0.1. Total
+about 1.5 active days.
