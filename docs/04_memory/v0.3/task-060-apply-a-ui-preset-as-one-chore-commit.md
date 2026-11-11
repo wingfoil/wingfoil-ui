@@ -121,3 +121,236 @@ level, each with a test titled by the scenario id.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-11)
+
+Read (definition-of-done 1.4 › build › design): this task; task-054's Execution Notes in full (D54-1
+… D54-12, the split, review rounds 1–2) and task-068's (D68-1 … D68-12); spec-005 §2, §5, §6 and its
+Process Notes; spec-004 §3–§6; spec-001 §1; spec-006 §2; spec-010 §6; spec-003 §6 rule 2;
+`features/c/ui-yaml.feature` (C-02.x, C-03.x); the stage plan's W2-1 … W2-6 and RP3-7, RP3-15 S3,
+RP3-20 G2. The code it builds on: `server/src/writes/governed.ts` (rows 5–9, `settle`,
+`logActions`, `announce`), `writes/auto-push.ts`, `writes/transport.ts` (`message`),
+`http/element-writes.ts`, `process/write-lock.ts`, `process/runner.ts` (`gitConfig`, `childEnv`),
+`cli/adapter.ts` (`CLI_GIT_ENV`, `CLI_GIT_CONFIG`), `git/git.ts` (`GitReads`, `gitEnv`,
+`GIT_ALLOWED_SUBCOMMANDS` — `add` and `commit` already listed for this commit), `git/transport.ts`
+(`TRANSPORT_SETTINGS`, D33-3), `git/redact.ts`, `git/copy.ts` (`blocksWrites`),
+`snapshot/snapshot.ts` (`check`, `isWriteCommit`, `commitsSince`, `localRoots`, `lockKey`),
+`reads/ui-yaml.ts`, `reads/memory-yaml.ts`, `reads/confine.ts`, `presets/ui-config.ts`,
+`ui-config/{parse,check}.ts`; the tests' `test/server/http/git-console.ts`,
+`test/harness/commit-provenance.ts` and its test, `test/e2e/{no-commit,commit-provenance}.spec.ts`;
+WingFoil 0.3.1's own commit (`node_modules/wingfoil/dist/storage/commit.js` `commitPathsNow`).
+
+#### Probes (scratch repositories in the session's scratch folder; git 2.43, Node 22.21)
+
+Every git ran through a wrapper first on the `PATH` with `-c user.useConfigOnly=true` (the
+strict-identity recipe of `test/README.md` *Fixtures* › *Git identity*); the identity variables of
+the session were neither set nor unset. Scripts outside the repository, not committed; each result
+is what they printed.
+
+| # | What | Result |
+|---|------|--------|
+| P1 | `git add -- .wingfoil/ui.yaml`, then `git commit --only -m "chore(ui): apply the Kanban preset" -- .wingfoil/ui.yaml` with `README.md` staged; `.git` snapshot (SHA-256 of every file) before and after; `GIT_TRACE` | commit made, `README.md` still `M ` (staged, uncommitted) — C-02.2 holds. `.git`: 5 new objects (blob, 3 trees, commit), changed `index`, `refs/heads/main`, `logs/HEAD`, `logs/refs/heads/main`, `COMMIT_EDITMSG`; no config, no other ref. **The commit starts `git maintenance run --auto`** (D60-7). |
+| P15 | P1 with `-c maintenance.auto=false -c gc.auto=0`, `--quiet --cleanup=whitespace`, every hook present (exit 0), on a fresh clone | processes: `add` → `post-index-change`; `commit` → `post-index-change` ×2, `pre-commit`, `prepare-commit-msg`, `commit-msg` (each with `GIT_EDITOR=:` and `GIT_INDEX_FILE` the temporary index), `reference-transaction prepared`/`committed`, `post-commit` — **no maintenance child**. `.git`: 4 new objects, `COMMIT_EDITMSG` created, `index`, the branch ref and its two reflogs changed; nothing removed, no config or `packed-refs` change. |
+| P10 | A `pre-commit` hook printing its environment and running `git push` to a `file://` remote, the commit run with the CLI's variables (`GIT_ALLOW_PROTOCOL=none`, `GIT_NO_LAZY_FETCH=1`, `GIT_CONFIG_COUNT` with `protocol.allow=never`, `core.fsmonitor=false`) | the hook inherits all of them; its push: `fatal: transport 'file' not allowed`, the remote has no ref. `GIT_INDEX_FILE` is a `next-index-<pid>.lock` in the git directory. |
+| P2 | A `pre-commit` hook that runs `git add other.txt` | **`other.txt` is in the commit** (`--only` builds a temporary index, and the hook's `add` writes to it); exit 0; afterwards the real index shows `D other.txt` and the working tree `?? other.txt` — the success rule (one path) refuses it (D60-9). |
+| P3 | A `post-commit` hook that makes a second commit with the same subject | two first-parent commits with the preset's subject, exit 0 (D60-9: no single commit). |
+| P4 | A `commit-msg` hook that rewrites the message | the commit's subject is the hook's (`evil subject`), exit 0 (D60-9: no commit found). |
+| P5 | `commit.gpgSign=true`, `gpg.program` a program that always fails, `commit.template` in the repository's config | `fatal: failed to write commit object`, exit 128, `ui.yaml` left staged (`A `). P5b: with `-m` the template is not used (the message is the subject alone). |
+| P6 | `git commit --only -- .wingfoil/ui.yaml` of an untracked file, no `add` | `error: pathspec '.wingfoil/ui.yaml' did not match any file(s) known to git`, exit 1 — the `add` is needed. |
+| P7 | `ui.yaml` ignored (`.gitignore`), then `git add --` | exit 1, "The following paths are ignored by one of your .gitignore files: … hint: Use -f …" — the realistic `git-refused` (AC-4). |
+| P14 | `.git/index.lock` held, then `git add --` | exit 128, `fatal: Unable to create '<absolute git dir>/index.lock': File exists.` — the absolute path to redact. |
+| P13 | `.wingfoil` a symbolic link to a folder inside the project, then `git add --` | `fatal: pathspec '.wingfoil/ui.yaml' is beyond a symbolic link` |
+| P16 | The project in a sub-folder `proj/` of its repository, `top.txt` staged | the commit changes `proj/.wingfoil/ui.yaml` only (`diff-tree` paths are top-level relative: `isWriteCommit`'s prefix rule holds); `top.txt` still staged. |
+| P8 | `--literal-pathspecs ls-files --stage -z` and `ls-tree -z HEAD` of `.wingfoil/ui.yaml` on the entry kinds | a staged deletion: index none, **HEAD lists it**; a directory `ui.yaml/` with a staged file: the index lists `ui.yaml/x` (the pathspec matches below it); intent-to-add (`add -N`, file removed): the index lists the empty blob; `skip-worktree`, file removed: index and HEAD list it, `git status` clean; a dangling link: `lstat` sees it; `ui.yam?` read literally. |
+| P11 | Node `open(<root>/.wingfoil/ui.yaml, O_CREAT\|O_EXCL\|O_WRONLY\|O_NOFOLLOW)` | an existing file, a directory, a dangling link and a link to a missing outside file: `EEXIST` (never followed, never overwritten). **`.wingfoil` a link to an outside folder: the file is created outside** (`O_NOFOLLOW` guards the last component only, as task-054 P1) — D60-6. |
+| P9 | WingFoil 0.3.1's own write (`dist/storage/commit.js` `commitPathsNow`) | `git add -- <paths>`, then `git commit --only --quiet --cleanup=whitespace -m <message> -- <paths>`, under the CLI's environment (spec-001 §1) — the form D60-7 copies. On a failure WingFoil restores the tree; spec-005 §5 leaves the file staged instead (kept). |
+
+No `wfui-*` entry was left in the temporary directory; no console was started (the route does not
+exist yet: the console-level process audit is a test, D60-17). Load during the probes below 6; no
+heavy gate ran.
+
+#### Decisions (D60-n)
+
+- **D60-1 — Files.** `server/src/writes/preset.ts` (new): `PresetWrites` — the preconditions, the
+  create, the git steps, the settle, the outcomes (D60-3 … D60-10). `server/src/git/index-write.ts`
+  (new): the two argument lists and their git settings (D60-7). `server/src/http/ui-config-preset.ts`
+  (new): `registerUiConfigPresetRoute(app, options)` — 404 for an unknown `:pid` in `onRequest`, the
+  strict Ajv body validation (as `element-writes.ts`), the handler. `server/src/launcher/start.ts`
+  registers it next to the element writes with the same store, snapshots, lock, bus and auto-push
+  (one appended line). `server/src/writes/governed.ts`: rows 5–6 (`identifiedInRange`) and the
+  action-log append become exported functions both writes call (behaviour unchanged, its tests
+  stay). `GitReads` gains `indexWrite(args)` (D60-7). `presets/ui-config.ts`: `renderPreset` and
+  `presetCommitSubject` take an optional preset table (D60-12), and `PRESET_COMMIT_SUBJECTS` (the
+  three subjects, for the provenance checker). No web file, no `en.json` string.
+- **D60-2 — Contracts.** `contracts/api/ui-config.preset.request.schema.json` (new): `{ preset }`,
+  `enum` `kanban`, `scrum`, `sw-life-cycle`, required, `additionalProperties: false` (a test keeps
+  the enum equal to `UI_PRESET_NAMES`). The 200 is `write.response.schema.json` unchanged in shape
+  (`result` is an object: here `{ file: ".wingfoil/ui.yaml", preset }`); its description names the
+  `chore(ui)` commit too. `contracts/api/ui-config.preset.refusal.schema.json` (new, so
+  `write.refusal.schema.json` stays the element writes'): the envelope with the codes without
+  detail (`forbidden-origin`, `unauthenticated`, `not-found`, `invalid-request`, `not-in-team`,
+  `unsupported-version`, `ui-config-exists`, `stale-copy`, `git-refused`, `cli-output`,
+  `cli-timeout`, `internal`), `ui-config-invalid` `{ failure }`, `read-error` `{ file, kind }`,
+  `write-incomplete` `{ file, commit? }`, `cli-not-found` as in the element writes' schema (rows 5–6
+  on a cold state run the reads a `GET` would). Types `UiConfigPresetRequest` and
+  `UiConfigPresetResult` in `contracts/src/api.ts`, one export block appended to
+  `contracts/src/index.ts`.
+- **D60-3 — Order and processes (AC-1).** Rows 1–4: the guards, `onRequest` and the body schema — 0
+  processes. Rows 5–6 on the snapshot's view, before the lock (0 processes on a warm state, the
+  element writes' rule). Under `writeLock.run(snapshot.lockKey)`: `snapshot.check()` (the fresh
+  state: read-only git); when its key or email differs from the view's, rows 5–6 again on the fresh
+  view; then row 7′ (D60-4), then row 8 `blocksWrites(fresh.copy)` → 409 `stale-copy`; then D60-5.
+  A refusal of rows 7′–8 starts only the read subcommands (`status`, `config`, `remote`, `ls-files`,
+  `ls-tree`), never `add`, `commit` or a `wingfoil` process; no file is written before D60-5 passes.
+- **D60-4 — Row 7′: "exists nowhere", fresh under the lock.** In this order, the first hit → 409
+  `ui-config-exists`: (1) the working tree — `lstat(<root>/.wingfoil)` that is not a directory (a
+  symbolic link included: `readUiYaml` reads it as `refused`, so `/config` already shows the file
+  as ignored and task-064 hides *Use preset*; Q1), or `lstat(.wingfoil/ui.yaml)` that finds any
+  entry (a file, a directory, a FIFO, a dangling link — P8); a missing `.wingfoil` passes here and
+  fails at D60-5's `memory.yaml` read; (2) the index — any record of `--literal-pathspecs ls-files
+  --stage -z -- .wingfoil/ui.yaml` (any stage, intent-to-add, `skip-worktree`, entries below a
+  directory of that name — P8); (3) HEAD — any record of `ls-tree -z HEAD -- .wingfoil/ui.yaml`
+  (a staged deletion is caught here, P8); an unborn HEAD has none. A failed read → the error handler
+  (500 `internal`, logged as `git-read`).
+- **D60-5 — Render and validate (AC-2, C-03.x).** `renderPreset(name)` — no user text —, then
+  `readMemoryYaml(root)` directly (fresh, a file read, no process; `DirectReadError` → 502
+  `read-error` `{ file: ".wingfoil/memory.yaml", kind }`, logged as `{ kind, file }`), then
+  `parseUiYaml(text)` and `checkUiYaml(data, memoryYaml)` on the **rendered text** (what will be
+  written, not the object): the first failure → 422 `ui-config-invalid` `{ failure }` with the
+  message "ui.yaml not written: <failure>"; nothing written, no git process.
+- **D60-6 — The exclusive create (AC-2).** Through a small fs port (`PresetFs`, for the tests'
+  swaps): `lstat(.wingfoil)` a directory (dev, ino kept); `open(.wingfoil/ui.yaml, O_CREAT | O_EXCL
+  | O_WRONLY | O_NOFOLLOW, 0o666)` — `EEXIST` (also a dangling link, P11) → 409 `ui-config-exists`,
+  nothing touched; the bytes written through the descriptor, `fstat` kept, closed; then
+  `lstat(.wingfoil)` equal (dev, ino, a directory) and `lstat(.wingfoil/ui.yaml)` equal to the
+  descriptor's (dev, ino) — otherwise the file may have landed through a swapped `.wingfoil` (P11):
+  500 `write-incomplete` `{ file }`, no git, nothing removed (a path can no longer be trusted), logged
+  as `ui-yaml-swapped`. Another error of the create or the write (`EACCES`, `ENOSPC`) → 500
+  `internal` by its code; a file created but not fully written is removed after the same checks.
+  **Declared residual** (as D54-2's): a local process that swaps `.wingfoil` for a link and back
+  inside the window can make the console create the file in another folder; it is detected after
+  and answered, not prevented (Node has no `openat`); it needs write access to the working tree.
+- **D60-7 — The git steps and their environment (AC-3).** `server/src/git/index-write.ts`:
+  `presetAddArgs(file)` = `--literal-pathspecs add -- <file>`; `presetCommitArgs(file, subject)` =
+  `--literal-pathspecs commit --only --quiet --cleanup=whitespace -m <subject> -- <file>` — WingFoil
+  0.3.1's own form (P9; `--cleanup=whitespace` pins `commit.cleanup`, `-m` makes `commit.template`
+  unused, P5b). `GitReads.indexWrite(args)` runs them only (its subcommand must be `add` or
+  `commit`, else it throws) with the reads' environment — `gitEnv`, absolute `PATH` entries,
+  `GIT_ALLOW_PROTOCOL=none`, `GIT_NO_LAZY_FETCH=1` — plus `GIT_OPTIONAL_LOCKS=0` (the CLI's
+  variables, spec-001 §1) and, as `gitConfig` (so every hook's git inherits them, P10),
+  `core.fsmonitor=false`, `protocol.allow=never`, `log.showSignature=false` (the CLI's) and
+  `maintenance.auto=false`, `gc.auto=0` (D33-3: no detached maintenance child, P1/P15). The
+  repository's hooks run (`core.hooksPath` honoured, P15), as the CLI's commit's do; a hook's git
+  transport is refused (P10). `commit.gpgSign` and `gpg.program` are the user's, as for the CLI's
+  commit (P5). The default 30 s timeout each; the author is whoever the environment and
+  configuration name — the identity row 5 matched (`GIT_AUTHOR_EMAIL`, else `author.email`, else
+  `user.email`).
+- **D60-8 — The commit found (AC-3).** After the commit (whatever its exit): the first-parent
+  commits since the fresh HEAD (`commitsSince`; an unborn HEAD lists `HEAD`'s first-parent history
+  instead, a new `commitsFromRoot` read of the same format), those whose subject **equals**
+  `presetCommitSubject(name)`. Success needs: the commit exited 0; exactly one such commit;
+  `snapshot.isWriteCommit(sha, UI_YAML)` (it changes `<prefix>.wingfoil/ui.yaml` only, P16, and
+  holds the blob `hash-object` gives for the working-tree file, clean filters included); and
+  `readUiYaml(root)` still the rendered text (no hook rewrote the file). Any other commit of the
+  window (a hook's, another program's) is neither listed nor logged (spec-004 §5).
+- **D60-9 — Failures (AC-4).**
+  - `git add` fails (exit ≠ 0, timeout) → 422 `git-refused`, `message` git's standard error (or
+    "git exited with status N") through `redactLocalPaths` with the snapshot's `localRoots` and the
+    tool-message cap (P7, P14); then the created file is removed — only when its `lstat` still
+    equals the created one and `ls-files` lists no entry for it (an index that holds it → 500
+    `write-incomplete` `{ file }`, the file kept).
+  - `git commit` fails, or D60-8 does not hold → 500 `write-incomplete`, fixed message, `detail`
+    `{ file: ".wingfoil/ui.yaml" }` plus `commit` when **exactly one** commit since the fresh HEAD
+    has the preset's subject (P2's commit, which also holds `other.txt`, is named; P3's two and
+    P4's none are not); the file left as it is (staged), nothing restored, logged in the action
+    log, pushed or announced; one `snapshot.check()` so pages see the state (a `repo` event).
+    Covered: a failing `pre-commit` hook, P2, P3, P4, P5's failing signature, a hook killed at 30 s.
+  - Logs carry kinds, codes, exit status and `ended` only — never git's text (it holds the
+    absolute root, P14) nor a path.
+- **D60-10 — Success (AC-3).** Under the lock, in order: the action log `{ sha, at }` (spec-006 §2,
+  the shared append), `snapshot.check()`, the push port (`AutoPush`: off, pushed or failed as after
+  a governed write), the `write` event `{ pid, commit }` without `eid`, then 200 `{ result: { file:
+  ".wingfoil/ui.yaml", preset }, commits: [{ sha, subject }], push }`. The client leaving does not
+  stop the write (as the element writes).
+- **D60-11 — Concurrency.** Two preset requests on one repository queue on the lock: the second
+  finds the first's file at HEAD → 409 `ui-config-exists`. A preset and a governed write or an
+  automatic update queue on the same lock key.
+- **D60-12 — The C-03.1 seam.** `PresetWritesOptions.presets` (default `UI_PRESETS`), passed through
+  `registerUiConfigPresetRoute`'s options; only the API test passes it (a Kanban without
+  `version`); `start.ts` never does, and no flag, variable or file of the bin reaches it (the
+  reviewer checks `start.ts`; a test asserts the launcher's registration passes no table).
+- **D60-13 — Provenance (AC-5).** `test/harness/commit-provenance.ts` accepts a session commit
+  whose subject is one of `PRESET_COMMIT_SUBJECTS` and whose only changed path is
+  `.wingfoil/ui.yaml` (of the fixture, at the repository's top level), with no entry at that path in
+  the session's before-HEAD; it stays in the `expected` order check. Any other non-`wf(…)` subject
+  (another `chore(ui)` text included), a preset subject touching another or a second path, or one on
+  a `ui.yaml` already tracked at the start is still a problem. task-054's second variant test
+  ("still reported") is replaced by these cases.
+- **D60-14 — e2e (AC-7).** `test/e2e/commit-provenance.spec.ts` gains one test (its own console):
+  on a kanban copy as Morgan, the Kanban preset applied through the page's request context with
+  the session cookie (the control is task-064's), then the checker over the session is clean with
+  the `chore(ui)` subject expected. `no-commit.spec.ts` changes no assertion — its sessions make no
+  write; only its header comment cites the checker's rule (Q2).
+- **D60-15 — REQ-ARC-05.** `writes/preset.ts`, `git/index-write.ts` and the route hold no type,
+  state or category literal; the subjects and the table come from `presets/ui-config.ts`.
+- **D60-16 — Docs.** `npm run docs:api`; `test/README.md` version line and *Layout*
+  (`commit-provenance.ts`'s new rule) for the new suites; spec-005 §5 refinements (Q3); no
+  `CHANGELOG.md` entry and no `docs/user-guide.md` change here (Q4).
+- **D60-17 — Shared files, append-only.** `contracts/src/index.ts`, `contracts/src/api.ts`,
+  `server/src/launcher/start.ts`, `test/server/http/git-console.ts` (the route registered with the
+  others, an optional `presets`), `test/launcher/local-security.test.ts` (one row for the route),
+  `test/README.md` version line; `governed.ts` only as D60-1 says.
+
+#### Specs and gaps
+
+| Artefact | Spec | State |
+|----------|------|-------|
+| The route, its rows, codes, success and failures | spec-005 §5, spec-004 §3–§6 (approved) | covered; refinements of D60-4, D60-6, D60-7, D60-8, D60-9 (Q3) |
+| The commit's git environment | spec-001 §1 (approved) | covered (the CLI's variables and settings) plus `maintenance.auto=false`, `gc.auto=0` (D33-3's rule) |
+| The request and refusal schemas | — | new contract files (D60-2), no spec text needed beyond spec-004 §3/§5 |
+
+#### Test plan (AC / scenario → file › test)
+
+Every API test runs on fixture copies with the pinned CLI and real git, on the audited runner of
+`git-console.ts` (processes recorded with their environment), each scenario test titled by its id.
+
+| AC / scenario | Kind | Test |
+|---------------|------|------|
+| AC-1 rows 1–4 | red-first | `test/launcher/local-security.test.ts` › the route row (403 `forbidden-origin`, 401, 404 unknown id); `test/server/http/ui-config-preset.test.ts` (new) › "400 invalid-request: unknown preset, extra key, no body, a number" with 0 processes |
+| AC-1 rows 5–6 | red-first | › "403 not-in-team (C-02.5, Riley; also no identity), 0 processes warm"; › "409 unsupported-version (the version-fake stub), 0 processes warm" |
+| AC-1 row 7′ | red-first | › "C-02.3 — 409 ui-config-exists on the custom fixture with the sw-life-cycle preset"; › one test per entry kind: untracked file, directory, dangling link, `.wingfoil` a link, intent-to-add, `skip-worktree` with the file removed, staged deletion (HEAD only); › "fresh under the lock: a file created after the page's read" (no check in between); each: no `add`/`commit`/`wingfoil` process, nothing written |
+| AC-1 row 8 | red-first | › "C-02.4 — 409 stale-copy one commit behind the fetched remote"; › diverged; › detached; › fresh (behind made after the view) |
+| AC-2 | red-first | › "C-03.1 — 422 ui-config-invalid, missing required key version" (the seam, D60-12), no file, HEAD unchanged; › "C-03.2 — sw-life-cycle on kanban: type service is not declared in memory.yaml"; › "502 read-error: memory.yaml a link outside"; `test/server/writes/preset.test.ts` (new) › the create through the `PresetFs` port: an entry appearing between row 7′ and the create → 409, the planted file unchanged; `.wingfoil` swapped after the create → 500 `write-incomplete`, no git process; a short write → the file removed |
+| AC-3 | red-first | › "C-02.1 — the Kanban preset as one chore(ui) commit": body against `write.response.schema.json`, the commit's subject and single path, `/config` `ui` `source: file` and every value `declared`; › "C-02.2 — README.md stays staged and uncommitted"; › the processes: exactly one `add` and one `commit` with D60-7's arguments, variables and `GIT_CONFIG_*`; › a hook runs and its `git push` is refused (P10); › `.git` before/after: only `index`, the branch ref, its reflogs, `COMMIT_EDITMSG`, new objects; › the action log entry, the `write` event without `eid`; › auto-push on: `pushed`, the remote's branch is the commit; › a project in a sub-folder (P16); › an unborn HEAD; › two concurrent requests → 200 and 409; `test/server/git/index-write.test.ts` (new) › the argument lists and `indexWrite`'s subcommand guard |
+| AC-4 | red-first | › "422 git-refused: ui.yaml ignored" (message without an absolute path, the file removed); › "422 git-refused: index.lock held" (the git directory redacted); › "500 write-incomplete: a failing pre-commit hook" (file staged, nothing logged, pushed with auto-push on, or announced); › P2 (`detail.commit` named), P3, P4 (no `detail.commit`), P5 (`commit.gpgSign` with a failing program); › a hook's other commit with another subject → 200, only the preset's listed and logged; › the log sink holds no absolute path and no git text on every error path |
+| AC-5 | red-first | `test/harness/commit-provenance.test.ts` › the console's preset commit accepted; another `chore(ui)` subject, a preset subject on another or a second path, a preset subject on a `ui.yaml` tracked at the start → reported |
+| AC-6, AC-7 | gates | `npm run docs:api`; on `gates.yml` (W1-11): `test:coverage`, `test:contract`, `test:e2e:chromium` (`commit-provenance.spec.ts` › D60-14's test, `no-commit.spec.ts`) and the task's own specs on Firefox and WebKit; locally typecheck, lint, format:check, targeted `npx vitest run`, each git-touching suite also under the strict-identity recipe; `check_tasks.py v0.3` |
+| Contracts | red-first | `test/contracts/api-ui-config-preset-schema.test.ts` (new): the request enum equals `UI_PRESET_NAMES`, the refusal codes, a 200 body; `test/server/presets/ui-config.test.ts` › `PRESET_COMMIT_SUBJECTS` and the table parameter |
+
+#### Questions (one recommendation each)
+
+- **Q1 — `.wingfoil` a symbolic link (or a file) at row 7′.** (a) 409 `ui-config-exists`: the
+  reader already reports such a project's `ui.yaml` as present and refused (`source: ignored`), so
+  the control is hidden and the write refuses with the same reason; (b) 502 `read-error` `{ file:
+  ".wingfoil/ui.yaml", kind: "outside" }`, which reads as a broken project. **Recommended (a).**
+- **Q2 — `no-commit.spec.ts` under AC-5.** (a) Its assertions unchanged (no screen applies a preset
+  before task-064; its check is "nothing changes"), the header comment citing the checker's rule;
+  the accepted commit shape is proven in `commit-provenance.test.ts` and D60-14's e2e test; (b)
+  make it apply a preset through the API too. **Recommended (a).**
+- **Q3 — spec-005 §5 refinements.** A dated Process Note in the green commit recording D60-4's entry
+  kinds (and Q1), D60-6's swap check and residual, D60-7's arguments and maintenance settings,
+  D60-8's success rule (the working-tree text still the rendered one; unborn HEAD) and D60-9's
+  `detail.commit` rule ("exactly one commit with the subject") and the removal condition after a
+  failed `add`. No change of a status, code or order. **Recommended: the Process Note, with the
+  approver's OK given on this design.**
+- **Q4 — CHANGELOG and user guide.** (a) None here: nothing a user sees lands before task-064's
+  *Use preset*, which writes both (AC-6 already says so for the guide); (b) an *Unreleased* entry
+  for the API now, as task-068 did. **Recommended (a)**, to keep one user-facing entry for the
+  feature.
+
+#### Size (RP3-20 G2)
+
+About **1 active day**: the write module (about 300 lines), the route and two schemas, the
+provenance rule, about 35 API tests on real git (the hook cases are short scripts in the copies),
+the fs-port tests, one e2e test, the docs. No split proposed; if review rounds grow it, the
+candidate cut is AC-5 with D60-14 (the provenance checker and its e2e test) as a follow-up task.
