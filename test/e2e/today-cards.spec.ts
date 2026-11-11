@@ -14,6 +14,7 @@ import { COLD_READ_MS } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
+import { cli, mutateAndWait, recordServerEvents } from './support/events.js';
 import { expectFocusVisible, tabUntil } from './support/keyboard.js';
 import { expectSettled } from './support/screens.js';
 import { recordApiData, screenTextsOutsideCatalogue } from './support/strings.js';
@@ -175,6 +176,40 @@ test.describe('US-T-02 — Requires you (v0.3)', () => {
       rowOf(requiresYou(page), 'dl-002-use-fastify').getByRole('button', { name: 'Approve dl-002-use-fastify' }),
     ).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);
+  });
+});
+
+test.describe('Today cards — the focus when the toggle goes (task-061 review round 1 F-5, round 2 N-1)', () => {
+  test('a refetch leaving 10 rows moves the focus from "Show fewer" to the card’s heading', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    test.slow(); // 22 CLI commits on the copy, then three approvals while Today is open.
+    let added: string[] = [];
+    const fx = await copyAs(fixtures, 'kanban', 'Morgan', async (copy) => {
+      added = await addPendingTasks(copy, 11);
+    });
+    const c = await consoles.start({ projects: [fx] });
+    await recordServerEvents(page);
+    await openToday(page, c);
+    const toggle = requiresYou(page).locator('.today-toggle');
+    await expect(toggle).toHaveAccessibleName('Show all (13)');
+    // From the keyboard: a click does not focus a button in every engine (WebKit).
+    await tabUntil(page, toggle);
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveText('Show fewer');
+    await expect(toggle).toBeFocused();
+    // Three approvals made outside the console: 10 rows are left, the toggle goes.
+    for (const id of added.slice(-3)) {
+      await mutateAndWait(page, () => cli(fx, ['memory', 'approve', id, '--reason', 'Done']), {
+        event: 'repo',
+        pid: c.pids[0]!,
+      });
+    }
+    await expect(requiresYou(page).locator('li[data-eid]')).toHaveCount(10, { timeout: COLD_READ_MS });
+    await expect(toggle).toHaveCount(0);
+    await expect(requiresYou(page).getByRole('heading', { name: 'Requires you' })).toBeFocused();
   });
 });
 
