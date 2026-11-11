@@ -436,3 +436,23 @@ the user guide waits for task-064.
 - **Refactor.** None beyond the registry entries: the write reads as the table in its header
   comment; the shared parts (rows 5–6, the action-log append) were factored out of
   `governed.ts` at green.
+
+### review round 1 (2026-11-11, security-adversarial: FAIL, one major)
+
+On `d4b944a1` (the coordinator's merge of the phase branch; run `43080590813` green). The code held
+every probe; one guard was untested.
+
+| Finding | Fix | Test (red first) |
+|---------|-----|------------------|
+| **F-1 (major)** — `removeCreated`'s `stillHere` check untested: without it the server deletes a file outside the project (`.wingfoil` swapped for a link to an outside folder before a failed `git add`) | none needed — the code refuses (500 `write-incomplete`, nothing removed) | `ui-config-preset.test.ts` › "F-1: …": the `add` intercepted, `.wingfoil` renamed to `wf-moved` and linked to an outside folder holding `ui.yaml` = `victim`; 500, the victim and `wf-moved/ui.yaml` intact. With the check removed: 422 (the victim deleted) |
+| F-2 (minor) — no removal while the index holds an entry, untested | none needed | › "F-2: …": the real `add`, reported as exit 1 → 500, the file kept and staged. With the check removed: 422 |
+| F-3 (minor) — `succeeded(committed)` untested | none needed | › "F-3: …": the real commit reported as `timeout` → 500 naming the commit; no action log, no event, the remote unchanged (auto-push on). With the check removed: 200 |
+| F-4 (minor) — `isPresetCommit` accepted a second preset-subject commit modifying or deleting the session's `ui.yaml`, and a symbolic-link mode | `test/harness/commit-provenance.ts`: `SessionCommit.raw` (`diff-tree --raw --root`), the commit must add the path as `100644` absent from its first parent (`A`), at most one preset commit per session | `commit-provenance.test.ts` › three F-4 cases and the `raw` unit case — failed before the fix (`08b4468e`) |
+| F-5 (nit) — a short write whose cleanup is refused answered 500 `internal`, a failed add's 500 `write-incomplete` | both `write-incomplete`; the refusal schema's description covers the swap and "could not be removed" | `preset.test.ts` › "a short write whose cleanup is refused …" — failed before the fix |
+| F-6 (nit) — the sub-folder refusal stated without 0.2.2 | the spec-005 Process Note and deviation (2) limited to WingFoil 0.3.1 | — |
+| F-7 (minor) — deviation (4) wrong: `git checkout --orphan` gives an unborn HEAD | the deviation corrected | `ui-config-preset.test.ts` › "F-7: …": 200, a root commit holding only `ui.yaml`, the rest staged. With the unborn branch removed: 500 |
+
+Red `08b4468e`, fix `6fddf9f1`. Guard removals with a scratch script outside the repository (each
+edit reverted; `npx vitest run test/server/http/ui-config-preset.test.ts -t <id>`), results as in
+the table. Local: typecheck, lint, format:check clean; `commit-provenance`, `writes/preset`,
+`ui-config-preset`, `api-ui-config-preset-schema`: 4 files, 76 tests passed (load 9.1); the three git-touching ones under the strict-identity wrapper: 71 passed.
