@@ -3,12 +3,12 @@ id: bug-040-the-server-reads-a-frontmatter-with-an-empty-key-that-the-cli-refuse
 type: bug
 title: "The server reads a frontmatter with an empty key that the CLI refuses"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,38 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+A Memory frontmatter holding an empty key (`: a`) is read by the server as an element with the key
+`""`, while the pinned CLI (js-yaml) refuses the frontmatter and leaves the file out, so the
+console and every CLI verb disagree on which files are elements.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. In a project the console shows, add the line `: a` to a Memory file's frontmatter and commit.
+2. `npm run -s wingfoil -- memory search <id> --format json`: the file is not among the matches,
+   with a `W_MEMORY_UNREADABLE` warning.
+3. Read the same file through the server's frontmatter parse (`server/src/reads/frontmatter.ts`).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The server refuses the frontmatter, as the CLI does.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`yaml`'s `parseDocument(": a\nb: c\n", { uniqueKeys: false })` gives no error and `{"": "a", "b":
+"c"}` (checked 2026-11-11 with the repository's `yaml` dependency), so the server reads the file.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-075's design, probe P3 (2026-11-11,
+`task/task-075-reads-tied-to-their-state-check-and-frontmatter-duplicate-keys` at `108d5d1a`):
+js-yaml 4.3.2 refuses `: a` ("incomplete explicit mapping pair"); the server reads it. A parse
+divergence, not a duplicate key, so out of bug-037's scope.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Low: it needs a hand-written frontmatter; no verb writes one. Fix direction: refuse an empty or
+null-implicit key in the same pass as bug-037's key forms (`server/src/reads/yaml-keys.ts`, task-075
+D75-9), with a differential case against js-yaml.
 
 ## Triage & Execution Notes
 

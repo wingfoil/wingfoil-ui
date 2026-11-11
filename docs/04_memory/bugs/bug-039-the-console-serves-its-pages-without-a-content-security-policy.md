@@ -3,12 +3,12 @@ id: bug-039-the-console-serves-its-pages-without-a-content-security-policy      
 type: bug
 title: "The console serves its pages without a Content Security Policy"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,40 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The console's server answers its pages with no `Content-Security-Policy` header, so the browser
+applies no second line of defence if text from a repository ever reached the page as markup or a
+script URL.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Start the console on any project and open it in a browser.
+2. Read the response headers of the page (`GET /`) and of an API answer.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The page carries a policy that allows only the console's own scripts, styles, fonts and
+connections (same origin), no inline script but the theme script by its hash, no object, frame or
+remote image — so that a renderer defect would not run anything.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+No `Content-Security-Policy` header is sent (`grep -rn "Content-Security-Policy" server/src` finds
+nothing; the only hardening header is `x-content-type-options: nosniff` on the event stream,
+`server/src/http/events.ts`). `web/index.html` holds an inline theme script (`<script
+id="wfui-theme">`).
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-062's design, probe P2 (2026-11-11, `task/task-062-element-page-side-panel-address-and-rendered-document`
+at `0019812e`): the server sends no policy, and `web/index.html` has an inline theme script. The
+console's guarantees today are structural (markdown-it with raw HTML as text and DOMPurify,
+`adr-002`; images never loaded), and tested.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Low: hardening, no known way in. A policy needs the inline theme script's hash and React Aria's
+inline `style` attributes allowed (`style-src 'unsafe-inline'` or nonces), and a check on the
+three engines. Kept out of task-062's split tasks (the approver, 2026-11-11, task-062 Q3 (a)).
 
 ## Triage & Execution Notes
 

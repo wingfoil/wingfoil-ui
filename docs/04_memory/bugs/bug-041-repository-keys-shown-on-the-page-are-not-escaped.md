@@ -3,12 +3,12 @@ id: bug-041-repository-keys-shown-on-the-page-are-not-escaped           # auto-g
 type: bug
 title: "Repository keys shown on the page are not escaped"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,39 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+Repository values the page uses as keys and also shows — element ids, types, states, roles, tags,
+path keys and workflow names — reach the page as written, so a bidi or control character in one
+(a hand-committed `status:`, a type or state name in `memory.yaml`, a tag) is shown raw, while
+every display-only field is escaped (spec-004 §5, task-056, task-072).
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. In a project the console shows, hand-commit an element's `status:` holding U+202E (or a tag, or
+   a state name in `.wingfoil/memory.yaml`).
+2. Open the Memory list, the element and its history.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The value is shown with its control and bidi characters as visible escapes, while the raw value
+keeps working as a key (addresses, filters, comparisons).
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+The value is shown raw: these fields are keys the page sends back, builds addresses from or
+compares, so the server leaves them unescaped (task-072's class "key", D72-1).
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-072's design (2026-11-11, `task/task-072-repository-display-text-escaped-beyond-the-named-fields`
+at `0f30a659`), probe P4: a hand-committed `status:` reaches `history.to` and `memory search`
+`status` raw with the pinned CLI 0.3.1; D72-1 declares the keys shown raw in spec-004 §5 (the
+approver, 2026-11-11, task-072 Q5 (a)).
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Low: it needs a hand edit (W-34 forbids a hand-set `status:`) or a hostile governance file. Fix
+direction: a display sibling for each key the page shows (as D72-1 does for values that are both),
+or a web-side display escape applied only where a key is rendered; about half a day (task-072 Q5).
 
 ## Triage & Execution Notes
 
