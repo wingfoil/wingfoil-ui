@@ -42,6 +42,7 @@ import { registerProjectListRoutes } from '../../../server/src/http/projects.js'
 import { registerRoleViewRoute } from '../../../server/src/http/role-view.js';
 import { registerServerRoute } from '../../../server/src/http/server-route.js';
 import { registerSettingsRoutes } from '../../../server/src/http/settings.js';
+import { registerUiConfigPresetRoute } from '../../../server/src/http/ui-config-preset.js';
 import { createLogger } from '../../../server/src/logging.js';
 import { InProcessWriteLock } from '../../../server/src/process/write-lock.js';
 import { ProjectList } from '../../../server/src/projects/project-list.js';
@@ -358,6 +359,7 @@ const SWEPT_ROUTES: Readonly<Record<string, string>> = {
   '/api/p/:pid/files/content': 'file-content',
   '/api/p/:pid/today': 'today',
   '/api/p/:pid/events/memory': 'memory-events',
+  '/api/p/:pid/progress': 'progress',
   '/api/projects': 'projects.list.response',
 };
 
@@ -377,7 +379,6 @@ const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
   'project .repository.upstream': 'as the branch: server/http/repository-status',
   'project .repository.sync.update.lastError.detail.files[]': 'a failed update: server/http/repository-status',
   'project .identity.members[]': 'an ambiguous identity: server/http/repository-text',
-  'config .ui.progress.scope.current.title': 'filled by task-059',
   // Today places each row by its descriptor (spec-003 §5) and writes every row of every list through
   // the same `descriptorBody` (project-routes `todayOf`): a member actor is never a gate of *Requires
   // you* or the summary, and the identified user holds every role, so no gate waits on others.
@@ -416,6 +417,15 @@ const REGISTRARS: Readonly<Record<string, (a: FastifyInstance) => void>> = {
   registerSettingsRoutes: (a) => registerSettingsRoutes(a, { store: {} as never, bus: new InProcessEventBus() }),
   registerElementWriteRoutes: (a) =>
     registerElementWriteRoutes(a, {
+      store: {} as never,
+      snapshots: {} as never,
+      writeLock: new InProcessWriteLock(),
+      bus: new InProcessEventBus(),
+      push: {} as never,
+    }),
+  // task-060: the preset write (a POST; it registers no GET route).
+  registerUiConfigPresetRoute: (a) =>
+    registerUiConfigPresetRoute(a, {
       store: {} as never,
       snapshots: {} as never,
       writeLock: new InProcessWriteLock(),
@@ -482,7 +492,9 @@ async function hostileUiYaml(dir: string): Promise<void> {
   const memory = parse(await readFile(file, 'utf8')) as any;
   memory.types[T] = {
     path: 'docs/memory/tx/{id}.md',
-    states: { sequence: ['draft', S], gates: { [S]: { reject: 'draft' } } },
+    // A state after the gate (task-072): the gate is then not the type's last state, so its element can
+    // be the current one.
+    states: { sequence: ['draft', S, 'x-end'], gates: { [S]: { reject: 'draft' } } },
   };
   await writeFile(file, yamlOf(memory));
   await writeFile(
@@ -499,7 +511,40 @@ async function hostileUiYaml(dir: string): Promise<void> {
       artifacts: [{ path: 'p\u202e', phase: 'ph\u202e\u0085' }],
     }),
   );
+  // task-072 (after task-059): two elements of the scope type, written to the working tree as a
+  // project may hold them — the current one, in the gate state, whose title holds U+202E and NEL
+  // (`/progress` and `/config` `scope.current.title`), and one in its scope (it carries the current
+  // one's id) whose `ref` matches the hostile pattern (`completion.references[].id`).
+  const folder = path.join(dir, 'docs', 'memory', 'tx');
+  await mkdir(folder, { recursive: true });
+  const element = (fields: Record<string, string>) =>
+    `---\n${Object.entries(fields)
+      .map(
+        ([k, v]) =>
+          `${k}: ${JSON.stringify(v)
+            .replace(/\u202e/g, '\\u202e')
+            .replace(/\u0085/g, '\\x85')}`,
+      )
+      .join('\n')}\n---\n\nBody.\n`;
+  await writeFile(
+    path.join(folder, `${SCOPE_CURRENT}.md`),
+    element({ id: SCOPE_CURRENT, type: T, title: 'Scope \u202ecurrent\u0085', status: S }),
+  );
+  await writeFile(
+    path.join(folder, 'tx-002-in-scope.md'),
+    element({
+      id: 'tx-002-in-scope',
+      type: T,
+      title: 'In scope',
+      status: 'draft',
+      parent: SCOPE_CURRENT,
+      ref: 'm\u202e\u00851',
+    }),
+  );
 }
+
+/** The current element of the hostile scope type (task-072). */
+const SCOPE_CURRENT = 'tx-001-current';
 
 /** The name and the content of the hostile document (the file tree's `name` (r), its content (d)). */
 const DOC_NAME = 'notes \u202etxt.md';

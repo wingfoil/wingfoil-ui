@@ -427,3 +427,40 @@ On `gates.yml`:
 - The design commit's run, `43046517666`, failed only in `e2e-chromium`'s *Chromium and its system
   packages* step (`Temporary failure resolving 'azure.archive.ubuntu.com'`). The runner's network
   failed, not a test; the code commits supersede that run.
+
+### after the merge of the phase branch (2026-11-12)
+
+The coordinator merged the phase branch into this branch (`bf82dfb3`, W0-7): task-073, task-059,
+task-060 and task-061. On it, unchanged, `text-sweep.test.ts` failed exactly as D72-10 meant it to
+— **red without a change of this task** (3 failed, 7 passed):
+
+- *route coverage*: `start.ts` registers `registerUiConfigPresetRoute` (task-060), which the sweep
+  did not register; `GET /api/p/:pid/progress` (task-059) was neither swept nor exempt;
+- *per-field reach*: `progress .scope.current.title` and `progress .figures.completion.references[].id`
+  were not reached by the fixture (the merge's resolution had added `['progress', '/progress']`
+  to the routes read).
+
+The other new fields — task-073's `verbs[].reason.state` (c), the `/elements` flag's
+`missingReferences` lists (c), task-061's Today fields — were already classified by their tasks,
+and no (b) leaf among them went unreached.
+
+Green (sweep and fixture only; task-059 already escapes these fields, `project-state/bodies.ts`):
+- `REGISTRARS` registers the preset route (a POST: no GET to sweep); `SWEPT_ROUTES` has
+  `/api/p/:pid/progress` → `progress`.
+- The sweep's hostile `memory.yaml` type gains a state after its gate, so that the gate is not
+  the type's last state and its element can be the current one (spec-005 §4).
+- Two elements of the hostile scope type are written to the working tree: the current one, in
+  the gate state, whose title holds U+202E and NEL; and one in its scope (it carries the current
+  one's id) whose `ref` matches the hostile pattern.
+- `config .ui.progress.scope.current.title` left `REACHED_ELSEWHERE`: it is reached now, as are
+  `/progress`'s `scope.current.title` and `completion.references[].id`.
+
+Guard removal: with `bodies.ts` serving `scope.current.title` unescaped, the sweep fails on
+`/progress .scope.current.title` and `/config .ui.progress.scope.current.title` (restored).
+
+Local, after the merge (Vitest `--maxWorkers=2`, targeted, as the coordinator asked):
+- `npm run typecheck`, `npm run lint` and `npm run format:check` are clean.
+- `text-sweep`: 10 passed.
+- `repository-text`, `serialise`, `api-docs-label-schema`, `web/docs`, `web/shell/repository-text`
+  and `web/team`: 11 files, 161 passed.
+- Strict identity (`text-sweep`, `repository-text`, `harness/git-identity`): 27 passed.
