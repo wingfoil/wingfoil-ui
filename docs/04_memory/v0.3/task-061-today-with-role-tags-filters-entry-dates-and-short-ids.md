@@ -410,3 +410,10 @@ S-23.4 and S-23.5 are task-076's (W2-7).
   `task-001-login-form`.
 - **N-3**: `test/README.md`'s task-061 paragraph names the X-09.1 test and the focus test.
 
+- **N-1**: `gh workflow run gates.yml --ref task/task-061-… -f scope=task -f specs="test/e2e/today-cards.spec.ts
+  test/e2e/today.spec.ts test/e2e/held-gates.spec.ts"` on `960c4962` (it cancelled that commit's
+  push run `43093337883`): run `43093337514` — every job green (checks, contract, smoke,
+  publish-smoke, e2e-chromium both shards, own specs of the three spec files on Firefox and WebKit)
+  but `coverage`, whose tests and totals passed and whose artifact upload failed on a GitHub
+  service error (`Failed to CreateArtifact … "<!DOCTYPE "… is not valid JSON`); the failed job
+  re-run (`gh run rerun --failed`): success — the run's conclusion `success`.
