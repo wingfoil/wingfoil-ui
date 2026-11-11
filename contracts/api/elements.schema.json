@@ -43,6 +43,14 @@
           },
           "descriptor": {
             "$ref": "descriptor.schema.json"
+          },
+          "missingCategories": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "ui-config.schema.json#/definitions/category"
+            },
+            "description": "The categories taxonomy.requires names for the element's type that it carries no reference of, in requires order (spec-012 §5); absent when none is missing, the file unreadable or the type without requires."
           }
         },
         "additionalProperties": false
@@ -62,6 +70,23 @@
     },
     "eventsError": {
       "$ref": "error.schema.json"
+    },
+    "missingReferences": {
+      "type": "object",
+      "required": ["shown", "unreadable", "capped"],
+      "additionalProperties": false,
+      "description": "The missing-reference filter (spec-012 §5): shown when taxonomy.requires names a type; the elements whose file could not be read and those indexed incompletely. Absent with typesError.",
+      "properties": {
+        "shown": {
+          "type": "boolean"
+        },
+        "unreadable": {
+          "$ref": "progress.schema.json#/definitions/ids"
+        },
+        "capped": {
+          "$ref": "progress.schema.json#/definitions/ids"
+        }
+      }
     }
   },
   "additionalProperties": false

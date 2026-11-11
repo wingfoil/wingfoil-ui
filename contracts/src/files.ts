@@ -11,6 +11,11 @@ export interface StateMachine {
   gates?: Record<string, { reject: string }>;
   /** States whose forward edge fires only through a workflow action. */
   waiting?: string[];
+  /**
+   * WIP limits (WingFoil 0.3.x, task-073): at most N elements of the type in each listed state. Read
+   * leniently: only positive integers are kept (spec-001 §4.1).
+   */
+  limits?: Record<string, number>;
 }
 
 /** One element type of `memory.yaml`, the keys of spec-001 §4.1 only. */

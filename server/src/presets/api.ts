@@ -6,3 +6,9 @@
 
 /** The query parameter of `GET /api/p/:pid/elements` that adds the archived elements (`=true`). */
 export const ARCHIVED_QUERY = 'archived';
+
+/**
+ * The count of finished elements in the project-state views (`completion.references[].done`,
+ * `iterated.done`, spec-012 §3; task-059 D59-8): `done` is also a fixture state name.
+ */
+export const DONE_FIELD = 'done' as const;

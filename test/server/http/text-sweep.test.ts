@@ -72,12 +72,12 @@ const RULES: readonly Rule[] = [
   // The error envelopes.
   {
     pattern:
-      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?code$/,
+      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal|ui-config\.preset\.refusal) \.(?:error\.)?code$/,
     cls: 'e',
   },
   {
     pattern:
-      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal) \.(?:error\.)?message$/,
+      /^(?:error|cli\.refusal|element\.refusal|git\.refusal|projects\.refusal|write\.refusal|ui-config\.preset\.refusal) \.(?:error\.)?message$/,
     cls: 'a',
     note: 'a tool message (cli-refused, git-refused) or a fixed one',
   },
@@ -87,10 +87,23 @@ const RULES: readonly Rule[] = [
   { pattern: /^projects\.refusal \.error\.detail\.name$/, cls: 'r', note: BUG_035 },
   { pattern: /^projects\.refusal \.error\.detail\.(?:path|pid|command|stateDir)$/, cls: 'e' },
   { pattern: /^write\.refusal \.error\.detail\.(?:file|command|commit)$/, cls: 'e' },
+  // task-060: the preset write's refusal; `failure` quotes the shipped preset only (D60-5).
+  {
+    pattern: /^ui-config\.preset\.refusal \.error\.detail\.(?:file|command|commit|failure)$/,
+    cls: 'e',
+    note: 'the server’s own text (task-060)',
+  },
   // task-070 (D70-6, D70-11): a WingFoil 0.3.x refusal's reasons, tool messages as the message.
-  { pattern: /^(?:cli|write)\.refusal \.error\.detail\.reasons\[\]$/, cls: 'a', note: 'a refusal reason (task-070)' },
+  {
+    pattern: /^(?:cli|write|ui-config\.preset)\.refusal \.error\.detail\.reasons\[\]$/,
+    cls: 'a',
+    note: 'a refusal reason (task-070)',
+  },
   // The action descriptor, wherever it is.
-  { pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role)|actor\\.role)$`), cls: 'c' },
+  {
+    pattern: new RegExp(`${DESCRIPTOR}(?:id|type|status|verbs\\[\\]\\.(?:to|role|reason\\.state)|actor\\.role)$`),
+    cls: 'c',
+  },
   { pattern: new RegExp(`${DESCRIPTOR}(?:verbs\\[\\]\\.reason\\.range|rejection\\.at|since)$`), cls: 'e' },
   { pattern: new RegExp(`${DESCRIPTOR}rejection\\.(?:by|reason)$`), cls: 'a', note: 'commit text (bug-027)' },
   {
@@ -192,6 +205,23 @@ const RULES: readonly Rule[] = [
     cls: 'b',
     note: 'ECHOED_UI_FIELDS (task-068)',
   },
+  // `/progress` (task-059 D59-10) and the missing-reference flag of `/elements`.
+  { pattern: /^progress \.ui\.warning\.failure$/, cls: 'a' },
+  { pattern: /^progress \.scope\.current\.title$/, cls: 'b' },
+  { pattern: /^progress \.scope\.current\.(?:id|shortId|type|status)$/, cls: 'c' },
+  {
+    pattern: /^progress \.(?:scope\.type|figures\.(?:iterated|openDefects)\.type)$/,
+    cls: 'b',
+    note: 'type names echoed from ui.yaml, escaped as /config ui echoes them',
+  },
+  {
+    pattern: /^progress \.figures\.completion\.references\[\]\.id$/,
+    cls: 'b',
+    note: 'a pattern reference escaped (§9); an element reference the target id of memory search',
+  },
+  { pattern: /^progress \.(?:figures\.\w+\.(?:ids|doneIds)\[\]|unreadable\[\]|capped\[\])$/, cls: 'c' },
+  { pattern: /^progress \.figures\.(?:phase|phaseCompletion)\.reason\..+$/, cls: 'e' },
+  { pattern: /^elements \.missingReferences\.(?:unreadable|capped)\[\]$/, cls: 'c' },
 ];
 
 /** The class of `key` (`<schema> <path>`), or `undefined`. */
@@ -405,6 +435,7 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       ['docs', '/docs'],
       ['today', '/today'],
       ['memory-events', '/events/memory?limit=100'],
+      ['progress', '/progress'],
     ];
     const directives = await get('/directives');
     if (directives.entries[0]) routes.push(['directive', `/directives/${directives.entries[0].frontmatter.id}`]);
