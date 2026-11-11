@@ -137,6 +137,9 @@ const MAPPINGS: readonly string[] = [
   'x: &x {c: 1}\n!!merge "<<": *x\n',
   'x: &x {c: 1}\n!!merge : *x\n',
   'x: &x {c: 1}\nm:\n  !!merge "<<": *x\n  c: 2\n  c: 3\n',
+  // A quoted empty `!!merge` key (review round 2 F-7): js-yaml cannot resolve it.
+  "!!merge '': {c: 1}\n",
+  '!!merge "": {c: 1}\n',
 ];
 
 /** A pair row's text: an explicit `?` key ends with its line break, so its `:` starts the next line. */
@@ -146,7 +149,7 @@ function pairText(first: string, second: string): string {
 
 // A tag js-yaml does not accept on a key's node (the table tags keys only): refused for that key.
 const KEY_ERRORS =
-  /^(duplicated mapping key|nested arrays are not supported inside keys|unknown tag !<[^>]+>|unacceptable node kind for !<[^>]+> tag.*)$/;
+  /^(duplicated mapping key|nested arrays are not supported inside keys|unknown tag !<[^>]+>|unacceptable node kind for !<[^>]+> tag.*|cannot resolve a node with !<tag:yaml\.org,2002:merge> explicit tag)$/;
 
 function jsYamlVerdict(text: string): 'refused' | 'read' | 'other' {
   try {

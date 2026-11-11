@@ -136,6 +136,25 @@ describe('alias keys resolved in one pass (task-075 review round 1 F-1)', () => 
     expect(walks).toBe(0);
   });
 
+  it('the key forms of 2N alias keys cost about twice those of N (review round 2 F-9)', () => {
+    // The check's own work only: the documents are parsed outside the clock (the library's own
+    // `toJS` is not measured here). Median of three; a quadratic cost would give about 4×.
+    const time = (n: number): number => {
+      const doc = parseDocument(distinct(n), FRONTMATTER_PARSE_OPTIONS);
+      const runs: number[] = [];
+      for (let r = 0; r < 3; r += 1) {
+        const started = performance.now();
+        const context = keyContext(doc);
+        for (const pair of (doc.contents as YAMLMap).items) jsYamlKey(pair.key, context);
+        runs.push(performance.now() - started);
+      }
+      return runs.sort((x, y) => x - y)[1]!;
+    };
+    time(2_000); // warm-up
+    const ratio = time(16_000) / time(8_000);
+    expect(ratio).toBeLessThan(3.5);
+  });
+
   it('a 64 KiB frontmatter of 16 000 aliases is answered within 5 s (53 s before the fix)', () => {
     const text = aliases(16_000);
     expect(text.length).toBeLessThanOrEqual(64 * 1024);
