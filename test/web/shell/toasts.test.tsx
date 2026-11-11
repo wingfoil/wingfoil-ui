@@ -267,6 +267,11 @@ it.each([
     { bottom: 328, maxHeight: 320 },
   ],
   [
+    'the element page with its header in view: the stack stays below its Close',
+    { ...LAYOUT, viewport: { width: 400, height: 600 }, pageFooterTop: 520, pageHeaderBottom: 180 },
+    { bottom: 88, maxHeight: 316 },
+  ],
+  [
     'the element page, its footer bar not in view',
     { ...LAYOUT, viewport: { width: 1280, height: 720 }, pageFooterTop: 900 },
     { maxHeight: 624 },

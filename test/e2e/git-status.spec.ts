@@ -176,7 +176,7 @@ test.describe('US-Y-01 — branch, ahead/behind and local changes', () => {
     expect(await scanThemes(page)).toEqual([]);
     // Governed actions are blocked with the reason (row 8 of task-033, the footer of task-037).
     await page.goto(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`, { timeout: COLD_READ_MS });
-    const footer = page.locator('.drawer .element-footer');
+    const footer = page.locator('[data-element-view] .element-footer');
     await expect(footer).toContainText('Blocked: no branch checked out', { timeout: COLD_READ_MS });
     for (const outcome of await footer.getByRole('button', { name: /→/ }).all()) {
       await expect(outcome).toHaveAttribute('aria-disabled', 'true');
@@ -405,7 +405,7 @@ test.describe('US-S-11 — read-only with the reason, or hidden', () => {
   }) => {
     const c = await start(consoles, await copyAs(fixtures, 'custom', 'Jordan'));
     await openConsole(page, c, { path: `/p/${c.pids[0]}/e/dl-002-use-fastify` });
-    const footer = page.locator('.drawer .element-footer');
+    const footer = page.locator('[data-element-view] .element-footer');
     await expect(footer).toHaveText('Reserved to approver — Morgan, Alex can act', { timeout: COLD_READ_MS });
     await expect(footer.getByRole('button')).toHaveCount(0);
   });

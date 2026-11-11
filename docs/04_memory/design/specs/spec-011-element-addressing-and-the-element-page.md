@@ -276,3 +276,10 @@ remember across the session exchange, and where, is adr-003's.
   parameter (`find-my-way` compares the string's length): a character outside the Basic
   Multilingual Plane counts 2. Ids WingFoil 0.3.1 writes are ASCII (its slug drops other letters)
   and at most 252 characters (`<id>.md` is a 255-byte file name), so every id it lists fits.
+- 2026-11-11 — at task-062's design (decided by the approver, "tutto come consigliato"; task-062
+  D62-9, Q4 (a)): §6 — an id taken from an address is refused as *not found*, before any request,
+  when it is empty, `.` or `..`: `encodeURIComponent` keeps dots and the URL parser removes dot
+  segments, so `/api/p/<pid>/elements/..` would reach `/api/p/<pid>/` (the project header). Every
+  other value is placed with `encodeURIComponent` as §2 says. The side panel of §2 (E1) is
+  task-077-side-panel-in-the-address, split from task-062; on the element page a bell item opens
+  that item's element page (Q1 (a)), recorded there when it is built.

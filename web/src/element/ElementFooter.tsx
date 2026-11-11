@@ -120,7 +120,7 @@ export function ElementFooter({
     if (active !== null && active !== document.body && !slot.contains(active)) return;
     const next =
       slot.querySelector<HTMLElement>('.gate-reason-field, .gate-outcome:not([aria-disabled="true"])') ??
-      (slot.closest('[role="dialog"]')?.querySelector('.drawer-title') as HTMLElement | null);
+      (slot.closest('[data-element-view]')?.querySelector('.drawer-title') as HTMLElement | null);
     next?.focus();
   });
 
@@ -138,7 +138,7 @@ export function ElementFooter({
         onSuccess: () => {
           onDone();
           // The action that had the focus goes with the new state: the panel's heading takes it.
-          (root.current?.closest('[role="dialog"]')?.querySelector('.drawer-title') as HTMLElement | null)?.focus();
+          (root.current?.closest('[data-element-view]')?.querySelector('.drawer-title') as HTMLElement | null)?.focus();
         },
       },
     );

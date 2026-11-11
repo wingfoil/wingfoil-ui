@@ -473,7 +473,7 @@ describe('bug-018 — the focus back on the Today action', () => {
       const user = userEvent.setup();
       const { router } = renderApp(`/p/${PID}/today`);
       await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-      await screen.findByRole('dialog');
+      await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
       if (how === 'Close') await user.click(screen.getByRole('button', { name: 'Close' }));
       else await user.keyboard('{Escape}');
       await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
@@ -489,7 +489,7 @@ describe('bug-018 — the focus back on the Today action', () => {
     const user = userEvent.setup();
     const { router, queryClient } = renderApp(`/p/${PID}/today`);
     await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     const without: Today = { ...MORGAN_TODAY, requiresYou: MORGAN_TODAY.requiresYou!.slice(1) };
     fake[`${TODAY}?view=approver`] = { status: 200, body: without };
     await queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) });
@@ -508,7 +508,7 @@ describe('bug-018 — the focus back on the Today action', () => {
     const { router } = renderApp(`/p/${PID}/today`);
     await screen.findByRole('button', { name: 'Approve task-001-login' });
     await user.click(linkOf(requiresYou(), 'task-001-login'));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     await user.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
     await waitFor(() => expect(document.activeElement).toBe(linkOf(requiresYou(), 'task-001-login')));
@@ -521,7 +521,7 @@ describe('bug-018 — the focus back on the Today action', () => {
     await screen.findByRole('button', { name: 'Approve task-001-login' });
     linkOf(waitingCard(), 'task-002-reset').focus();
     await user.keyboard('{Enter}');
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     await user.keyboard('{Escape}');
     await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
     await waitFor(() => expect(document.activeElement).toBe(linkOf(waitingCard(), 'task-002-reset')));
@@ -536,7 +536,7 @@ describe('bug-018 — the focus back on the Today action', () => {
     await user.click(linkOf(requiresYou(), 'task-001-login'));
     await user.keyboard('{/Control}');
     await act(async () => router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: 'task-001-login' } }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     await user.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
     await screen.findByRole('button', { name: 'Approve task-001-login' });
@@ -560,7 +560,7 @@ describe('bug-018 — the focus back on the Today action', () => {
     const user = userEvent.setup();
     const { router, queryClient } = renderApp(`/p/${PID}/today`);
     await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     holding = true;
     // Not awaited: the notification bell reads the same Today, held until the release.
     void queryClient.invalidateQueries({ queryKey: queryKeys.project(PID, 'today') });
@@ -596,7 +596,7 @@ describe('bug-018 — the focus back on the Today action', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/p/${PID}/today`);
     await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     // Another project's Today (the same element id there): its action does not take the focus.
     await act(async () => router.navigate({ to: '/p/$pid/today', params: { pid: PID_B } }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID_B}/today`));

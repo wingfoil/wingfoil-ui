@@ -126,7 +126,7 @@ test.describe('US-R-09 — safe links', () => {
       timeout: CLASSIFIED_WITHIN,
     });
     await link.click();
-    const panel = page.getByRole('dialog');
+    const panel = page.locator('[data-element-view]');
     await expectFirstLoad(panel.locator('.type-tag'));
     await expect(panel.getByText('dl-001-initialise-wingfoil-before-inception', { exact: true })).toBeVisible();
     await expect(panel).toHaveAccessibleName('Initialise WingFoil before inception');

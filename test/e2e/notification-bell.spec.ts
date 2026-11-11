@@ -67,7 +67,7 @@ async function openToday(page: Page, c: RunningConsole): Promise<void> {
 /** Approve `eid` from Today: its action opens the panel with the reason focused, then Approve (G-04.1). */
 async function approveFromToday(page: Page, c: RunningConsole, eid: string): Promise<void> {
   await requiresYou(page).locator(`li[data-eid="${eid}"]`).getByRole('button').click();
-  const drawer = page.locator('.drawer');
+  const drawer = page.locator('[data-element-view]');
   await drawer.getByRole('button', { name: 'Approve → approved', exact: true }).click({ timeout: COLD_READ_MS });
   // task-038: the result is a toast of the shell (D38-10).
   await expect(
@@ -114,7 +114,9 @@ test.describe('US-S-21 — notification bell', () => {
     await panel(page).getByRole('link', { name: 'Login form' }).click();
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`, { timeout: COLD_READ_MS });
     await expect(panel(page)).toHaveCount(0);
-    await expect(page.locator('.drawer').getByRole('textbox', { name: 'Reason, recorded in the commit' })).toBeFocused({
+    await expect(
+      page.locator('[data-element-view]').getByRole('textbox', { name: 'Reason, recorded in the commit' }),
+    ).toBeFocused({
       timeout: COLD_READ_MS,
     });
   });

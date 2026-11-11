@@ -9,6 +9,13 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **The element page** (task-062, US-G-01 G-01.4 … G-01.7; spec-011 §2, §3): an element opens as a
+  page of the main region, with the sidebar — from its address, the Memory list and a link inside
+  a document, a directive or another element — with the same content and footer as the v0.2 panel,
+  the footer in a bar at the bottom of the window (the toasts stay above it). An address with a
+  short id (`/p/<project>/e/task-046`) opens its element and is rewritten to the full id; a short
+  id that names several elements lists them, each a link to its page, instead of *not found*; an
+  element whose id is longer than 100 characters is opened and decided like any other.
 - **Held gates** (task-069, US-S-24 S-24.5, S-24.6; spec-003 §3, §5, §8; spec-005 §4a): a gate the
   project's `.wingfoil/ui.yaml` (or its preset) holds in `holds` offers no *Approve* — `never`
   ("Approved outside the console (ui.yaml)") or `when-references-done` while elements referencing
@@ -70,6 +77,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Changed
 
+- **Close and Escape on an element opened from its address** (task-062, spec-011 §2) go to the
+  project's Memory list, no longer to its landing view.
 - **WingFoil 0.3 support** (task-046): a project on WingFoil 0.2.2 to 0.3.x is supported
   (contract-tested: 0.2.2 and 0.3.1); this repository pins `wingfoil@0.3.1`. The `--version` text
   of WingFoil 0.3, which carries its build (`0.3.1 (870bd44…)`), is read as its version; the

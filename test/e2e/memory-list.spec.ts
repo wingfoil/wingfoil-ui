@@ -159,7 +159,7 @@ test.describe('US-M-01 — Memory list', () => {
     await logout.focus();
     await expectFocusVisible(logout);
     await page.keyboard.press('Enter');
-    const panel = page.getByRole('dialog', { name: 'Logout', exact: true });
+    const panel = page.getByRole('region', { name: 'Logout', exact: true });
     // The panel's first read (bug-004): until it answers, the dialog is named by the id.
     await expectFirstLoad(panel.locator('.type-tag'));
     await expect(panel.getByText('task-003-logout', { exact: true })).toBeVisible();
@@ -329,7 +329,7 @@ test.describe('US-S-26 — refresh by itself', () => {
     await recordServerEvents(page);
     await openList(page, c);
     await row(page, 'task-001-login-form').click();
-    const panel = page.getByRole('dialog', { name: 'Login form', exact: true });
+    const panel = page.getByRole('region', { name: 'Login form', exact: true });
     await expectFirstLoad(panel.getByRole('listitem').filter({ hasText: 'submitted by Jordan' }));
     const line = panel.getByRole('listitem').filter({ hasText: 'signed off by Alex' });
     // The new state is not on screen before the change (task-026, AC-2).
@@ -361,7 +361,7 @@ test.describe('US-S-26 — refresh by itself', () => {
     expect(api.listReads).toHaveLength(1);
     // Away (the element panel) and back to the list.
     await row(page, 'task-002-password-reset').click();
-    await expectFirstLoad(page.getByRole('dialog').locator('.type-tag'));
+    await expectFirstLoad(page.locator('[data-element-view]').locator('.type-tag'));
     await page.getByRole('button', { name: 'Close' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
     await api.settled();
@@ -400,8 +400,8 @@ test.describe('US-S-28 — three fixtures, no UI change', () => {
     const c = await consoles.start({ projects: [await fixtures.get('unknown')] });
     await openList(page, c);
     await row(page, 'story-001-onboarding').click();
-    const machine = page.getByRole('dialog').getByRole('list', { name: 'State machine' });
-    await expectFirstLoad(page.getByRole('dialog').locator('.type-tag'));
+    const machine = page.locator('[data-element-view]').getByRole('list', { name: 'State machine' });
+    await expectFirstLoad(page.locator('[data-element-view]').locator('.type-tag'));
     const chips = machine.getByRole('listitem');
     await expect(chips.locator('[aria-hidden="true"]')).toHaveText(['idea', 'shaping', 'ready-to-build', 'shipped']);
     const current = chips.filter({ has: page.locator('[aria-hidden="true"]', { hasText: /^shaping$/ }) });

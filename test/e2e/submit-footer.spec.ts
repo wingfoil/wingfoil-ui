@@ -24,7 +24,7 @@ test.use({ prebuild: ['kanban', 'custom'] });
 
 const LOCAL_CHANGES = 'Blocked: this element has local changes — commit or discard them first';
 
-const drawer = (page: Page): Locator => page.locator('.drawer');
+const drawer = (page: Page): Locator => page.locator('[data-element-view]');
 const gate = (page: Page): Locator => drawer(page).getByRole('region', { name: 'Decision' });
 const reasonField = (page: Page): Locator =>
   gate(page).getByRole('textbox', { name: 'Reason, recorded in the commit' });
