@@ -22,7 +22,15 @@ import { naturalOrder } from './order.js';
 
 /** The `ElementRef` of `element` (spec-012 §2): its title escaped, its tone from its kind. */
 export function elementRef(element: IndexedElement, match: Pick<MemoryMatch, 'title'>, shortIds: ShortIds): ElementRef {
-  throw new Error('not implemented (red)');
+  const shortId = shortIds(element);
+  return {
+    id: element.id,
+    ...(shortId !== undefined ? { shortId } : {}),
+    title: neutralise(match.title),
+    type: element.type,
+    status: element.status,
+    tone: toneOf(element.kind),
+  };
 }
 
 /** The scope type as `/config` `ui` echoes it (escaped, §9). */
@@ -42,5 +50,25 @@ export interface ProgressInputs extends FigureInputs {
 
 /** `GET /api/p/:pid/progress` (spec-012 §3). */
 export function progressBody(inputs: ProgressInputs): Progress {
-  throw new Error('not implemented (red)');
+  const { ui, index, current } = inputs;
+  const readOnly = { state: 'read-only' as const, reason: inputs.phaseReason };
+  return {
+    ui: ui.status,
+    mode: ui.progress.mode.value,
+    scope: {
+      type: escapedScopeType(ui),
+      current: current ? elementRef(current, inputs.match(current.id), inputs.shortIds) : null,
+      basis: current ? 'derived' : null,
+    },
+    figures: {
+      completion: completionFigure(inputs),
+      phase: readOnly,
+      phaseCompletion: readOnly,
+      iterated: iteratedFigure(inputs),
+      openDefects: openDefectsFigure(inputs),
+      pendingGates: pendingGatesFigure(inputs),
+    },
+    unreadable: naturalOrder(index.unreadable),
+    capped: naturalOrder(index.capped),
+  };
 }

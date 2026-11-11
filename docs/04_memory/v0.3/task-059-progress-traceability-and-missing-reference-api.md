@@ -265,7 +265,7 @@ their workspace.
   `index.ts`, for task-065 … task-067): `addSecondRelease` (T-12.4, T-12.6: `minor-v0.1` to
   `released` by `submitToReleasing` + `releaseHeldRelease`, `minor-v0.2` added and submitted twice
   by verbs, P3), `draftRelease` (T-12.5: `minor-v0.1` `planning → draft` by the harness's existing
-  `handTransition`, a commit outside the UI — Q4), `addFrontmatterValue(fx, id, field, value)`
+  `handTransition`, a commit outside the UI — Q4), `setFrontmatterValue(fx, id, field, value)`
   (R-01.5 `ref: US-S-09` on dl-001, R-01.7 `related:` on task-001, M-03.2 and M-04.3 `ref: US-X-08`
   / `sard_ref: REQ-ARC-01`), each committed alone by the fixture's identity with a plain subject.
 - **D59-13 — bug-034 (AC-10): each per-state read tied to what the state check saw.** *(Moved to task-075, W2-6.)*
@@ -422,3 +422,38 @@ parti, il resto come proponi".
 - **Q5** — the tie order as proposed, in a spec-012 Process Note with the green commit.
 - **Q6 (a)** — `/config` `ui.progress.scope.current` filled here.
 - **Q7 (a)** — the timing tests are written here; `test:timing` stays the coordinator's.
+
+### red / green / refactor (2026-11-11)
+
+- **Red** (`372ba659`): the contracts first (`progress.schema.json`; `elements.schema.json`
+  `missingCategories`, `missingReferences`; `project.schema.json` `definitions.capabilityReason`;
+  `contracts/src/progress.ts`), the module `server/src/project-state/` as stubs that throw, the
+  harness variants `test/harness/fixtures/progress.ts`, and the tests: `server/project-state/figures`
+  26 failed of 26; `server/http/progress-routes` 24 failed, 2 passed — "AC-3 archived rows carry no
+  flag; the element read carries none" and "AC-3 absent with typesError", which assert an absence
+  the code before the task already had (characterization, kept as guards);
+  `contracts/progress-api-schema` 3 failed, 2 passed (the schema parts, committed with the red).
+- **Green**: the module (D59-1 … D59-7, D59-10), `/progress`, the flag, `/config` `scope.current`
+  (`ProjectRead.currentRef`), `heldOf` exported from `descriptor.ts`, `ProjectRead.holds()` public,
+  `SnapshotView.contentDerived` (D59-9, announced to the coordinator before the change: additive,
+  the read memo under a `content\0` prefix). Deviations from the design, none of behaviour:
+  - the harness helper is `setFrontmatterValue` (the design's `addFrontmatterValue`): the template
+    already writes `ref: ""` and `sard_ref: ""`, so M-03.2, M-04.3 set the field's line (or add it);
+  - `meanOf`'s parts are `{ finished, total }` (`done` is a fixture state name, REQ-ARC-05), the API
+    key `done` written through `DONE_FIELD` of `server/src/presets/api.ts`;
+  - `scope.type`, `iterated.type`, `openDefects.type` are escaped as `/config` `ui` echoes them
+    (spec-012 Process Note of 2026-11-11, with the Q5 tie order and Q6);
+  - the AC-4 "memory search fails" test compares `/progress`'s answer with `/elements`'s for a
+    refusal (exit 1, `cli-refused`) and a crash (exit 2, `internal`);
+  - task-068's `ui-config-route` C-01.2 and T-12.x tests now expect the derived `minor-v0.1`
+    (T-12.4, T-12.5 on their variants in `progress-routes`); `text-sweep` classifies the
+    `progress` and `missingReferences` fields and sweeps `/progress`.
+  - AC-7: two `@perf` tests in `performance.spec.ts` measured at the API with the page's session
+    (the screens are task-065's and task-066's), budgets asserted under `test:timing` only (Q7).
+- Local checks (load about 6.17): `npm run typecheck`, `lint`, `format:check` clean; `npm run
+  docs:api` generated; `check_tasks.py v0.3` OK; `npx vitest run test/server/http test/server/snapshot
+  test/server/descriptor test/server/project-state test/server/references test/server/ui-config
+  test/contracts test/server/presets` 1 355 passed, 5 failed — the two expected files, fixed, then
+  `text-sweep`, `ui-config-route` and `test/docs` 94 passed; `test/governance` and
+  `wingfoil-feedback` passed; `progress-routes` and `ui-config-route` under the strict-identity
+  `git` wrapper of *Git identity* (outside the repository) 44 passed.

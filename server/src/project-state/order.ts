@@ -16,10 +16,20 @@ function compareDigits(a: string, b: string): number {
 
 /** Negative when `a` sorts before `b` in natural order, 0 only when they are equal. */
 export function naturalCompare(a: string, b: string): number {
-  throw new Error('not implemented (red)');
+  const xs = a.match(RUNS) ?? [];
+  const ys = b.match(RUNS) ?? [];
+  for (let i = 0; i < Math.min(xs.length, ys.length); i += 1) {
+    const x = xs[i]!;
+    const y = ys[i]!;
+    const digits = /^\d/.test(x) && /^\d/.test(y);
+    const c = digits ? compareDigits(x, y) : x < y ? -1 : x > y ? 1 : 0;
+    if (c !== 0) return c;
+  }
+  if (xs.length !== ys.length) return xs.length - ys.length;
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /** The distinct `ids` in natural order. */
 export function naturalOrder(ids: Iterable<string>): string[] {
-  throw new Error('not implemented (red)');
+  return [...new Set(ids)].sort(naturalCompare);
 }

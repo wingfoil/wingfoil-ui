@@ -18,7 +18,7 @@ export interface Row {
   status: string;
   title?: string;
   values?: string[];
-  version?: string;
+  version?: string | undefined;
   unreadable?: boolean;
   capped?: boolean;
 }

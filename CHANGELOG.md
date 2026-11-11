@@ -9,6 +9,17 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **Progress figures and missing references in the API** (task-059, TT-STATE-08; spec-012 §2,
+  §3, §5): `GET /api/p/:pid/progress` serves the progress card's figures of a repository state —
+  the current element of the `ui.yaml` scope (the most advanced release, derived on every WingFoil
+  version), the completion of the `requirement` and `feature` references linked in that scope,
+  the iterated elements done, the open defects and the pending gates (held gates excluded), each
+  with the ids a Memory list filter will use, the phase figures read-only until WingFoil's
+  `workflow status` is consumed. `GET /api/p/:pid/elements` names, per element, the categories
+  `taxonomy.requires` asks of its type that it carries no reference of, and whether that filter
+  is offered; `/config` fills `ui.progress.scope.current`. Computed once per state from the
+  reference index, no CLI process added; titles and reference ids escaped. The screens are later
+  tasks'.
 - **Held gates** (task-069, US-S-24 S-24.5, S-24.6; spec-003 §3, §5, §8; spec-005 §4a): a gate the
   project's `.wingfoil/ui.yaml` (or its preset) holds in `holds` offers no *Approve* — `never`
   ("Approved outside the console (ui.yaml)") or `when-references-done` while elements referencing

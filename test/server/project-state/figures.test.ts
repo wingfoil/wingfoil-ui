@@ -113,11 +113,13 @@ describe('the current element (D59-2, spec-005 §4)', () => {
   });
 
   it('ties: the lowest version in natural order, no version after, then the id', async () => {
+    // Every key written, so that withRow replaces the fixture row's version and values too.
     const rel = (id: string, version?: string): Partial<Row> => ({
+      id,
       type: 'release',
       status: 'planning',
-      ...(version !== undefined ? { version, values: [version] } : {}),
-      id,
+      version,
+      values: version === undefined ? [] : [version],
     });
     let rows = withRow(CUSTOM, 'minor-v0.10', rel('minor-v0.10', 'v0.10'));
     rows = withRow(rows, 'minor-v0.1', rel('minor-v0.1', 'v0.9'));

@@ -161,9 +161,10 @@ function verbsOf(
 
 /**
  * The hold of element `id` of `type` in `status` (spec-005 §4a): only a `gate` is held — a hold on
- * another kind has no effect; `when-references-done` holds while its count is above 0.
+ * another kind has no effect; `when-references-done` holds while its count is above 0. Also the
+ * pending-gates figure's rule (spec-012 §3, task-059 D59-6), so the two never differ.
  */
-function heldOf(
+export function heldOf(
   id: string,
   type: string,
   status: string,

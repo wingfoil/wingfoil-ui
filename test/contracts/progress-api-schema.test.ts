@@ -46,8 +46,8 @@ describe('contracts/api/progress.schema.json', () => {
   it('compiles in Ajv strict mode', () => {
     const read = (f: string) => JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts', 'api', f), 'utf8')) as object;
     const strict = new Ajv({ strict: true });
-    for (const f of ['descriptor.schema.json', 'error.schema.json', 'ui-config.schema.json', 'project.schema.json']) {
-      strict.addSchema(read(f));
+    for (const f of readdirSync(path.join(REPO_ROOT, 'contracts', 'api'))) {
+      if (f !== 'progress.schema.json') strict.addSchema(read(f));
     }
     expect(() => strict.compile(read('progress.schema.json'))).not.toThrow();
   });

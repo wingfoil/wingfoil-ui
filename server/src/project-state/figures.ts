@@ -28,12 +28,12 @@ export interface FigureInputs {
 
 /** The key of a reference: its target's id, or its escaped value (§9). */
 export function referenceKey(reference: Reference): string {
-  throw new Error('not implemented (red)');
+  return reference.kind === 'element' ? reference.id : neutralise(reference.value);
 }
 
 /** The elements in scope (spec-012 §1): the current element's scope, or every listed element. */
 export function inScopeElements(inputs: Pick<FigureInputs, 'index' | 'current'>): readonly IndexedElement[] {
-  throw new Error('not implemented (red)');
+  return inputs.current ? inputs.index.inScope(inputs.current) : inputs.index.elements;
 }
 
 const counted = (category: UiCategory | null): boolean =>
@@ -41,20 +41,57 @@ const counted = (category: UiCategory | null): boolean =>
 
 /** `figures.completion` (spec-012 §3). */
 export function completionFigure(inputs: FigureInputs): CompletionFigure {
-  throw new Error('not implemented (red)');
+  const { ui } = inputs;
+  const categorised =
+    [...ui.categories.value.values()].some(counted) || ui.patterns.value.some((p) => counted(p.category));
+  if (!categorised) return { state: 'unavailable', reason: { code: 'no-reference-categories' } };
+  const linked = new Map<string, IndexedElement[]>();
+  for (const element of inScopeElements(inputs)) {
+    if (element.unreadable !== undefined) continue;
+    const keys = new Set(element.references.filter((r) => counted(r.category)).map(referenceKey));
+    for (const key of keys) {
+      const list = linked.get(key);
+      if (list) list.push(element);
+      else linked.set(key, [element]);
+    }
+  }
+  if (linked.size === 0) return { state: 'unavailable', reason: { code: 'no-linked-elements' } };
+  const references = [...linked.keys()].sort(naturalCompare).map((id) => {
+    const elements = linked.get(id)!;
+    const finished = elements.filter((e) => e.finished).length;
+    return { id, [DONE_FIELD]: finished, total: elements.length, percent: percentOf(finished, elements.length) };
+  });
+  const mean = meanOf(references.map((r) => ({ finished: r[DONE_FIELD], total: r.total })));
+  return {
+    state: 'shown',
+    value: mean.value,
+    percent: mean.percent,
+    references: references.slice(0, COMPLETION_REFERENCES_SHOWN),
+    referencesCount: references.length,
+    ids: naturalOrder([...linked.values()].flat().map((e) => e.id)),
+  };
 }
 
 /** `figures.iterated`: the `progress.iterates` type's elements in scope, the finished ones. */
 export function iteratedFigure(inputs: FigureInputs): IteratedFigure {
-  throw new Error('not implemented (red)');
+  const type = inputs.ui.progress.iterates.value;
+  if (type === null) return { state: 'unavailable', reason: { code: 'no-iterates-type' } };
+  const elements = inScopeElements(inputs).filter((e) => e.type === type);
+  const ids = naturalOrder(elements.map((e) => e.id));
+  const doneIds = naturalOrder(elements.filter((e) => e.finished).map((e) => e.id));
+  return { state: 'shown', type: neutralise(type), [DONE_FIELD]: doneIds.length, total: ids.length, ids, doneIds };
 }
 
 /** `figures.openDefects`: the `progress.defects` type's elements not finished, project-wide. */
 export function openDefectsFigure(inputs: FigureInputs): OpenDefectsFigure {
-  throw new Error('not implemented (red)');
+  const type = inputs.ui.progress.defects.value;
+  if (type === null) return { state: 'unavailable', reason: { code: 'no-defects-type' } };
+  const ids = naturalOrder(inputs.index.elements.filter((e) => e.type === type && !e.finished).map((e) => e.id));
+  return { state: 'shown', type: neutralise(type), count: ids.length, ids };
 }
 
 /** `figures.pendingGates`: elements of kind `gate` whose *Approve* is not held, project-wide. */
 export function pendingGatesFigure(inputs: FigureInputs): PendingGatesFigure {
-  throw new Error('not implemented (red)');
+  const ids = naturalOrder(inputs.index.elements.filter((e) => e.kind === 'gate' && !inputs.held(e)).map((e) => e.id));
+  return { state: 'shown', count: ids.length, ids };
 }

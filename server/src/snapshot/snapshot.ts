@@ -553,6 +553,16 @@ export class SnapshotView {
   }
 
   /**
+   * A value derived from this view's content reads only — never from the copy against the remote —
+   * computed once per **content key** like the reads themselves (spec-012 §8; task-059 D59-9): a
+   * fetch that moves only a tracking ref recomputes nothing. `compute` must not read the copy
+   * (`state.copy`, `ahead`/`behind`) nor anything that depends on it (the descriptors' rule 4).
+   */
+  contentDerived<T>(name: string, compute: () => Promise<T>): Promise<T> {
+    return this.memo(`content\0${name}`, () => compute());
+  }
+
+  /**
    * The URL of `origin` (`""` without one), read once per state: a `git remote set-url` alone does
    * not move the state, so it is seen with the next state change.
    */

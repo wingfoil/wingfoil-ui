@@ -18,7 +18,7 @@ const NOT_CURRENT: ReadonlySet<string> = new Set(['first', 'last', ARCHIVED_KIND
 
 /** The scope type that applies: `progress.scope.type` in `sequence` mode, else `null`. */
 export function scopeType(ui: EffectiveUiConfig): string | null {
-  throw new Error('not implemented (red)');
+  return ui.progress.mode.value === 'sequence' ? (ui.progress.scope.value?.type ?? null) : null;
 }
 
 /** The current element of the scope, or `undefined` (none, or no scope applies). */
@@ -27,5 +27,21 @@ export function currentElement(
   memoryYaml: MemoryYaml,
   ui: EffectiveUiConfig,
 ): IndexedElement | undefined {
-  throw new Error('not implemented (red)');
+  const type = scopeType(ui);
+  if (type === null) return undefined;
+  const sequence = resolveStates(memoryYaml, type)?.sequence ?? [];
+  const rank = (e: IndexedElement): number => sequence.indexOf(e.status);
+  const candidates = index.elements.filter((e) => e.type === type && !NOT_CURRENT.has(e.kind));
+  candidates.sort((a, b) => {
+    const r = rank(b) - rank(a);
+    if (r !== 0) return r;
+    if (a.version !== undefined && b.version !== undefined) {
+      const v = naturalCompare(a.version, b.version);
+      if (v !== 0) return v;
+    } else if (a.version !== b.version) {
+      return a.version === undefined ? 1 : -1;
+    }
+    return naturalCompare(a.id, b.id);
+  });
+  return candidates[0];
 }

@@ -12,5 +12,13 @@ export function missingCategories(
   index: ReferenceIndex,
   requires: ReadonlyMap<string, readonly UiCategory[]>,
 ): ReadonlyMap<string, UiCategory[]> {
-  throw new Error('not implemented (red)');
+  const out = new Map<string, UiCategory[]>();
+  for (const element of index.elements) {
+    const required = requires.get(element.type);
+    if (!required || required.length === 0 || element.unreadable !== undefined) continue;
+    const carried = new Set(element.references.map((r) => r.category));
+    const missing = required.filter((c) => !carried.has(c));
+    if (missing.length > 0) out.set(element.id, missing);
+  }
+  return out;
 }

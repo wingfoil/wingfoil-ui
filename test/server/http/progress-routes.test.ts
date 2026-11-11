@@ -357,17 +357,22 @@ describe('spec-012 §10 — errors (AC-4)', () => {
     expect(bad.body.error.code).toBe('invalid-request');
   }, 300_000);
 
-  it('memory search fails → the CLI envelope, no partial figures', async () => {
-    const c = await start('preset', {
-      prepare: (fx) =>
-        installCliStub(fx, { failures: [{ command: ['memory', 'search'], exitCode: 2, stderr: 'error: boom' }] }).then(
-          () => {},
-        ),
-    });
-    const res = await c.get(`/api/p/${c.pid}/progress`);
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(res.body.error.code).toMatch(/^cli-/);
-    expect(res.body).not.toHaveProperty('figures');
+  it('memory search fails → the CLI envelope, no partial figures (as /elements answers it)', async () => {
+    for (const failure of [
+      { exitCode: 1, stderr: '{"error":"E_BOOM: boom"}', code: 'cli-refused' },
+      { exitCode: 2, stderr: 'error: boom', code: 'internal' },
+    ]) {
+      const c = await start('preset', {
+        prepare: (fx) =>
+          installCliStub(fx, { failures: [{ command: ['memory', 'search'], ...failure }] }).then(() => {}),
+      });
+      const res = await c.get(`/api/p/${c.pid}/progress`);
+      const list = await c.get(`/api/p/${c.pid}/elements`);
+      expect(res.status).toBe(list.status);
+      expect(res.body).toEqual(list.body);
+      expect(res.body.error.code).toBe(failure.code);
+      expect(res.body).not.toHaveProperty('figures');
+    }
   }, 300_000);
 
   it('memory.yaml unreadable → 502 read-error', async () => {

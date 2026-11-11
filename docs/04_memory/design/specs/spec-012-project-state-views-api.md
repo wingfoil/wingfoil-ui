@@ -550,3 +550,15 @@ every object `additionalProperties: false`, as the other API schemas.
 - 2026-11-07 — task-055 review round 3 (nit 1): the slice clock starts before the element reads,
   so the first build of a process keeps the same bound (measured in fresh processes on the round-2
   workload: longest event-loop gap 22–25 ms). No rule changes.
+- 2026-11-11 — clarified in task-059 (design D59-2, D59-5, D59-6, D59-9; decided by the approver,
+  Q5, Q6, plan `backlog-item-rel-v0.3-plan` W2-6). No shape changes. §3 *Scope*: the current
+  element's rank is the index of its `status` in its type's `sequence`, a state off the sequence
+  (an undeclared state, a reject target outside it) below every state of it; "the lowest
+  `version`" is the natural order of §3 (`v0.10` after `v0.9`), an element without a string
+  `version` after those with one, then the id in natural order. §2 `/config`
+  `ui.progress.scope.current` is filled by the same derivation as `/progress`'s `scope.current`
+  (`null` when the reads it needs fail; the other sections report them). §3 the `type` of
+  `scope`, `iterated` and `openDefects` is the type name as `/config` `ui` echoes it (escaped,
+  §9); `pendingGates` applies the descriptor's own hold rule (spec-005 §4a), so the figure and the
+  descriptors' `approveHeld` never differ. §8 `/progress`'s body and the flag set are memoised per
+  content key, as the index (they read no copy against the remote).
