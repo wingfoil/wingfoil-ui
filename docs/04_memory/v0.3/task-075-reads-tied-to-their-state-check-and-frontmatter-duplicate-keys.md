@@ -456,5 +456,5 @@ and `test/server/references` 391 passed (load 3.9).
   `snapshot/content-derived.test.ts` 38 passed.
 - Local checks on the merge: `typecheck`, `lint`, `format:check` clean; `npx vitest run
   --maxWorkers=2` on `process-audit`, `read-tie`, `reference-index`, `memory-events`, `tie`,
-  `fingerprint`, `held-gates-routes`, `ui-config-route` 80 passed; the 9 files of
-  `test/server/reads` and the 4 of `test/server/project-state` 392 passed.
+  `fingerprint`, `held-gates-routes`, `ui-config-route` 80 passed; the 12 files of
+  `test/server/reads` and the one of `test/server/project-state` 392 passed.
