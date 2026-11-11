@@ -3,13 +3,13 @@ id: bug-044-the-page-scrolls-sideways-at-a-narrow-width-because-of-the-header-us
 type: bug
 title: "The page scrolls sideways at a narrow width because of the header user name"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
-browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
+module: "web"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+browser: "Chromium (Playwright)"            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -17,32 +17,39 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+At a 400 px wide viewport the whole console page scrolls sideways by about 38 px, because the
+project header's current-user block (avatar and name, `.current-user` in
+`web/src/project/project-header.css`) does not shrink or wrap and ends past the viewport's edge.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Open a project in the console in a 400 × 600 viewport (a phone width), signed in as a member with
+   a usual name (Alex, in the kanban fixture).
+2. Look at the page's horizontal scroll (`document.documentElement.scrollWidth`).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+No horizontal scroll at 400 px: the header's parts wrap or shrink (the name truncated with its full
+text kept as the accessible name), as the layout rules of `ux-reference.md` ask for narrow widths.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`scrollWidth` 438 for a 400 px viewport; the current-user block ends at 446 px. The cards below
+(Today, *Your roles*) fit; only the header overflows.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-076's review round 1 (2026-11-11, `task/task-076-role-tags-on-today` at `586848eb`): a
+Chromium probe through the e2e support at 400 × 600 measured `scrollWidth` 438 and the
+`.current-user` right edge at 446 px; the cause is the header, not task-076's role tags. Not changed
+by any v0.3 task so far.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Low: the page still works, with a small sideways scroll on narrow screens. Fix direction: let the
+header's flex row wrap or the user block shrink (`min-width: 0`, the name with
+`text-overflow: ellipsis`), and an e2e at 400 px asserting `scrollWidth <= innerWidth` on the main
+screens. The approver chose to open it (2026-11-11, "scroll a"), to plan at v0.4's release planning.
 
 ## Triage & Execution Notes
 
