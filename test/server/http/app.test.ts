@@ -2,6 +2,8 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { request as httpRequest } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { Writable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
@@ -284,6 +286,79 @@ describe('bug-031 — names too long and the codes of the other client errors', 
       expect(res.json(), url.slice(0, 30)).toEqual({ error: { code: 'forbidden', message: expect.any(String) } });
     }
     await app.close();
+  });
+
+  // Review round 1 F-1: the request line as a client sends it (light-my-request resolves `.`, `..`
+  // and `%2e%2e` before routing, so these go through a listening socket).
+  async function rawGets(urls: readonly string[]): Promise<{ status: number; body: string }[]> {
+    let port = 0;
+    const app = await buildApp({
+      staticDir,
+      logger: createLogger(sink),
+      security: { authentication: security.authentication, port: () => port },
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    port = (app.server.address() as AddressInfo).port;
+    try {
+      const answers: { status: number; body: string }[] = [];
+      for (const url of urls) {
+        answers.push(
+          await new Promise((resolve, reject) => {
+            const req = httpRequest(
+              { host: '127.0.0.1', port, path: url, headers: { host: `127.0.0.1:${port}` } },
+              (res) => {
+                let body = '';
+                res.setEncoding('utf8');
+                res.on('data', (chunk: string) => (body += chunk));
+                res.on('end', () => resolve({ status: res.statusCode ?? 0, body }));
+              },
+            );
+            req.on('error', reject);
+            req.end();
+          }),
+        );
+      }
+      return answers;
+    } finally {
+      await app.close();
+    }
+  }
+
+  it('F-1 — a non-canonical path with a name too long is never judged missing: 403 forbidden', async () => {
+    const urls = [
+      `/assets/./${NAME_MAX_PLUS_ONE}`,
+      `/assets/../assets/${NAME_MAX_PLUS_ONE}`,
+      `/assets/%2e%2e/assets/${NAME_MAX_PLUS_ONE}`,
+      `/assets/a%00${NAME_MAX_PLUS_ONE}`,
+      `/assets/a%5c${NAME_MAX_PLUS_ONE}`,
+    ];
+    const answers = await rawGets(urls);
+    answers.forEach((answer, i) => {
+      expect(answer.status, urls[i]!.slice(0, 24)).toBe(403);
+      expect(JSON.parse(answer.body), urls[i]!.slice(0, 24)).toEqual({
+        error: { code: 'forbidden', message: expect.any(String) },
+      });
+    });
+  });
+
+  it('F-3 — a name too long adds no listener warning, however often it is asked', async () => {
+    const warnings: string[] = [];
+    const onWarning = (warning: Error) => warnings.push(warning.name);
+    process.on('warning', onWarning);
+    try {
+      const app = await buildApp({ staticDir, logger: createLogger(sink), security });
+      for (let i = 0; i < 3; i++) {
+        for (const url of [`/${NAME_MAX_PLUS_ONE}`, `/assets/${NAME_MAX_PLUS_ONE}`]) {
+          expect((await app.inject({ method: 'GET', url })).statusCode).not.toBe(403);
+        }
+      }
+      await app.close();
+      // Warnings are emitted on the next tick.
+      await new Promise((r) => setTimeout(r, 20));
+    } finally {
+      process.off('warning', onWarning);
+    }
+    expect(warnings).toEqual([]);
   });
 
   it('every 4xx gets a code matching its status', async () => {
