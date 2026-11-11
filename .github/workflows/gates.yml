@@ -203,6 +203,11 @@ jobs:
             echo "no own e2e spec: nothing to run on $ENGINE"
             exit 0
           fi
+          listed=$(npx playwright test --list --pass-with-no-tests --project="$ENGINE" "${specs[@]}")
+          if grep -q '^Total: 0 tests' <<<"$listed"; then
+            echo "no test of the own specs runs on $ENGINE: nothing to run"
+            exit 0
+          fi
           npx playwright install --with-deps "$ENGINE"
           npm run test:e2e -- --project="$ENGINE" --reporter=github,html "${specs[@]}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

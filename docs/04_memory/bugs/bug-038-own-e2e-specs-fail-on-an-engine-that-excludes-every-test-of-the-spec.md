@@ -68,3 +68,8 @@ the job counts the selected tests with `--list` and prints its line when there a
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
 - absorbed (2026-11-11): into task-059 as AC-12 (the approver, "per task 59 vai con a"); planned by
   the approver (`4e86e4ec`); execution notes in task-059's file.
+- close note (2026-11-11): fixed by task-059 AC-12 (`done` `ef7ae940`), merged into the phase branch in
+  `036d9c2b`; resolved by the approver (`a9e4bd5c`). The own-specs step lists the selected tests
+  first (`--list`, captured, so a spec that fails to load fails the step) and prints "no test of the
+  own specs runs on <engine>: nothing to run" when there are none (`test/package/gates-workflow.test.ts`,
+  task-059 review rounds 1 and 2 F-4, F-7). It closes with Wave 2's merge into `main`.
