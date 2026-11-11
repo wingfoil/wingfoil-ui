@@ -458,3 +458,8 @@ split (W2-7); `a9744c80` red; `ec083543` green with the docs.
   once; (4) `harness/a11y-support.spec.ts` D37-13 — its hand-built References used `.drawer`, now
   `[data-element-view]`. The design run `43046246872` (`0019812e`, docs only) failed while
   installing browsers ("Temporary failure resolving 'azure.archive.ubuntu.com'").
+- **Run `43077083369` on `45b453c1`:** every job green but e2e-chromium shard 1 — 1 failed / 165
+  passed: G-01.7's `getByText(<long id>)` matched two elements while the page still read (the
+  heading shows the address's id until the element answers; passed on Firefox and WebKit). The test
+  now waits for the read (`.type-tag`), then asserts the header's id and the heading's title; G-01.5
+  the same way.

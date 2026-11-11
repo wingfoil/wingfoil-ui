@@ -26,7 +26,7 @@ test.describe('US-G-01 — the element page and its addresses', () => {
     const view = elementView(page);
     await expect(page).toHaveURL(`${c.origin}/p/${pid}/e/task-003-logout`, { timeout: COLD_READ_MS });
     await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Logout' })).toBeVisible();
-    await expect(view.getByText('task-003-logout', { exact: true })).toBeVisible();
+    await expect(view.locator('.element-id')).toHaveText('task-003-logout');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     // The short form was replaced: Back does not return to it.
     await page.goBack();
@@ -80,7 +80,11 @@ test.describe('US-G-01 — the element page and its addresses', () => {
     await row.click();
     await expect(page).toHaveURL(`${c.origin}/p/${pid}/e/${long.id}`);
     const view = elementView(page);
-    await expect(view.getByText(long.id, { exact: true })).toBeVisible({ timeout: COLD_READ_MS });
+    // Until the element is read the heading shows the address's id too: wait for the read, then the
+    // full id in the page's header and the title as its heading.
+    await expectFirstLoad(view.locator('.type-tag'));
+    await expect(view.locator('.element-id')).toHaveText(long.id);
+    await expect(view.getByRole('heading', { level: 1 })).toHaveText(long.title);
     // The long id wraps: no horizontal scroll of the page.
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
