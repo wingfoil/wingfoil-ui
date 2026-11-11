@@ -214,6 +214,26 @@ it('shows a 409 whose detail is not the contract shape as an error, not as candi
   expect(screen.queryByRole('link', { name: /el-001/ })).toBeNull();
 });
 
+// Review round 1, F-1: `more` is part of the contract's shape — a count, an integer of 0 or more.
+it.each([
+  ['a text', '3'],
+  ['a negative number', -1],
+  ['a fraction', 1.5],
+  ['missing', undefined],
+])('shows a 409 whose more is %s as an error, not as candidates', async (_name, more) => {
+  const detail = { ...AMBIGUOUS.error.detail, more } as Record<string, unknown>;
+  if (more === undefined) delete detail['more'];
+  stubApi(
+    api({
+      [`${API}/el-001`]: { status: 409, body: { error: { code: 'ambiguous-id', message: 'x', detail } } },
+    }),
+  );
+  renderApp(`/p/${PID}/e/el-001`);
+  expect(await screen.findByRole('alert')).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'el-001 names several elements' })).toBeNull();
+  expect(screen.queryByRole('link', { name: /Login form/ })).toBeNull();
+});
+
 it('shows not found for an unknown id, the address as heading', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/task-46`);
