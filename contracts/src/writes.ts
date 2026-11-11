@@ -65,3 +65,42 @@ export type WriteRefusalCode =
   | 'read-error'
   /** The CLI failed and left the element file changed without the write's commit (W2-1); `detail.file`. */
   | 'write-incomplete';
+
+/** The shipped UI presets (spec-005 §5; `contracts/api/ui-config.preset.request.schema.json`). */
+export type UiPresetId = 'kanban' | 'scrum' | 'sw-life-cycle';
+
+/** `POST /api/p/:pid/ui-config/preset` (v0.3, task-060). */
+export interface UiConfigPresetRequest {
+  preset: UiPresetId;
+}
+
+/** The `result` of the preset write's {@link WriteResponse}. */
+export interface UiConfigPresetResult {
+  /** Always `.wingfoil/ui.yaml`. */
+  file: string;
+  preset: UiPresetId;
+}
+
+/** The codes the preset write refuses with (`contracts/api/ui-config.preset.refusal.schema.json`). */
+export type UiConfigPresetRefusalCode =
+  | 'forbidden-origin'
+  | 'unauthenticated'
+  | 'not-found'
+  | 'invalid-request'
+  | 'not-in-team'
+  | 'unsupported-version'
+  /** `.wingfoil/ui.yaml` exists in the working tree, the index or at HEAD (spec-005 §5). */
+  | 'ui-config-exists'
+  | 'stale-copy'
+  /** The rendered preset fails the schema or a semantic check; `detail.failure`. */
+  | 'ui-config-invalid'
+  | 'read-error'
+  /** `git add` failed: git's message, local folders redacted. */
+  | 'git-refused'
+  /** The commit failed or is not the preset's single commit; `detail.file`, `detail.commit?`. */
+  | 'write-incomplete'
+  | 'cli-refused'
+  | 'cli-output'
+  | 'cli-timeout'
+  | 'cli-not-found'
+  | 'internal';

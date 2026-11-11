@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/ui-config.preset.refusal.schema.json",
+  "title": "Refusal of the preset write (POST /api/p/:pid/ui-config/preset)",
+  "description": "The error envelope of spec-004 §5 with the codes the preset write answers (spec-005 §5, task-060): rows 1–6 and 8 of spec-004 §4, row 7 replaced by ui-config-exists (`.wingfoil/ui.yaml` exists in the working tree, the index or at HEAD, or appeared before the exclusive create); ui-config-invalid: the rendered preset fails the schema or a semantic check, detail.failure the first failure; read-error: memory.yaml unreadable; git-refused: `git add` failed (git's message, local folders redacted); write-incomplete: the commit failed or is not the preset's single commit, detail.file and, when exactly one commit has the preset's subject, detail.commit. The cli-* codes come from the reads of rows 5–6 on a state no read has seen.",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "detail": { "type": "object" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "code": {
+              "enum": [
+                "forbidden-origin",
+                "unauthenticated",
+                "not-found",
+                "invalid-request",
+                "not-in-team",
+                "unsupported-version",
+                "ui-config-exists",
+                "stale-copy",
+                "git-refused",
+                "cli-output",
+                "cli-timeout",
+                "internal"
+              ]
+            }
+          },
+          "not": { "required": ["detail"] }
+        },
+        {
+          "properties": {
+            "code": { "const": "cli-refused" },
+            "detail": { "$ref": "cli.refusal.schema.json#/definitions/detail" }
+          }
+        },
+        {
+          "properties": {
+            "code": { "const": "ui-config-invalid" },
+            "detail": {
+              "type": "object",
+              "required": ["failure"],
+              "additionalProperties": false,
+              "properties": { "failure": { "type": "string", "minLength": 1 } }
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "read-error" },
+            "detail": {
+              "type": "object",
+              "required": ["file", "kind"],
+              "additionalProperties": false,
+              "properties": {
+                "file": { "type": "string" },
+                "kind": { "enum": ["outside", "missing", "shape", "mismatch"] }
+              }
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "cli-not-found" },
+            "detail": {
+              "type": "object",
+              "required": ["command"],
+              "additionalProperties": false,
+              "properties": { "command": { "type": "string" } }
+            }
+          },
+          "required": ["detail"]
+        },
+        {
+          "properties": {
+            "code": { "const": "write-incomplete" },
+            "detail": {
+              "type": "object",
+              "required": ["file"],
+              "additionalProperties": false,
+              "properties": {
+                "file": {
+                  "description": "Always `.wingfoil/ui.yaml`, relative to the project.",
+                  "const": ".wingfoil/ui.yaml"
+                },
+                "commit": {
+                  "description": "The only commit since the write began with the preset's subject, when there is exactly one.",
+                  "type": "string",
+                  "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+                }
+              }
+            }
+          },
+          "required": ["detail"]
+        }
+      ]
+    }
+  }
+}
