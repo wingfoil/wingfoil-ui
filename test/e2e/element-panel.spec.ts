@@ -68,11 +68,11 @@ test.describe('US-G-01 — element panel', () => {
     await expect(line).toContainText(submit.sha.slice(0, 7));
     await expect(line).toContainText(date);
     await expect(line.getByTitle(submit.sha)).toBeVisible();
-    // Keyboard: the focus is in the page; Close is reachable with a visible focus; Escape closes.
+    // Keyboard: the heading has the focus; Close, before it in the page's header, is reachable with a
+    // visible focus (Shift+Tab); Escape closes.
     const close = panel.getByRole('button', { name: 'Close' });
-    for (let i = 0; i < 5 && !(await close.evaluate((el) => el === document.activeElement)); i++) {
-      await page.keyboard.press('Tab');
-    }
+    await expect(panel.getByRole('heading', { level: 1 })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expectFocusVisible(close);
     expect(await scanThemes(page)).toEqual([]);
     await page.keyboard.press('Escape');

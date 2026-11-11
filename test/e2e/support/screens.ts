@@ -300,10 +300,11 @@ export const SCREENS: readonly Screen[] = [
   {
     // task-062 (D62-5): the element page of an ambiguous short id — its candidates. The screens console
     // holds no ambiguous id (its figures stay as they are), so the element read answers the contract's
-    // 409 with two of the kanban fixture's elements; the real 409 is G-01.6's (`element-page.spec.ts`).
+    // 409 G-01.6 sets up (`task-001-login-form` and a hand-made copy; the real 409 and its axe scan are
+    // G-01.6's, `element-page.spec.ts`).
     name: 'element page — candidates',
     open: async (page, c) => {
-      await page.route(`**/api/p/${c.pids[0]}/elements/task-00`, (route) =>
+      await page.route(`**/api/p/${c.pids[0]}/elements/task-001`, (route) =>
         route.fulfill({
           status: 409,
           contentType: 'application/json',
@@ -321,20 +322,20 @@ export const SCREENS: readonly Screen[] = [
                     status: 'pending',
                   },
                   {
-                    id: 'task-002-password-reset',
-                    shortId: 'task-002',
-                    title: 'Password reset',
+                    id: 'task-001-login-form-copy',
+                    shortId: 'task-001',
+                    title: 'Login form copy',
                     type: 'task',
-                    status: 'draft',
+                    status: 'pending',
                   },
                 ],
-                more: 2,
+                more: 0,
               },
             },
           }),
         }),
       );
-      await project(page, c, `/p/${c.pids[0]}/e/task-00`, (p) => p.locator('[data-element-view] .candidate-link'));
+      await project(page, c, `/p/${c.pids[0]}/e/task-001`, (p) => p.locator('[data-element-view] .candidate-link'));
     },
   },
 ];

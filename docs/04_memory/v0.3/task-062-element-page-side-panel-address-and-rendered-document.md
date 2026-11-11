@@ -408,3 +408,53 @@ item's element page (task-077). Q2 (b) — HTML comments left out of the rendere
 only, *Source* keeps them (task-078). Q3 (a) — no Content-Security-Policy in these tasks; a
 console-wide policy is
 bug-039-the-console-serves-its-pages-without-a-content-security-policy (through `bug-ingest`).
+
+### red / green / refactor (2026-11-11)
+
+Commits on `task/task-062-element-page-side-panel-address-and-rendered-document`: `7137d22d` the
+split (W2-7); `a9744c80` red; `ec083543` green with the docs.
+
+- **Red** (`npx vitest run test/web/element/address.test.ts test/web/element/page.test.tsx
+  test/web/shell/toasts.test.tsx`): 11 failed, 24 passed — `address.test.ts` (no module
+  `web/src/element/queries.ts`), every `page.test.tsx` test (no element page: the drawer dialog),
+  the two toast placements with the page's footer bar; the placement with the bar out of view
+  passed at once (the default, characterization). The e2e `element-page.spec.ts` (G-01.5 … G-01.7)
+  was committed with the red tests and runs on `gates.yml` with the green commit (no heavy gate
+  locally, W1-11).
+- **Green:** `web/src/element/{queries.ts,ElementPage.tsx,Candidates.tsx}` (new),
+  `ElementPanel.tsx` → `ElementView.tsx` (the content only: the drawer shell is task-077's),
+  `routes/element.tsx` (the page, the short-id rewrite, Close to the Memory list),
+  `ElementFooter.tsx` (the two selectors of D62-3, nothing else), `shell/{toasts.ts,Toasts.tsx}`
+  (`pageFooterTop`, `pageHeaderBottom`, the scroll listener), `element.css`, two catalogue keys;
+  `element.body.label` removed (the page has no scrolling body region of its own; the catalogue
+  check flagged it unused). `npx vitest run test/web`: 64 files, 1 050 passed.
+- **Deviations from the design.** (1) D62-12 also keeps the stack below the page's header while it
+  is in view (`pageHeaderBottom`), as the drawer's own header: submit-footer's R2-3 test reaches
+  the page's *Close* at 400 × 600. (2) The *element page — candidates* `SCREENS` entry answers the
+  element read with the contract's 409 through `page.route` (two kanban elements as candidates):
+  the screens console holds no ambiguous id and its figures stay as they are; the real 409 is
+  G-01.6's, with its own `scanThemes`. (3) Until task-077, Today and the bell open the element page
+  (their links unchanged); Today's opener focus works as in v0.2, Today mounting again after Back.
+  (4) The element's sections keep their `h3` under the page's `h1` (axe `heading-order` is a
+  moderate rule; the panel of task-077 keeps them under its `h2`).
+- **e2e moved to the page** (D62-18): `elementView` / `openElementPage` of `support/element.ts`;
+  `[data-element-view]` replaces `.drawer` and the element's `dialog` role in `accessibility`,
+  `commit-provenance`, `documentation`, `element-panel`, `gate-footer`, `git-status`, `held-gates`,
+  `history-operations`, `memory-list`, `notification-bell`, `performance`, `project-header`,
+  `projects`, `scrum`, `submit-footer`, `today`, `update-push`, `support/screens.ts`,
+  `support/strings.ts`; the title is a level-1 heading; Close from an address lands on the Memory
+  list; the drawer's scrolling body region is gone.
+- **Local checks** (on `ec083543`): `npm run typecheck`, `npm run lint`, `npm run format:check`
+  clean; `npm run docs:api` generated; `check_tasks.py v0.3` OK; `npx vitest run
+  test/docs/public-text.test.ts` 67 passed.
+- **`gates.yml` run `43073514884` on `ec083543`:** checks, contract, coverage, smoke and
+  publish-smoke green; e2e-chromium 4 failed / 328 passed, Firefox and WebKit own specs 3 failed /
+  247 passed each. `element-page.spec.ts` passed on all three engines. The failures were in tests
+  that had moved to the page: (1) X-09.1 *element page — candidates* — the stubbed 409 named an
+  address (`task-00`) that no answer held; it now answers the 409 that G-01.6 sets up (`task-001`
+  with `task-001-login-form` and its hand-made copy); (2) G-01.1 — on the page *Close* comes before
+  the focused heading, so it is reached with Shift+Tab; (3) submit-footer R2-3 — an element opened
+  from its address closes to the Memory list now, so the test goes to Today by the sidebar link
+  once; (4) `harness/a11y-support.spec.ts` D37-13 — its hand-built References used `.drawer`, now
+  `[data-element-view]`. The design run `43046246872` (`0019812e`, docs only) failed while
+  installing browsers ("Temporary failure resolving 'azure.archive.ubuntu.com'").

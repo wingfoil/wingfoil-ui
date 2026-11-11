@@ -360,6 +360,14 @@ test.describe('review R2-3 — a stack taller than the window', () => {
       [3, 'bug-001-crash-on-save'],
     ] as const) {
       await drawer(page).getByRole('button', { name: 'Close' }).first().press('Enter');
+      // The first element page was opened from its address: Close lands on the Memory list (spec-011
+      // §2, task-062); Today is one sidebar link away. The next ones go back to Today.
+      if (n === 2) {
+        await page
+          .getByRole('navigation', { name: 'Project views' })
+          .getByRole('link', { name: 'Today' })
+          .press('Enter', { timeout: COLD_READ_MS });
+      }
       await page
         .getByRole('region', { name: 'Requires you' })
         .locator(`li[data-eid="${eid}"]`)

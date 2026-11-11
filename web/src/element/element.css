@@ -1,7 +1,9 @@
 /*
  * The element panel (ux-reference §4.2, prototype drawer): a 480 px drawer on the right, below the
- * header, non-modal (decision W4-8): no backdrop, the header and the sidebar stay usable. Colours
- * only through the tokens of tokens.css.
+ * header, non-modal (decision W4-8): no backdrop, the header and the sidebar stay usable. Since
+ * task-062 the address opens the element page (`.element-page`, at the end); the `.drawer*` rules
+ * are kept for the side panel of task-077, and `.drawer-topline` / `.drawer-title` style both.
+ * Colours only through the tokens of tokens.css.
  */
 .drawer {
   position: fixed;
