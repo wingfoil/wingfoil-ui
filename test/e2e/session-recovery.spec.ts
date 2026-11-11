@@ -133,20 +133,34 @@ test.describe('US-X-02 — a page of a restarted console recovers in place (task
       const elsewhere = await consoles.start({ projects: [kanban] });
       expect(elsewhere.port).not.toBe(second.port);
       await expectFirstLoad(page.getByRole('heading', { level: 1, name: LOST }));
-      const sent = recordRequests(page);
+      // One ordered log of the events that matter (checker N-2): the lost tab's probes as they are
+      // sent, and each other tab's exchange answer as it arrives.
+      const order: string[] = [];
+      page.on('request', (r) => {
+        if (new URL(r.url()).pathname === '/api/server') order.push('probe');
+      });
+      const exchanges = (tab: Page, name: string) =>
+        tab.on('response', (r) => {
+          if (new URL(r.url()).pathname === '/api/session' && r.status() === 204) order.push(name);
+        });
 
       // Another origin's session: its message stays on its own origin, the page stays lost.
       const foreign = await page.context().newPage();
+      exchanges(foreign, 'foreign 204');
       expect(await openWithToken(foreign, elsewhere.url)).toBe(204);
       await expectFirstLoad(foreign.getByRole('banner'));
       await expect(page.getByRole('heading', { level: 1, name: LOST })).toBeVisible();
-      expect(sent.map((r) => new URL(r.url()).pathname)).not.toContain('/api/server');
 
       // The same origin's session: the page recovers.
       const same = await page.context().newPage();
+      exchanges(same, 'same 204');
       expect(await openWithToken(same, second.url)).toBe(204);
       await page.bringToFront();
       await expectFirstLoad(elementShown(page));
+      // No probe between the foreign exchange and the same-origin one: the first comes after it.
+      expect(order.indexOf('foreign 204')).toBe(0);
+      expect(order.indexOf('same 204')).toBe(1);
+      expect(order.indexOf('probe')).toBeGreaterThan(order.indexOf('same 204'));
       expect(page.url()).toBe(address);
     } finally {
       await rm(stateDir, { recursive: true, force: true });

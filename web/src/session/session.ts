@@ -23,7 +23,10 @@ export const SESSION_CHANNEL = 'wfui-session';
  */
 function announceSession(): void {
   if (typeof BroadcastChannel !== 'function') return;
-  new BroadcastChannel(SESSION_CHANNEL).postMessage(null);
+  const channel = new BroadcastChannel(SESSION_CHANNEL);
+  channel.postMessage(null);
+  // Closing right after is safe: the message is queued for every other channel at the post (HTML).
+  channel.close();
 }
 
 /** `connecting` until the bootstrap ends, then `connected` or `lost` (final). */

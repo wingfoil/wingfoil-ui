@@ -387,3 +387,24 @@ e2e-chromium ×2, own specs on Firefox and WebKit, smoke, publish-smoke).
   bytes is covered); said in the `SHORT_SEGMENT_BYTES` comment of `server/src/http/app.ts`.
 - Gates of round 2: local typecheck, lint, format:check, `npx vitest run test/server/http/app.test.ts`
   (33 tests passed); the run of the pushed tip is cited in the coordinator's report.
+- The tip of round 2, `686d32d7`: run `43086984027`, success on every job.
+
+### checker (2026-11-11)
+
+The checker on `686d32d7`: **NOT READY** on one gap (G-1), everything else holding; fixed in one
+round, red first where a test is added (`test(web): task-063 checker red`):
+
+- **G-1** — AC-2's 10 s probe timeout was untested (only `init.signal` was checked). The probe
+  tests of `recovery.test.ts` and of `watchFragmentToken` in `session.test.ts` now assert
+  `PROBE_TIMEOUT_MS` is 10 000 and spy on `AbortSignal.timeout` (called once with 10 000). Red with
+  each mutation: the recovery's default `?? 1`, `PROBE_TIMEOUT_MS = 1_000`, the fragment watch's
+  default `?? 1`.
+- **N-1** — `cache: 'no-store'` asserted in the same recovery test; removing it fails it.
+- **N-2** — the second e2e test checks one ordered log (the lost tab's `/api/server` probes as
+  sent, each other tab's 204 as it arrives): the foreign exchange first, the same-origin one
+  second, the first probe after it — not only "no probe once the foreign banner shows".
+- **N-3** — `announceSession` now closes its channel right after posting, as D63-2 says (a posted
+  message is queued for every other channel at the post); the announce test asserts the close
+  (red before).
+- **N-4** — `7614dc5b` "red — F-1 … F-3" failed on F-3 only: F-1's test is a guard test, green on
+  the code of that time and red only with each rule removed (round 1 above).
