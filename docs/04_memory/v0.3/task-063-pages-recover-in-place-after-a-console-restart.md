@@ -283,3 +283,11 @@ run ids in these notes. Not git-touching: no strict-identity run.
 About 0.8 active day: web module and wiring 0.2, unit tests 0.2, e2e 0.2, bug-031 and its tests
 0.1, docs 0.1 — under one day, no split (RP3-20 G2). Review: the adversarial reviewer of the task
 (2–3 rounds expected, adr-003 Appendix A).
+
+#### Decisions of the approver (2026-11-11)
+
+Relayed by the coordinator, quoted: "tutto come consigliato" — Q1 (a) one probe when the page is
+lost after a message heard while it was not (an in-memory flag only); Q2 the recommended text,
+exactly, with a dated Process Note on adr-003; Q3 (a) the explicit 4xx code list with
+`client-error` (413 becomes `payload-too-large`); Q4 (a) the bug-031 rule for every static-route
+403 caused by a name too long.
