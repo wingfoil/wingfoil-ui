@@ -2,7 +2,8 @@
 // three) keys run through the server's parse (`parseYaml`) and through `js-yaml` 4.3.2's `load` with
 // its default schema, the loader of the pinned `wingfoil@0.3.1` (`dist/validation/yaml.js`). A row
 // passes when both refuse it for its keys (js-yaml: "duplicated mapping key", "nested arrays are not
-// supported inside keys"; the server: a `duplicate key` or `unsupported key`) or both read it.
+// supported inside keys", a tag it does not accept on a key; the server: a `duplicate key` or
+// `unsupported key`) or both read it.
 import { load } from 'js-yaml';
 import { describe, expect, it } from 'vitest';
 import { parseYaml } from '../../../server/src/reads/frontmatter.js';
@@ -105,6 +106,17 @@ const PAIRS: readonly [string, string][] = [
   ['!!bool true', '"true"'],
   ['!!null null', '"null"'],
   ['!!timestamp 2026-01-01', '2026-01-01T00:00:00Z'],
+  // Tags on collection keys (review round 1 F-5): js-yaml accepts none, `!`, `!!seq` on a sequence
+  // and `!!map` on a map, and refuses any other.
+  ['? !foo [a]\n', 'b'],
+  ['? !!map [a]\n', 'b'],
+  ['? !!str {a: 1}\n', 'b'],
+  ['? !!str [a]\n', 'b'],
+  ['? !foo {a: 1}\n', 'b'],
+  ['? !!seq {a: 1}\n', 'b'],
+  ['? ! [a]\n', '"a"'],
+  ['? !!seq [a]\n', 'b'],
+  ['? !!map {a: 1}\n', '"[object Object]"'],
 ];
 
 /** Rows of three keys or more, as written. */
@@ -121,6 +133,10 @@ const MAPPINGS: readonly string[] = [
   'm:\n  - {true: a, "true": b}\n',
   '&a k: a\nk: b\n',
   'k: a\n? &b k\n: b\n',
+  // Merge keys by their tag (review round 1 F-5): a quoted or empty `!!merge` key merges in both.
+  'x: &x {c: 1}\n!!merge "<<": *x\n',
+  'x: &x {c: 1}\n!!merge : *x\n',
+  'x: &x {c: 1}\nm:\n  !!merge "<<": *x\n  c: 2\n  c: 3\n',
 ];
 
 /** A pair row's text: an explicit `?` key ends with its line break, so its `:` starts the next line. */
@@ -128,7 +144,9 @@ function pairText(first: string, second: string): string {
   return `${first}: a\n${second}: b\n`;
 }
 
-const KEY_ERRORS = /^(duplicated mapping key|nested arrays are not supported inside keys)$/;
+// A tag js-yaml does not accept on a key's node (the table tags keys only): refused for that key.
+const KEY_ERRORS =
+  /^(duplicated mapping key|nested arrays are not supported inside keys|unknown tag !<[^>]+>|unacceptable node kind for !<[^>]+> tag.*)$/;
 
 function jsYamlVerdict(text: string): 'refused' | 'read' | 'other' {
   try {
@@ -161,5 +179,12 @@ describe('AC-2 the server and js-yaml 4.3.2 agree on every row of the key table 
   it('the table covers both verdicts', () => {
     const verdicts = new Set(rows.map(jsYamlVerdict));
     expect(verdicts).toEqual(new Set(['refused', 'read']));
+  });
+});
+
+describe('declared residual of the merge key (review round 1 F-5)', () => {
+  it('`!!str <<` is a plain key for js-yaml, a merge for the `yaml` library: refused when its value is no map', () => {
+    expect(jsYamlVerdict('!!str <<: y\n')).toBe('read');
+    expect(() => parseYaml('!!str <<: y\n', 'f.md')).toThrow(/Merge sources must be maps/);
   });
 });

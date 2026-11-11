@@ -5,7 +5,7 @@
 // bug-037, task-075 AC-2 (D75-9): keys are compared as the pinned CLI's js-yaml 4.3.2 stores them —
 // `String()` of their default-schema value — so the files the CLI leaves out as a "duplicated mapping
 // key" are refused here, and a pair it accepts is read; the differential table is `yaml-keys.test.ts`.
-import { parseDocument, type YAMLMap } from 'yaml';
+import { Alias, parseDocument, type YAMLMap } from 'yaml';
 import { describe, expect, it, vi } from 'vitest';
 import { FRONTMATTER_PARSE_OPTIONS, parseYaml } from '../../../server/src/reads/frontmatter.js';
 import { jsYamlKey } from '../../../server/src/reads/yaml-keys.js';
@@ -105,4 +105,35 @@ describe('jsYamlKey (bug-037 with bug-032)', () => {
     }
     expect([...forms.keys()]).toEqual([seq]);
   });
+});
+
+describe('alias keys resolved in one pass (task-075 review round 1 F-1)', () => {
+  /** A frontmatter with one anchor and a sequence key of `n` aliases of it. */
+  const aliases = (n: number) => `z: &a v\n? [${Array.from({ length: n }, () => '*a').join(', ')}]\n: 1\n`;
+  /** `n` anchors and `n` distinct alias keys. */
+  const distinct = (n: number) =>
+    Array.from({ length: n }, (_, i) => `a${i}: &a${i} v${i}\n`).join('') +
+    Array.from({ length: n }, (_, i) => `*a${i} : ${i}\n`).join('');
+
+  it('no alias is resolved by walking the document (`Alias.resolve`), for N and 2N aliases', () => {
+    const resolve = vi.spyOn(Alias.prototype, 'resolve');
+    try {
+      for (const n of [500, 1_000]) {
+        // The library's own alias limit refuses it after the key check, as before this task.
+        expect(() => parseYaml(aliases(n), 'f.md')).toThrow(/Excessive alias count/);
+        expect(() => parseYaml(distinct(n), 'f.md')).not.toThrow();
+      }
+      expect(resolve).not.toHaveBeenCalled();
+    } finally {
+      resolve.mockRestore();
+    }
+  });
+
+  it('a 64 KiB frontmatter of 16 000 aliases is answered within 5 s (53 s before the fix)', () => {
+    const text = aliases(16_000);
+    expect(text.length).toBeLessThanOrEqual(64 * 1024);
+    const started = performance.now();
+    expect(() => parseYaml(text, 'f.md')).toThrow(/Excessive alias count/);
+    expect(performance.now() - started).toBeLessThan(5_000);
+  }, 120_000);
 });
