@@ -16,6 +16,13 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   short id (`/p/<project>/e/task-046`) opens its element and is rewritten to the full id; a short
   id that names several elements lists them, each a link to its page, instead of *not found*; an
   element whose id is longer than 100 characters is opened and decided like any other.
+- **Today's cards** (task-061, US-T-02 T-02.4 … T-02.7; `ux-reference.md` §4.1 v0.3): *Requires
+  you* and *Waiting on others* each have a type and a state filter, listing the types and states of
+  that card's rows with their counts (a filter applies to its own card; the greeting and the bell
+  count every row); each card shows its first 10 rows, then *Show all (<n>)* / *Show fewer*; each
+  row names its element by the short id the API serves (else the full id) and shows the date it
+  entered its current state, the full time as the accessible description of the date and of the
+  row's link.
 - **Held gates** (task-069, US-S-24 S-24.5, S-24.6; spec-003 §3, §5, §8; spec-005 §4a): a gate the
   project's `.wingfoil/ui.yaml` (or its preset) holds in `holds` offers no *Approve* — `never`
   ("Approved outside the console (ui.yaml)") or `when-references-done` while elements referencing

@@ -338,4 +338,15 @@ export const SCREENS: readonly Screen[] = [
       await project(page, c, `/p/${c.pids[0]}/e/task-001`, (p) => p.locator('[data-element-view] .candidate-link'));
     },
   },
+  {
+    // task-061 (D61-13): Today as Morgan with the Requires you card's type filter open (its listbox
+    // of options with counts); the short ids and the entry dates are on the "today" screen.
+    name: 'today — card filter open',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-row'));
+      await page.locator('.today-card .today-filter-button').first().click();
+      await expect(page.locator('.today-filter-popover [role="option"]').first()).toBeVisible();
+      await expectSettled(page);
+    },
+  },
 ];

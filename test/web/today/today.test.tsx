@@ -239,7 +239,8 @@ it('lists Waiting on others with who must act (T-11.1, T-11.2, T-06.1, D36-6)', 
   // The members are their own text (data for the catalogue check).
   expect(rows[4]!.querySelector('.today-members')?.textContent).toBe('Alex, Casey');
   expect(within(rows[0]!).getByRole('link').getAttribute('href')).toBe(`/p/${PID}/e/task-002-reset`);
-  expect(within(waitingCard()).queryAllByRole('button')).toEqual([]);
+  // A row is one link, with no button (the card's filters are buttons of its own, task-061).
+  for (const row of rows) expect(within(row).queryAllByRole('button')).toEqual([]);
 });
 
 it('task-069 — a held gate shows its hold in place of "Reserved to approver" (S-24.5, S-24.6)', async () => {
