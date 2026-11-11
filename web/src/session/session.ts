@@ -100,9 +100,20 @@ export async function bootstrapSession(): Promise<SessionStatus> {
   return status;
 }
 
-/** Remove the fragment from the address bar (path and query kept), as the bootstrap does. */
+/** Remove the fragment from the address bar (path and query kept, on this origin), as the bootstrap does. */
 function stripFragment(): void {
-  window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+  window.history.replaceState(window.history.state, '', ownAddress(window.location.href));
+}
+
+/**
+ * The page's own address without its fragment, as an absolute URL of its origin (task-063 D63-6,
+ * AC-8): never `pathname + search`, which a path starting with `//` would make a protocol-relative
+ * address of another host. Used by the fragment strip and by the recovery's reload.
+ */
+export function ownAddress(href: string): string {
+  const url = new URL(href);
+  url.hash = '';
+  return url.href;
 }
 
 /** Longest wait for the answer of a session probe, `GET /api/server` (review round 2 S2-8 of task-040). */

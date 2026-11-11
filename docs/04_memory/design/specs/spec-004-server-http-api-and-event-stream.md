@@ -542,4 +542,6 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   matches its status — 403 `forbidden`, 412 `precondition-failed`, 413 `payload-too-large`, 415
   `unsupported-media-type`, 416 `range-not-satisfiable`, any other `client-error` (400 stays
   `invalid-request`, 404 `not-found`); a static path the file system refuses as too long is
-  missing: 404 `not-found` under `/assets/`, the application for any other path (bug-031).
+  missing: 404 `not-found` under `/assets/`, the application for any other path (bug-031). §2: the
+  fragment is removed by rebuilding the page's whole URL without it (absolute, of the page's
+  origin), never from `pathname + search` (task-063 AC-8, the approver: "stripFragment a").

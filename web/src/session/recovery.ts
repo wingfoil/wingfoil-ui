@@ -16,7 +16,7 @@
  * nothing is added to the address and no redirect parameter exists. The status `lost` stays final
  * inside the page: the only way out is a full load, so no state of the dead session survives.
  */
-import { PROBE_TIMEOUT_MS, SESSION_CHANNEL, sessionStatus, subscribeSession } from './session.js';
+import { ownAddress, PROBE_TIMEOUT_MS, SESSION_CHANNEL, sessionStatus, subscribeSession } from './session.js';
 
 /** Options of {@link watchSessionRecovery}. */
 export interface RecoveryOptions {
@@ -24,17 +24,6 @@ export interface RecoveryOptions {
   reload?: (address: string) => void;
   /** Longest wait for the probe's answer (default 10 s, as `watchFragmentToken`). */
   probeTimeoutMs?: number;
-}
-
-/**
- * The page's own address without its fragment, as an absolute URL of its origin (D63-6): never
- * `pathname + search`, which a path starting with `//` would make a protocol-relative address of
- * another host.
- */
-export function ownAddress(href: string): string {
-  const url = new URL(href);
-  url.hash = '';
-  return url.href;
 }
 
 /**

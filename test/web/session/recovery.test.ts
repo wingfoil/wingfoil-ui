@@ -5,8 +5,14 @@
 // cookie at a time, a reload of its own address on an OK answer. A fake channel and dispatched
 // visibility and focus events stand for the browser (headless engines report every page visible).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { watchSessionRecovery, ownAddress } from '../../../web/src/session/recovery.js';
-import { markSessionLost, PROBE_TIMEOUT_MS, resetSession, SESSION_CHANNEL } from '../../../web/src/session/session.js';
+import { watchSessionRecovery } from '../../../web/src/session/recovery.js';
+import {
+  markSessionLost,
+  ownAddress,
+  PROBE_TIMEOUT_MS,
+  resetSession,
+  SESSION_CHANNEL,
+} from '../../../web/src/session/session.js';
 
 /** A same-process stand-in of `BroadcastChannel`: delivers to the other instances of one name. */
 class FakeChannel {

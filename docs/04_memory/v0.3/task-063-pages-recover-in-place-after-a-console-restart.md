@@ -79,6 +79,9 @@ holds a session again, instead of staying lost for good.
   system allows>` answers 404 `not-found`, as every other missing asset does; the error handler of
   `server/src/http/app.ts` maps a 4xx it does not name to a body code that matches its status (no
   `invalid-request` for a 403 or a 404).
+- **AC-8** — `stripFragment` builds its address as `ownAddress` does (absorbed 2026-11-11, the
+  approver: "stripFragment a"): the page's own URL with the fragment cleared, absolute and of its
+  origin, never `pathname + search`; red first with a `//host/…` path.
 
 ## Implementation Notes
 
@@ -408,3 +411,17 @@ round, red first where a test is added (`test(web): task-063 checker red`):
   (red before).
 - **N-4** — `7614dc5b` "red — F-1 … F-3" failed on F-3 only: F-1's test is a guard test, green on
   the code of that time and red only with each rule removed (round 1 above).
+
+### stripFragment, checker re-check (2026-11-11)
+
+- **N-5** — the checker's re-check on `1d932b4d`: **READY**; that tip's run `43091752428`, success
+  on every job (checks, coverage, contract, e2e-chromium ×2, own specs on Firefox and WebKit,
+  smoke, publish-smoke).
+- **AC-8** (absorbed, the approver: "stripFragment a") — red first: *AC-8 — removes the fragment of
+  a `//host/…` path, keeping the address on this origin* (`test/web/session/session.test.ts`)
+  failed with `SecurityError: replaceState() cannot update history to the URL
+  http://evil.test/x?q=1.` — the bootstrap threw before its exchange and the `#token` stayed in
+  the address. Fix: `ownAddress` moved from `recovery.ts` to `session.ts`, shared by
+  `stripFragment` (the bootstrap and the connected page's strip of `watchFragmentToken`) and the
+  recovery's reload. Unreachable today (the server answers 403 on a `//` path), hardened anyway.
+  `npx vitest run test/web/session`: 42 passed; typecheck and lint clean.

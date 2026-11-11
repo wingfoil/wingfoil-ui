@@ -155,6 +155,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Security
 
+- **The token fragment is removed on this origin only** (task-063 AC-8): the page builds the
+  address it keeps after removing `#token=…` from its whole URL, so a path starting with `//` can
+  no longer make that step fail and leave the token in the address bar (unreachable today: the
+  console refuses such a path).
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
   the Memory list, the element panel and Today comes back with control, bidi and invisible
   characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
