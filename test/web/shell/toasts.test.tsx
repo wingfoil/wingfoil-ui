@@ -255,6 +255,22 @@ it.each([
     { headerBottom: 56, mainLeft: 0, viewport: { width: 400, height: 720 }, drawer: { left: 0, headerBottom: 150 } },
     { maxHeight: 530 },
   ],
+  // task-062 D62-12: the element page's footer bar, sticky at the bottom of the main region.
+  [
+    'the element page, its footer bar at the bottom',
+    { ...LAYOUT, viewport: { width: 1280, height: 720 }, pageFooterTop: 640 },
+    { bottom: 88, maxHeight: 560 },
+  ],
+  [
+    'the element page, its footer bar above the bottom (a short page)',
+    { ...LAYOUT, viewport: { width: 1280, height: 720 }, pageFooterTop: 400 },
+    { bottom: 328, maxHeight: 320 },
+  ],
+  [
+    'the element page, its footer bar not in view',
+    { ...LAYOUT, viewport: { width: 1280, height: 720 }, pageFooterTop: 900 },
+    { maxHeight: 624 },
+  ],
 ] as const)('review R1, R2 — placement with %s', (_name, layout, expected) => {
   expect(toastPlacement(layout)).toEqual(expected);
 });
