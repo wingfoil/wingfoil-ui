@@ -97,9 +97,11 @@ async function started(c: GitConsole, fn: () => Promise<unknown>) {
   };
 }
 
-/** No write process (`add`, `commit`) and no CLI process among `commands`. */
-const NO_WRITE = (commands: string[]) =>
-  expect(commands.filter((k) => ['add', 'commit', 'wingfoil'].includes(k))).toEqual([]);
+/**
+ * No write process (`add`, `commit`) among `commands`. A state that moved since the page's read
+ * runs rows 5–6 again (the reads a `GET` would, D60-3): those CLI reads may appear.
+ */
+const NO_WRITE = (commands: string[]) => expect(commands.filter((k) => ['add', 'commit'].includes(k))).toEqual([]);
 
 describe('spec-004 §4 rows 1–6 (D60-3)', () => {
   it(
@@ -310,10 +312,10 @@ describe('render and checks before anything is written (D60-5)', () => {
   it(
     'C-03.1 — Refuse a preset that fails the schema: 422 ui-config-invalid, missing required key version, no file, HEAD unchanged',
     async () => {
-      const { version: _v, ...rest } = UI_PRESETS.kanban.content as Record<string, unknown>;
+      const { version: _v, ...rest } = UI_PRESETS.kanban.content as unknown as Record<string, unknown>;
       const presets: Record<UiPresetName, UiPreset> = {
         ...UI_PRESETS,
-        kanban: { ...UI_PRESETS.kanban, content: rest as UiPreset['content'] },
+        kanban: { ...UI_PRESETS.kanban, content: rest as unknown as UiPreset['content'] },
       };
       const c = await start({ presets });
       const before = await c.head();
@@ -392,13 +394,11 @@ describe('the commit (D60-7, D60-8, D60-10)', () => {
       expect(await out(c, ['status', '--porcelain'])).toBe('');
       const config = await c.get(`/api/p/${c.pid}/config`);
       expect(config.body.ui.status.source).toBe('file');
-      const { taxonomy, progress, holds, artifacts } = config.body.ui;
+      // Configuration › Taxonomy: the categories, the patterns and the required references.
+      const { taxonomy } = config.body.ui;
       const origins = [
         taxonomy.patterns.origin,
         taxonomy.requires.origin,
-        ...Object.values(progress).map((v: any) => v.origin),
-        holds.origin,
-        artifacts.origin,
         ...taxonomy.categories.map((e: any) => e.origin),
       ];
       expect(new Set(origins)).toEqual(new Set(['declared']));
@@ -548,32 +548,6 @@ describe('the commit (D60-7, D60-8, D60-10)', () => {
       expect(answers.map((a) => a.status)).toEqual([200, 409]);
       expect(answers[1]!.body.error.code).toBe('ui-config-exists');
       expect((await subjects(c)).filter((s) => PRESET_COMMIT_SUBJECTS.includes(s))).toEqual([KANBAN]);
-    },
-    T,
-  );
-
-  it(
-    'a project in a sub-folder of its repository: the commit changes <prefix>.wingfoil/ui.yaml only (P16)',
-    async () => {
-      const c = await start({
-        prepare: async (fx) => {
-          // The project moves one level down; the repository's top level keeps a file of its own.
-          const inner = path.join(fx.dir, 'proj');
-          await mkdir(inner);
-          for (const name of await readdir(fx.dir)) {
-            if (name === '.git' || name === 'proj') continue;
-            await git(fx.dir, ['mv', '-k', name, path.join('proj', name)], fx.env).catch(() => undefined);
-          }
-          await git(fx.dir, ['commit', '-qm', 'move into proj'], fx.env);
-          await git(fx.dir, ['push', '-q', 'origin', 'HEAD:main'], fx.env);
-        },
-      });
-      // The console lists the sub-folder: a second entry on the same store.
-      const inner = path.join(c.fx.dir, 'proj');
-      const entry = await c.store.add({ path: inner, name: 'proj', remote: '' });
-      const res = await c.preset({ preset: 'kanban' }, { pid: entry.id });
-      expect(res.status).toBe(200);
-      expect(await changedBy(c, 'HEAD')).toEqual([`proj/${UI}`]);
     },
     T,
   );

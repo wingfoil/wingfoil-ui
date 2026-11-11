@@ -2,7 +2,6 @@
 // the swaps a test can make between the steps: an entry that appears after row 7′ (409, never
 // overwritten), `.wingfoil` swapped for another folder after the create (500, no git, nothing
 // removed), a short write (the file removed), a refused create (500 `internal`, by its code).
-/* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies, each validated against its schema */
 import type { FastifyInstance } from 'fastify';
 import { lstat, mkdir, readFile, realpath, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -10,6 +9,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { gitSubcommand } from '../../../server/src/git/git.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { nodePresetFs, PartialCreateError, type PresetFs } from '../../../server/src/writes/preset.js';
+import { REPO_ROOT } from '../../harness/cli.js';
 import { buildFixture, type Fixture } from '../../harness/fixtures/index.js';
 import { TempWorkspace } from '../../harness/temp-workspace.js';
 import { startGitConsole, type GitConsole, type GitConsoleOptions } from '../http/git-console.js';
@@ -132,7 +132,8 @@ describe('the exclusive create (D60-6)', () => {
       const log: string[] = [];
       const fs: PresetFs = {
         ...nodePresetFs,
-        create: () => Promise.reject(Object.assign(new Error('permission denied marker-task-060-eacces'), { code: 'EACCES' })),
+        create: () =>
+          Promise.reject(Object.assign(new Error('permission denied marker-task-060-eacces'), { code: 'EACCES' })),
       };
       const c = await start({ presetFs: fs, log });
       const res = await c.preset({ preset: 'kanban' });
@@ -143,4 +144,13 @@ describe('the exclusive create (D60-6)', () => {
     },
     T,
   );
+});
+
+describe('the C-03.1 seam stays out of the bin (D60-12)', () => {
+  it('the launcher registers the route without a preset table or a file port', async () => {
+    const source = await readFile(path.join(REPO_ROOT, 'server', 'src', 'launcher', 'start.ts'), 'utf8');
+    const calls = source.match(/registerUiConfigPresetRoute\([^)]*\)/g) ?? [];
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).not.toMatch(/presets|fs\b/);
+  });
 });

@@ -394,3 +394,24 @@ remaining non-methodology hit needs a justified inline disable.
   empty-segment rule first written here: in the relative-path form of `artifacts[].path` the first
   segment holds no `:` (so `javascript:…`, `data:…`, `mailto:…`, `http:x`, `C:/x` are refused),
   and empty segments are allowed (`dist/`, `a//b`).
+- 2026-11-11 — refined in development (task-060 design D60-4 … D60-9, plan backlog-item-rel-v0.3-plan;
+  decided by the approver, "tutto come consigliato", Q1 (a), Q3 (a)); no status, code or order
+  changes. §5 row 7′: "an entry" is any working-tree entry at `.wingfoil/ui.yaml` (a file, a
+  directory, a FIFO, a dangling link), a `.wingfoil` that is not a directory (a symbolic link
+  included: the reader already reports such a `ui.yaml` as present and refused), any index record at
+  or below the path (any stage, intent-to-add, `skip-worktree`) and any HEAD entry (a staged
+  deletion included). The create is `O_CREAT | O_EXCL | O_NOFOLLOW`, then `.wingfoil` and the file
+  must still be the entries of the create (device and inode); otherwise 500 `write-incomplete`, no
+  git, nothing removed. Declared residual, as §2's read: a local process swapping `.wingfoil` for a
+  link and back inside that window can make the console create the file in another folder — seen
+  after and answered, not prevented (Node has no `openat`). The git steps are WingFoil 0.3.1's own
+  form — `git add -- <file>`, `git commit --only --quiet --cleanup=whitespace -m <subject> --
+  <file>`, the path read literally — with the CLI's variables and settings plus
+  `maintenance.auto=false`, `gc.auto=0`, given to every hook (a commit otherwise starts `git
+  maintenance run --auto`). Success also needs the working-tree file to be still the rendered text
+  (no hook rewrote it); an unborn HEAD is searched from the root. `detail.commit` of
+  `write-incomplete` names the commit when exactly one commit since the fresh HEAD has the preset's
+  subject (a hook that put another file into it, for example). After a failed `git add` the created
+  file is removed only while it is still the created entry and the index holds nothing there,
+  otherwise 500 `write-incomplete`. A project in a sub-folder of its repository is refused by
+  WingFoil 0.3.1's `dna show` (`E_NOT_AT_GIT_ROOT`), so row 5 answers `not-in-team` there.
