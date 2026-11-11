@@ -109,3 +109,177 @@ holds a session again, instead of staying lost for good.
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-11)
+
+Read (dl-015): this task, bug-031, adr-003 whole (D6, D7, *Alternatives considered*, Appendix A),
+spec-004 §2, §5 and its Process Notes, spec-007 §4, adr-001 D8, the feature
+`x/local-security.feature` (X-02.1 … X-02.3), the Execution Notes of task-040 (D40-7, S5, S6, S2-8)
+and task-058 (the address file, `portFixed`, `docs/cli-reference.md`), the plan's RP3-17 (A1, A2,
+C4) and W2-1 … W2-6, the dev rules; the code: `web/src/session/session.ts`, `web/src/main.tsx`,
+`web/src/app.tsx`, `web/src/shell/Shell.tsx`, `pages.tsx`, `web/src/api/client.ts` (401 →
+lost), `web/src/api/events.ts` (the stream's probe, its backoff of 1 … 30 s), `server/src/http/app.ts`
+(`setErrorHandler`, the not-found handler), `guards.ts`, `session.ts`, `server/src/auth/authentication.ts`,
+`@fastify/static` 10.1.5 and `@fastify/send` 4.1.1 (the 403 paths); the tests
+`test/web/session/session.test.ts`, `test/e2e/shell.spec.ts` (the lost-page and bug-016 tests),
+`test/e2e/projects.spec.ts` (X-02.1), `test/launcher/local-security.test.ts` (X-02.2),
+`test/server/http/app.test.ts`, `test/e2e/support/console.ts`, `fixtures.ts`. The UX reference has
+no lost-session entry yet (§3 has none; the prototype has no such screen): AC-4 adds one. No
+`depends_on` task; task-058 is merged (its `docs/cli-reference.md` text is kept, D63-12).
+
+#### Probes
+
+Scratch scripts outside the repository, removed afterwards.
+
+- **P1 — bug-031's 403** (`@fastify/static` with `app.ts`'s options, `wildcard: true`): the wildcard
+  route checks the spelling of each path segment against the directory listing; a segment that is
+  not listed is `stat`ed, and a `stat` failing with anything but `ENOENT`/`ENOTDIR` — here
+  `ENAMETOOLONG` — is *unverifiable* → `forbiddenPathError()` 403, which the console's error handler
+  turns into `invalid-request`. Results: `/assets/` + 255 `x` → 404 (not-found handler); + 256 `x`
+  → **403**; `/assets/a/` + 256 `x` → 404 (`a` is missing, so no spelling check reaches the long
+  name); `/` + 256 `x` → **403** (a client-side path: today it gets the JSON 403, not
+  `index.html`); `/p/abc/e/` + 256 `x` → 200 `index.html`; a path of 25 segments of 200 `x` under
+  `/assets/` (over `PATH_MAX`) → **403**; `/assets//a.js` → 403 (a non-canonical path, refused on
+  purpose by the plugin). So the 403 comes from the file system's own limit, wherever the long name
+  sits next to a directory that exists — not only under `/assets/`, and not at a fixed length
+  (eCryptfs allows 143 bytes): D63-9.
+- **P2 — the channel and the visibility events on the three engines** (Playwright 1.63, one
+  browser context, pages served by route interception on two ports): a `BroadcastChannel`
+  `wfui-session` message posted with `null` reaches the other page of the same origin as `null` on
+  Chromium, Firefox and WebKit; the one posted by a page of another port does not arrive. Headless
+  pages are all `visible`: `bringToFront` fires no `visibilitychange` on any engine and a `focus`
+  on Firefox only — so the e2e drives recovery through the message; the visibility and focus
+  paths are covered by the unit tests (D63-14). `location.replace(<own address without fragment>)`
+  loads the page again (a new `load`), keeps `history.length` and drops the fragment on all three;
+  `history.length` starts at 2 on Chromium and WebKit (the initial `about:blank`), 1 on Firefox:
+  the e2e compares lengths before and after, never an absolute count.
+
+#### Decisions
+
+- **D63-1 — module.** A new `web/src/session/recovery.ts` holds D6: `announceSession()` (post) and
+  `watchSessionRecovery(options)` (listen, probe, reload), next to `session.ts`, which keeps the
+  exchange and the status store unchanged — `lost` stays final **inside** the page (W3-7): the only
+  way out is a full load of the page (D63-6), so no in-page state of the dead session survives by
+  construction (AC-3). `main.tsx` starts `watchSessionRecovery()` after the bootstrap, beside
+  `watchFragmentToken()`.
+- **D63-2 — the message.** `bootstrapSession` calls `announceSession()` only after a `204` of
+  `POST /api/session`: it opens `new BroadcastChannel('wfui-session')`, posts `null`, closes it. No
+  post on a 401, a network failure, a timeout or a load without a token (a reload). The receiver
+  never reads `event.data` (nor `origin`, `ports`): a message is a hint, so nothing a sender puts in
+  it can reach a request, the address, the store or a log. Without `BroadcastChannel` (feature
+  check) nothing is posted and the visibility path still works.
+- **D63-3 — triggers.** On a lost page only (`sessionStatus() === 'lost'`; a page that is not lost
+  never probes): (a) a channel message; (b) the return of the user — the page is *armed* by
+  `visibilitychange` to `hidden` or a window `blur`, and an armed page probes on `visibilitychange`
+  to `visible` or `focus`, then is disarmed: at most one probe per return ("at most once per
+  focus"). A page is not armed at load (Firefox fires `focus` on load, P2), which also keeps a
+  freshly reloaded page from probing on its own (D63-7).
+- **D63-4 — the probe.** `fetch('/api/server', { credentials: 'same-origin', cache: 'no-store',
+  signal: AbortSignal.timeout(10_000) })` — no header, no body, no token: the cookie only. One
+  probe at a time; a message that arrives while one is in flight asks for **one** more probe after
+  it (a pending flag, never a queue), so an exchange made during a probe that then answers 401 is
+  not missed; a return (D63-3 b) during a probe is ignored. OK (`response.ok`) → reload (D63-6);
+  401, any other status, a network failure or the timeout → the notice stays and the guard is
+  freed. The probe goes through `fetch` directly, not `apiRequest` (whose 401 handling and
+  unreachable banner do not apply to a page already lost).
+- **D63-5 — a failed exchange stays final for the token path** (bug-016, W3-7, S2-8): recovery
+  never sends `POST /api/session` and never reads a token; `watchFragmentToken` is unchanged and its
+  tests stay green. A page lost through a failed exchange (a wrong `#token=…`, already removed from
+  the address before the exchange) recovers like any lost page **only** when the browser's cookie
+  is valid — the cookie decides, as on a reload today (adr-003 Appendix A, *Today's manual
+  recovery*).
+- **D63-6 — the reload.** `location.replace(u)` where `u` is `location.href` with its fragment
+  cleared (`new URL(location.href)`, `hash = ''`): an absolute URL of the page's own origin, path
+  and query — never `location.pathname + search`, which a path starting with `//` would turn into
+  a protocol-relative address of another host (an open redirect; unit-tested with
+  `//evil.test/x`). `replace` adds no history entry and drops any fragment (P2). One reload per
+  page (a `reloading` flag: later answers and triggers do nothing). Nothing is added to the
+  address and no redirect parameter is read or written (AC-3).
+- **D63-7 — no reload loop.** A reloaded page starts unarmed and has heard no message, so a 401 of
+  a later read leaves it lost until a new exchange posts or the user returns: each further reload
+  needs one new message or one new return — at most one reload per trigger, never a loop on its
+  own (AC-3's "probe OK, a later read 401" as a unit test). See Q1 for a message heard **before**
+  the loss.
+- **D63-8 — the notice** (AC-4). `shell.session.lost.body` changes value (a declared value edit of
+  an existing key, sorted place unchanged): the text of Q2. Title, page title, heading level, the
+  `main` focus target and the header stay as today; axe in both themes in the e2e.
+- **D63-9 — bug-031** (AC-7). In `setErrorHandler`, a **403 of the static wildcard route**
+  (`GET`/`HEAD`, route `/*`) whose path the file system refuses as too long becomes "missing":
+  `reply.callNotFound()`, so the existing not-found handler answers — 404 `not-found` under
+  `/assets/`, `index.html` for a client-side path (P1's `/` + 256 `x`; see Q4). "Too long" is
+  measured by the file system itself, not a constant: the decoded path is split into segments, any
+  empty, `.`, `..`, `\0`- or `\`-holding segment keeps the 403 (the plugin's canonical-path guard
+  is not second-guessed), and otherwise `stat(path.join(staticDir, ...segments))` failing with
+  `ENAMETOOLONG` → not found; anything else keeps the 403. The `stat` runs only on such a 403,
+  inside the static root, and its outcome only picks between two refusals.
+- **D63-10 — the codes of the other 4xx** (AC-7, second half). The handler keeps 400
+  `invalid-request` and 404 `not-found`; every other 4xx gets a code that matches its status
+  (Q3): 403 `forbidden` (the static plugin's alias and non-canonical refusals; the guards keep
+  their own `forbidden-origin`, they answer before any handler), 413 `payload-too-large`, 415
+  `unsupported-media-type`, 412 `precondition-failed`, 416 `range-not-satisfiable`, any other 4xx
+  `client-error`. The web's error catalogue falls back to `internal` for an unknown code
+  (`web/src/api/error-message.ts`), as for any code it does not name; none of these reaches a
+  page in normal use. spec-004 §5 gains the rows and a dated Process Note.
+- **D63-11 — the server is otherwise unchanged** (AC-5): no route, cookie, guard or exchange
+  change; the e2e and the reviewer's curl probes run against the unchanged session model.
+- **D63-12 — docs.** spec-004 §2: the bullet "the page does not retry" becomes D6's recovery, with
+  a dated Process Note (§5 for D63-10); `docs/cli-reference.md` `--port` row: deep links survive a
+  restart only with a fixed port (D7), next to task-058's `portFixed` bullet, which is kept;
+  `docs/user-guide.md` *The session and the browser* (the lost page now reconnects by itself on the
+  same port; a bump); `docs/00_reference/ux-reference.md` §3 a *Lost session* row (1.15);
+  `CHANGELOG.md` *Unreleased* › *Added* (recovery) and › *Fixed* (bug-031); `test/README.md` the
+  version line (the new suites); all append-only on the shared files.
+- **D63-13 — the e2e spec** `test/e2e/session-recovery.spec.ts` (one spec for the task). A
+  test-owned state directory under the run's temporary root (`test/README.md` *Temporary
+  folders*) keeps the project list across the restart; a free port picked by the spec itself
+  (a local helper, no new shared support) and passed as `--port` to both starts through
+  `ConsoleOptions.args`; the kanban fixture; the element page `/p/<pid>/e/task-001-login-form` (the
+  main-region page if task-062 has merged first, Implementation Notes).
+- **D63-14 — engines.** The e2e runs on the three engines through the message (P2); the visibility
+  and focus triggers are unit-tested only, declared here: headless engines report every page
+  `visible`.
+
+#### Test plan
+
+| AC / scenario | Test (file › title) |
+|---------------|---------------------|
+| AC-1 X-02.3 | `test/e2e/session-recovery.spec.ts` › "X-02.3 — Recover a page the console no longer recognises, in place": start on `--port P`, tab 1 opens the element page with the token, the console is stopped and started again on `P`, tab 1 shows the lost heading (`COLD_READ_MS`), axe in both themes on it with the new text; tab 2 (same context) opens the new URL; tab 1 brought to front shows the element's heading again at the same `page.url()` (path and query); both tabs' addresses hold no token, `history.length` of each unchanged by the recovery, `document.referrer` of each without the token; tab 1 sent no `POST /api/session` and no request with an `Authorization` header (request recorder from send); no page console message holds either token |
+| AC-3 another origin | same file › "X-02.3 — an exchange on another port leaves the page lost": a second console on another port, its URL opened in tab 3 first, then the right URL in tab 2; tab 1's first `/api/server` request after the loss is sent after tab 2's `204`, never after tab 3's only (ordering by recorded events, no fixed sleep) |
+| AC-1 X-02.1, X-02.2 | unchanged: `test/e2e/projects.spec.ts` › "X-02.1 …", `test/launcher/local-security.test.ts` › "X-02.2 …" (`test:e2e:chromium`, `test:coverage` on `gates.yml`) |
+| AC-2 post | `test/web/session/session.test.ts` (appended) › "announces a session after a 204 exchange, with an empty message", "announces nothing on a 401, a network failure or a reload" (fake `BroadcastChannel` by `vi.stubGlobal`) |
+| AC-2 triggers, probe, reload | `test/web/session/recovery.test.ts` (new) › "a lost page probes on a message", "a page that is not lost never probes", "probes on a return: hidden then visible, blur then focus, once per return", "not armed at load", "one probe at a time; a message during a probe asks one more", "the probe: GET /api/server, cookie only, no header, no body", "OK reloads once, on its own address without fragment", "401, 403, 500, a network failure and the 10 s timeout leave the notice and free the guard", "without BroadcastChannel the return still recovers", "stops listening once disposed" |
+| AC-3 never | `recovery.test.ts` › "the message's content is never read (a token-like payload changes nothing)", "the reload address of a `//evil.test/x` path stays on the page's origin", "no reload loop: a reloaded page that loses its session again does not probe on its own", "nothing is logged" (console spies); `session.test.ts` › the bug-016 / S5 / S6 / S2-8 tests unchanged |
+| AC-4 notice | the e2e above (text, axe both themes); X-09.1 by the existing catalogue checks (`test/web/i18n` and the key build in `shell.spec.ts`) |
+| AC-7 bug-031 (red first) | `test/server/http/app.test.ts` (appended) › "bug-031 — an asset name the file system refuses answers 404 not-found" (256 `x` and the over-`PATH_MAX` path), "a client-side path with a name too long serves the application", "a non-canonical static path stays 403 forbidden"; "every 4xx gets a code matching its status" (the 413 assertion of the existing malformed-body test changes to `payload-too-large`, a 415) |
+
+Gates (AC-6): local `npm run typecheck`, `lint`, `format:check`, `docs:api`, `check_tasks.py v0.3`,
+targeted `npx vitest run test/web/session test/server/http/app.test.ts`; on `gates.yml` (task
+scope): `test:coverage`, `test:contract`, `test:e2e:chromium`, the own spec on Firefox and WebKit;
+run ids in these notes. Not git-touching: no strict-identity run.
+
+#### Questions (one recommendation each)
+
+- **Q1 — a message heard before the page is lost.** On a restart with `--open`, the new tab's
+  `204` can arrive while an old tab's in-flight request (sent with the old cookie) has not yet
+  answered 401: the old tab ignores the message (not lost yet) and then waits for a return.
+  **Recommended:** remember, in memory only, that a message was heard while not lost, and probe
+  once at the loss (then forget it) — a reloaded page has heard nothing, so D63-7 holds.
+- **Q2 — the notice's promise vs D7.** adr-003 D6's text says the page "reconnects by itself",
+  which is false after a restart on another port (no `--port`). **Recommended:** "The console was
+  stopped and started again, or this page belongs to another console. Open the URL printed in the
+  terminal in any tab of this browser: if the console runs on the same port again, this page
+  reconnects by itself." — the ADR's sentence plus D7's condition, recorded as a dated Process
+  Note on adr-003 by the coordinator if accepted.
+- **Q3 — the codes of the other 4xx** (D63-10). **Recommended:** the explicit list above with
+  `client-error` for the rest, so 413 changes from `invalid-request` to `payload-too-large`
+  (one existing assertion), rather than deriving codes from Node's status texts (they change
+  between Node versions: 413 is "Content Too Large" in RFC 9110).
+- **Q4 — bug-031 beyond `/assets/`** (P1). **Recommended:** the same rule for every static-route
+  403 caused by a name too long, so a client-side path answers `index.html` (the page's own
+  not-found view) as every other unknown path does, instead of a JSON 403.
+
+#### Size
+
+About 0.8 active day: web module and wiring 0.2, unit tests 0.2, e2e 0.2, bug-031 and its tests
+0.1, docs 0.1 — under one day, no split (RP3-20 G2). Review: the adversarial reviewer of the task
+(2–3 rounds expected, adr-003 Appendix A).
