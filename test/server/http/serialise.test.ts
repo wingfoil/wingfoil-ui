@@ -3,7 +3,7 @@
 // list or object has every string leaf sanitised, its shape kept, the keys of a nested object left
 // as keys; the other fields stay as written (class (d)).
 import { describe, expect, it } from 'vitest';
-import { frontmatterBody, toolTextSanitiser } from '../../../server/src/http/serialise.js';
+import { dnaBody, frontmatterBody, toolTextSanitiser, workflowsBody } from '../../../server/src/http/serialise.js';
 
 const RLO = String.fromCodePoint(0x202e);
 const ESC = String.fromCodePoint(0x1b);
@@ -30,5 +30,90 @@ describe('frontmatterBody', () => {
   it('a frontmatter without rejection_reason is returned as it is', () => {
     const fm = { id: 'x', status: 's' };
     expect(frontmatterBody(fm, sanitise)).toBe(fm);
+  });
+});
+
+// task-072 D72-2 — the open CLI sections of `/config`: every string escaped but the listed keys and
+// the texts the adapter already sanitised; a field a newer CLI adds is escaped too.
+describe('dnaBody and workflowsBody (task-072)', () => {
+  const h = `x${RLO}${ESC}y`;
+  const e = 'x\\u202e\\x1by';
+
+  it('the DNA: every text escaped, role names, member and agent roles and record keys raw, shapes kept', () => {
+    const dna = {
+      version: 1,
+      project: { name: h, description: h, extra: [h, { deep: h }] },
+      modules: [{ name: h, path: h }],
+      stacks: { technologies: [{ name: h, category: h }], methodologies: [{ name: h }] },
+      team: {
+        members: [{ name: h, email: h, roles: [`r${RLO}`] }],
+        roles: [{ name: `r${RLO}`, description: h }],
+        agents: [{ name: h, executes_as: [`r${RLO}`], approval_authority: false }],
+      },
+      paths: { [`k${RLO}`]: [h] },
+    };
+    expect(dnaBody(dna as never)).toEqual({
+      version: 1,
+      project: { name: e, description: e, extra: [e, { deep: e }] },
+      modules: [{ name: e, path: e }],
+      stacks: { technologies: [{ name: e, category: e }], methodologies: [{ name: e }] },
+      team: {
+        members: [{ name: e, email: e, roles: [`r${RLO}`] }],
+        roles: [{ name: `r${RLO}`, description: e }],
+        agents: [{ name: e, executes_as: [`r${RLO}`], approval_authority: false }],
+      },
+      paths: { [`k${RLO}`]: [e] },
+    });
+  });
+
+  it('a WingFoil 0.2.x list: descriptions, actions and products escaped; names, kinds, roles, steps raw', () => {
+    const list = {
+      manifest: { version: 1, include: [`w${RLO}.yaml`] },
+      workflows: [
+        {
+          name: `n${RLO}`,
+          kind: 'main',
+          element: `t${RLO}`,
+          description: h,
+          phases: [
+            {
+              name: `p${RLO}`,
+              description: h,
+              role: `r${RLO}`,
+              actions: [h],
+              produces: [h],
+              approval: { by_role: `r${RLO}` },
+              fallback: { step: `s${RLO}`, set_state: `s${RLO}` },
+              include: `w${RLO}.yaml`,
+              iterate_over: `i${RLO}`,
+              optional: false,
+            },
+          ],
+        },
+      ],
+    };
+    const out = workflowsBody(list as never) as never as typeof list;
+    expect(out.manifest).toEqual(list.manifest);
+    expect(out.workflows[0]).toEqual({
+      ...list.workflows[0],
+      description: e,
+      phases: [{ ...list.workflows[0]!.phases[0], description: e, actions: [e], produces: [e] }],
+    });
+  });
+
+  it('a WingFoil 0.3.x list: the description escaped; the name raw; the sanitised texts never escaped twice', () => {
+    const list = {
+      baseline: { commit: 'a'.repeat(40) },
+      workflows: [
+        { name: `n${RLO}`, startable: true, includable: false, description: h, executableNow: true, more: h },
+      ],
+      diagnostics: [{ code: 'C', severity: 'warning', file: 'f', path: 'p', message: 'already \\u202e' }],
+      message: 'already \\x1b',
+      diagnosticsOmitted: 3,
+    };
+    expect(workflowsBody(list as never)).toEqual({
+      ...list,
+      workflows: [{ ...list.workflows[0], description: e, more: e }],
+    });
   });
 });

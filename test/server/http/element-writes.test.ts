@@ -812,6 +812,21 @@ describe('review S1 — the element as the fresh state lists it', () => {
       expect(res.body.error.detail).toEqual({ file: await c.pathOf(LOGIN), commit: await c.head() });
     },
   );
+
+  it('task-072 D72-9: the other path, shown through the catalogue, is escaped (U+202E, ESC)', async () => {
+    const c = await start({
+      intercept: async (request, real) => {
+        if (!request.args.includes('approve')) return undefined;
+        const result = await real(request);
+        const data = JSON.parse(result.stdout) as Record<string, unknown>;
+        return { ...result, stdout: JSON.stringify({ ...data, path: 'docs/else\u202ewhere\u001b.md' }) };
+      },
+    });
+    await c.warm();
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status).toBe(500);
+    expect(res.body.error.detail).toEqual({ file: 'docs/else\\u202ewhere\\x1b.md' });
+  });
 });
 
 describe('review S2 — the whole entry of the element file', () => {

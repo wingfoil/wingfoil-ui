@@ -8,14 +8,20 @@
 // | c | key: id, type, state, role, a path the page sends back | as returned |
 // | d | document content: frontmatter values, bodies, file content | as written |
 // | e | server-made or validated: fixed messages, enums, shas, dates, the caller's own input | as made |
-// | r | repository display text outside K1's fields | as returned: the known gap of bug-035 |
 //
 // so a field added later fails here until it is classified; and one hostile fixture (the
 // hostile-text variant of the kanban fixture, a `memory.yaml` type and a `ui.yaml` with bidi and C1
 // characters) read through every GET route of the project shows no (a) or (b) field holding a Cc,
 // Cf, Cs, Zl or Zp character other than newline and tab, no (a) field over 4 000 characters or
 // naming a local folder, the keys byte for byte those of `memory search`, and the document content
-// as written. When bug-035 is fixed, its rows become (b) and are asserted too.
+// as written.
+//
+// task-072 (bug-035, D72-10): the class (r) — repository display text outside K1's fields, served
+// raw — is gone: its rows are (b) or (c). The hostile repository variant (`addHostileRepositoryText`)
+// is added to the fixture, and two more guards make a field or a route added later fail here until
+// it is handled: every GET route the launcher registers is swept or exempt with its reason (*route
+// coverage*), and every (b) leaf of the swept schemas is reached by the fixture with its U+202E
+// escaped exactly once, or names the test that covers it (*per-field reach*).
 /* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies and schemas walked generically */
 import type { FastifyInstance } from 'fastify';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
@@ -26,26 +32,38 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import { MAX_MESSAGE } from '../../../server/src/git/redact.js';
+import { InProcessEventBus } from '../../../server/src/events/bus.js';
 import { buildApp } from '../../../server/src/http/app.js';
+import { registerElementWriteRoutes } from '../../../server/src/http/element-writes.js';
+import { registerEventStream } from '../../../server/src/http/events.js';
+import { registerGitRoutes } from '../../../server/src/http/git-routes.js';
 import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
+import { registerProjectListRoutes } from '../../../server/src/http/projects.js';
+import { registerRoleViewRoute } from '../../../server/src/http/role-view.js';
+import { registerServerRoute } from '../../../server/src/http/server-route.js';
+import { registerSettingsRoutes } from '../../../server/src/http/settings.js';
 import { createLogger } from '../../../server/src/logging.js';
+import { InProcessWriteLock } from '../../../server/src/process/write-lock.js';
+import { ProjectList } from '../../../server/src/projects/project-list.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
 import { createMemoryStateStore } from '../../../server/src/state/memory-store.js';
 import { ECHOED_UI_FIELDS } from '../../../server/src/ui-config/body.js';
 import { pinnedCli, REPO_ROOT } from '../../harness/cli.js';
 import {
+  addHostileRepositoryText,
   addHostileText,
   buildFixture,
   copyFixture,
   type Fixture,
   type HostileElement,
+  type HostileRepository,
 } from '../../harness/fixtures/index.js';
 import { HEAVY_MS } from '../../harness/load.js';
 import { git, run } from '../../harness/run.js';
 import { auditedSnapshots } from '../snapshot/support.js';
 
 /** The classes of the enumeration. */
-type TextClass = 'a' | 'b' | 'c' | 'd' | 'e' | 'r';
+type TextClass = 'a' | 'b' | 'c' | 'd' | 'e';
 
 /** One rule: the fields `pattern` matches (`<schema> <path>`), their class, and why. */
 interface Rule {
@@ -54,8 +72,8 @@ interface Rule {
   note?: string;
 }
 
-/** The gap of the (r) rows. */
-const BUG_035 = 'bug-035-repository-text-outside-the-named-display-fields-reaches-the-page-unescaped';
+/** The rows that were (r), the gap of bug-035, until task-072. */
+const BUG_035 = 'bug-035 (task-072)';
 
 /** `progress.phases.value[]` → `progress\.phases\.value\[\]`. */
 const fieldPattern = (field: string): string => field.replace(/[.[\]]/g, (c) => `\\${c}`);
@@ -84,7 +102,7 @@ const RULES: readonly Rule[] = [
   { pattern: /^element\.refusal \.error\.detail\.candidates\[\]\.title$/, cls: 'b' },
   { pattern: /^element\.refusal \.error\.detail\.candidates\[\]\.(?:id|shortId|type|status)$/, cls: 'c' },
   { pattern: /^git\.refusal \.error\.detail\.files\[\]$/, cls: 'b' },
-  { pattern: /^projects\.refusal \.error\.detail\.name$/, cls: 'r', note: BUG_035 },
+  { pattern: /^projects\.refusal \.error\.detail\.name$/, cls: 'b', note: BUG_035 },
   { pattern: /^projects\.refusal \.error\.detail\.(?:path|pid|command|stateDir)$/, cls: 'e' },
   { pattern: /^write\.refusal \.error\.detail\.(?:file|command|commit)$/, cls: 'e' },
   // task-070 (D70-6, D70-11): a WingFoil 0.3.x refusal's reasons, tool messages as the message.
@@ -95,7 +113,7 @@ const RULES: readonly Rule[] = [
   { pattern: new RegExp(`${DESCRIPTOR}rejection\\.(?:by|reason)$`), cls: 'a', note: 'commit text (bug-027)' },
   {
     pattern: new RegExp(`${DESCRIPTOR}actor\\.(?:member\\.name|member\\.email|members\\[\\])$`),
-    cls: 'r',
+    cls: 'b',
     note: BUG_035,
   },
   // Elements: `/elements`, `/elements/:eid`, the Today rows.
@@ -117,7 +135,7 @@ const RULES: readonly Rule[] = [
   { pattern: /^element \.(?:required\[\]\.field|states\..+)$/, cls: 'c' },
   { pattern: /^today \.(?:view|summary\[\]\.role)$/, cls: 'c' },
   // History and the Memory events.
-  { pattern: /^history \.entries\[\]\.(?:from|to)$/, cls: 'r', note: BUG_035 },
+  { pattern: /^history \.entries\[\]\.(?:from|to)$/, cls: 'b', note: BUG_035 },
   { pattern: /^history \.(?:id|path)$/, cls: 'c' },
   { pattern: /^history \.entries\[\]\.(?:sha|timestamp)$/, cls: 'e' },
   { pattern: /^history \.entries\[\]\.(?:subject|reason|author|approver)$/, cls: 'a', note: 'commit text (bug-027)' },
@@ -125,20 +143,26 @@ const RULES: readonly Rule[] = [
   { pattern: /^memory-events \.events\[\]\.(?:type|id|from|to)$/, cls: 'c', note: 'keys from the subject (D56-8)' },
   { pattern: /^memory-events \.events\[\]\.(?:author|approver|reason)$/, cls: 'a', note: 'commit text (bug-027)' },
   // Directives.
-  { pattern: /^directives? \.(?:entries\[\]|entry)\.frontmatter\.(?:name|title)$/, cls: 'r', note: BUG_035 },
+  { pattern: /^directives? \.(?:entries\[\]|entry)\.frontmatter\.(?:name|title)$/, cls: 'b', note: BUG_035 },
   {
     pattern:
       /^directives? \.(?:entries\[\]|entry)\.(?:path|frontmatter\.(?:id|type|kind|tags\[\]|ref\[\])|roles\[\]|assignment)$/,
     cls: 'c',
   },
-  { pattern: /^directive \.frontmatter\.(?:name|title)$/, cls: 'r', note: BUG_035 },
+  { pattern: /^directive \.frontmatter\.(?:name|title)$/, cls: 'b', note: BUG_035 },
   { pattern: /^directive \.(?:frontmatter\..+|body)$/, cls: 'd' },
   { pattern: /^directives \.warnings\[\]$/, cls: 'a' },
   // Documentation and files.
-  { pattern: /^docs \.(?:roots\[\]|documents\[\]\.path)$/, cls: 'r', note: BUG_035 },
+  {
+    pattern: /^docs \.(?:roots\[\]|documents\[\]\.path)$/,
+    cls: 'c',
+    note: 'the addresses of /files/tree and /files/content (D72-6)',
+  },
+  { pattern: /^docs \.documents\[\]\.label$/, cls: 'b', note: BUG_035 },
   { pattern: /^file-tree \.(?:path|entries\[\]\.path)$/, cls: 'c' },
-  { pattern: /^file-tree \.entries\[\]\.name$/, cls: 'r', note: BUG_035 },
+  { pattern: /^file-tree \.entries\[\]\.name$/, cls: 'b', note: BUG_035 },
   { pattern: /^file-content \.path$/, cls: 'c' },
+  { pattern: /^file-content \.label$/, cls: 'b', note: BUG_035 },
   { pattern: /^file-content \.content$/, cls: 'd' },
   // The repository status.
   {
@@ -151,13 +175,13 @@ const RULES: readonly Rule[] = [
   },
   { pattern: new RegExp(`${REPOSITORY}sync\\.\\w+\\.lastError\\.message$`), cls: 'a' },
   // The identity and the header.
-  { pattern: /^(?:identity|project) \.identity\.(?:email|name|members\[\])$/, cls: 'r', note: BUG_035 },
+  { pattern: /^(?:identity|project) \.identity\.(?:email|name|members\[\])$/, cls: 'b', note: BUG_035 },
   { pattern: /^(?:identity|project) \.(?:identity\.roles\[\]|roleViews\[\]|roleView)$/, cls: 'c' },
-  { pattern: /^project \.name$/, cls: 'r', note: BUG_035 },
+  { pattern: /^project \.name$/, cls: 'b', note: BUG_035 },
   { pattern: /^project \.(?:id|wingfoil\.version|capabilities\..+|readOnly\[\]\.range|dnaError\.code)$/, cls: 'e' },
   { pattern: /^project \.(?:wingfoil\.text|dnaError\.message)$/, cls: 'a' },
   // The project list.
-  { pattern: /^projects\.(?:item|list\.response) \.(?:projects\[\]\.)?(?:name|remote)$/, cls: 'r', note: BUG_035 },
+  { pattern: /^projects\.(?:item|list\.response) \.(?:projects\[\]\.)?(?:name|remote)$/, cls: 'b', note: BUG_035 },
   { pattern: /^projects\.(?:item|list\.response) \.(?:projects\[\]\.)?(?:id|path|command)$/, cls: 'e' },
   // The server and the settings.
   { pattern: /^(?:server|settings) .+$/, cls: 'e' },
@@ -170,10 +194,10 @@ const RULES: readonly Rule[] = [
   { pattern: /^config \.\w+\.error\.message$/, cls: 'a' },
   {
     pattern:
-      /^config \.dna\.data\.(?:team\.roles\[\]\.name|team\.members\[\]\.roles\[\]|team\.agents\[\]\.executes_as\[\]|paths\..+)$/,
+      /^config \.dna\.data\.(?:team\.roles\[\]\.name|team\.members\[\]\.roles\[\]|team\.agents\[\]\.executes_as\[\])$/,
     cls: 'c',
   },
-  { pattern: /^config \.dna\.data\..+$/, cls: 'r', note: BUG_035 },
+  { pattern: /^config \.dna\.data\..+$/, cls: 'b', note: BUG_035 },
   { pattern: /^config \.paths\.data\..+$/, cls: 'c' },
   { pattern: /^config \.workflows\.data\.(?:message|diagnostics\[\]\..+)$/, cls: 'a' },
   { pattern: /^config \.workflows\.data\.baseline\.commit$/, cls: 'e' },
@@ -182,7 +206,7 @@ const RULES: readonly Rule[] = [
       /^config \.workflows\.data\.(?:manifest\.include\[\]|workflows\[\]\.(?:name|kind|element|phases\[\]\.(?:name|role|approval\.by_role|fallback\.step|fallback\.set_state|include|iterate_over)))$/,
     cls: 'c',
   },
-  { pattern: /^config \.workflows\.data\..+$/, cls: 'r', note: BUG_035 },
+  { pattern: /^config \.workflows\.data\..+$/, cls: 'b', note: BUG_035 },
   { pattern: /^config \.types\.data\..+$/, cls: 'c' },
   { pattern: new RegExp(`${UI}status\\.warning\\.failure$`), cls: 'a' },
   { pattern: new RegExp(`${UI}progress\\.scope\\.current\\.title$`), cls: 'b' },
@@ -279,10 +303,113 @@ describe('the enumeration of AC-1', () => {
     expect(fields.filter((f) => classOf(f) === undefined)).toEqual([]);
   });
 
-  it('every (r) row names bug-035, the known gap', async () => {
-    const gap = (await schemaFields()).filter((f) => classOf(f)?.cls === 'r');
-    expect(gap.length).toBeGreaterThan(0);
-    for (const f of gap) expect(classOf(f)!.note, f).toBe(BUG_035);
+  it('the former gap of bug-035 is classified display text or key (task-072)', async () => {
+    const former = (await schemaFields()).filter((f) => classOf(f)?.note === BUG_035);
+    expect(former.length).toBeGreaterThan(40);
+    for (const f of former) expect(classOf(f)!.cls, f).toBe('b');
+  });
+});
+
+/**
+ * The GET routes of the sweep: the route as Fastify registers it, the schema its 200 body follows.
+ * A GET route the launcher registers that is neither here nor in {@link EXEMPT_ROUTES} fails *route
+ * coverage* (task-072 D72-10).
+ */
+const SWEPT_ROUTES: Readonly<Record<string, string>> = {
+  '/api/p/:pid': 'project',
+  '/api/p/:pid/config': 'config',
+  '/api/p/:pid/elements': 'elements',
+  '/api/p/:pid/elements/:eid': 'element',
+  '/api/p/:pid/elements/:eid/history': 'history',
+  '/api/p/:pid/directives': 'directives',
+  '/api/p/:pid/directives/:did': 'directive',
+  '/api/p/:pid/docs': 'docs',
+  '/api/p/:pid/files/tree': 'file-tree',
+  '/api/p/:pid/files/content': 'file-content',
+  '/api/p/:pid/today': 'today',
+  '/api/p/:pid/events/memory': 'memory-events',
+  '/api/projects': 'projects.list.response',
+};
+
+/** The GET routes not swept, and why. */
+const EXEMPT_ROUTES: Readonly<Record<string, string>> = {
+  '/api/server': 'server-made (the version, the shell warnings): class (e)',
+  '/api/settings': "the user's own settings: class (e)",
+  '/api/events': 'the event stream: names of events and keys (spec-004 §6)',
+};
+
+/**
+ * The (b) leaves of the swept schemas the hostile fixture cannot reach, each with the test that
+ * covers it (task-072 D72-10). A (b) leaf neither reached nor listed fails *per-field reach*.
+ */
+const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
+  'project .repository.branch': 'git refuses a control character in a ref name: server/http/repository-status',
+  'project .repository.upstream': 'as the branch: server/http/repository-status',
+  'project .repository.sync.update.lastError.detail.files[]': 'a failed update: server/http/repository-status',
+  'project .identity.members[]': 'an ambiguous identity: server/http/repository-text',
+  'config .ui.progress.scope.current.title': 'filled by task-059',
+};
+
+/** `.a.<key>[]` → a pattern matching `.a.<any key>[]` of a body. */
+const leafPattern = (leaf: string): RegExp =>
+  new RegExp(`^${leaf.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/<key>/g, '[^.]+')}$`);
+
+/** U+202E escaped exactly once (an odd run of backslashes before `u202e` would be an escaped backslash). */
+const ONCE = /(?<!\\)\\u202e/;
+const TWICE = /\\\\u202e/;
+
+/**
+ * The route modules `server/src/launcher/start.ts` registers, each registered here on stand-ins
+ * (registration reads no option but the event stream's bus): their GET routes are what *route
+ * coverage* checks.
+ */
+const REGISTRARS: Readonly<Record<string, (a: FastifyInstance) => void>> = {
+  registerServerRoute: (a) => registerServerRoute(a, { store: {} as never, version: '0.0.0' }),
+  registerProjectRoutes: (a) => registerProjectRoutes(a, { store: {} as never, snapshots: {} as never }),
+  registerRoleViewRoute: (a) => registerRoleViewRoute(a, { store: {} as never, identity: {} as never }),
+  registerEventStream: (a) => void registerEventStream(a, { bus: new InProcessEventBus() }),
+  registerProjectListRoutes: (a) => registerProjectListRoutes(a, { projects: {} as never }),
+  registerSettingsRoutes: (a) => registerSettingsRoutes(a, { store: {} as never, bus: new InProcessEventBus() }),
+  registerElementWriteRoutes: (a) =>
+    registerElementWriteRoutes(a, {
+      store: {} as never,
+      snapshots: {} as never,
+      writeLock: new InProcessWriteLock(),
+      bus: new InProcessEventBus(),
+      push: {} as never,
+    }),
+  registerGitRoutes: (a) =>
+    registerGitRoutes(a, { store: {} as never, snapshots: {} as never, writeLock: new InProcessWriteLock() }),
+};
+
+describe('route coverage (task-072 D72-10)', () => {
+  it('the sweep registers every route module the launcher registers', async () => {
+    const start = await readFile(path.join(REPO_ROOT, 'server', 'src', 'launcher', 'start.ts'), 'utf8');
+    const registered = [...start.matchAll(/\b(register\w+)\(routes\b/g)].map((m) => m[1]).sort();
+    expect(registered).toEqual(Object.keys(REGISTRARS).sort());
+  });
+
+  it('every GET route of those modules is swept or exempt with its reason', async () => {
+    const gets: string[] = [];
+    const routesApp = await buildApp({
+      staticDir: '/nonexistent',
+      logger: createLogger(sink),
+      security,
+      register: (a) => {
+        a.addHook('onRoute', (r) => {
+          const methods = Array.isArray(r.method) ? r.method : [r.method];
+          if (methods.includes('GET')) gets.push(r.url);
+        });
+        for (const register of Object.values(REGISTRARS)) register(a);
+      },
+    });
+    try {
+      const unswept = gets.filter((u) => !(u in SWEPT_ROUTES) && !(u in EXEMPT_ROUTES));
+      expect(unswept).toEqual([]);
+      for (const u of Object.keys(SWEPT_ROUTES)) expect(gets, u).toContain(u);
+    } finally {
+      await routesApp.close();
+    }
   });
 });
 
@@ -293,6 +420,7 @@ const sink = new Writable({ write: (_c, _e, cb) => cb() });
 let root: string;
 let fx: Fixture;
 let hostile: HostileElement;
+let repository: HostileRepository;
 let registry: Snapshots;
 let app: FastifyInstance;
 let pid: string;
@@ -355,15 +483,31 @@ beforeAll(async () => {
   fx = await copyFixture(kanban, path.join(root, 'hostile'));
   hostile = await addHostileText(fx);
   await hostileDocument(fx);
+  // task-072: the repository display texts outside K1's fields (bug-035).
+  repository = await addHostileRepositoryText(fx);
   await hostileUiYaml(fx.dir);
-  registry = auditedSnapshots(fx.env).snapshots;
+  const audited = auditedSnapshots(fx.env);
+  registry = audited.snapshots;
   const store = await createMemoryStateStore();
   pid = (await store.add({ path: fx.dir, name: fx.name, remote: '' })).id;
+  const projects = new ProjectList({
+    store,
+    snapshots: registry,
+    bus: audited.bus,
+    runner: audited.runner,
+    writeLock: new InProcessWriteLock(),
+    stateDir: path.join(root, 'state'),
+    env: fx.env,
+    homedir: fx.home,
+  });
   app = await buildApp({
     staticDir: '/nonexistent',
     logger: createLogger(sink),
     security,
-    register: (a) => registerProjectRoutes(a, { store, snapshots: registry }),
+    register: (a) => {
+      registerProjectRoutes(a, { store, snapshots: registry });
+      registerProjectListRoutes(a, { projects });
+    },
   });
 }, HEAVY_MS);
 
@@ -374,7 +518,11 @@ afterAll(async () => {
 });
 
 async function get(url: string): Promise<any> {
-  const res = await app.inject({ method: 'GET', url: `/api/p/${pid}${url}`, headers: AUTH });
+  const res = await app.inject({
+    method: 'GET',
+    url: url.startsWith('/api/') ? url : `/api/p/${pid}${url}`,
+    headers: AUTH,
+  });
   expect(res.statusCode, `${url}: ${res.body.slice(0, 300)}`).toBe(200);
   return res.json();
 }
@@ -405,6 +553,11 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       ['docs', '/docs'],
       ['today', '/today'],
       ['memory-events', '/events/memory?limit=100'],
+      // task-072: the history of a state written by hand, the hostile directive, the project list
+      // (after the header, which refreshes the stored name and remote).
+      ['history', `/elements/${repository.handState.id}/history`],
+      ['directive', `/directives/${repository.directive}`],
+      ['projects.list.response', '/api/projects'],
     ];
     const directives = await get('/directives');
     if (directives.entries[0]) routes.push(['directive', `/directives/${directives.entries[0].frontmatter.id}`]);
@@ -415,7 +568,7 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       'the fixture has documents',
     ).toBe(true);
     const problems: string[] = [];
-    const gap = new Set<string>();
+    const reached = new Set<string>();
     let checked = 0;
     for (const [schema, url] of routes) {
       for (const [at, text] of strings(await get(url))) {
@@ -431,20 +584,31 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
         if (rule.cls === 'a' || rule.cls === 'b') {
           checked += 1;
           if (unsafe) problems.push(`${url} ${at}: an unsafe character`);
+          if (TWICE.test(text)) problems.push(`${url} ${at}: escaped twice`);
         }
+        if (rule.cls === 'b' && ONCE.test(text)) reached.add(key);
         if (rule.cls === 'a') {
           if (text.length > MAX_MESSAGE) problems.push(`${url} ${at}: ${text.length} characters`);
           if (text.includes(fx.dir) || text.includes(homedir())) problems.push(`${url} ${at}: a local folder`);
         }
-        if (rule.cls === 'r' && unsafe) gap.add(key);
       }
     }
     expect(problems).toEqual([]);
     // The hostile texts did reach (a) and (b) fields: the sweep is not vacuous.
     expect(checked).toBeGreaterThan(50);
-    // The known gap of bug-035, listed: the hostile document's name in the file tree reaches it.
-    expect([...gap]).toEqual(expect.arrayContaining(['file-tree .entries[].name', 'docs .documents[].path']));
-    for (const key of gap) expect(classOf(key)!.note).toBe(BUG_035);
+    // Per-field reach (task-072 D72-10, AC-2): every (b) leaf of every swept schema was seen holding
+    // the hostile U+202E escaped once, or names the test that covers it.
+    const swept = new Set(routes.map(([schema]) => schema));
+    const leavesB = (await schemaFields()).filter((f) => swept.has(f.split(' ')[0]!) && classOf(f)?.cls === 'b');
+    const unreached = leavesB.filter((leaf) => {
+      if (leaf in REACHED_ELSEWHERE) return false;
+      const [schema, at] = leaf.split(' ') as [string, string];
+      const pattern = leafPattern(at);
+      return ![...reached].some((k) => k.startsWith(`${schema} `) && pattern.test(k.slice(schema.length + 1)));
+    });
+    expect(unreached).toEqual([]);
+    // Every (b) leaf listed as reached elsewhere is still a (b) leaf of a swept schema.
+    for (const leaf of Object.keys(REACHED_ELSEWHERE)) expect(leavesB, leaf).toContain(leaf);
   });
 
   it('a title with U+202E and U+200B is escaped in /elements, /elements/:eid and the Today rows', async () => {
