@@ -331,3 +331,20 @@ fixture 0.25; the sweep's guards and the route suite 0.4; the web (D72-6) and it
   it only; (c) fix it here (a web-side escape of every shown key, +~0.5 d). **Recommended (a)**:
   the escape of keys needs a web-side rule (Q4 (b)'s form) that this task does not otherwise need,
   and the residual stays tracked.
+
+#### The approver's decisions (2026-11-11, relayed by the coordinator)
+
+"tutto come consigliato":
+
+- **Q1 (b)** — no split.
+- **Q2 (a)** — component tests of the screens and the screens' existing specs on the three engines;
+  no new hostile e2e spec.
+- **Q3 (a)** — `identity.email` escaped like the member emails.
+- **Q4 (a)** — the server-side `label` fields of `/docs` and `/files/content`; spec-004 §3 amended
+  with a dated Process Note.
+- **Q5 (a)** — the keys shown raw declared in spec-004 §5; the later display escape of shown keys is
+  bug-041-repository-keys-shown-on-the-page-are-not-escaped (opened through `bug-ingest` by the
+  coordinator; out of this task's scope).
+- D72-1 … D72-15 accepted. task-059 and task-073 change `text-sweep.test.ts` on their branches: the
+  coordinator merges them into this branch before review, and the sweep is extended for their fields
+  after that merge (its `RULES` append-only).
