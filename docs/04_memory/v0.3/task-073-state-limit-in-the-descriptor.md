@@ -308,3 +308,64 @@ Relayed by the coordinator, the approver: "task 73: q3-b, le altre a. q5 come su
 - **Q4 (a)** — Today's placement is unchanged.
 - **Q5** — the spec-001 §4.1 Process Note (the lenient `limits` read, `limits` in the resolved
   states) goes in the green commit; spec-003 and spec-008 hold as written.
+
+### red / green / refactor (2026-11-11)
+
+Scope: AC-1 … AC-4, except the gate footer's layout for Q3 (b), which waits for the approver's
+answer on the developer's proposal (one line per distinct reason, the coordinator's question of
+2026-11-11). Neither the layout nor its `ux-reference.md` §4.2 bullet is committed yet.
+
+- **Red** (`b24cb871`):
+  - new test files: `test/server/descriptor/state-limit.test.ts`,
+    `test/server/http/state-limit-routes.test.ts`, `test/contracts/state-limit-contract.test.ts`,
+    `test/e2e/state-limit.spec.ts`;
+  - the Given module `test/harness/fixtures/state-limit.ts` (D73-9: `planSprints`, `fillSprints`,
+    `stateLimitProject`, `ACTIVE_SPRINT`, `PLANNED_SPRINT`; one export line in `fixtures/index.ts`);
+  - cases added to `test/server/reads/memory-yaml.test.ts`,
+    `test/contracts/api-descriptor-schema.test.ts`, `test/web/element/submit-footer.test.tsx` and
+    `gate-footer.test.tsx`.
+
+  Results:
+  - `npx vitest run` of the five unit files: 16 failed, 103 passed. Every failure is on behaviour:
+    no `state-limit` reason, no `limits` kept, the schema refusing the reason, and in the web the
+    missing catalogue id breaking the footer's render.
+  - The route and contract files, under the strict-identity recipe: 3 failed, 3 passed. The
+    contract variant failed with "sprint-002 submit: CLI refused, offered active". The passing
+    route tests are characterization, since the old code applies no limit anywhere: P2 (archived
+    holder), P11 (a 0.2.2 CLI) and P6 (a holder on another branch → 422 `cli-refused`).
+  - The e2e spec was not run locally (no heavy gate locally); it runs on `gates.yml`.
+- **Green** (`fb8e69d4`):
+  - contracts: `contracts/src/{files,descriptor}.ts` (`StateMachine.limits?`, the `state-limit`
+    reason); `contracts/api/descriptor.schema.json` (the seventh `reason` branch);
+    `contracts/files/memory-yaml.schema.json` (its description only, D73-4);
+  - server: `server/src/reads/memory-yaml.ts` (`pickLimits`);
+    `server/src/descriptor/descriptor.ts` (`DescriptorProject.occupancy?`, `limitReason`, per verb
+    after rules 1–4); `server/src/http/project-routes.ts` (`ProjectRead.occupancy`: the version
+    gate and the count from the cached search); `server/src/presets/wingfoil.ts` (`LIMITS_SINCE`);
+  - web: `web/src/element/ElementFooter.tsx` (the reason's message and values) and
+    `web/src/i18n/en.json` (`element.reason.stateLimit`, sorted in place);
+  - docs: spec-001 Process Note (Q5); `CHANGELOG.md` *Unreleased* (*Added*, and *Known
+    limitations* for Q2 (a)); `docs/user-guide.md` 0.30; `test/README.md` 0.69.
+- **The text sweep** (`f811d29b`): `gates.yml` run `43031478565` on `fb8e69d4` failed only in
+  `coverage`. `test/server/http/text-sweep.test.ts` › "every string field of every response schema
+  … has a class" found the new `verbs[].reason.state` unclassified in 6 schemas. It is classified
+  `c`, as `verbs[].to` (a `memory.yaml` state name, D73-6). The file passes (8 tests). The other
+  jobs of that run passed:
+  - `checks`, `contract`, `e2e-chromium` (both shards), `smoke`, `publish-smoke`;
+  - `own-specs` on Firefox and on WebKit: `test/e2e/state-limit.spec.ts`, 1 passed each;
+  - `e2e-wave` skipped (task scope).
+- **Deviation.** The Today assertion of the route file is a test of its own, run as Alex, the
+  Sprint's actor: Q4 (a), the Sprint stays in its submitter's *Requires you* with the disabled
+  submit.
+- **Local checks** (on `fb8e69d4`, then `f811d29b`):
+  - `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` clean;
+    `check_tasks.py v0.3` OK;
+  - `npx vitest run` of `test/server/reads/memory-yaml.test.ts test/server/descriptor
+    test/contracts/api-descriptor-schema.test.ts test/contracts/schemas.test.ts test/web/element
+    test/web/today test/web/i18n test/lint`: 27 files, 520 passed;
+  - under the strict-identity recipe (a `git` wrapper first on the `PATH`, outside the repository,
+    with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation), the route, contract,
+    held-gates, today, element-writes and process-audit files: 8 files, 132 passed (load 12);
+  - `test/docs test/governance test/wingfoil-feedback.test.ts test/package`: 10 files, 175
+    passed.
+- **Refactor**: no code change after green. The review of the diff found nothing to simplify.
