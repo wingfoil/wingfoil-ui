@@ -555,7 +555,8 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
       'exit 0',
       'fi',
       // bug-038 (task-059 AC-12, review round 1 F-4): listed specs that select no test on the engine.
-      'if npx playwright test --list --pass-with-no-tests --project="$ENGINE" "${specs[@]}" | grep -q \'^Total: 0 tests\'; then',
+      'listed=$(npx playwright test --list --pass-with-no-tests --project="$ENGINE" "${specs[@]}")',
+      'if grep -q \'^Total: 0 tests\' <<<"$listed"; then',
       'echo "no test of the own specs runs on $ENGINE: nothing to run"',
       'exit 0',
       'fi',
@@ -581,7 +582,12 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
     const list = lines.findIndex((l) => l.includes('playwright test --list'));
     expect(list).toBeGreaterThan(-1);
     expect(lines[list]).toContain('--project="$ENGINE" "${specs[@]}"');
-    expect(lines.slice(list + 1, list + 4)).toEqual([
+    // Review round 2 F-7: captured, not piped — a list that fails (a spec that does not load) fails
+    // the step under `bash -e`, where a pipe would take grep's status and pass it.
+    expect(lines[list]).toMatch(/^listed=\$\(npx playwright test --list .*\)$/);
+    expect(lines[list]).not.toContain('|');
+    expect(lines[list + 1]).toBe('if grep -q \'^Total: 0 tests\' <<<"$listed"; then');
+    expect(lines.slice(list + 2, list + 5)).toEqual([
       'echo "no test of the own specs runs on $ENGINE: nothing to run"',
       'exit 0',
       'fi',
