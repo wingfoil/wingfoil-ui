@@ -262,3 +262,14 @@ offered (Q3).
   separately (bug-037 red/green first, then bug-034). (b) bug-037 to a new task (about 0.35 day),
   this one keeps bug-034 (about 0.9). **Recommended (a)**: each half is small, the split adds a task's
   governance round for little, and the reviews can still go one bug at a time.
+
+### design approved (2026-11-11)
+
+Relayed by the coordinator, the approver: "tutto come consigliato".
+
+- **Q1 (a)** — a read with no comparable mark is kept as before, a declared residual (D75-4).
+- **Q2 (a)** — `repo` published when the follow-up check of a drop ends, also with the same key (D75-7).
+- **Q3 (a)** — no split: bug-037 first as its own red/green, then bug-034.
+
+The out-of-scope finding of P3 (an empty key) is bug-040, open, triage pending: not implemented
+here unless the coordinator relays that it is absorbed.
