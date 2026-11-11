@@ -2,6 +2,9 @@
 // is linear in its size: the YAML library's own duplicate-key check (`uniqueKeys`, quadratic: 1 MiB
 // of keys took about 99 s, task-055 P4b) is off, and the reader's own check (one map of keys per
 // mapping) still refuses a duplicate key with its line. Structural, not a wall-clock bound (bug-004).
+// bug-037, task-075 AC-2 (D75-9): keys are compared as the pinned CLI's js-yaml 4.3.2 stores them —
+// `String()` of their default-schema value — so the files the CLI leaves out as a "duplicated mapping
+// key" are refused here, and a pair it accepts is read; the differential table is `yaml-keys.test.ts`.
 import { describe, expect, it } from 'vitest';
 import { FRONTMATTER_PARSE_OPTIONS, parseYaml } from '../../../server/src/reads/frontmatter.js';
 
@@ -16,8 +19,7 @@ describe('parseYaml (bug-032)', () => {
       /f\.md: invalid YAML \(duplicate key a \(line 3, column 1\)\)/,
     );
     expect(() => parseYaml('m:\n  x: 1\n  x: 2\n', 'f.md')).toThrow(/duplicate key x \(line 3, column 3\)/);
-    // Keys as the library compares them: the parsed scalar values.
-    expect(() => parseYaml('1: a\n"1": b\n', 'f.md')).not.toThrow();
+    // Keys as WingFoil's js-yaml stores them (bug-037): a quoted and a plain key of one text.
     expect(() => parseYaml('"a": 1\na: 2\n', 'f.md')).toThrow(/duplicate key a/);
   });
 
@@ -34,5 +36,50 @@ describe('parseYaml (bug-032)', () => {
     let text = '';
     for (let i = 0; i < 20_000; i += 1) text += `k${i}: v${i}\n`;
     expect(Object.keys(parseYaml(text, 'f.md') as object)).toHaveLength(20_000);
+  });
+});
+
+describe('parseYaml keys as js-yaml stores them (bug-037, task-075 AC-2)', () => {
+  const refused: [string, string, number, number?][] = [
+    ['1: a\n"1": b\n', '"1"', 2],
+    ['true: a\n"true": b\n', '"true"', 2],
+    ['~: a\n"null": b\n', '"null"', 2],
+    ['.inf: a\n"Infinity": b\n', '"Infinity"', 2],
+    ['2026-01-01: a\n2026-01-01T00:00:00Z: b\n', '2026-01-01T00:00:00Z', 2],
+    ['x0: &k x1\nx1: a\n*k : b\n', '*k', 3],
+    ['? [a, b]\n: a\n? [a, b]\n: b\n', '[a, b]', 3, 3],
+    ['"<<": a\n"<<": b\n', '"<<"', 2],
+  ];
+  for (const [text, key, line, column = 1] of refused) {
+    it(`AC-2 refused as a duplicate with its line: ${JSON.stringify(text)}`, () => {
+      const escaped = key.replace(/[[\]*.]/g, (c) => `\\${c}`);
+      expect(() => parseYaml(text, 'f.md')).toThrow(
+        new RegExp(`^f\\.md: invalid YAML \\(duplicate key ${escaped} \\(line ${line}, column ${column}\\)\\)$`),
+      );
+    });
+  }
+
+  it('AC-2 `2026-01-01:` with `"2026-01-01":` is read (js-yaml makes the first a date)', () => {
+    expect(parseYaml('2026-01-01: a\n"2026-01-01": b\n', 'f.md')).toEqual({ '2026-01-01': 'b' });
+  });
+
+  it('a merge key is no key of its own; the explicit keys after it are compared', () => {
+    expect(() => parseYaml('b: &b {x: 1}\nm:\n  <<: *b\n  <<: *b\n', 'f.md')).not.toThrow();
+    expect(() => parseYaml('b: &b {x: 1}\nm:\n  <<: *b\n  x: 2\n  x: 3\n', 'f.md')).toThrow(/duplicate key x \(line 5/);
+  });
+
+  it('a nested sequence key and a key with a tag js-yaml does not resolve are refused', () => {
+    expect(() => parseYaml('? [[a]]\n: x\n', 'f.md')).toThrow(
+      /^f\.md: invalid YAML \(unsupported key \[\[a\]\] \(line 1, column 3\)\)$/,
+    );
+    expect(() => parseYaml('!!binary aGk=: x\n', 'f.md')).toThrow(/unsupported key aGk= \(line 1, column 10\)/);
+  });
+
+  it('thousands of distinct number and date keys parse in one pass', () => {
+    let text = '';
+    const two = (n: number) => String(n).padStart(2, '0');
+    // 1 000 integer keys and 1 000 distinct date-time keys (one per minute from 2026-01-01T00:00Z).
+    for (let i = 0; i < 1_000; i += 1) text += `${i}: v\n2026-01-01T${two(Math.floor(i / 60))}:${two(i % 60)}:00Z: v\n`;
+    expect(Object.keys(parseYaml(text, 'f.md') as object)).toHaveLength(2_000);
   });
 });
