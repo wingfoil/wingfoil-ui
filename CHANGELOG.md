@@ -9,6 +9,24 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **Progress figures and missing references in the API** (task-059, TT-STATE-08; spec-012 §2,
+  §3, §5): `GET /api/p/:pid/progress` serves the progress card's figures of a repository state —
+  the current element of the `ui.yaml` scope (the most advanced release, derived on every WingFoil
+  version), the completion of the `requirement` and `feature` references linked in that scope,
+  the iterated elements done, the open defects and the pending gates (held gates excluded), each
+  with the ids a Memory list filter will use, the phase figures read-only until WingFoil's
+  `workflow status` is consumed. `GET /api/p/:pid/elements` names, per element, the categories
+  `taxonomy.requires` asks of its type that it carries no reference of, and whether that filter
+  is offered; `/config` fills `ui.progress.scope.current`. Computed once per state from the
+  reference index, no CLI process added; titles and reference ids escaped. The screens are later
+  tasks'.
+- **Today's cards** (task-061, US-T-02 T-02.4 … T-02.7; `ux-reference.md` §4.1 v0.3): *Requires
+  you* and *Waiting on others* each have a type and a state filter, listing the types and states of
+  that card's rows with their counts (a filter applies to its own card; the greeting and the bell
+  count every row); each card shows its first 10 rows, then *Show all (<n>)* / *Show fewer*; each
+  row names its element by the short id the API serves (else the full id) and shows the date it
+  entered its current state, the full time as the accessible description of the date and of the
+  row's link.
 - **Held gates** (task-069, US-S-24 S-24.5, S-24.6; spec-003 §3, §5, §8; spec-005 §4a): a gate the
   project's `.wingfoil/ui.yaml` (or its preset) holds in `holds` offers no *Approve* — `never`
   ("Approved outside the console (ui.yaml)") or `when-references-done` while elements referencing
@@ -19,6 +37,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   others* for everyone, approvers included, with the hold in place of "Reserved to approver". The
   descriptor carries it as `approveHeld`; an ignored `ui.yaml` holds nothing; the `approve` itself
   is still accepted by the CLI.
+- **A move into a state at its limit** (task-073, US-S-24 S-24.7; spec-003 §6 rule 5): on WingFoil
+  0.3, a *Submit* or *Approve* whose next state already holds as many elements of the type as its
+  `limits` in `.wingfoil/memory.yaml` allow is disabled with "Blocked: only 1 active at a time"
+  (the descriptor's `state-limit {state, limit}`); a *Reject* is never limited. The console counts
+  the non-archived elements `memory search` lists; WingFoil also counts the elements other branches
+  moved there, so a move the console offers can still be refused (422 `cli-refused`, its toast).
+  `limits` is read leniently — only positive integers are kept — and is served with the resolved
+  states of `/config` and of an element.
 - **The actor after an approve** (task-069, spec-003 §4, RP3-14 D6): an element in a working state
   that an `approve` entered — a task approved into `backlog` — is the work of the member who made
   the last submit before that approve, no longer of the approver ("Jordan (submitter) must act"); a
@@ -67,6 +93,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   wrote them (the local folders shown as `<project>`, `<repository>`, `<wingfoil>`, `~`, the
   credentials of a URL removed, control and bidi characters as visible escapes); the API's `cli-refused` answer carries them as
   `detail.reasons`. A refusal of WingFoil 0.2.2, which gives no reasons, is shown as before.
+- **Applying a UI preset, in the API** (task-060; spec-005 §5, spec-004 §3): `POST
+  /api/p/:pid/ui-config/preset` with `kanban`, `scrum` or `sw-life-cycle` writes that preset as
+  `.wingfoil/ui.yaml` and commits it alone as `chore(ui): apply the <Preset> preset` — other staged
+  changes stay staged, the repository's hooks run as for a WingFoil write, no git transport can
+  start from them, and the commit is recorded in the action log, auto-pushed when *Auto-push* is
+  on and announced to the other pages. It refuses when `ui.yaml` already exists anywhere (the
+  working tree, the index or HEAD), when the user is not in the team, when the copy is behind,
+  diverged or detached, and when the preset does not fit the project (`ui.yaml not written: type
+  service is not declared in memory.yaml`); it never overwrites a file. Nothing shows it yet.
 
 - **A page of a restarted console recovers in place** (task-063, US-X-02 X-02.3; adr-003 D6, D7;
   spec-004 §2): when the console was stopped and started again on the same port (`--port`), a page
@@ -187,6 +222,11 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   error and the lines around it), fix its frontmatter, or move the project to WingFoil 0.3.1,
   which lists the other elements and names the file (`W_MEMORY_UNREADABLE`), shown in the Memory
   list's notice.
+- **The state limit is the console's estimate** (task-073, design Q2 (a)): it counts what your copy
+  lists, WingFoil counts at the last commit and on every branch that moved an element. An element
+  another branch moved into the state, or another element's `status:` edited by hand and not
+  committed, can make the console offer a move WingFoil refuses (shown as a toast) or, for an
+  uncommitted edit into the state, disable one WingFoil would accept (design probes P3, P4, P6, P7).
 
 ## [0.2.0] - 2026-10-20
 

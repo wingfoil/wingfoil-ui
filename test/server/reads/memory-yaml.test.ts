@@ -189,3 +189,48 @@ describe('transitionTarget — what the CLI allows (WingFoil 0.2.2 rules)', () =
     expect(transitionTarget({ sequence: ['a', 'b'], gates: { b: { reject: 'a' } } }, 'b', 'approve')).toBeUndefined();
   });
 });
+
+// task-073 D73-4 (spec-001 §4.1): `limits` read leniently — WingFoil 0.2.2 accepts any value and
+// ignores it (design probe P12), 0.3.x refuses a bad one itself (P10).
+describe('parseMemoryYaml — limits (task-073)', () => {
+  const withLimits = (limits: string, where: 'type' | 'defaults' = 'type') =>
+    where === 'type'
+      ? `version: 1\ntypes:\n  a:\n    path: a/{id}.md\n    states:\n      sequence: [ draft, doing, done ]\n      limits: ${limits}\n`
+      : `version: 1\ndefaults:\n  states:\n    sequence: [ draft, doing, done ]\n    limits: ${limits}\ntypes:\n  a:\n    path: a/{id}.md\n`;
+
+  it('limits: positive integers kept, 0, -1, 1.5, "1" and null dropped', () => {
+    const parsed = parseMemoryYaml(withLimits('{ doing: 2, done: 1, x: 0, y: -1, z: 1.5, w: "1", v: null }'), FILE);
+    expect(parsed.types.a?.states).toEqual({ sequence: ['draft', 'doing', 'done'], limits: { doing: 2, done: 1 } });
+  });
+
+  it.each([
+    ['a string', '"x"'],
+    ['a list', '[ doing ]'],
+    ['a number', '3'],
+    ['an object with no valid entry', '{ doing: 0 }'],
+  ])('a limits that is %s leaves memory.yaml readable, with no limits', (_label, limits) => {
+    const parsed = parseMemoryYaml(withLimits(limits), FILE);
+    expect(parsed.types.a?.states).toEqual({ sequence: ['draft', 'doing', 'done'] });
+  });
+
+  it('limits of defaults.states, resolved for a type without states', () => {
+    const parsed = parseMemoryYaml(withLimits('{ doing: 1 }', 'defaults'), FILE);
+    expect(resolveStates(parsed, 'a')).toEqual({ sequence: ['draft', 'doing', 'done'], limits: { doing: 1 } });
+  });
+});
+
+describe('parseMemoryYaml — limits keyed by an Object built-in name (task-073 review F-1)', () => {
+  it.each(['constructor', 'toString', '__proto__'])(
+    'keeps a limit on %s as an own entry, and reads no other',
+    (name) => {
+      const parsed = parseMemoryYaml(
+        `version: 1\ntypes:\n  a:\n    path: a/{id}.md\n    states:\n      sequence: [ draft, "${name}", done ]\n      limits: { "${name}": 2 }\n`,
+        FILE,
+      );
+      const limits = parsed.types.a?.states?.limits;
+      expect(limits && Object.hasOwn(limits, name)).toBe(true);
+      expect(limits?.[name]).toBe(2);
+      expect(Object.keys(limits ?? {})).toEqual([name]);
+    },
+  );
+});

@@ -6,7 +6,8 @@ import type { DirectiveEntry, DirectiveFrontmatter, DnaPaths, DnaShow, MemoryMat
 import type { ActionDescriptor } from './descriptor.js';
 import type { ElementFrontmatter, MemoryYaml, StateMachine } from './files.js';
 import type { ProjectCondition, RepositoryStatus } from './git.js';
-import type { UiConfig } from './ui-config.js';
+import type { MissingReferences } from './progress.js';
+import type { UiCategory, UiConfig } from './ui-config.js';
 
 /**
  * Who the user is in a project (REQ-STATE-05): the effective `git config user.email` matched,
@@ -174,6 +175,11 @@ export interface ListedElement extends MemoryMatch {
   shortId?: string;
   /** Absent when `memory.yaml` cannot be read (`typesError`). */
   descriptor?: ActionDescriptor;
+  /**
+   * The categories `taxonomy.requires` names for the element's type that it carries no reference
+   * of, in `requires` order (spec-012 §5, v0.3); absent when none is missing or not computed.
+   */
+  missingCategories?: UiCategory[];
 }
 
 /** `GET /api/p/:pid/elements[?archived=true]` (`contracts/api/elements.schema.json`). */
@@ -187,6 +193,8 @@ export interface ElementList {
   typesError?: ApiError;
   /** Why the descriptors were computed without events (a failed `git log`): actors fall back. */
   eventsError?: ApiError;
+  /** The missing-reference filter (spec-012 §5, v0.3); absent with `typesError`. */
+  missingReferences?: MissingReferences;
 }
 
 /** A required field of the element's type (`template.frontmatter.required`, G-01.3). */

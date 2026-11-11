@@ -60,3 +60,37 @@ describe('contracts/api/descriptor.schema.json — approveHeld', () => {
     expect(validate(body)).toBe(false);
   });
 });
+
+// task-073 D73-6 (spec-003 §6 rule 5): the `state-limit` reason — `sprint-002`'s submit into the full
+// `active` (S-24.7) as the descriptor builds it passes; a missing or invalid parameter, or an extra
+// key, fails.
+function limited() {
+  return describeElement({ id: 'sprint-002', type: 'sprint', status: 'planned' }, [], {
+    memoryYaml,
+    members: [],
+    enablement: { identified: true, version: { supported: true, range: 'r' } },
+    occupancy: () => 1,
+  });
+}
+
+describe('contracts/api/descriptor.schema.json — state-limit (task-073)', () => {
+  it('accepts a state-limit reason', () => {
+    const body = limited();
+    expect(body.verbs[0]?.reason).toEqual({ code: 'state-limit', state: 'active', limit: 1 });
+    expect(validate(body), JSON.stringify(validate.errors)).toBe(true);
+  });
+
+  it.each<[string, (b: Json) => void]>([
+    ['state-limit without limit', (b) => delete b.verbs[0].reason.limit],
+    ['state-limit without state', (b) => delete b.verbs[0].reason.state],
+    ['a limit of 0', (b) => (b.verbs[0].reason.limit = 0)],
+    ['a limit that is not an integer', (b) => (b.verbs[0].reason.limit = 1.5)],
+    ['a state that is not a string', (b) => (b.verbs[0].reason.state = 1)],
+    ['an extra key', (b) => (b.verbs[0].reason.count = 1)],
+  ])('refuses %s', (_label, mutate) => {
+    const body = clone(limited());
+    expect(body.verbs[0].reason).toBeDefined();
+    mutate(body);
+    expect(validate(body)).toBe(false);
+  });
+});

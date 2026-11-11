@@ -3,6 +3,9 @@
  * the greeting names, the reason of a Requires you row and who must act on a Waiting on others row.
  * Everything is read from `GET /api/p/:pid/today` and the project header as data — placement, order,
  * actor, tone and action come from the server and are never re-derived here (spec-003 §8).
+ *
+ * v0.3 (task-061, D61-4): each card's type and state facets, its filters and its 10-row limit, over
+ * the rows the server sent — grouping its data, never placing a row (no new query).
  */
 import type { HoldReason, ProjectHeader, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { ageOf, type Age } from '../memory/model.js';
@@ -87,4 +90,63 @@ export function identityNote(header: ProjectHeader): IdentityNote | undefined {
   const { identity } = header;
   if (identity.kind === 'member') return undefined;
   return identity.kind === 'not-in-team' && !header.dnaError ? 'notInTeam' : 'unidentified';
+}
+
+/** Rows a Today card shows before "Show all (<n>)" (REQ-PERF-11 v0.3, D61-7). */
+export const ROW_LIMIT = 10;
+
+/** The facet a card filter reads: the element's type, or its state. */
+export type FacetKey = 'type' | 'state';
+
+/** One value of a facet and the count of the card's rows that have it. */
+export interface Facet {
+  value: string;
+  count: number;
+}
+
+/** A card's filters: `undefined` is *All*. */
+export interface CardFilter {
+  type?: string;
+  state?: string;
+}
+
+const COLLATOR = new Intl.Collator('en');
+
+/** The value of `key` of a row. */
+function valueOf(row: TodayRow, key: FacetKey): string {
+  return key === 'type' ? row.element.type : row.element.status;
+}
+
+/**
+ * The distinct values of `key` among `rows` with their counts, sorted by value (stable across
+ * refetches). Counted over the card's unfiltered rows: the other filter does not change them (T-02.4).
+ */
+export function facetsOf(rows: readonly TodayRow[], key: FacetKey): Facet[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) counts.set(valueOf(row, key), (counts.get(valueOf(row, key)) ?? 0) + 1);
+  return [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => COLLATOR.compare(a.value, b.value));
+}
+
+/** The rows matching both filters, in the server's order. */
+export function filterCard<R extends TodayRow>(rows: readonly R[], filter: CardFilter): R[] {
+  return rows.filter(
+    (row) =>
+      (filter.type === undefined || row.element.type === filter.type) &&
+      (filter.state === undefined || row.element.status === filter.state),
+  );
+}
+
+/** `filter` without a value that none of `rows` has any more: that filter is *All* again (D61-6). */
+export function effectiveFilter(rows: readonly TodayRow[], filter: CardFilter): CardFilter {
+  const has = (key: FacetKey, value: string | undefined): value is string =>
+    value !== undefined && rows.some((row) => valueOf(row, key) === value);
+  return {
+    ...(has('type', filter.type) ? { type: filter.type } : {}),
+    ...(has('state', filter.state) ? { state: filter.state } : {}),
+  };
+}
+
+/** The rows a card shows: the first {@link ROW_LIMIT} unless it is expanded. */
+export function limited<R>(rows: readonly R[], expanded: boolean): readonly R[] {
+  return expanded ? rows : rows.slice(0, ROW_LIMIT);
 }

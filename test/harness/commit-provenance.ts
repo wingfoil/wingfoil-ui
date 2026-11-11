@@ -4,10 +4,12 @@
  * snapshot before and after a session (`repo-state.ts`), the bare remote's refs before and after,
  * and the commit the remote brought (the test's own push, D43-2), {@link provenanceProblems} lists
  * every way the session differs from "only the CLI's governed commits, each touching its element's
- * file, then pushed": readable lines, empty when clean (`commit-provenance.test.ts` shows each rule
+ * file — or the console's preset commit, touching only `.wingfoil/ui.yaml` (task-060 AC-5) —, then
+ * pushed": readable lines, empty when clean (`commit-provenance.test.ts` shows each rule
  * failing).
  */
 import path from 'node:path';
+import { PRESET_COMMIT_SUBJECTS } from '../../server/src/presets/ui-config.js';
 import type { RepoState } from './repo-state.js';
 import { git, run } from './run.js';
 
@@ -26,6 +28,11 @@ export interface SessionCommit {
   parents: string[];
   /** The paths it changes (`git diff-tree --no-commit-id --name-only -r`). */
   files: string[];
+  /**
+   * Its changes as `git diff-tree --raw` lines against the first parent (`:<old mode> <new mode>
+   * <old blob> <new blob> <status>\t<path>`; task-060 review round 1 F-4); absent: not read.
+   */
+  raw?: string[];
 }
 
 /** What {@link provenanceProblems} compares. */
@@ -62,10 +69,15 @@ async function out(dir: string, env: NodeJS.ProcessEnv, args: string[]): Promise
 
 async function describeCommit(dir: string, env: NodeJS.ProcessEnv, sha: string): Promise<SessionCommit> {
   const [subject = '', parents = ''] = (await out(dir, env, ['log', '-1', '--format=%s%x00%P', sha])).split('\0');
-  const files = (await out(dir, env, ['diff-tree', '--no-commit-id', '--name-only', '-r', sha]))
+  const files = (await out(dir, env, ['diff-tree', '--no-commit-id', '--name-only', '-r', '--root', sha]))
     .split('\n')
     .filter(Boolean);
-  return { sha, subject, parents: parents.split(' ').filter(Boolean), files };
+  const raw = (
+    await out(dir, env, ['diff-tree', '--no-commit-id', '--raw', '--no-abbrev', '--no-renames', '-r', '--root', sha])
+  )
+    .split('\n')
+    .filter(Boolean);
+  return { sha, subject, parents: parents.split(' ').filter(Boolean), files, raw };
 }
 
 /** The range of a session: its start, its end (the after-snapshot's HEAD) and what the remote brought. */
@@ -90,6 +102,33 @@ export async function sessionCommits(
 /** The element id a governed subject names, or `undefined` when it is not one of the CLI's forms. */
 export function governedId(subject: string): string | undefined {
   return SUBMIT_SUBJECT.exec(subject)?.[2] ?? DECISION_SUBJECT.exec(subject)?.[3];
+}
+
+/** The file the console's preset write commits (task-060), relative to the fixture's top level. */
+export const PRESET_FILE = '.wingfoil/ui.yaml';
+
+/**
+ * Whether `c` has the shape of the console's preset commit (task-060 AC-5, D60-13): the subject of
+ * one of the three shipped presets and the one path `.wingfoil/ui.yaml`, which no file of `tracked`
+ * (the session's before-HEAD) holds.
+ */
+export function isPresetCommit(c: SessionCommit, tracked: readonly string[]): boolean {
+  return (
+    PRESET_COMMIT_SUBJECTS.includes(c.subject) &&
+    c.files.length === 1 &&
+    c.files[0] === PRESET_FILE &&
+    addsRegularFile(c) &&
+    !tracked.some((f) => f === PRESET_FILE || f.startsWith(`${PRESET_FILE}/`))
+  );
+}
+
+/** `c` adds `.wingfoil/ui.yaml` as a regular file, absent from its first parent (review round 1 F-4). */
+function addsRegularFile(c: SessionCommit): boolean {
+  return (
+    c.raw !== undefined &&
+    c.raw.length === 1 &&
+    new RegExp(`^:000000 100644 0+ [0-9a-f]+ A\\t${PRESET_FILE.replace(/[.]/g, '\\.')}$`).test(c.raw[0]!)
+  );
 }
 
 const short = (sha: string): string => sha.slice(0, 7);
@@ -142,8 +181,22 @@ export async function provenanceProblems(input: ProvenanceInput): Promise<string
   });
   // The element's file is its tracked path when the session started (review R3), not a file name.
   const tracked = (await out(dir, env, ['ls-tree', '-r', '--name-only', before.head])).split('\n').filter(Boolean);
+  let presets = 0;
   for (const c of commits) {
     if (c.parents.length > 1) continue; // reported above
+    if (PRESET_COMMIT_SUBJECTS.includes(c.subject)) {
+      // task-060 AC-5: the console's `chore(ui)` preset commit — at most one per session, since the
+      // file exists from then on (review round 1 F-4).
+      if (presets > 0) problems.push(`${short(c.sha)} ${c.subject}: a second preset commit in the session`);
+      presets += 1;
+      if (isPresetCommit(c, tracked)) continue;
+      if (tracked.includes(PRESET_FILE))
+        problems.push(`${short(c.sha)} ${c.subject}: ${PRESET_FILE} was tracked at the start`);
+      else if (c.files.length !== 1 || c.files[0] !== PRESET_FILE)
+        problems.push(`${short(c.sha)} ${c.subject} touches ${c.files.join(', ')}, not only ${PRESET_FILE}`);
+      else problems.push(`${short(c.sha)} ${c.subject} does not add ${PRESET_FILE} as a regular file`);
+      continue;
+    }
     const id = governedId(c.subject);
     if (id === undefined) {
       problems.push(`not a governed subject: ${short(c.sha)} ${c.subject}`);

@@ -63,64 +63,7 @@
                 "enum": ["enabled", "read-only", "hidden"]
               },
               "reason": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "required": ["code", "range"],
-                    "properties": {
-                      "code": {
-                        "const": "unsupported-version"
-                      },
-                      "range": {
-                        "type": "object",
-                        "required": ["min", "max"],
-                        "properties": {
-                          "min": {
-                            "type": "string"
-                          },
-                          "max": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": false
-                      }
-                    },
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "required": ["code"],
-                    "properties": {
-                      "code": {
-                        "const": "not-released"
-                      }
-                    },
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "required": ["code", "minVersion"],
-                    "properties": {
-                      "code": {
-                        "const": "needs-version"
-                      },
-                      "minVersion": {
-                        "type": "string"
-                      }
-                    },
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "required": ["code"],
-                    "properties": {
-                      "code": {
-                        "const": "not-in-release"
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                ]
+                "$ref": "#/definitions/capabilityReason"
               }
             },
             "additionalProperties": false
@@ -199,5 +142,68 @@
       "$ref": "identity.schema.json#/properties/roleView"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "definitions": {
+    "capabilityReason": {
+      "description": "The reason of a read-only capability (spec-001 §6): factored for progress.schema.json's ReadOnly figures (spec-012 §7).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["code", "range"],
+          "properties": {
+            "code": {
+              "const": "unsupported-version"
+            },
+            "range": {
+              "type": "object",
+              "required": ["min", "max"],
+              "properties": {
+                "min": {
+                  "type": "string"
+                },
+                "max": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "const": "not-released"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code", "minVersion"],
+          "properties": {
+            "code": {
+              "const": "needs-version"
+            },
+            "minVersion": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "const": "not-in-release"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
 }

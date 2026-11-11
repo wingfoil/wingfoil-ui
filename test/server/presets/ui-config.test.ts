@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   INFERRED_CATEGORIES,
+  PRESET_COMMIT_SUBJECTS,
   presetCommitSubject,
   renderPreset,
   UI_CATEGORIES,
@@ -164,5 +165,23 @@ describe('the presets (spec-005 §5)', () => {
         failure: 'type service is not declared in memory.yaml',
       });
     });
+  });
+});
+
+describe('the preset write’s subjects and table (task-060 D60-12, D60-13)', () => {
+  it('PRESET_COMMIT_SUBJECTS: the three subjects, in UI_PRESET_NAMES order', () => {
+    expect(PRESET_COMMIT_SUBJECTS).toEqual([
+      'chore(ui): apply the Kanban preset',
+      'chore(ui): apply the Scrum preset',
+      'chore(ui): apply the WingFoil sw-life-cycle preset',
+    ]);
+    expect(Object.isFrozen(PRESET_COMMIT_SUBJECTS)).toBe(true);
+  });
+
+  it('renderPreset and presetCommitSubject read another table when given one', () => {
+    const presets = { ...UI_PRESETS, kanban: { label: 'Other', content: { version: 1 } as never } };
+    expect(renderPreset('kanban', presets)).toBe('version: 1\n');
+    expect(presetCommitSubject('kanban', presets)).toBe('chore(ui): apply the Other preset');
+    expect(renderPreset('scrum', presets)).toBe(renderPreset('scrum'));
   });
 });
