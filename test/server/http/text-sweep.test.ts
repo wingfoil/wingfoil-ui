@@ -456,11 +456,9 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
     expect(list.elements.find((e: any) => e.id === hostile.id).title).toBe(escaped);
     expect((await get(`/elements/${hostile.id}`)).element.title).toBe(escaped);
     const today = await get('/today');
-    const rows = [
-      ...(today.requiresYou ?? []),
-      ...today.waitingOnOthers,
-      ...(today.summary ?? []).flatMap((l: any) => l.items),
-    ].filter((r: any) => r.element.id === hostile.id);
+    const rows = [...(today.requiresYou ?? []), ...today.waitingOnOthers].filter(
+      (r: any) => r.element.id === hostile.id,
+    );
     expect(rows.length).toBeGreaterThan(0);
     for (const r of rows) expect(r.element.title).toBe(escaped);
   });

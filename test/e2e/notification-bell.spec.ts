@@ -229,8 +229,16 @@ test.describe('US-S-23 — all-roles summary', () => {
     });
     // The 7 tags on one line, "approver · 2" the current view and no switch.
     await expect(tags(page)).toHaveCount(7);
-    const tops = await tags(page).evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
-    expect(new Set(tops).size, `tag tops ${tops.join(', ')}`).toBe(1);
+    // One line: every tag shares one horizontal band (the current tag's box may sit a few pixels
+    // lower — its text and "current view" — but never on a row of its own).
+    const boxes = await tags(page).evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom };
+      }),
+    );
+    const band = { top: Math.max(...boxes.map((b) => b.top)), bottom: Math.min(...boxes.map((b) => b.bottom)) };
+    expect(band.top, `tag boxes ${JSON.stringify(boxes)}`).toBeLessThan(band.bottom);
     const current = lineOf(page, 'approver');
     await expect(current).toHaveAttribute('aria-current', 'true');
     await expect(current).toContainText('current view');

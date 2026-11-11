@@ -253,3 +253,13 @@ rules of `today.css` replaced in place, inside the summary block.
   `test/server/http/state-limit-routes.test.ts`, `test/web/today`, `test/web/i18n`: 12 files, 113
   passed; `npx vitest run test/docs test/governance` 93 passed after the commit (before it,
   `workflow-diagnostics` counted the uncommitted spec-003 as `W_UNCOMMITTED_INPUTS`, as expected).
+- **Gates on `gates.yml`**: run `43099206003` on `72345723` — checks, contract, smoke,
+  publish-smoke, e2e-chromium (1) green; failed: coverage (`test/server/http/commit-text.test.ts`
+  and `test/server/http/text-sweep.test.ts` still collected `summary[].items` as Today rows —
+  `Cannot read properties of undefined (reading 'element')`: two readers P1 missed, its grep's
+  output was cut at 60 lines), and S-23.5 on the three engines (`tag tops 209, 209, 209, 209, 209,
+  212, 209`: the current tag, a shorter box centred in the line, sits 3 px lower — one line, but the
+  test compared exact tops). Fixed in the next commit: the two server tests read only *Requires
+  you* and *Waiting on others*; S-23.5 asserts that every tag's box shares one horizontal band (the
+  largest top below the smallest bottom). `npx vitest run test/server/http/commit-text.test.ts
+  test/server/http/text-sweep.test.ts`: 11 passed.
