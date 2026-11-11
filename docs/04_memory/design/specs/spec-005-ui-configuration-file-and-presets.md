@@ -413,6 +413,7 @@ remaining non-methodology hit needs a justified inline disable.
   `write-incomplete` names the commit when exactly one commit since the fresh HEAD has the preset's
   subject (a hook that put another file into it, for example). After a failed `git add` the created
   file is removed only while it is still the created entry and the index holds nothing there,
-  otherwise 500 `write-incomplete`. On WingFoil 0.3.1 a project in a sub-folder of its
+  otherwise 500 `write-incomplete`; so is a short write whose cleanup is refused (task-060 review
+  round 1 F-5). On WingFoil 0.3.1 a project in a sub-folder of its
   repository is refused by `dna show` (`E_NOT_AT_GIT_ROOT`), so row 5 answers `not-in-team` there
   (not checked on 0.2.2).

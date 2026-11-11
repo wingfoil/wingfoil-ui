@@ -311,6 +311,10 @@ heavy gate ran.
 
 #### Test plan (AC / scenario → file › test)
 
+*Superseded by the* e2e closure *table after review round 2 (2026-11-11, the checker's G-1): the
+P16 test was dropped (deviation (2)) and the tests of review rounds 1 and 2 (F-1 … F-8) were
+added; the plan below is kept as written at design.*
+
 Every API test runs on fixture copies with the pinned CLI and real git, on the audited runner of
 `git-console.ts` (processes recorded with their environment), each scenario test titled by its id.
 
@@ -404,7 +408,9 @@ the user guide waits for task-064.
 - **Deviations.** (1) D60-3 said rows 7′–8 start no `wingfoil` process; on a state that moved
   since the page's read (a file planted, a fetch) rows 5–6 run again on the fresh view, and their
   reads (`dna show`, the version) may start the CLI, as the element writes do: the tests assert no
-  `add`/`commit` there, and no process but the fresh check on a warm unmoved state (C-03.1). (2)
+  `add`/`commit` there; the absence of any CLI process on a warm state that did not move is
+  asserted by `ui-config-preset.test.ts` › "the processes: one add and one commit with D60-7’s
+  arguments, environment and settings; no CLI" (C-03.1 asserts no `add`/`commit` only). (2)
   The P16 test (a project in a sub-folder) was dropped: WingFoil 0.3.1 refuses `dna show` there
   (`E_NOT_AT_GIT_ROOT: run wingfoil from the project root`), so row 5 answers `not-in-team` and no
   write is reached (0.2.2 not checked; review round 1 F-6); the prefix rule stays `isWriteCommit`'s (tested since task-032) and the P16
@@ -472,3 +478,20 @@ directory, an empty commit: all refused); no regression on the round-1 probes.
 
 Local: typecheck, lint clean; `commit-provenance.test.ts` 24 passed, also under the
 strict-identity wrapper.
+Run `43090696387` on `511c41bd`: success — every job green; coverage 229 files passed, 1 skipped,
+statements 96.55 %, branches 91.39 %.
+
+#### e2e closure
+
+The scenarios are closed at the API level here; their e2e through *Use preset* is task-064's.
+
+| Scenario / AC | Test (file › title) |
+|---------------|---------------------|
+| C-02.1 | `test/server/http/ui-config-preset.test.ts` › "C-02.1 — Apply the Kanban preset as one chore(ui) commit" |
+| C-02.2 | `test/server/http/ui-config-preset.test.ts` › "C-02.2 — Leave other staged changes out of the commit: README.md stays staged and uncommitted" |
+| C-02.3 | `test/server/http/ui-config-preset.test.ts` › "C-02.3 — Offer no preset when ui.yaml exists: 409 ui-config-exists on the custom fixture with the sw-life-cycle preset" |
+| C-02.4 | `test/server/http/ui-config-preset.test.ts` › "C-02.4 — Block the preset while the copy is behind: 409 stale-copy one commit behind the fetched remote" |
+| C-02.5 | `test/server/http/ui-config-preset.test.ts` › "C-02.5 — Offer no preset to a user who is not in the team: 403 not-in-team as Riley, 0 processes warm" |
+| C-03.1 | `test/server/http/ui-config-preset.test.ts` › "C-03.1 — Refuse a preset that fails the schema: 422 ui-config-invalid, missing required key version, no file, HEAD unchanged" |
+| C-03.2 | `test/server/http/ui-config-preset.test.ts` › "C-03.2 — Refuse a preset that maps a type the project does not declare: sw-life-cycle on kanban" |
+| AC-5 | `test/e2e/commit-provenance.spec.ts` › "the Kanban preset applied through the API is accepted by the provenance check"; `test/e2e/no-commit.spec.ts` › "AC-5.1 — every v0.1 screen, a role view and a project switch leave HEAD, refs, index and working tree unchanged" (assertions unchanged, Q2) |

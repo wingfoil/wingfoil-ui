@@ -7,7 +7,8 @@
 // (`test/harness/repo-state.ts`, whose own test proves it sees each kind of change). The one
 // `chore(ui)` commit the console makes — a preset applied, task-060 — is accepted by the session
 // checker `test/harness/commit-provenance.ts` (one of the three preset subjects, `.wingfoil/ui.yaml`
-// alone); no screen here applies a preset, so nothing changes (task-060 Q2).
+// its only path, added as a regular `100644` file absent before, at most one per session — task-060
+// review round 1 F-4); no screen here applies a preset, so nothing changes (task-060 Q2).
 import { snapshotRepo, diffRepo, type RepoState } from '../harness/repo-state.js';
 import { COLD_READ_MS } from './support/cold-read.js';
 import { openConsole } from './support/console.js';
