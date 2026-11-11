@@ -263,3 +263,17 @@ rules of `today.css` replaced in place, inside the summary block.
   you* and *Waiting on others*; S-23.5 asserts that every tag's box shares one horizontal band (the
   largest top below the smallest bottom). `npx vitest run test/server/http/commit-text.test.ts
   test/server/http/text-sweep.test.ts`: 11 passed.
+  Run `43103291767` on `47d81c48`: green — checks, coverage, contract, smoke, publish-smoke,
+  e2e-chromium both shards, own specs (`notification-bell.spec.ts`) on Firefox and WebKit.
+- **Refactor**: none needed — `RoleSummary.tsx` is one list with no state of its own, the server
+  change is a field removal; `TodayView.tsx` kept to D76-4's two edits.
+
+**e2e closure (task-076):**
+
+| Scenario | Spec file › test |
+|---|---|
+| S-23.1 Summarise what requires each of my roles | `test/e2e/notification-bell.spec.ts` › "S-23.1 — Summarise what requires each of my roles" |
+| S-23.2 Switch role view from the summary | same spec › "S-23.2 — Switch role view from the summary" |
+| S-23.3 Show no summary to a single-role member | same spec › "S-23.3 — Show no summary to a single-role member" |
+| S-23.4 Show the count of a role, not its items | same spec › "S-23.4 — Show the count of a role, not its items" |
+| S-23.5 Switch the role view from the line of role tags | same spec › "S-23.5 — Switch the role view from the line of role tags" |
