@@ -3,13 +3,13 @@ id: bug-043-a-link-clicked-while-the-documentation-view-classifies-its-links-is-
 type: bug
 title: "A link clicked while the documentation view classifies its links is lost"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
-browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
+module: "web"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+browser: "WebKit (Playwright)"            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -17,32 +17,43 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+When the documentation view's link lookup answers while a user clicks a link, `RenderedArticle`
+replaces the article's HTML and with it the `<a>` element, so the click can land on an anchor that
+has just been removed and does nothing (seen on WebKit as a new tab that never opens); the e2e R-09.4
+races the same way.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Open a document whose links the console still classifies (one link to a missing file is enough:
+   its lookup answers 404 a moment after the page shows).
+2. Click an external link (`target=_blank`) while that lookup is in flight.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The click opens the link; a classification arriving later changes how a link is marked, not which
+element the user clicked.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`DocumentView` recomputes the HTML when the lookup answers and `RenderedArticle.replaceContent` sets
+`article.innerHTML` again; on WebKit the click lands on the replaced anchor and no new tab opens.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+gates.yml run `43091226795` on `task/task-062-element-page-side-panel-address-and-rendered-document`
+at `dc43756c`, attempt 1, job `own-specs (webkit)`: `test/e2e/documentation.spec.ts` › R-09.4 failed
+after the 180 s test timeout; the trace (artifact `playwright-report-own-webkit`) shows "click
+action done" at 146104–146185 ms and the last lookup, `GET /files/content?path=docs/01_vision/missing-file.md`
+(R-09.2's expected 404), sent at 146175 ms, inside the click; no `page` event followed. Attempt 2 and
+runs `43080129023`, `43085574218`, `43099582941` passed R-09.4 on WebKit. Found by task-062's
+checker; `web/src/docs` was unchanged by task-062.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Low: a click in a short window after a document opens. Fix: in the product, keep the anchor
+elements when only their classification changes (update attributes in place rather than replacing
+the HTML); in the test, wait until classification has finished before clicking (the *Missing*
+link marked). The approver chose to open it (2026-11-11, "flake R-09.4 a").
 
 ## Triage & Execution Notes
 
