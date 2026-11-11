@@ -146,7 +146,7 @@ export function isWriteSubject(
 }
 
 /** ISO 8601 UTC to the second (spec-006 §2 `at`). */
-function isoSeconds(date: Date): string {
+export function isoSeconds(date: Date): string {
   return date.toISOString().replace(/\.\d+Z$/, 'Z');
 }
 
@@ -156,6 +156,44 @@ function incomplete(what: string, detail: { file: string; commit?: string }): Wr
     status: 500,
     body: { error: { code: 'write-incomplete', message: `The write did not finish: ${what}`, detail } },
   };
+}
+
+/**
+ * Rows 5 and 6 of spec-004 §4 on `view`, or the refusal (task-032; shared with the preset write,
+ * task-060 D60-3): one member of the team — the watched identity, a failed `dna show` matching no
+ * member, as the header shows it —, then the cached WingFoil version in range (adr-001 D3).
+ */
+export async function identifiedInRange(view: SnapshotView): Promise<WriteOutcome | undefined> {
+  const members = await view.dna().then(
+    (dna) => dna.data.team.members,
+    () => [],
+  );
+  if (matchIdentity(view.state.email, members).kind !== 'member') {
+    return refuse(403, 'not-in-team', 'Not identified as a member of the team');
+  }
+  if (!(await view.detected()).inRange) {
+    return refuse(409, 'unsupported-version', 'WingFoil version outside the supported range');
+  }
+  return undefined;
+}
+
+/**
+ * Append `entries` to the action log (TT-SEC-10, spec-006 §2); a failure never fails the write
+ * (D32-8), it is logged by kind.
+ */
+export async function appendActions(
+  store: StateStore,
+  entries: { sha: string; at: string }[],
+  log: WriteLogger,
+  what = 'governed write',
+): Promise<void> {
+  try {
+    await store.transaction((draft) => {
+      draft.actionLog.push(...entries);
+    });
+  } catch (error) {
+    log.warn({ kind: (error as Error).name }, `${what}: action log not written`);
+  }
 }
 
 const LOCAL_CHANGES = refuse(409, 'local-changes', 'The element file has local changes');
@@ -200,21 +238,9 @@ export class GovernedWrites {
     return this.options.writeLock.run(snapshot.lockKey, () => this.locked(snapshot, view, listed, request, log));
   }
 
-  /** Rows 5 and 6 on `view`, or the refusal. */
-  private async identifiedInRange(view: SnapshotView): Promise<WriteOutcome | undefined> {
-    // Row 5: the watched identity (a failed `dna show` matches no member, as the header shows it).
-    const members = await view.dna().then(
-      (dna) => dna.data.team.members,
-      () => [],
-    );
-    if (matchIdentity(view.state.email, members).kind !== 'member') {
-      return refuse(403, 'not-in-team', 'Not identified as a member of the team');
-    }
-    // Row 6: the cached detection (adr-001 D3).
-    if (!(await view.detected()).inRange) {
-      return refuse(409, 'unsupported-version', 'WingFoil version outside the supported range');
-    }
-    return undefined;
+  /** Rows 5 and 6 on `view`, or the refusal ({@link identifiedInRange}). */
+  private identifiedInRange(view: SnapshotView): Promise<WriteOutcome | undefined> {
+    return identifiedInRange(view);
   }
 
   /** Every match of `id` in the `memory search` of `view` (more than one: a duplicated id). */
@@ -449,13 +475,7 @@ export class GovernedWrites {
   }
 
   /** Append to the action log (TT-SEC-10); a failure never fails the write (D32-8). */
-  private async logActions(entries: { sha: string; at: string }[], log: WriteLogger): Promise<void> {
-    try {
-      await this.options.store.transaction((draft) => {
-        draft.actionLog.push(...entries);
-      });
-    } catch (error) {
-      log.warn({ kind: (error as Error).name }, 'governed write: action log not written');
-    }
+  private logActions(entries: { sha: string; at: string }[], log: WriteLogger): Promise<void> {
+    return appendActions(this.options.store, entries, log);
   }
 }

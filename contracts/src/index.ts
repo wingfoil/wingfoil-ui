@@ -132,3 +132,4 @@ export type {
 } from './git.js';
 export type { ConsoleAddressFile } from './state.js';
 export type { ElementRef, UiCategory, UiConfig, UiConfigStatus, UiOrigin, UiValued } from './ui-config.js';
+export type { UiConfigPresetRefusalCode, UiConfigPresetRequest, UiConfigPresetResult, UiPresetId } from './writes.js';

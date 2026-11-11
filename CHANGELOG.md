@@ -82,6 +82,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   wrote them (the local folders shown as `<project>`, `<repository>`, `<wingfoil>`, `~`, the
   credentials of a URL removed, control and bidi characters as visible escapes); the API's `cli-refused` answer carries them as
   `detail.reasons`. A refusal of WingFoil 0.2.2, which gives no reasons, is shown as before.
+- **Applying a UI preset, in the API** (task-060; spec-005 §5, spec-004 §3): `POST
+  /api/p/:pid/ui-config/preset` with `kanban`, `scrum` or `sw-life-cycle` writes that preset as
+  `.wingfoil/ui.yaml` and commits it alone as `chore(ui): apply the <Preset> preset` — other staged
+  changes stay staged, the repository's hooks run as for a WingFoil write, no git transport can
+  start from them, and the commit is recorded in the action log, auto-pushed when *Auto-push* is
+  on and announced to the other pages. It refuses when `ui.yaml` already exists anywhere (the
+  working tree, the index or HEAD), when the user is not in the team, when the copy is behind,
+  diverged or detached, and when the preset does not fit the project (`ui.yaml not written: type
+  service is not declared in memory.yaml`); it never overwrites a file. Nothing shows it yet.
 
 ### Changed
 
