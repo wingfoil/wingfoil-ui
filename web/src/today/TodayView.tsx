@@ -132,6 +132,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
   const intl = useIntl();
   const navigate = useNavigate();
   const { element, descriptor, action } = row;
+  const sinceId = useId();
   return (
     <li className="today-row" data-eid={element.id}>
       <span className="type-tag today-tag">{element.type}</span>
@@ -141,6 +142,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
           className="today-title"
           to="/p/$pid/e/$eid"
           params={{ pid, eid: element.id }}
+          {...(descriptor.since === undefined ? {} : { 'aria-describedby': sinceId })}
           onClick={(event) => {
             rememberOpener(pid, element.id, 'today-title', event);
           }}
@@ -149,7 +151,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
         </Link>
         <span className="today-meta">
           <Reason row={row} now={now} />
-          <RowSince since={descriptor.since} />
+          <RowSince since={descriptor.since} descriptionId={sinceId} />
         </span>
       </span>
       <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
@@ -211,12 +213,14 @@ function Who({ row }: { row: TodayRow }): ReactNode {
 /** One Waiting on others row: a link to the element panel. */
 function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
   const { element, descriptor } = row;
+  const sinceId = useId();
   return (
     <li data-eid={element.id}>
       <Link
         className="today-waiting-row"
         to="/p/$pid/e/$eid"
         params={{ pid, eid: element.id }}
+        {...(descriptor.since === undefined ? {} : { 'aria-describedby': sinceId })}
         onClick={(event) => {
           rememberOpener(pid, element.id, 'today-waiting-row', event);
         }}
@@ -225,7 +229,7 @@ function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
         <RowId element={element} />
         <span className="today-waiting-title">{element.title}</span>
         <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
-        <RowSince since={descriptor.since} />
+        <RowSince since={descriptor.since} descriptionId={sinceId} />
         <span className="today-who">
           <Who row={row} />
         </span>
@@ -419,7 +423,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
           )}
           {data.waitingOnOthers.length > 0 && (
             <section className="today-card" aria-labelledby={waitingId}>
-              <h2 className="today-card-title" id={waitingId}>
+              <h2 className="today-card-title" id={waitingId} tabIndex={-1}>
                 <FormattedMessage id="today.waiting.title" />
               </h2>
               <CardRows

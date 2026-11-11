@@ -16,11 +16,13 @@ export function RowId({ element }: { element: TodayElement }): ReactNode {
  * "since <date>" when the element entered its state, the full time as its accessible description
  * (T-02.5): a `hidden` element that `aria-describedby` still resolves — not `title`, which would be
  * the `time` element's name and enter the name of a Waiting on others row's link. Nothing without
- * `since` (AC-3).
+ * `since` (AC-3). The `time` element is not focusable: the row's link names `descriptionId` in its
+ * own `aria-describedby` too (review round 1 F-3), so the full time is the link's description.
  */
-export function RowSince({ since }: { since: string | undefined }): ReactNode {
+export function RowSince({ since, descriptionId }: { since: string | undefined; descriptionId?: string }): ReactNode {
   const intl = useIntl();
-  const id = useId();
+  const own = useId();
+  const id = descriptionId ?? own;
   if (since === undefined) return null;
   return (
     <>

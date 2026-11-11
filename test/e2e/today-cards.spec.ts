@@ -201,7 +201,10 @@ test.describe('US-X-09 — the Today cards in the key build (review F-1 round 1,
     // The custom copy: the type "task" with the state "open" keeps no row of Requires you.
     data.reset({ untilNavigation: true });
     await openConsole(page, c, { path: `/p/${c.pids[1]}/today`, build: 'keys' });
-    const first = page.locator('.today-card').filter({ has: page.locator('.today-filters') }).first();
+    const first = page
+      .locator('.today-card')
+      .filter({ has: page.locator('.today-filters') })
+      .first();
     await expect(first.locator('li[data-eid="dl-002-use-fastify"]')).toBeVisible({ timeout: COLD_READ_MS });
     const pick = async (filter: number, option: string): Promise<void> => {
       await first.locator('.today-filter-button').nth(filter).click();

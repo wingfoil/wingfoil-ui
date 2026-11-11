@@ -6,7 +6,6 @@
 // API serves, and a held gate's row filtered and limited like the others.
 import type { ActionDescriptor, ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
-import { computeAccessibleDescription } from 'dom-accessibility-api';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
@@ -104,6 +103,13 @@ function api(over: FakeApi = {}): FakeApi {
 const requiresYou = () => screen.getByRole('region', { name: 'Requires you' });
 const waitingCard = () => screen.getByRole('region', { name: 'Waiting on others' });
 const rowsOf = (region: HTMLElement) => [...region.querySelectorAll<HTMLElement>('li[data-eid]')];
+/** The accessible description `aria-describedby` gives `el` (the texts of its ids, in order). */
+const computeAccessibleDescription = (el: HTMLElement): string =>
+  (el.getAttribute('aria-describedby') ?? '')
+    .split(/\s+/)
+    .filter((id) => id !== '')
+    .map((id) => document.getElementById(id)?.textContent ?? '')
+    .join(' ');
 const idsOf = (region: HTMLElement) => rowsOf(region).map((li) => li.dataset['eid']);
 /** The filter `label` ("Type" or "State") of a card: its trigger button. */
 const filterOf = (region: HTMLElement, label: string) =>

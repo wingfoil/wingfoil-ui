@@ -345,3 +345,25 @@ state, task-062's side panel keeps Today mounted; Q4 (a) the action keeps the fu
   only on the Chromium install, the mirror outage of 2026-11-11.)
 - **Refactor**: none needed beyond the test fix; the model stays pure, the controls in their own
   files, `TodayView.tsx`'s openers untouched.
+
+### review round 1 (2026-11-11, adversarial: FAIL, one major)
+
+On `c1c7e995` (the coordinator's merge of the phase branch); its run `43078013154` green (checks,
+coverage, contract, smoke, publish-smoke, e2e-chromium both shards, own specs on Firefox and
+WebKit). Red first: `bd5e80d4` — `npx vitest run test/web/today/cards.test.tsx`: 3 failed, 10
+passed (F-1 `expected [ 'bug-001-crash-on-save' ] to deeply equal [ 'task-001-login-form', … ]`;
+F-5 `expected <body> to be <h2 class="today-card-title">`; F-3 `expected '' to be 'Tuesday,
+September 29, 2026 at 5:20:0…'`); F-2's rewritten test passes with the key and fails with both
+`key={data.view ?? ''}` removed (`expected [ 'bug-001-crash-on-save' ] to deeply equal [
+'task-001-login-form', … ]`, the file restored after the run).
+
+| Finding | Change | Evidence |
+|---------|--------|----------|
+| F-1 (major) — a value that fell back to *All* came back by itself | `CardRows.tsx`: a choice whose value no row has is replaced by the effective filter while rendering (React's adjust-state-on-render pattern; an effect is refused by the `react-hooks` lint) | `cards.test.tsx` "does not bring back a chosen value that fell back to All" (the third refetch) |
+| F-2 (minor) — the role-view test passed without the cards' key | the test prefetches the other view, so the switch shows it with no "Reading Today…"; asserted | "resets the filters when the role view changes, to a view already read too": red without the key, green with it |
+| F-3 (minor) — the full time on a non-focusable `time` only | `RowSince` takes the row's `descriptionId`; the Waiting on others link and the Requires you title link name it in `aria-describedby` (only with `since`); the guide (0.32) and the CHANGELOG say "the accessible description of the date and of the row's link" (no screen-reader announcement claimed) | "describes a row's link by the full time it entered its state" |
+| F-4 (minor) — no X-09.1 check of "Show all", "Show fewer", "No row matches the filters" | `today-cards.spec.ts` "X-09.1 — Render the cards' strings from the message catalogue": the key build on the T-02.6 copy collapsed and expanded, and on the custom copy with type `task` and state `open` (no row) — `screenTextsOutsideCatalogue` in each state | the run below |
+| F-5 (nit) — the focus fell to `<body>` when a refetch removed the focused toggle | `CardRows.tsx`: the toggle's focus is tracked; when it unmounts with the focus gone to the page, the card's heading takes it (the Waiting on others heading gains `tabIndex={-1}`, as Requires you's) | "moves the focus to the card's heading when a refetch removes the focused toggle" |
+
+Local: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npx vitest run test/web`
+63 files, 1041 passed.
