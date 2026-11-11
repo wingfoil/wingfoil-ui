@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.2
 
-**Version:** 0.30 · **Date:** 2026-11-11 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1; 0.29: held gates and the actor after an approve, unreleased v0.3 — task-069; 0.30: a move into a state at its limit, unreleased v0.3 — task-073)
+**Version:** 0.31 · **Date:** 2026-11-09 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1; 0.29: held gates and the actor after an approve, unreleased v0.3 — task-069; 0.30: the files that are not elements named in the Memory list, WingFoil's reasons in a refusal toast, unreleased v0.3, and the WingFoil 0.2.2 limitation of a frontmatter that does not parse — task-070 / bug-024, bug-036; 0.31: a move into a state at its limit, unreleased v0.3 — task-073)
 
 WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
 project, see on **Today** what requires you, decide its gates and submit its work, and keep your
@@ -248,6 +248,15 @@ The **Memory** list (`/p/<id>/memory`) shows every element of every type of
 If `memory.yaml` cannot be read, the list still shows, with a notice that some filters, buckets or
 tones may be missing.
 
+**Files that are not elements** (unreleased, v0.3; bug-024): a Markdown file under a Memory folder
+that has no frontmatter, or whose frontmatter lacks the id, title, type or status, is not an
+element. On WingFoil 0.2.2 the list leaves it out and its notice names it — `memory search left out
+docs/…/notes.md: not a Memory element (id, title, type, status missing or not text)` — while the
+other elements are listed as usual (with archived elements, once you select a type). WingFoil 0.3.1
+leaves such a file out by itself and says nothing; a file whose frontmatter does not parse is named
+by WingFoil 0.3.1's own warning (`W_MEMORY_UNREADABLE`). On WingFoil 0.2.2 such a file stops the
+whole list: see [Known limitations](#known-limitations).
+
 ## The element panel
 
 Selecting an element opens its panel on the right (`/p/<id>/e/<element id>`, which you can also
@@ -338,7 +347,8 @@ narrow, so a toast covers neither those buttons nor the sidebar:
 - a refusal is a **red toast** that stays until you close it: *Submit of <id> not done* with
   WingFoil's own message (e.g. a required field left empty), *This element changed since you
   opened it* when someone moved it meanwhile (the panel then shows its new state), or *This element
-  has local changes …*.
+  has local changes …*. When WingFoil 0.3.x gives its reasons for a refusal, they follow its
+  message, one line each, as WingFoil wrote them (unreleased, v0.3); WingFoil 0.2.2 gives none.
 
 A result toast goes after 8 s, not while the pointer is over it or the focus is inside it; each
 toast has a *Close notification* button, and a new result for the same element replaces its toast.
@@ -707,6 +717,15 @@ Accepted for v0.2 and recorded in the implementation plans
 (`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`,
 `docs/05_plans/rl-v1/rel-v0.2/dev-loop-rel-v0.2-plan.md`), the task notes and the bug records
 (`docs/04_memory/bugs/`).
+
+In the unreleased v0.3:
+
+- **WingFoil 0.2.2 and a frontmatter that does not parse** (bug-036). On a project on WingFoil
+  0.2.2, one Memory file whose frontmatter is not valid YAML (`id: [unclosed`) makes WingFoil's
+  `memory search` fail with no list and without naming the file: the Memory list, the element panel,
+  Today and the notification bell answer an internal error. Run `wingfoil memory search` in the
+  project — WingFoil prints the YAML error and the lines around it —, fix that frontmatter, or move
+  the project to WingFoil 0.3.1, which lists the other elements and names the file.
 
 Git sync and actions (new in v0.2):
 

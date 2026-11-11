@@ -1,0 +1,1 @@
+{"error":"illegal transition pending -> (none) for type 'task'","details":[{"file":"docs/memory/task/task-001-login-form.md","detail":"illegal `submit` from \"pending\": a `gates` state — its forward edge requires `approve`, not `submit`"}]}

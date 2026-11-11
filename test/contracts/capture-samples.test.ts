@@ -2,7 +2,8 @@
 // from the real CLI of each matrix version (raw CLI, as a terminal runs it). Skipped unless
 // `WFUI_CAPTURE_SAMPLES=1`:
 //   WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts
-// (`-t 'operations'` re-captures only the 0.3 operations of task-048).
+// (`-t 'operations'` re-captures only the 0.3 operations of task-048, `-t 'refusals'` only the
+// refused submit of task-070).
 // The schema tests (`schemas.test.ts`) validate every captured sample.
 import { cp, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -65,6 +66,19 @@ async function json(fx: Fixture, args: string[]): Promise<string> {
   return `${JSON.stringify(JSON.parse(result.stdout), null, 2)}\n`;
 }
 
+/**
+ * The refused-transition sample (task-070 D70-7, W-20; the approver's Q5-a of task-056): Jordan's
+ * `memory submit` of the kanban fixture's `task-001-login-form`, in its `pending` gate state, on a
+ * copy — exit 1, its stderr saved raw (`details[{file, detail}]` on 0.3.x, the `error` only on 0.2.2).
+ */
+async function captureRefusal(fx: Fixture, copyRoot: string, out: string): Promise<void> {
+  const copy = await copyFixture(fx, copyRoot);
+  await actAs(copy, 'Jordan');
+  const result = await rawCli(copy, ['memory', 'submit', 'task-001-login-form']);
+  expect(result.code, result.stderr).toBe(1);
+  await writeFile(path.join(out, 'memory-submit-refused.stderr.txt'), result.stderr);
+}
+
 describe.runIf(CAPTURE)('capture samples', () => {
   it('captures every consumed command and allow-listed file of every matrix version', async () => {
     root = await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-capture-')));
@@ -115,6 +129,9 @@ describe.runIf(CAPTURE)('capture samples', () => {
           await save(`${name}.json`, await json(copy, args));
         }
 
+        // The refusal with `details` (task-070 D70-7), on its own copy.
+        if (kind === 'kanban') await captureRefusal(fx, path.join(root, version, `${kind}-refusal`), out);
+
         // Archived searches (W-19), after one element is archived.
         const archived = await archiveOne(fx);
         await save('memory-search-deprecated.json', await json(fx, ['memory', 'search', '--status', 'deprecated']));
@@ -122,6 +139,24 @@ describe.runIf(CAPTURE)('capture samples', () => {
         if (archived)
           expect(await readFile(path.join(out, `memory-search-${archived}.json`), 'utf8')).toContain(archived);
       }
+    }
+  }, 600_000);
+
+  it('captures the refusals: the refused submit of the kanban fixture of every version (task-070)', async () => {
+    root ??= await realpath(await mkdtemp(path.join(tmpdir(), 'wfui-capture-')));
+    for (const version of await matrixVersions()) {
+      const cli = await cliBuildFor(version);
+      const fx = await buildFixture('kanban', {
+        root: path.join(root, `${version}-refusals`, 'kanban'),
+        cli,
+        cliVersion: version,
+        now: NOW,
+      });
+      await captureRefusal(
+        fx,
+        path.join(root, `${version}-refusals`, 'kanban-copy'),
+        path.join(samplesDir(version), 'kanban'),
+      );
     }
   }, 600_000);
 
