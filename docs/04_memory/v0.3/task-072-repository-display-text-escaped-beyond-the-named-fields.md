@@ -348,3 +348,70 @@ fixture 0.25; the sweep's guards and the route suite 0.4; the web (D72-6) and it
 - D72-1 … D72-15 accepted. task-059 and task-073 change `text-sweep.test.ts` on their branches: the
   coordinator merges them into this branch before review, and the sweep is extended for their fields
   after that merge (its `RULES` append-only).
+
+### red / green / refactor (2026-11-11)
+
+- **Red** (`a1c25a56`): the hostile repository variant `addHostileRepositoryText`
+  (`test/harness/fixtures/hostile.ts`, with `hostileMark`/`escapedMark`, D72-11);
+  `test/server/http/repository-text.test.ts` — 12 failed, every field of the AC-1 bold rows served
+  raw; `text-sweep.test.ts` without the class (r), with *route coverage* and *per-field reach*
+  (D72-10) — the sweep failed on 40 raw fields; `serialise.test.ts` (`dnaBody`, `workflowsBody`:
+  not yet exported); `element-writes.test.ts` *D72-9* (write-incomplete's other path raw);
+  `test/contracts/api-docs-label-schema.test.ts` and `test/web/docs/labels.test.tsx` failed (no
+  `label`). Characterization, passing on their first run: `test/web/shell/repository-text.test.tsx`
+  and `test/web/team/escaped-names.test.ts`. Guard removal: the screen test fed a raw U+202E as a
+  history state fails; with an entry of `SWEPT_ROUTES`, a registrar of `REGISTRARS` or an entry of
+  `REACHED_ELSEWHERE` removed, the sweep fails on that route, that registrar and that leaf.
+- **Surprises at red:**
+  - The fixture already has an `origin` (its bare remote): the hostile URL is set with
+    `remote set-url`, and never fetched (the test app runs no scheduler).
+  - WingFoil 0.3.1 refuses a verb whose git author name or email holds a control character
+    (`git identity not usable: the author name contains '<', '>' or a control character`, the same
+    for the email; U+202E passes). So Alex, who adds and submits a task in the fixture, keeps his
+    git name `Alex`, and his DNA and git email hold U+202E only. ESC reaches the emails through Sam's
+    DNA email (Sam commits no more), and the not-in-team identity case (a git email with ESC, no
+    verb). A candidate `wingfoil-cli` entry for the coordinator, beside task-056's `--reason` one.
+  - *Per-field reach* found fields the fixture did not reach: the actor of a member (Alex had no
+    draft), Today's *Requires you* (Alex had no gate of his), the details of the other elements, and
+    Today read in only one role view. The fixture now adds a draft and a submitted task of Alex's,
+    and the sweep reads every element's detail and Today in every role view. Left in
+    `REACHED_ELSEWHERE`, each with its reason: a member actor in *Requires you* and the summary, and
+    a role actor's members in *Waiting on others*. Today puts only gates in the first two, Alex holds
+    every role, and every row goes through the same `descriptorBody`. Also listed: the WingFoil
+    0.2.x workflow phase texts (`serialise.test.ts`), the branch, upstream and update files
+    (existing `repository-status` cases), `identity.members[]` (`repository-text`, ambiguous) and
+    `ui.progress.scope.current.title` (task-059).
+- **Green** (`8452257c`): `serialise.ts` — `dnaBody`, `workflowsBody` (escape by default, the key
+  paths `DNA_KEYS`/`WORKFLOW_KEYS`, the sanitised 0.3.x parts kept), `identityBody`, the actor in
+  `descriptorBody`, `projectItemBody`, `directiveBody`/`directiveFrontmatterBody`, `historyBody`'s
+  `from`/`to`; the header table names the class. `project-routes.ts`: the header's name and
+  identity, `/config` `dna` and `workflows`, the directives (list, page), `/docs` and
+  `/files/content` `label`, `/files/tree` names, `read-error`'s file. `projects.ts`: the list and the
+  add/clone answers; `project-list.ts`: `already-listed`'s name; `governed.ts`: `incomplete`'s
+  `detail.file`. `contracts/api/docs.schema.json`, `file-content.schema.json`, `contracts/src/api.ts`:
+  `label`. Web: `docs/DocsIndex.tsx` (`indexSections` takes the documents: grouped by path, folder
+  and name from the label), `docs/pages.tsx` (page title from `content.label`, the view's name until
+  it answers), `docs/DocumentView.tsx` (toolbar and article label). `test/web/docs/docs.test.tsx`:
+  its stubs carry `label` and its `indexSections` case takes documents (the contract's new
+  required field, not a weakened test).
+- **Refactor:** none beyond green's.
+- **Docs** (in the green commit): spec-004 §3 (the `label` fields), §5 (the class; the keys
+  shown raw are bug-041) and the Process Note of 2026-11-11; `CHANGELOG.md` *Unreleased* ›
+  *Fixed* (bug-035) and the *Security* entry's last sentence; `docs/user-guide.md` 0.31;
+  `test/README.md` 0.70 (the variant, the suites).
+- **Found while building, for bug-041** (the keys shown raw, out of scope): the directive page's
+  toolbar shows `entry.path`, and the element panel shows an element's path. Both are keys, shown
+  raw.
+
+### gates (2026-11-11, AC-6)
+
+On `8452257c` (local):
+
+- `npm run typecheck`, `npm run lint` and `npm run format:check`: clean. `npm run docs:api`: exit 0.
+  `check_tasks.py v0.3`: OK.
+- Targeted Vitest run: `test/server`, `test/web`, `test/contracts`, `test/docs` — 189 files passed
+  (1 skipped), 3 680 tests passed (3 skipped).
+- Under the strict-identity recipe of `test/README.md` *Git identity* (a `git` wrapper outside the
+  repository with `-c user.useConfigOnly=true` and the `followRemoteHEAD` emulation):
+  `repository-text`, `text-sweep`, `commit-text`, `harness/git-identity` and `element-writes` —
+  5 files, 112 tests passed.
