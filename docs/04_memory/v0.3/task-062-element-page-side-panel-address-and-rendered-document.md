@@ -135,3 +135,280 @@ spec-011 §2, §6, §8):
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-11)
+
+Read (dl-015): this task; task-057's Execution Notes (`shortId`, D57-4's 409 body, `ElementRefusalBody`,
+`AmbiguousIdDetail`, `addLongIdElement`), task-056's (D56-2: an element body is document content,
+class (d), served as written), task-069's (the footer's `held` view, `HoldText`), task-073's design in
+the stage plan (W2-6 Q3: the gate footer changes in parallel); spec-011 whole with its Process Notes,
+spec-004 §3, `adr-002`; `ux-reference.md` §4.2 (v0.1 … v0.3), §4.9, §5 *Feedback* and *Modal
+dismissal*; the plan's RP3-7 N5, N6, RP3-15 S5, RP3-16 P2, RP3-17 E1 and W2-1 … W2-6; the features
+`g/decision-log.feature`, `g/element-panel.feature`, `s/shell.feature` (S-21), `m/memory-list.feature`
+(M-01.3), `r/documentation.feature` (R-09.1), `x/accessibility.feature` (X-06.3). The prototype has
+the drawer only: the element page, the candidates and the document dialog follow `ux-reference.md`
+§4.2 v0.3 (no prototype screen to deviate from). Code: `web/src/routes/{element,project,tree,today,
+memory}.tsx`, `web/src/element/{ElementPanel,ElementFooter,model}.ts(x)`, `web/src/docs/{render,links,
+RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`, `web/src/today/TodayView.tsx`,
+`web/src/today/RoleSummary.tsx`, `web/src/shell/{NotificationBell,Toasts,switch-target}.tsx`,
+`web/src/memory/MemoryList.tsx`, `web/src/api/client.ts`, `web/index.html`, `server/src/http/app.ts`
+(headers); `test/e2e/{element-panel,gate-footer,documentation}.spec.ts`, `test/e2e/support/screens.ts`,
+`test/web/element/panel.test.tsx`, `test/harness/fixtures/{builder,long-id,team}.ts`.
+
+#### Probes
+
+- **P1 — dot segments in an API path** (`node`, WHATWG `URL`, the path `elementPath` builds today):
+  `encodeURIComponent` leaves `.` alone, and the URL parser removes dot segments (also their `%2e`
+  spellings), so `panel=..` would fetch `/api/p/<pid>/` (the project header, a 200 the panel would
+  read as an element), `panel=.` `/api/p/<pid>/elements/` (the list), and `..` + `/history`
+  `/api/p/<pid>/history`. `..%2Fx`, `%2e%2e` (encoded to `%252e%252e`) and `a/..` (encoded to
+  `a%2F..`) stay one segment. Today no input reaches `elementPath` with a bare dot segment (the page
+  URL is normalised by the browser first, and document links carry ids from `/elements`); `panel=`
+  is the first. → D62-9.
+- **P2 — the existing CSP: none.** `server/src/http/app.ts` sets no `Content-Security-Policy`, and
+  `web/index.html` holds an inline theme script (`#wfui-theme`) that a strict policy would need to
+  allow by hash. The guarantees of this task are therefore the renderer's own (DOMPurify last, no
+  `img` in the page allow-list, `ALLOWED_URI_REGEXP`): → Q3.
+- **P3 — the decision-log template** (`.wingfoil/memory/templates/decision-log.md`) has the sections
+  Context, Decision, Rationale, Actions, each with an HTML comment as placeholder: the custom
+  fixture's `dl-002-use-fastify` has that body. With `html: false` every comment would render as
+  visible text in the document dialog (the v0.1 summary drops them, `summaryOf`). G-03.1's
+  "Context, Options, Decision" is a scenario-local body (a hand commit on a copy). → Q2.
+- **P4 — the shared code that assumes a dialog:** `ElementFooter.tsx` finds the heading to focus
+  after a decision with `closest('[role="dialog"]')?.querySelector('.drawer-title')` (two places);
+  `Toasts.tsx` positions the stack against `.drawer` and its `.element-footer-slot`. On a page in the
+  main region neither holds. → D62-3, D62-12.
+- **P5 — TanStack Router 1.170.41 search parsing:** the default `parseSearch` JSON-parses values
+  (`?panel=123` is a number, `?panel=true` a boolean, `?panel=%7B%7D` an object), and
+  `stringifySearch` quotes a string that would parse as something else; `task-001-login-form` stays
+  as written (G-01.8's address). A view's `validateSearch` (e.g. `memorySearch`) returns only its own
+  keys; a parent route's `validateSearch` result is merged into every child's search. → D62-6.
+- To run at red (red-first tests, not run at design): whether React Aria's modal `Dialog` keeps an
+  Escape from reaching the drawer's own `onKeyDown` (React events bubble through portals) — the
+  test "Escape in the document dialog closes the dialog only" decides whether the drawer needs a
+  guard.
+
+#### Decisions
+
+- **D62-1 — Two presentations, one content.** `ElementPanel.tsx` splits into `ElementView.tsx`
+  (the content: topline, title, state machine, notices, summary, references, directives, history,
+  the footer — unchanged sections) and two shells: `ElementPage.tsx` (in `<main>`, `<h1>` title,
+  no `role="dialog"`) and `ElementSidePanel.tsx` (the v0.1 drawer: non-modal `Dialog`, `<h2>`,
+  W4-8). Both shells carry `data-element-view` and the title class `drawer-title` (kept, so the
+  footer's selector changes by one attribute only, D62-3). Component tests address the content
+  through the shell under test.
+- **D62-2 — The page route.** `web/src/routes/element.tsx` keeps `/p/$pid/e/$eid` (now the page):
+  the queries (`elementQuery`, `historyQuery`, `elementKeys`) move to `web/src/element/queries.ts`,
+  shared with the side panel. *Close* and Escape (pressed in the page, not handled by an inner
+  control): Back when `useCanGoBack()` (reached inside the console), else `/p/$pid/memory` (spec-011
+  §2; today `/p/$pid`). On open the page's heading takes the focus (as the drawer's), unless the
+  gate-focus request applies (D37-1, unchanged). The page's footer is a bar fixed at the bottom of
+  the main region (the body scrolls above it), so its actions stay in view as in the drawer.
+- **D62-3 — Shared footer, one selector.** `ElementFooter.tsx` replaces `closest('[role="dialog"]')`
+  by `closest('[data-element-view]')` in its two focus calls; nothing else of the footer changes
+  (task-073 changes its blocked lines in parallel: a two-line overlap, merged by hand if needed).
+  *Cancel* calls the shell's close on both (the page goes back, the panel closes).
+- **D62-4 — Short ids on the page (spec-011 §2).** When the element read answers with an
+  `element.id` other than the address's `eid`, the page seeds `elementKeys.detail(pid, element.id)`
+  with the answer (`setQueryData`, no second read) and navigates to the full id's address with
+  `replace: true`, keeping the history state and the hash. The history read starts with the
+  address's id, in parallel as today; its answer is shown only when `element.id === eid`, so the
+  404 a short id gets from `/history` (D57-5) is never shown — the full id's history is read after
+  the rewrite. The topline shows the full id (G-01.5).
+- **D62-5 — Candidates (409 `ambiguous-id`).** `web/src/element/Candidates.tsx`: a runtime guard
+  `ambiguousDetail(error)` (an `ApiError` with code `ambiguous-id` and a `detail` of the contract
+  shape; otherwise the error is shown as any other) and a list — "<eid> names several elements" as
+  heading, one row per candidate (type tag, the short id, the title — already escaped by the
+  server, rendered as React text —, the state), "and <n> more" when `more > 0`. Each row is a link:
+  `/p/<pid>/e/<full id>` on the page; on the side panel `?panel=<full id>` on the same view (D62-7).
+  No *Not found* (G-01.6). A 404 keeps the existing `ErrorText` (*not found*).
+- **D62-6 — `panel=` is a search parameter of the project layout.** `projectRoute` gets
+  `validateSearch: panelSearch`: `panel` kept only when it is a non-empty string (a number, a
+  boolean, an object, an array or `''` → absent: the panel is not shown), so every view under
+  `/p/$pid` sees it and its own parameters are untouched. `ProjectLayout` renders
+  `ElementSidePanel` after `<main>` when `panel` is set and the current match is not the element
+  page (spec-011 §2: ignored there). The view's own navigations (a Memory filter, the Directives
+  *show all*) build their search as today and so close the panel: no view is changed for it.
+- **D62-7 — Opening, closing, the address (E1, AC-5).** Opening: `navigate({ to: '.', search:
+  (prev) => ({ ...prev, panel: id }), state: { gateFocus, panelPushed: true } })` — a push, the
+  path and the other parameters kept. Closing (*Close*, Escape, the footer's *Cancel*): Back when
+  the entry carries `panelPushed` (opened inside the console: Back restores the view without the
+  panel, Forward reopens it), else a `replace` navigation without `panel` (a reload, a pasted
+  address). A short `panel=` value is replaced as D62-4 (seed, then `replace` with only `panel`
+  changed). A switch of project drops it (`switchTarget` drops every search parameter, S-16.2).
+- **D62-8 — The openers.** Today (*Requires you* title and action, *Waiting on others*, the
+  all-roles summary; *Recent activity* is task-065's and uses the same helper), and both lists of
+  the notification bell open the side panel through one helper `openPanelLink(id, gateFocus)`
+  (`web/src/element/side-panel.ts`). The Memory list, document links, directive links and element
+  links keep `/p/$pid/e/$eid` (the page). **On the element page the bell's items open the element
+  page of the item** (the panel is ignored there): Q1.
+- **D62-9 — Ids from an address are never path syntax (P1, spec-011 §6).** `elementPath` refuses
+  an id that is empty, `.` or `..` (a value spelt `%2e%2e` is encoded to `%252e%252e` and stays
+  one segment, P1) by throwing a local `ApiError(404, 'not-found')` without a request; every other
+  value is placed with `encodeURIComponent` as today. Unit tests: `..`, `.`, `''`, `../x`,
+  `https://example.test/x`, `%2e%2e`, another project's element id → the panel's *not found*, no
+  request outside `/api/p/<pid>/elements/<encoded>`, the location's path and other parameters
+  unchanged, no navigation (AC-6). A `panel=` value is never a link target: the only rewrite puts
+  the server's `element.id` into the parameter.
+- **D62-10 — The focus with the side panel (bug-018 rules, X-06.3).** The view stays mounted under
+  the panel, so the opener is still in the page: `side-panel.ts` remembers `{ pid, eid, selector }`
+  when an opener is used (the click or press handler, not `document.activeElement`: Safari does not
+  focus a clicked button, Wave 3 lesson); after the panel closes, the focus goes to that control
+  when it is still present (`[data-eid="…"] .<class>`), else to `#main` — a bell item, a pasted
+  address or a decided gate that left *Requires you* (ux §4.2 v0.2). Today's module-level
+  `returnOpener` moves there (TodayView keeps calling `rememberOpener`). On the page the v0.1 rule
+  stays: Back to the Memory list focuses the row (W3-23; X-06.3 keeps its Memory list test, now
+  through the page).
+- **D62-11 — Long ids.** Nothing special in the web: the server takes them (task-057). The topline,
+  the heading, the candidates and the side panel wrap any unbroken id (`overflow-wrap: anywhere`),
+  checked in G-01.7 (140 characters, `addLongIdElement(copy, { length: 140 })`) with no horizontal
+  scroll of the page or the drawer.
+- **D62-12 — Toasts with the page.** `Toasts.tsx` already places the stack above the drawer's
+  footer when the room is narrow; with the page, the stack keeps the bottom centre of the main region
+  and sits above the page's footer bar (`[data-element-view] .element-footer-slot`), never over its
+  actions (ux §5 *Feedback*). e2e: `document.elementFromPoint` at the centre of each footer action
+  after a decision, at 1280×720, 600×720 and 400×600 (Wave 5 lesson).
+- **D62-13 — The summary (N6).** `summaryOf` becomes `summarySource(body)`: HTML comments removed
+  (v0.1's rule), parsed by markdown-it, the first top-level `paragraph` token rendered alone (with
+  the document's reference definitions, so `[x][ref]` links work); then the same two steps as the
+  document (D62-15). "No summary in the document." when none. The missing required fields stay
+  below it.
+- **D62-14 — The document dialog.** *Open document* (a button under the summary) opens a React
+  Aria `Modal` + `Dialog` (`isDismissable={false}`: no outside click, ux §5; Escape and *Close*
+  close it; the focus back to *Open document* — `DialogTrigger`). A `ToggleButtonGroup` *Rendered /
+  Source* (single selection, never empty; Rendered by default): Rendered — the whole body through
+  D62-15; Source — the body as written in a focusable `<pre>` (React text, monospace, wrapping off,
+  scrolling). An empty or whitespace-only body: "No content yet" in both modes (G-03.3). Its
+  heading: the element's title. The switch's state is not in the URL (a reload closes the dialog).
+- **D62-15 — Rendering, links, images (adr-002, AC-7).** The renderer of `web/src/docs/render.ts`,
+  unchanged in its two sanitising passes: `markdownToSafeHtml` (markdown-it `html: false`, raw HTML
+  shown as written; DOMPurify) then `finishDocument` (DOMPurify last). The link lookup of the
+  Documentation view moves from `docs/pages.tsx` to `web/src/docs/link-lookup.ts` (the same reads
+  and caps: `GET /docs`, `GET /elements`, at most 100 `GET /files/content` checks — but for an
+  element only when its body holds at least one repository link, so a body with none reads
+  nothing more than the element; TT-PERF-05 and the process audits are server-side and unchanged).
+  Links resolve against `element.path` (the element file's folder): an indexed document opens in the
+  Documentation view, a Memory file opens its element page (also the element's own file), `http(s)`
+  in a new tab (`noopener noreferrer`), every other scheme, `//host`, a path above the root marked
+  as today; images replaced by their marked alternative text — the page allow-list has no `img`,
+  so nothing is fetched. A link selected inside the side panel or the dialog navigates (the dialog
+  and the panel go with the old address; G-03.4 lands on the element page). In-document anchors
+  (`#section`) focus the heading inside the same article without a navigation. Two additive options
+  of the shared modules: `FinishOptions.headingPrefix` (default `doc-`; the element document uses
+  `eldoc-`, so a dialog opened over the Documentation view repeats no id) and a
+  `RenderedArticle` prop `inPageAnchors`. The renderer and the lookup load with the element's lazy
+  document module (`element/document.tsx`, `React.lazy`), keeping markdown-it out of the entry
+  chunk as the Directives page does; the summary shows a polite loading line until it loads.
+- **D62-16 — Text from the body is document content (D56-2).** The body is rendered as written: no
+  character escape (a Markdown backslash must stay one), as the Documentation and Directives views
+  do; bidirectional and zero-width characters inside it reach the page like any document's. The
+  titles and texts the server escapes (K1, bug-035/task-072) are shown as React text.
+- **D62-17 — Strings and screens.** New catalogue keys (sorted in place): the candidates (heading,
+  "and {n} more"), *Open document*, the dialog's label, *Rendered*, *Source*, "No content yet", the
+  summary's loading line. `SCREENS` (append-only): "element page — candidates", "element side panel
+  (Today)", "element document — rendered", "element document — source"; the existing "element
+  panel …" entries keep their names and now reach the page by its URL (their open steps change to
+  the page's locator). Both build modes (normal, key) through the same structure-based steps.
+- **D62-18 — e2e support.** `test/e2e/support/element.ts` (new): `openElementPage(page, c, eid,
+  { pidIndex })` → the page locator (`[data-element-view]` in `main`, first load through
+  `expectFirstLoad`), `sidePanel(page)` → the drawer dialog, `expectNoImageRequest(page, action)`
+  (a `request` listener on `resourceType() === 'image'` and `img` URLs, around the action). Every
+  spec that opens an element by its URL moves to `openElementPage`; the ones that open it from
+  Today or the bell keep `getByRole('dialog')` and assert the `?panel=` address.
+
+#### Acceptance criteria — class and test plan
+
+| AC / scenario | Class | Test (file › title) |
+|---|---|---|
+| AC-3 G-01.4 (reworded to the page) | characterization (address unchanged) | `test/e2e/element-panel.spec.ts` › `G-01.4 — Open an element page from its URL` (the page in `main`, no dialog) |
+| AC-3 G-01.1 … G-01.3, G-02.1, G-02.2 | characterization | same file, unchanged titles; G-01.1's Close lands on the Memory list (`/p/<pid>/memory`, spec-011 §2) |
+| AC-3 G-01.5 | red-first | `test/e2e/element-page.spec.ts` › `G-01.5 — Open an element by its short id and show its full id` (`toHaveURL` full id; `history.back()` does not return to `task-003`) |
+| AC-3 G-01.6 | red-first | same › `G-01.6 — List the candidates of an ambiguous short id` (a hand-committed `task-001-login-form-copy` on a copy; two links, `getByText('Not found')` absent; keyboard; `scanThemes`) |
+| AC-3 G-01.7 | red-first | same › `G-01.7 — Open and decide an element whose id is longer than 100 characters` (`addLongIdElement(copy, { length: 140 })`, the Memory list row, Approve with "Long ids work", the last commit's subject; no horizontal scroll) |
+| AC-3 G-01.8 | red-first | `test/e2e/side-panel.spec.ts` › `G-01.8 — Open an element from Requires you in the side panel and keep it on reload` |
+| AC-4 S-21.4 | red-first | same › `S-21.4 — Open an item of the bell in the side panel of the current view` (the Memory list stays, its filter kept) |
+| AC-4 S-21.1 … S-21.3 | characterization | `test/e2e/notification-bell.spec.ts`, titles unchanged |
+| AC-3 M-01.3, R-09.1, X-06.3 | characterization (reworded) | `memory-list.spec.ts` › M-01.3 (the page); `documentation.spec.ts` › R-09.1 (the page); `accessibility.spec.ts` › X-06.3 (Escape on the page, back to the Memory list row) plus `side-panel.spec.ts` › `X-06.3 — Escape on the side panel returns the focus to its opener` (Today's action) |
+| AC-5 | red-first | `side-panel.spec.ts` › `AC-5 — opening pushes, a reload keeps, closing removes panel= and keeps the other parameters`; `test/web/element/side-panel.test.tsx` (memory history): push / Back / replace-on-close-after-reload / other parameters kept / `panel=` ignored on `/e/` / a short value replaced in place / bell on the page (Q1) / focus to the opener or `#main` |
+| AC-6 | red-first | `test/web/element/side-panel.test.tsx` › hostile `panel=` values (D62-9's list): *not found*, the stub API saw no other path, location unchanged; `test/web/element/address.test.ts` (new, pure): `elementPath` encoding and refusals, `panelSearch` (string only); `test/web/element/page.test.tsx` › a short id seeds the full id's query (one element request) and replaces the entry |
+| AC-7 summary | red-first | `test/web/element/summary.test.ts` (new): first paragraph after comments and headings, a reference link, emphasis and code, none → `undefined`; `test/web/element/document.test.tsx` (new): the summary rendered, *Open document*, Rendered by default, Source as written, "No content yet", Escape and *Close* back to the button, Escape closes only the dialog, raw HTML (`<img src=x onerror=…>`, `<script>`) as text, `javascript:` / `data:` / `//host` links marked, a relative link to an element file → `/p/<pid>/e/<id>`, an anchor focuses its heading in place, images as marked text and no `img` in the DOM, ids prefixed `eldoc-` |
+| AC-7 lookup | characterization + red | `test/web/docs/docs.test.tsx` unchanged (the lookup moved); `document.test.tsx` › a body with no repository link reads only the element |
+| AC-1 G-03.1 … G-03.4 | red-first | `test/e2e/decision-log.spec.ts` (new, `prebuild: ['custom']`, copies with scenario-local commits): G-03.1 (headings in the dialog, the history line), G-03.2 (`docs/01_vision/00_index.md` link → the page, its summary rendered), G-03.3 (`dl-003-empty` added and its body emptied on the copy), G-03.4 (from Casey's *Waiting on others* side panel to `dl-001`'s page); AC-7's e2e: `expectNoImageRequest` around opening the dialog of a body with a remote and a relative image |
+| AC-2 G-08.1 … G-08.3 | red-first (G-08.1, G-08.2 with the approver role on the copy's DNA) · characterization (G-08.3, the v0.2 reserved line) | same spec; the commits' subjects; G-08.2's Today row "Rejected by Casey: Needs a cost estimate" |
+| AC-8 | red-first | `test/e2e/accessibility.spec.ts` (`SCREENS` entries of D62-17, both themes, both builds); keyboard paths in the specs above (`expectFocusVisible` on Close, the candidates, *Open document*, the switch, the dialog's Close) |
+| AC-8 own specs on three engines | gate | `gates.yml` own-spec selection: `element-page`, `side-panel`, `decision-log`, `element-panel` |
+| AC-9 | docs, gates | spec-011 Process Note (D62-6, D62-7, D62-9, Q1); `ux-reference.md` 1.15 (§4.2 v0.3: the page's footer bar, the toasts above it, Q2's outcome; §5 *Feedback*); `CHANGELOG.md` *Unreleased* *Added*/*Changed*; `docs/user-guide.md` (the element page, the side panel, the document); `test/README.md` (version line, `support/element.ts`); `npm run docs:api`; `check_tasks.py v0.3`; local typecheck, lint, format:check, targeted vitest; heavy gates on `gates.yml` (run id, commit, result in these notes) |
+
+Every e2e spec that opens an element by its URL changes its locator (D62-18): `commit-provenance`,
+`gate-footer`, `submit-footer`, `held-gates`, `git-status`, `update-push`, `history-operations`,
+`how-to-join`, `performance`, `projects`, `project-header`, `scrum`, `shell`, `today`,
+`support/screens.ts`, `support/switcher.ts`; and the web tests that render `/p/$pid/e/$eid`
+(`panel`, `gate-footer`, `submit-footer`, `directives`, `history-text`, `today`, `summary`,
+`notification-bell`, `memory/list`, `project-switcher`). G-01.7 and G-08.x commit through the
+console: those suites also run under the strict-identity recipe (dl-011).
+
+#### Specs and gaps
+
+spec-011 holds; its Process Note records D62-6 (non-string `panel` values ignored), D62-7 (close
+is Back when the console pushed the entry), D62-9 (dot-segment ids refused before any request) and
+Q1. adr-002 holds (no new dependency: markdown-it and DOMPurify are in `web/package.json`).
+`ux-reference.md` §4.2 v0.3 gets the page's footer bar and Q2's outcome (directive
+`ux-consistency`).
+
+#### Shared files (Wave 2)
+
+`web/src/element/ElementFooter.tsx` (task-073: D62-3's two selectors), `web/src/today/TodayView.tsx`
+and `RoleSummary.tsx` (task-061: the openers only), `web/src/shell/NotificationBell.tsx`,
+`web/src/shell/Toasts.tsx`, `web/src/docs/{render.ts,RenderedArticle.tsx,pages.tsx}` (additive
+options, the lookup moved), `web/src/routes/{element,project}.tsx`, `web/src/i18n/en.json` (sorted
+in place), `test/e2e/support/screens.ts` (`SCREENS`, append-only), `test/README.md` (version
+line), `CHANGELOG.md`, `docs/user-guide.md`, spec-011 (Process Note), `ux-reference.md`. No server,
+contract or `.wingfoil/` change.
+
+#### Open questions
+
+- **Q1 — The bell on the element page.** spec-011 §2 ignores `panel=` on `/p/<pid>/e/…`, so a bell
+  item there would change nothing visible. Options: (a) on the element page a bell item opens that
+  item's element page (a push), elsewhere the side panel; (b) the bell adds `?panel=` anyway and
+  the page shows nothing (spec-011 literal); (c) the side panel over the element page too (two
+  elements at once, against spec-011 §2). **Recommendation: (a)** — the user gets the element, the
+  spec's rule stays (a Process Note).
+- **Q2 — HTML comments in the rendered document** (P3: every template placeholder would show as
+  text). Options: (a) shown as text, as adr-002 and the Documentation view do; (b) dropped from the
+  **rendered** element document (a markdown-it rule that drops a comment block and an inline
+  comment, outside code; the *Source* view keeps them), as the summary already does since v0.1 and
+  as GitHub renders them; the Documentation view unchanged; (c) dropped in both the element document
+  and the Documentation view. **Recommendation: (b)** — the summary and the document agree, the
+  scope stays the element; recorded in `ux-reference.md` §4.2 v0.3.
+- **Q3 — A Content-Security-Policy** (P2: none today). Options: (a) none in this task: the
+  guarantees are structural and tested (no `img` survives DOMPurify's last pass, no script URL is a
+  link, the e2e asserts no image request), and a policy for the whole console — the inline theme
+  script's hash, React Aria's inline styles, `connect-src` for the event stream — goes to its own
+  item through `bug-ingest` (defence in depth for every view, not only this one); (b) a policy in
+  this task (`default-src 'self'`, `img-src 'self'`, `script-src 'self' 'sha256-…'`, `style-src
+  'self' 'unsafe-inline'`, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`): a
+  server change outside this task's module, with its own tests and every view's e2e in the gate.
+  **Recommendation: (a)** — the coordinator raises the item; this task's adversarial review checks
+  the structural guarantees.
+- **Q4 — Split (RP3-20 G2): about 3.1 active days.** Options: (a) three tasks in sequence —
+  **task-062** keeps the element page and its addresses (D62-1 … D62-5, D62-9, D62-11, D62-12;
+  G-01.4 … G-01.7, M-01.3, R-09.1, X-06.3 on the page; AC-3 except G-01.8, AC-6's address parts,
+  AC-8 for the page and the candidates; every URL opener's e2e and web test moved; about 1.3 d);
+  a new governance task **the side panel in the address** (D62-6 … D62-8, D62-10; G-01.8, S-21.4,
+  AC-4, AC-5, AC-6's hostile `panel=` values, Q1; about 0.8 d, after task-062); a new governance
+  task **the rendered element document** (D62-13 … D62-17; US-G-03, US-G-08, AC-1, AC-2, AC-7, Q2;
+  about 1.0 d, after the side-panel task for G-03.4); each keeps its own e2e spec
+  (`element-page`, `side-panel`, `decision-log`) and the security review (the address task for
+  `panel=`, the document task for the renderer); (b) two tasks — the page and the side panel
+  together (about 2.1 d), the document apart; (c) no split. **Recommendation: (a)** — each part
+  near one day, each security surface reviewed with its own task, the e2e churn of the page move
+  done once in the first.
+
+#### Size
+
+About 3.1 active days in all: the page/panel split, the footer and toast adjustments and the page
+route 0.4 d; short ids, candidates, long ids 0.3 d; `panel=`, the openers, close and focus rules,
+the hostile-value guard 0.5 d; the locator move across 16 e2e files and 10 web test files, `SCREENS`
+0.5 d; the new address and panel specs 0.3 d; the summary, the dialog, the lookup move, the
+renderer options, the comment rule and their tests, the decision-log spec with its scenario-local
+fixtures 0.8 d; docs, `gates.yml` runs, review rounds 0.3 d. Above one day: Q4.
