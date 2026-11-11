@@ -426,3 +426,11 @@ the user guide waits for task-064.
   `git-refused` of `writes/preset.ts`) and every string field of the response schemas
   (`test/server/http/text-sweep.test.ts`: the new refusal schema) — both extended in the next
   commit (`failure` classed as the server's own text: it quotes the shipped preset only, D60-5).
+  Run `43078046580` on `c951314a`: all green — checks, coverage (229 files passed, 1 skipped;
+  statements 96.47 %, branches 91.3 %, functions 97.24 %, lines 98.25 %; `writes/preset.ts`
+  83.33 % statements, 80.61 % branches, `git/index-write.ts` 100 %), contract, e2e-chromium ×2
+  (D60-14's test and `no-commit.spec.ts` among them), own specs on Firefox and WebKit, smoke,
+  publish-smoke. `check_tasks.py v0.3` OK.
+- **Refactor.** None beyond the registry entries: the write reads as the table in its header
+  comment; the shared parts (rows 5–6, the action-log append) were factored out of
+  `governed.ts` at green.
