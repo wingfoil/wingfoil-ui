@@ -8,7 +8,7 @@
 //   the reference index, a directive file), and a CLI read made after a watcher event is not kept;
 // - a drop asks a check and publishes `repo` when it ends, also with the same key (Q2 (a));
 // - a mismatch a later check confirms (`assume-unchanged`) is cached once confirmed (D75-5).
-import { readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { readFile, realpath, rm, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { renderPreset } from '../../../server/src/presets/ui-config.js';
@@ -194,6 +194,63 @@ describe('AC-1 the CLI reads with no event, the drop, the confirmation', () => {
     const before = runner.spawned.length;
     const next = await (await snapshot.view()).element(second!.id);
     expect(next?.content).toBe(confirmed?.content);
+    expect(runner.spawned.length).toBe(before);
+  });
+});
+
+describe('task-075 review round 1', () => {
+  it('F-2 an outside writer firing the watcher every 20 ms: bounded processes, at most one same-key `repo` per key', async () => {
+    const { snapshot, fire, runner, events } = await freshWatched();
+    const key = (await snapshot.view()).state.key;
+    const before = runner.count('wingfoil');
+    const published = events.length;
+    const writer = setInterval(fire, 20);
+    // The page: one read, then a refetch on every `repo` event, for 3 s.
+    let seen = published;
+    const deadline = Date.now() + 3_000;
+    try {
+      await (await snapshot.view()).elements();
+      while (Date.now() < deadline) {
+        if (events.length > seen) {
+          seen = events.length;
+          await (await snapshot.view()).elements();
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    } finally {
+      clearInterval(writer);
+    }
+    const sameKey = events.slice(published).filter((e) => (e as { data: { state: string } }).data.state === key);
+    expect(sameKey.length).toBeLessThanOrEqual(1);
+    expect(runner.count('wingfoil') - before).toBeLessThanOrEqual(3);
+    // The writer stopped: after one check, a reopen starts 0 processes (REQ-PERF-05).
+    await snapshot.check();
+    await (await snapshot.view()).elements();
+    const settled = runner.spawned.length;
+    await (await snapshot.view()).elements();
+    expect(runner.spawned.length).toBe(settled);
+  });
+
+  it('F-4 a checkout with line-end conversion settles in one drop cycle', async () => {
+    const { fx, snapshot, runner } = await fresh();
+    await git(fx.dir, ['config', 'core.autocrlf', 'true'], fx.env);
+    // Every tracked governance and Memory file checked out again, with CRLF line ends.
+    const tracked = (await git(fx.dir, ['ls-files', '-z', '--', '.wingfoil', 'docs'], fx.env)).stdout
+      .split('\0')
+      .filter(Boolean);
+    for (const file of tracked) await unlink(path.join(fx.dir, file));
+    await git(fx.dir, ['checkout', '--', '.wingfoil', 'docs'], fx.env);
+    expect(await readFile(path.join(fx.dir, '.wingfoil', 'memory.yaml'), 'utf8')).toContain('\r\n');
+    const first = await snapshot.view();
+    await first.uiConfig();
+    await first.referenceIndex(); // mismatches everywhere: one drop, the suspects recorded
+    await snapshot.check();
+    const second = await snapshot.view();
+    await second.uiConfig();
+    const index = await second.referenceIndex(); // every mismatch confirmed: kept
+    const before = runner.spawned.length;
+    const third = await snapshot.view();
+    expect(await third.referenceIndex()).toBe(index);
     expect(runner.spawned.length).toBe(before);
   });
 });

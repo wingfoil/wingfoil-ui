@@ -72,11 +72,20 @@ describe('Suspects (D75-5)', () => {
     expect(suspects.accepts({ ...m, expected: 'blob:z' }, 5)).toBe(false);
   });
 
-  it('keeps one suspect per path, at most 1 000', () => {
+  it('keeps one suspect per path, with no fixed cap (review round 1 F-3: 1 500 files)', () => {
     const suspects = new Suspects();
-    for (let i = 0; i < 1_001; i += 1) suspects.record({ ...m, path: `f${i}` }, 1);
-    expect(suspects.size).toBe(1_000);
-    expect(suspects.accepts({ ...m, path: 'f0' }, 2)).toBe(false);
-    expect(suspects.accepts({ ...m, path: 'f1000' }, 2)).toBe(true);
+    for (let i = 0; i < 1_500; i += 1) suspects.record({ ...m, path: `f${i}` }, 1);
+    for (let i = 0; i < 1_500; i += 1) suspects.record({ ...m, path: `f${i}` }, 1);
+    expect(suspects.size).toBe(1_500);
+    for (let i = 0; i < 1_500; i += 1) expect(suspects.accepts({ ...m, path: `f${i}` }, 2)).toBe(true);
+  });
+
+  it('prune keeps the suspects of the paths still listed', () => {
+    const suspects = new Suspects();
+    for (let i = 0; i < 10; i += 1) suspects.record({ ...m, path: `f${i}` }, 1);
+    suspects.prune((path) => path !== 'f3');
+    expect(suspects.size).toBe(9);
+    expect(suspects.accepts({ ...m, path: 'f3' }, 2)).toBe(false);
+    expect(suspects.accepts({ ...m, path: 'f4' }, 2)).toBe(true);
   });
 });

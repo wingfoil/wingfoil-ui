@@ -126,6 +126,11 @@ export class Suspects {
     );
   }
 
+  /** Keep the suspects of the paths `keep` accepts (red step stub). */
+  prune(_keep: (path: string) => boolean): void {
+    throw new Error('not implemented');
+  }
+
   /** Record `mismatch`, seen when `seq` checks had started (an earlier one for its path is replaced). */
   record(mismatch: Mismatch, seq: number): void {
     this.entries.delete(mismatch.path);
