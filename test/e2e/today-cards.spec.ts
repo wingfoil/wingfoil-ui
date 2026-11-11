@@ -15,6 +15,8 @@ import { openConsole, type RunningConsole } from './support/console.js';
 import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
 import { expectFocusVisible, tabUntil } from './support/keyboard.js';
+import { expectSettled } from './support/screens.js';
+import { recordApiData, screenTextsOutsideCatalogue } from './support/strings.js';
 
 test.use({ prebuild: ['kanban', 'custom'] });
 
@@ -173,5 +175,46 @@ test.describe('US-T-02 — Requires you (v0.3)', () => {
       rowOf(requiresYou(page), 'dl-002-use-fastify').getByRole('button', { name: 'Approve dl-002-use-fastify' }),
     ).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);
+  });
+});
+
+test.describe('US-X-09 — the Today cards in the key build (review F-1 round 1, F-4)', () => {
+  test('X-09.1 — Render the cards’ strings from the message catalogue', async ({ page, fixtures, consoles }) => {
+    test.slow(); // 22 CLI commits on the kanban copy before the console starts.
+    const many = await copyAs(fixtures, 'kanban', 'Morgan', (copy) => addPendingTasks(copy, 11));
+    const custom = await copyAs(fixtures, 'custom', 'Morgan');
+    const c = await consoles.start({ projects: [many, custom] });
+    const data = recordApiData(page);
+    const check = async (state: string): Promise<void> => {
+      await expectSettled(page);
+      const outside = (await screenTextsOutsideCatalogue(page, data)).map((text) => `${state} — ${text}`);
+      expect(outside).toEqual([]);
+    };
+    // Thirteen rows: collapsed ("Show all (<n>)"), then expanded ("Show fewer").
+    await openConsole(page, c, { path: `/p/${c.pids[0]}/today`, build: 'keys' });
+    const card = page.locator('.today-card').filter({ has: page.locator('.today-toggle') });
+    await expect(card.locator('li[data-eid]')).toHaveCount(10, { timeout: COLD_READ_MS });
+    await check('collapsed');
+    await card.locator('.today-toggle').click();
+    await expect(card.locator('li[data-eid]')).toHaveCount(13);
+    await check('expanded');
+    // The custom copy: the type "task" with the state "open" keeps no row of Requires you.
+    data.reset({ untilNavigation: true });
+    await openConsole(page, c, { path: `/p/${c.pids[1]}/today`, build: 'keys' });
+    const first = page.locator('.today-card').filter({ has: page.locator('.today-filters') }).first();
+    await expect(first.locator('li[data-eid="dl-002-use-fastify"]')).toBeVisible({ timeout: COLD_READ_MS });
+    const pick = async (filter: number, option: string): Promise<void> => {
+      await first.locator('.today-filter-button').nth(filter).click();
+      const listbox = page.getByRole('listbox');
+      await expect(listbox).toBeVisible();
+      // Options in the key build read as keys: pick by the value the option carries.
+      await listbox.getByRole('option').filter({ hasText: option }).click();
+      await expect(listbox).toHaveCount(0);
+    };
+    await pick(0, 'task');
+    await pick(1, 'open');
+    await expect(first.locator('li[data-eid]')).toHaveCount(0);
+    await expect(first.locator('.today-empty')).toBeVisible();
+    await check('no row matches');
   });
 });

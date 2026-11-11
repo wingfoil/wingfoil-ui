@@ -6,9 +6,11 @@
 // API serves, and a held gate's row filtered and limited like the others.
 import type { ActionDescriptor, ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { computeAccessibleDescription } from 'dom-accessibility-api';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
+import { todayQuery } from '../../../web/src/api/queries.js';
 import { queryKeys } from '../../../web/src/api/query-keys.js';
 import { resetSession } from '../../../web/src/session/session.js';
 import { header } from '../project/header-data.js';
@@ -304,7 +306,7 @@ it('names each row by the short id the API serves, else its full id (T-02.7, D61
   expect(within(requiresYou()).getByRole('button', { name: 'Approve task-001-login-form' })).toBeTruthy();
 });
 
-it('resets the filters when the role view changes (D61-6)', async () => {
+it('resets the filters when the role view changes, to a view already read too (D61-6, review F-2)', async () => {
   const user = userEvent.setup();
   const fake = api({
     [`${TODAY}?view=tech-lead`]: { status: 200, body: { ...MORGAN_TODAY, view: 'tech-lead' } },
@@ -312,6 +314,9 @@ it('resets the filters when the role view changes (D61-6)', async () => {
   stubApi(fake);
   const { queryClient } = renderApp(`/p/${PID}/today`);
   await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  // The other view is read already: the switch shows it at once, with no "Reading Today…" between
+  // the two (the cards would otherwise be remounted by the loading state, whatever their key).
+  await queryClient.prefetchQuery(todayQuery(PID, 'tech-lead'));
   await choose(user, filterOf(requiresYou(), 'Type'), 'bug (1)');
   await waitFor(() => expect(idsOf(requiresYou())).toEqual(['bug-001-crash-on-save']));
   fake[HEADER] = { status: 200, body: morgan('tech-lead') };
@@ -319,4 +324,61 @@ it('resets the filters when the role view changes (D61-6)', async () => {
   await screen.findByText('Role view: tech-lead');
   await waitFor(() => expect(idsOf(requiresYou())).toEqual(['task-001-login-form', 'bug-001-crash-on-save']));
   expect(filterOf(requiresYou(), 'Type').textContent).toBe('All (2)');
+  expect(screen.queryByText('Reading Today…')).toBeNull();
+});
+
+it('does not bring back a chosen value that fell back to All (D61-6, review F-1)', async () => {
+  const user = userEvent.setup();
+  const fake = api();
+  stubApi(fake);
+  const { queryClient } = renderApp(`/p/${PID}/today`);
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  await choose(user, filterOf(requiresYou(), 'Type'), 'bug (1)');
+  await waitFor(() => expect(idsOf(requiresYou())).toEqual(['bug-001-crash-on-save']));
+  // The bug leaves the card: the filter is All again.
+  fake[`${TODAY}?view=approver`] = {
+    status: 200,
+    body: { ...MORGAN_TODAY, requiresYou: [MORGAN_TODAY.requiresYou![0]!, ...pending(1)] },
+  };
+  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
+  await waitFor(() => expect(idsOf(requiresYou())).toEqual(['task-001-login-form', 'task-101-more']));
+  expect(filterOf(requiresYou(), 'Type').textContent).toBe('All (2)');
+  // A bug comes back: the card stays on All, it is not filtered again by itself.
+  fake[`${TODAY}?view=approver`] = { status: 200, body: MORGAN_TODAY };
+  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
+  await waitFor(() => expect(filterOf(requiresYou(), 'Type').textContent).toBe('All (2)'));
+  await waitFor(() => expect(idsOf(requiresYou())).toEqual(['task-001-login-form', 'bug-001-crash-on-save']));
+});
+
+it('moves the focus to the card’s heading when a refetch removes the focused toggle (review F-5)', async () => {
+  const user = userEvent.setup();
+  const many = {
+    ...MORGAN_TODAY,
+    waitingOnOthers: [...MORGAN_TODAY.waitingOnOthers, ...pending(9).map(({ action: _, ...row }) => row)],
+  };
+  const fake = api({ [`${TODAY}?view=approver`]: { status: 200, body: many } });
+  stubApi(fake);
+  const { queryClient } = renderApp(`/p/${PID}/today`);
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  const toggle = within(waitingCard()).getByRole('button', { name: 'Show all (12)' });
+  await user.click(toggle);
+  expect(document.activeElement).toBe(toggle);
+  fake[`${TODAY}?view=approver`] = { status: 200, body: MORGAN_TODAY };
+  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
+  await waitFor(() => expect(rowsOf(waitingCard())).toHaveLength(3));
+  await waitFor(() =>
+    expect(document.activeElement).toBe(within(waitingCard()).getByRole('heading', { name: 'Waiting on others' })),
+  );
+});
+
+it('describes a row’s link by the full time it entered its state (review F-3)', async () => {
+  stubApi(api());
+  renderApp(`/p/${PID}/today`);
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  const full = new Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'long' }).format(new Date(SINCE));
+  const [withSince, withoutSince] = rowsOf(waitingCard());
+  expect(computeAccessibleDescription(within(withSince!).getByRole('link'))).toBe(full);
+  expect(computeAccessibleDescription(within(withoutSince!).getByRole('link'))).toBe('');
+  const title = within(rowsOf(requiresYou())[0]!).getByRole('link', { name: 'Title of task-001-login-form' });
+  expect(computeAccessibleDescription(title)).toBe(full);
 });
