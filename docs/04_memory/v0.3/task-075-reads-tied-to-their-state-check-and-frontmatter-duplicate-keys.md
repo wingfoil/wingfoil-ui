@@ -232,6 +232,8 @@ covers without touching it (D75-7).
 
 #### Test plan (AC → file › title)
 
+*Superseded by the closing table at the end of these notes (2026-11-12).*
+
 | AC | Test |
 |----|------|
 | AC-1 red first, direct reads | `test/server/snapshot/read-tie.test.ts` (new) › "AC-1 bug-034 red first: an element file edited, read and reverted between two checks — the next read serves the reverted content", "… `ui.yaml` through `uiConfig()`", "… `memory.yaml`", "… the reference index", "… a directive file"; `test/server/http/ui-config-route.test.ts` › "AC-1 bug-034 `/config` after an edit and a revert between two checks serves the reverted `ui`" |
@@ -394,7 +396,13 @@ refused above 2 000 000 alias-resolution steps (about 1 100 aliases), so no alia
 key check runs on more, and the 64 KiB (5 s) and 5 MiB (20 s, child process) time bounds of
 `frontmatter.test.ts` and `alias-bound.test.ts` cover the whole parse; the bug-042 N/4N ratio runs on
 refused files (20 000 vs 80 000 aliases, the parse and the one pass only) and held in three
-consecutive runs of the reads suites.
+consecutive runs of the reads suites. AC-5's "N and 2N" is measured as N and 4N with a bound of 8×
+(a linear cost gives about 4×, a quadratic one 16×): stricter than a 2N ratio. The push run
+`43094106954` on `53dc6973` failed in its `coverage` job, but not on a test: 229 files and 4 399
+tests passed (coverage 96.65 % of lines), then `actions/upload-artifact` failed after five attempts
+(`Failed to CreateArtifact … Unexpected token '<'`, an HTML answer of the artifact service); every
+other job passed. The flaky ratio test it ran was removed in `e3d4ea5a` for the local evidence
+above.
 
 ### bug-040 and bug-042 absorbed (2026-11-11)
 
@@ -435,8 +443,9 @@ Re-checked: every YAML file of this repository (the 383 tracked Markdown frontma
 `.wingfoil/` YAML files, a scratch script on the built `server/dist`) parses. Local checks:
 `typecheck`, `lint` clean; `npx vitest run --maxWorkers=2` on the 16 files of `test/server/reads`
 and `test/server/references` 391 passed (load 3.9).
-- Gates of round 3: run `43117679524` on `7559a898` (the push); the dispatch `43115640738` on
-  `54491bd1` success.
+- Gates of round 3: run `43117679524` on `7559a898` (the push) success; the dispatch
+  `43115640738` on `54491bd1` success — it superseded that commit's push run `43098616541`, which
+  stayed queued and never started (a stuck run, ignored).
 
 ### review round 4 (2026-11-12, adversarial: PASS — F-11, F-12 closed; one nit) and the combination
 
@@ -458,3 +467,20 @@ and `test/server/references` 391 passed (load 3.9).
   --maxWorkers=2` on `process-audit`, `read-tie`, `reference-index`, `memory-events`, `tie`,
   `fingerprint`, `held-gates-routes`, `ui-config-route` 80 passed; the 12 files of
   `test/server/reads` and the one of `test/server/project-state` 392 passed.
+- Runs of round 4: `43119973838` on `40f57121` (the merge) and `43120798701` on `88f0cc3d`
+  cancelled, each superseded by the next push; the tip run `43120851995` on `b3db4e61` success —
+  `checks`, `coverage`, `contract`, `e2e-chromium` (1, 2), `own-specs` (Firefox, WebKit), `smoke`,
+  `publish-smoke` success, `e2e-wave` skipped (task scope).
+
+### Acceptance criteria → tests (closing, 2026-11-12)
+
+| AC | Tests (file › title) |
+|----|----------------------|
+| AC-1 bug-034, direct reads | `test/server/snapshot/read-tie.test.ts` › "AC-1 bug-034 red first: …" (an element file, `ui.yaml` through `uiConfig()`, `memory.yaml`, the reference index, a directive file); `test/server/http/ui-config-route.test.ts` › "AC-1 bug-034 `/config` after an edit and a revert between two checks serves the reverted `ui`" |
+| AC-1 CLI reads, drop, confirmation | `read-tie.test.ts` › "a CLI read completing after a watcher event is not kept", "a CLI read with no event is kept: 0 processes on the next view of the state", "a drop publishes `repo` after its check, also with the same key", "a mismatch a later check confirms (`assume-unchanged`) is cached once confirmed", "F-2 an outside writer firing the watcher every 20 ms …", "F-4 a checkout with line-end conversion settles in one drop cycle" |
+| AC-1 verdict and marks | `test/server/snapshot/tie.test.ts` › each `mismatches (D75-4)` row — "a stat: mark (no comparable mark)" for the declared residual —, `Suspects (D75-5)` incl. "keeps one suspect per path, with no fixed cap (review round 1 F-3: 1 500 files)" and "prune …"; `fingerprint.test.ts` › "Fingerprinter.lastMarks …"; `test/server/reads/ui-yaml-mark.test.ts` › "readMarkedUiYaml …" |
+| AC-1 processes | `test/server/snapshot/process-audit.test.ts` (the cold Memory list, the cold `/config`); `reference-index.test.ts` › "one index per state …"; `memory-events.test.ts`; `test/server/http/held-gates-routes.test.ts` › "D55-9 …"; `test/server/http/progress-routes.test.ts` › "AC-3 without requires (%s) …" |
+| AC-2 bug-037 | `test/server/reads/frontmatter.test.ts` › "AC-2 refused as a duplicate with its line: …", "AC-2 `2026-01-01:` with `"2026-01-01":` is read", the merge-key, nested-sequence and unknown-tag tests, "jsYamlKey …", "the key check resolves no alias by walking the document, for N and 2N aliases" (F-1); `test/server/reads/yaml-keys.test.ts` › the differential table (F-5, F-7 rows) and "declared residual of the merge key"; `frontmatter-cli.test.ts` |
+| AC-3 docs and gates | these notes; CHANGELOG *Fixed* (bug-034, bug-037, bug-040, bug-042); spec-001, spec-004, spec-012 Process Notes; `test/README.md`; the runs above |
+| AC-4 bug-040 | `frontmatter.test.ts` › "parseYaml an empty key (bug-040 …)" and "… named at its colon (F-12)"; `yaml-keys.test.ts` › the empty-key rows; `frontmatter-cli.test.ts` › "AC-2, AC-4 the pinned CLI leaves out …" |
+| AC-5 bug-042 | `test/server/reads/alias-bound.test.ts` › "a few aliases are read; …", "the parse of 4N alias keys costs about four times that of N, not sixteen", "a 5 MiB file of alias keys is answered within 20 s, in a child process", the F-11 shapes ("a sequence of aliases", "nested sequences of aliases", "a map whose values are aliases") and "an aliased collection holding a few aliases is read"; `frontmatter.test.ts` › "a 64 KiB frontmatter of 16 000 aliases is answered within 5 s" |

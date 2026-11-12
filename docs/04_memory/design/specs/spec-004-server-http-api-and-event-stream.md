@@ -532,4 +532,5 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   `X-Repo-State` is read from the content that state stands for — a read whose files differ from
   the state check's marks, or a CLI read finishing after a watcher event, still answers its request,
   and the server then checks again and emits `repo` also when the key did not move, so the page
-  refetches. The header format is unchanged.
+  refetches — at most once per state key, until the key moves (spec-012 §8, task-075 review round
+  1 F-2). The header format is unchanged.
