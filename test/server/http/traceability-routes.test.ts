@@ -10,7 +10,8 @@ import type { FastifyInstance } from 'fastify';
 import { readdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Writable } from 'node:stream';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import * as bodies from '../../../server/src/project-state/bodies.js';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import { gitSubcommand } from '../../../server/src/git/git.js';
 import { buildApp } from '../../../server/src/http/app.js';
@@ -50,6 +51,14 @@ function expectSchema(file: string, body: unknown): void {
   expect(validate, file).toBeDefined();
   expect(validate!(body), `${file}: ${JSON.stringify(validate!.errors)}`).toBe(true);
 }
+
+// Review round 1 F-2: the computation of the body, counted (the route's memo reads only cached
+// values, so the process audit cannot see whether it is kept).
+vi.mock('../../../server/src/project-state/bodies.js', async (original) => {
+  const actual = await original<typeof import('../../../server/src/project-state/bodies.js')>();
+  return { ...actual, traceabilityParts: vi.fn(actual.traceabilityParts) };
+});
+const computations = vi.mocked(bodies.traceabilityParts);
 
 const DL_001 = 'dl-001-initialise-wingfoil-before-inception';
 
@@ -152,7 +161,8 @@ async function start(variant: Variant, options: StartOptions = {}) {
     const res = await app.inject({ method: 'GET', url, headers: AUTH });
     return { status: res.statusCode, body: res.json(), state: res.headers['x-repo-state'] };
   };
-  return { fx, pid: entry.id, runner: audited.runner as AuditedRunner, get };
+  const snapshot = () => audited.snapshots.open(entry.id, fx.dir);
+  return { fx, pid: entry.id, runner: audited.runner as AuditedRunner, get, snapshot };
 }
 
 type Console = Awaited<ReturnType<typeof start>>;
@@ -417,6 +427,34 @@ describe('caching and processes (AC-3, spec-012 §8)', () => {
     const actor = (body: any) => body.elements.find((e: any) => e.id === 'task-004-themes').descriptor.actor;
     expect(actor(second)).not.toEqual(actor(first));
     expect(actor(second)).toMatchObject({ kind: 'member' });
+  }, 300_000);
+});
+
+describe('review round 1 F-2 — the body computed once per state and scope', () => {
+  it('two requests of one scope compute once, another scope once more; an events failure computes on every request', async () => {
+    let failing = false;
+    const c = await start('preset', { failLog: () => failing });
+    computations.mockClear();
+    await traceability(c);
+    await traceability(c);
+    expect(computations).toHaveBeenCalledTimes(1);
+    await traceability(c, '?scope=project');
+    await traceability(c, '?scope=project');
+    expect(computations).toHaveBeenCalledTimes(2);
+    // A new state (an edit outside the UI), the events failing: computed for each request, kept for none …
+    await setFrontmatterValue(c.fx, 'task-004-themes', 'ref', 'US-X-08');
+    await (await c.snapshot()).check();
+    failing = true;
+    computations.mockClear();
+    expect((await traceability(c)).eventsError).toBeDefined();
+    expect((await traceability(c)).eventsError).toBeDefined();
+    expect(computations).toHaveBeenCalledTimes(2);
+    // … and once the events read again, computed once and kept.
+    failing = false;
+    computations.mockClear();
+    expect(await traceability(c)).not.toHaveProperty('eventsError');
+    await traceability(c);
+    expect(computations).toHaveBeenCalledTimes(1);
   }, 300_000);
 });
 

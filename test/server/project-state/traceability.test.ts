@@ -119,6 +119,27 @@ describe('the rows (D74-2, spec-012 §4)', () => {
     expect((await rowsOf(rows)).some((r) => r.id === 'zzz-1')).toBe(false);
   });
 
+  it('review round 1 F-1: an element reference whose target type has no category is no row (spec-012 §1)', async () => {
+    // Only `adr` categorised: `task` and `decision-log` have none.
+    const ui = uiOf(
+      'version: 1\ntaxonomy: { categories: { adr: requirement } }\nprogress: { mode: sequence, scope: { type: release } }\n',
+    );
+    const rows = withRow(CUSTOM, 'task-001-cli-adapter', { values: ['v0.1', DL_001, 'adr-001-local-server'] });
+    const i = await inputs(rows, 'current', ui);
+    const task001 = i.index.get('task-001-cli-adapter')!;
+    // The index makes the element reference, with no category …
+    expect(task001.references).toContainEqual(expect.objectContaining({ kind: 'element', id: DL_001, category: null }));
+    // … and the rows leave it out, in both scopes; the categorised one is a row.
+    for (const asked of ['current', 'project'] as const) {
+      const got = await rowsOf(rows, asked, ui);
+      expect(got.some((r) => r.id === DL_001)).toBe(false);
+      expect(got.find((r) => r.id === 'adr-001-local-server')).toMatchObject({
+        element: true,
+        linked: ['task-001-cli-adapter'],
+      });
+    }
+  });
+
   it('project: a requirement or feature element no element references is a no-elements row', async () => {
     const ui = uiOf(
       'version: 1\ntaxonomy: { categories: { adr: requirement }, patterns: [{ match: "^US-", category: requirement }] }\nprogress: { mode: sequence, scope: { type: release } }\n',

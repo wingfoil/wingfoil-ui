@@ -351,3 +351,19 @@ The three and D74-3 go into a spec-012 Process Note with the green commit.
   `text-sweep`, `public-text`, `traceability-routes`, `project-routes`, `progress-routes`,
   `server/project-state`, the traceability and progress contract tests, `test/lint`, `test/docs`
   passed.
+- **gates.yml** after the second merge: run `43216324952` (`c21d2ff3`): every job green — checks,
+  coverage, contract, smoke, publish-smoke, `e2e-chromium` (1) and (2), `own-specs` (Firefox,
+  WebKit); `e2e-wave` skipped (task scope).
+
+### review round 1 (2026-11-12)
+
+On `c21d2ff3` (run `43216324952`): PASS with two minor findings and a nit. The guards existed; each
+new test passes on the code and was seen failing with its guard removed, the code then restored.
+
+| # | Finding | Fix | Red evidence |
+|---|---------|-----|--------------|
+| F-1 (minor) | `traceability.ts`'s `reference.category === null` guard unguarded: the "uncategorised reference" test used `zzz-1`, no reference at all | `server/project-state/traceability` › "review round 1 F-1: an element reference whose target type has no category is no row (spec-012 §1)": `categories: { adr: requirement }` only, task-001 carrying `dl-001-…` (an element reference, `category: null`, asserted on the index) and `adr-001-…`; no `dl-001` row in either scope, the `adr-001` row present | with the guard deleted (and `category!` so it compiles) it fails, 1 failed of 18 |
+| F-2 (minor) | `traceabilityOf`'s memo unguarded: `compute()` in place of `view.derived(…)` kept the suite green (the computation reads only cached values, invisible to the process audit) | `server/http/traceability-routes` › "review round 1 F-2 — … two requests of one scope compute once, another scope once more; an events failure computes on every request": `traceabilityParts` counted (`vi.mock` of `bodies.js` with the real function in a `vi.fn`), 1 computation for two `current` requests, 2 after two `project` ones; on a new state (a commit, `check()`) with the events failing, 2 for two requests; once they read, 1 for two | with `read.settle(compute(), …)` it fails ("called 1 times, but got 2 times"), code restored |
+| F-3 (nit) | the two `REACHED_ELSEWHERE` values named a code path, not a covering test | each now names this sweep's `elements .elements[].descriptor.actor.member.name\|email` (reached, the same `listedRow`) and the `descriptorBody` test `TODAY_ACTOR` names | — |
+
+Checks after the fixes: typecheck, lint, format:check clean; `check_tasks.py v0.3` OK; `npx vitest run --maxWorkers=2` on `traceability-routes`, `server/project-state`, `text-sweep`, `test/docs`, `test/lint` 270 passed; `traceability-routes` under the strict-identity `git` wrapper 25 passed.

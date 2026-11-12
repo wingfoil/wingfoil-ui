@@ -419,10 +419,12 @@ const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
   'config .workflows.data.workflows[].phases[].produces[]':
     'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
   // task-074 D74-6: Traceability names only the elements a reference, a link or the missing flag
-  // names, and none of the hostile fixture's member-actor rows is one; its rows are written by the
-  // `/elements` row builder (project-routes `listedRow`, `descriptorBody`), which this sweep reaches.
-  'traceability .elements[].descriptor.actor.member.name': 'the /elements row builder: project-routes listedRow',
-  'traceability .elements[].descriptor.actor.member.email': 'the /elements row builder: project-routes listedRow',
+  // names, and none of the hostile fixture's member-actor rows is one. Its rows are `/elements`'s
+  // (project-routes `listedRow`, `descriptorBody`): the leaves are reached by this sweep as
+  // `elements .elements[].descriptor.actor.member.name|email`, and by the test TODAY_ACTOR names
+  // (review round 1 F-3).
+  'traceability .elements[].descriptor.actor.member.name': `this sweep › elements .elements[].descriptor.actor.member.name; ${TODAY_ACTOR}`,
+  'traceability .elements[].descriptor.actor.member.email': `this sweep › elements .elements[].descriptor.actor.member.email; ${TODAY_ACTOR}`,
 };
 
 /** `.a.<key>[]` → a pattern matching `.a.<any key>[]` of a body. */
