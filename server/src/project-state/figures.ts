@@ -4,7 +4,13 @@
  * order; a pattern reference is keyed by its escaped value (§9: two values equal after the escape
  * are one reference), an element reference by its target's id.
  */
-import type { CompletionFigure, IteratedFigure, OpenDefectsFigure, PendingGatesFigure } from '@wingfoil-ui/contracts';
+import type {
+  CompletionFigure,
+  CoverageFigure,
+  IteratedFigure,
+  OpenDefectsFigure,
+  PendingGatesFigure,
+} from '@wingfoil-ui/contracts';
 import { neutralise } from '../git/redact.js';
 import { COMPLETION_CATEGORIES } from '../presets/ui-config.js';
 import { DONE_FIELD } from '../presets/api.js';
@@ -36,11 +42,12 @@ export function inScopeElements(inputs: Pick<FigureInputs, 'index' | 'current'>)
   return inputs.current ? inputs.index.inScope(inputs.current) : inputs.index.elements;
 }
 
-const counted = (category: UiCategory | null): boolean =>
-  category !== null && (COMPLETION_CATEGORIES as readonly string[]).includes(category);
+/** A category the completion figures count (`requirement`, `feature`). */
+export const counted = (category: UiCategory | null | undefined): boolean =>
+  category != null && (COMPLETION_CATEGORIES as readonly string[]).includes(category);
 
 /** `figures.completion` (spec-012 §3). */
-export function completionFigure(inputs: FigureInputs): CompletionFigure {
+export function completionFigure(inputs: Pick<FigureInputs, 'index' | 'ui' | 'current'>): CompletionFigure {
   const { ui } = inputs;
   const categorised =
     [...ui.categories.value.values()].some(counted) || ui.patterns.value.some((p) => counted(p.category));
@@ -94,4 +101,20 @@ export function openDefectsFigure(inputs: FigureInputs): OpenDefectsFigure {
 export function pendingGatesFigure(inputs: FigureInputs): PendingGatesFigure {
   const ids = naturalOrder(inputs.index.elements.filter((e) => e.kind === 'gate' && !inputs.held(e)).map((e) => e.id));
   return { state: 'shown', count: ids.length, ids };
+}
+
+/**
+ * `figures.coverage` of Traceability (spec-012 §4, spec-005 §4; task-074 D74-4, Q2 (a)): project-wide,
+ * `total` the listed readable elements whose type has `requires`, `carrying` those `missing` does not
+ * name; `percent` `null` when `total` is 0; `no-requires` when `requires` names no type.
+ */
+export function coverageFigure(
+  index: ReferenceIndex,
+  requires: ReadonlyMap<string, readonly UiCategory[]>,
+  missing: ReadonlyMap<string, unknown>,
+): CoverageFigure {
+  void index;
+  void requires;
+  void missing;
+  throw new Error('coverageFigure: not implemented');
 }

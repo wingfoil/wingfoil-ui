@@ -275,3 +275,11 @@ sweep, timing test, docs 0.1. No split.
   the spec-012 Process Note. (b) Key `completion` by `(kind, key)` too (changes `/progress` for
   the edge, two hover entries with one id). **Recommended (a)**: `/progress` and Traceability's
   figure stay the same function, and the edge is declared, not hidden.
+
+### design approved (2026-11-12)
+
+Relayed by the coordinator, the approver: "confermo le decisioni raccomandate" — **Q1 (a)**
+`inScope` relative to the current element whenever one exists, all `true` only with none;
+**Q2 (a)** `coverage` with `total` 0 is `{ carrying: 0, total: 0, percent: null }`; **Q3 (a)**
+D59-8's row key kept, the category of the first value met, `completion` as `/progress` has it.
+The three and D74-3 go into a spec-012 Process Note with the green commit.

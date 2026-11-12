@@ -145,3 +145,11 @@ export type {
   Unavailable,
 } from './progress.js';
 export type { UiConfigPresetRefusalCode, UiConfigPresetRequest, UiConfigPresetResult, UiPresetId } from './writes.js';
+export type {
+  CoverageFigure,
+  ReferenceStatus,
+  Traceability,
+  TraceabilityElement,
+  TraceabilityReference,
+  TraceabilityScope,
+} from './traceability.js';

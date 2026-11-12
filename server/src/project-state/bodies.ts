@@ -5,11 +5,19 @@
  * types and states stay as `memory search` returned them; `ui` is the effective configuration's
  * status, already sanitised (task-054 D54-6).
  */
-import type { ApiCapabilityReason, ElementRef, MemoryMatch, Progress } from '@wingfoil-ui/contracts';
+import type {
+  ApiCapabilityReason,
+  ElementRef,
+  MemoryMatch,
+  Progress,
+  Traceability,
+  TraceabilityScope,
+} from '@wingfoil-ui/contracts';
 import { toneOf } from '../descriptor/descriptor.js';
 import { neutralise } from '../git/redact.js';
 import type { ShortIds } from '../reads/short-id.js';
-import type { IndexedElement } from '../references/index.js';
+import type { IndexedElement, ReferenceIndex } from '../references/index.js';
+import type { EffectiveUiConfig, UiCategory } from '../ui-config/types.js';
 import { scopeType } from './current.js';
 import {
   completionFigure,
@@ -71,4 +79,41 @@ export function progressBody(inputs: ProgressInputs): Progress {
     unreadable: naturalOrder(index.unreadable),
     capped: naturalOrder(index.capped),
   };
+}
+
+/** What `/traceability` reads (spec-012 §4, task-074 D74-4). */
+export interface TraceabilityInputs {
+  index: ReferenceIndex;
+  ui: EffectiveUiConfig;
+  /** The current element (D59-2), `undefined` for none — whatever scope was asked. */
+  current: IndexedElement | undefined;
+  /** The `scope` asked (default `current`). */
+  asked: TraceabilityScope;
+  /** The missing-reference flag of the state (spec-012 §5, `missingOf`). */
+  missing: ReadonlyMap<string, readonly UiCategory[]>;
+  /** The `memory search` match of a listed id (its title). */
+  match(id: string): Pick<MemoryMatch, 'title'>;
+  shortIds: ShortIds;
+  /** The reason of the capability `workflow-position` (`GET /api/p/:pid`). */
+  phaseReason: ApiCapabilityReason;
+}
+
+/** An element the answer names, before its `/elements` row is written (per request, D74-5). */
+export interface NamedElement {
+  id: string;
+  /** Descriptor kind `last` (the API's `done`, `DONE_FIELD`). */
+  finished: boolean;
+  inScope: boolean;
+}
+
+/** The body of `/traceability` but its element rows, and the elements those rows are for. */
+export interface TraceabilityParts {
+  body: Omit<Traceability, 'elements' | 'eventsError'>;
+  elements: NamedElement[];
+}
+
+/** `GET /api/p/:pid/traceability?scope=` (spec-012 §4) without its element rows. */
+export function traceabilityParts(inputs: TraceabilityInputs): TraceabilityParts {
+  void inputs;
+  throw new Error('traceabilityParts: not implemented');
 }

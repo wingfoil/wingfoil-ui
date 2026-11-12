@@ -222,6 +222,24 @@ const RULES: readonly Rule[] = [
   { pattern: /^progress \.(?:figures\.\w+\.(?:ids|doneIds)\[\]|unreadable\[\]|capped\[\])$/, cls: 'c' },
   { pattern: /^progress \.figures\.(?:phase|phaseCompletion)\.reason\..+$/, cls: 'e' },
   { pattern: /^elements \.missingReferences\.(?:unreadable|capped)\[\]$/, cls: 'c' },
+  // `/traceability` (task-074 D74-8, D74-9); the row descriptors by the DESCRIPTOR rule above.
+  { pattern: /^traceability \.(?:ui\.warning\.failure|eventsError\.message)$/, cls: 'a' },
+  {
+    pattern: /^traceability \.(?:scope\.type|scope\.current\.title|elements\[\]\.title)$/,
+    cls: 'b',
+    note: 'a title escaped; the scope type echoed from ui.yaml, escaped as /config ui echoes it',
+  },
+  {
+    pattern: /^traceability \.(?:references\[\]\.id|figures\.completion\.references\[\]\.id)$/,
+    cls: 'b',
+    note: 'a pattern reference escaped (§9); an element reference the target id of memory search',
+  },
+  {
+    pattern:
+      /^traceability \.(?:scope\.current\.(?:id|shortId|type|status)|references\[\]\.linked\[\]|figures\.completion\.ids\[\]|missing\[\]\.id|elements\[\]\.(?:path|id|shortId|type|status|tags\[\])|unreadable\[\]|capped\[\])$/,
+    cls: 'c',
+  },
+  { pattern: /^traceability \.(?:figures\.phaseCompletion\.reason\..+|eventsError\.code)$/, cls: 'e' },
 ];
 
 /** The class of `key` (`<schema> <path>`), or `undefined`. */
@@ -436,6 +454,8 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       ['today', '/today'],
       ['memory-events', '/events/memory?limit=100'],
       ['progress', '/progress'],
+      ['traceability', '/traceability'],
+      ['traceability', '/traceability?scope=project'],
     ];
     const directives = await get('/directives');
     if (directives.entries[0]) routes.push(['directive', `/directives/${directives.entries[0].frontmatter.id}`]);
