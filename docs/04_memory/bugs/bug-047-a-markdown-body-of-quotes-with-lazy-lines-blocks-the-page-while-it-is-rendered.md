@@ -3,12 +3,12 @@ id: bug-047-a-markdown-body-of-quotes-with-lazy-lines-blocks-the-page-while-it-i
 type: bug
 title: "A Markdown body of quotes with lazy lines blocks the page while it is rendered"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "web"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,46 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+A Markdown document made of many block quotes each followed by a lazy line (`> # h` then `lazy`,
+repeated) takes time growing with the square of its size to render, because markdown-it 15.0.2
+(and 14.3.2) is quadratic on that shape, so one committed file freezes the Documentation view, the
+Directives view or an element's document on the browser's main thread.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Commit to a project on WingFoil 0.3.1 a Markdown file, or an element body, holding
+   `'> # h\nlazy\n'` repeated 5 000 times (about 60 KB).
+2. Open it in the console's Documentation view, or open the element's page.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The document renders in time growing linearly with its size, or the console refuses to render a
+body beyond a bound and says so, without freezing the tab.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+The tab is unresponsive while markdown-it parses: about 5 s for 5 000 pairs, four times that for
+each doubling. A body can be read up to 5 MiB (`server/src/reads/confine.ts`), so a hostile or
+unlucky file can freeze the view for minutes.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-078's security review round 4 (2026-11-12, `task/task-078-rendered-element-document` at
+`d75b847d`), finding R4-4, confirming the developer's measurement. Plain markdown-it 15.0.2, no
+comment rules: `'> # h\nlazy\n'` × 1 250 / 2 500 / 5 000 pairs → 376 / 1 261 / 4 958 ms;
+`` '> ```\nlazy\n' `` × 5 000 → 5 979 ms; `'> > # h\n> lazy\n'` and `'> - # h\nlazy\n'` the same
+class; markdown-it 14.3.2 also quadratic. v0.1.0's `web/package.json` already pins
+`markdown-it ^15.0.2`. task-078's comment rules give the same worst case another spelling
+(`'> <!--\nlazy\n'`) at plain markdown-it's own cost; `test/web/docs/comment-linear.test.ts` leaves
+that input out and says why.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Medium: availability only, no content or security effect; it shipped in v0.1.0 and v0.2.0. Fix
+direction: a bound on the rendered body (size or line count, the rest shown as *Source* or a
+notice), or rendering in a Web Worker with a time limit; possibly an upstream report to
+markdown-it. The approver chose to open it for v0.4 (2026-11-12, "gate 1 e 2 come consigliato"),
+with a *Known limitations* line in v0.3's CHANGELOG.
 
 ## Triage & Execution Notes
 
