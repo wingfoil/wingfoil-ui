@@ -195,3 +195,71 @@ describe('images (W3-31)', () => {
     ]);
   });
 });
+
+// task-078 — the element document (D78-1, D78-3; the approver's Q2 (b)).
+describe('HTML comments left out of an element document (D78-3)', () => {
+  const drop = (markdown: string): HTMLElement => {
+    const host = document.createElement('div');
+    host.innerHTML = finishDocument(markdownToSafeHtml(markdown, { comments: 'drop' }), OPTIONS);
+    return host;
+  };
+
+  it('drops a comment block, one spanning lines and an inline comment', () => {
+    const host = drop(
+      '## Context\n\n<!-- The situation. -->\n\nText <!-- inline --> after.\n\n<!-- one\n     two -->\n\n## Decision\n',
+    );
+    expect(host.textContent).not.toContain('<!--');
+    expect(host.textContent).not.toContain('The situation.');
+    expect(host.textContent).not.toContain('two');
+    expect(host.querySelector('p')?.textContent).toBe('Text  after.');
+    expect([...host.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['Context', 'Decision']);
+  });
+
+  it('keeps a comment inside code (a span, a fence, an indented block)', () => {
+    const host = drop('Use `<!-- x -->` here.\n\n```\n<!-- fenced -->\n```\n\n    <!-- indented -->\n');
+    expect([...host.querySelectorAll('code')].map((c) => c.textContent?.trim())).toEqual([
+      '<!-- x -->',
+      '<!-- fenced -->',
+      '<!-- indented -->',
+    ]);
+  });
+
+  it('an unclosed comment runs to the end, as the v0.1 summary did', () => {
+    const host = drop('First.\n\n<!-- never closed\n\nSecond.\n');
+    expect(host.textContent?.trim()).toBe('First.');
+  });
+
+  it('other raw HTML stays text, and the default keeps the comments (the Documentation view)', () => {
+    expect(drop('<b>bold</b> <!-- c -->').textContent?.trim()).toBe('<b>bold</b>');
+    expect(render('<!-- c -->').textContent).toContain('<!-- c -->');
+  });
+
+  it.each(['<!-- a --><script>window.__pwned = 1</script>', '<!--> <img src=x onerror=alert(1)> -->'])(
+    'dropping a comment never makes markup: %s',
+    (payload) => {
+      const host = drop(`before\n\n${payload}\n\nafter`);
+      for (const el of host.querySelectorAll('*')) {
+        expect(['SCRIPT', 'IMG']).not.toContain(el.tagName);
+        for (const attr of el.getAttributeNames()) expect(attr.startsWith('on')).toBe(false);
+      }
+    },
+  );
+});
+
+describe('link groups (D78-1)', () => {
+  it('the mark of a refused link carries the key of its link', () => {
+    const host = render('[x](missing.md)');
+    expect(host.querySelector('.doc-link-mark')?.getAttribute('data-doc-mark')).toBe('0');
+  });
+
+  it('a heading prefix other than doc- (the element document)', () => {
+    const host = document.createElement('div');
+    host.innerHTML = finishDocument(markdownToSafeHtml('# Context\n\n[top](#context)'), {
+      ...OPTIONS,
+      headingPrefix: 'eldoc-',
+      hrefOf: (_path, fragment) => `#${encodeURIComponent(fragment)}`,
+    });
+    expect(host.querySelector('h1')?.id).toBe('eldoc-context');
+    expect(host.querySelector('a')?.getAttribute('href')).toBe('#context');
+  });
+});

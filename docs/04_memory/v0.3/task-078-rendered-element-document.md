@@ -268,3 +268,9 @@ About 1.25 active days: bug-043's patch and its tests 0.25 d; the summary, the c
 dialog, the lookup move, the renderer options and their web tests 0.45 d; AC-7 0.05 d; the
 decision-log spec with its scenario-local fixtures, the two screens and the characterization moves
 0.3 d; docs, `gates.yml` runs, review rounds 0.2 d. Above one day: Q1.
+
+**Decisions of the approver** (2026-11-12, relayed by the coordinator: "q1-q3 come consigli"): Q1
+(a) — no split; Q2 (a) — the page title keeps the address value as text, recorded with
+bug-041-repository-keys-shown-on-the-page-are-not-escaped (keys shown raw); Q3 (a) — the
+candidates' list is named by its heading (`aria-labelledby`). The design names no spec change:
+spec-011 and adr-002 hold as written, so no Process Note is added.

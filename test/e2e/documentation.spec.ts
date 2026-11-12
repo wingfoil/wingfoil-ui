@@ -182,4 +182,48 @@ test.describe('US-R-09 — safe links', () => {
     await expect(page).toHaveURL(`${c.origin}${docPath(c, LINKS_DOC)}`);
     await tab.close();
   });
+
+  // task-078 AC-6 — bug-043: the link check of the missing file is held while the external link is
+  // taken, then answered; the anchor taken before the answer is still the page's (D78-1), so a click
+  // that lands on it during the answer opens the new tab.
+  test('bug-043 — A link clicked while a link check is pending opens', async ({
+    page,
+    fixtures,
+    consoles,
+    context,
+  }) => {
+    const c = await withLinks(fixtures, consoles);
+    await context.route('https://example.test/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Guide</title>' }),
+    );
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let asked!: () => void;
+    const checked = new Promise<void>((resolve) => (asked = resolve));
+    const missingCheck = (url: URL) =>
+      url.pathname.endsWith('/files/content') && url.searchParams.get('path') === 'docs/01_vision/missing-file.md';
+    await page.route(missingCheck, async (route) => {
+      asked();
+      await held;
+      await route.continue();
+    });
+    await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
+    const doc = article(page, LINKS_DOC);
+    const link = doc.getByRole('link', { name: 'Guide (opens in a new tab)', exact: true });
+    await expectFirstLoad(link);
+    await checked;
+    await expect(doc.locator('.doc-link-unresolved').filter({ hasText: 'Missing' })).toHaveCount(1);
+    // The anchor as it is while the check is pending.
+    const taken = await link.elementHandle();
+    release();
+    await expect(doc.getByRole('listitem').filter({ hasText: 'Missing' }).locator('.doc-link-mark')).toHaveText(
+      'broken link',
+      { timeout: CLASSIFIED_WITHIN },
+    );
+    expect(await taken!.evaluate((a) => a.isConnected)).toBe(true);
+    const [tab] = await Promise.all([context.waitForEvent('page'), taken!.click()]);
+    await tab.waitForLoadState();
+    expect(tab.url()).toBe('https://example.test/guide');
+    await tab.close();
+  });
 });
