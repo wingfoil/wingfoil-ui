@@ -551,3 +551,11 @@ The pre-gate checker on `9424c394`: **NOT READY**, four gaps (G-1 … G-4) and s
 | N-4 — `comment-linear.test.ts`: the list-item case's red, and no guard removal for the 1 MB case | a new case, "a 1 MB body of unclosed openers in list items" (`'- <!--\n'` × 150 000): every block searches for a `-->` that never comes. The 1 MB case of single-line comments stays | at `63e29719` (`render.ts` of that commit) both list-item cases passed: that rule ran an unclosed comment to the document's end in one block, which is linear. With `nextClose`'s kept answer disabled (a scratch edit, restored): the 100 KB case failed (5 655 ms over budget), and the 1 MB one did not end within the 100 s bound of the run (killed by `timeout`; with the rule as it is, the whole file passes) |
 | N-5 — the public-text runs before each push | every push of this task ran `npx vitest run test/docs/public-text.test.ts --maxWorkers=2` first: 67 passed each time, from the design (`c51b0aa4`) to `9424c394` and this round | — |
 | N-6 — R5-1 had no guard removal showing the formerly skipped bodies catch a fault | none needed | the product's inline rule given markdown-it 15.0.2's old reading (a comment whose text ends in `-` rejected), a scratch edit restored with a file copy: the fuzz test failed on 4 of the 400 bodies |
+
+Runs on `6bf74870`: the push run `43326044702` was cancelled by the dispatch that followed it
+(`gates.yml`'s `concurrency`, `cancel-in-progress` per ref). The dispatched run `43326055015`
+(`workflow_dispatch`, scope `task`, `specs` = `test/e2e/accessibility.spec.ts
+test/e2e/no-commit.spec.ts`) succeeded: checks, contract, coverage, smoke, publish-smoke, both
+e2e-chromium shards, and the own specs on Firefox and WebKit — `accessibility.spec.ts` (X-06.4,
+X-09.1, the two *element document* screens among them) and `no-commit.spec.ts` (walking `SCREENS`)
+— all green on the first attempt (G-2).
