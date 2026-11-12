@@ -63,3 +63,4 @@ test for N and 2N. Absorbed into task-075 (the approver, 2026-11-11, "toJS a").
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-12): fixed by task-075 (`done` `b13469ca`), merged into the phase branch in `b92bea30`; resolved by the approver (`06e4bd4f`). Aliases are counted in the one-pass key check and bounded, the worst case measured in a child process (`test/server/reads/alias-bound.test.ts`). It closes with Wave 2's merge into `main`.

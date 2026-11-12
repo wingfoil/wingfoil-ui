@@ -66,3 +66,4 @@ Wave 2's start.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-12): fixed by task-075 (`done` `b13469ca`), merged into the phase branch in `b92bea30`; resolved by the approver (`a0dac3ac`). Every per-state read is tied to the bytes its state check saw: a read of other content, or a CLI read finishing after a file event, answers once and the server checks again (`test/server/snapshot/read-tie.test.ts`, `test/server/snapshot/tie.test.ts`). It closes with Wave 2's merge into `main`.

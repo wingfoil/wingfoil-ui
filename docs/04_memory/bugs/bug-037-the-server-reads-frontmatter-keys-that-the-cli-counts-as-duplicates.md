@@ -55,3 +55,4 @@ Low: it needs a hand-written frontmatter with such keys; no verb writes one. Fix
 keys as js-yaml does (the key's source text or its string form, alias and complex keys refused);
 the `ui.yaml` parser (`server/src/ui-config/parse.ts`) already refuses non-plain keys. Its task is
 chosen at Wave 2's start with bug-031, bug-034 … bug-036.
+- close note (2026-11-12): fixed by task-075 (`done` `b13469ca`), merged into the phase branch in `b92bea30`; resolved by the approver (`f0c3179b`). Frontmatter keys are compared as WingFoil's YAML loader stores them, in both directions (`test/server/reads/yaml-keys.test.ts`, `test/server/reads/frontmatter-cli.test.ts`). It closes with Wave 2's merge into `main`.

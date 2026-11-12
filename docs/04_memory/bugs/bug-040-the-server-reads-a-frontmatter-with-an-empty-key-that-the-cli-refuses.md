@@ -58,3 +58,4 @@ D75-9), with a differential case against js-yaml.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-12): fixed by task-075 (`done` `b13469ca`), merged into the phase branch in `b92bea30`; resolved by the approver (`3ddc4c28`). An empty block-mapping key is refused as the CLI refuses it (the empty-key rows of `test/server/reads/yaml-keys.test.ts`). It closes with Wave 2's merge into `main`.
