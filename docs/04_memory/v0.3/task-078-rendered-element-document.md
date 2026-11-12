@@ -529,3 +529,6 @@ adds it to the bug).
 Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
 generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
 `test/web/docs/{render,comment-linear}` and `test/web/element/summary`.
+
+Run `43320363502` on `dee9f1d8` (round 5): **success**. Every job of the task scope passed on the
+first attempt.
