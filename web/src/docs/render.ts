@@ -52,12 +52,12 @@ function nextClose(owner: object, src: string, from: number): number {
  *   after it, the paragraph keeps the line and {@link commentInline} drops the comment alone, so the
  *   text stays and the lines around it stay one paragraph (F-1, R2-3, R2-4).
  * - A comment over several lines is a block wherever it starts, interrupting a paragraph as
- *   CommonMark's type 2 does: its lines are dropped, and text after its `-->` becomes a paragraph of
- *   its own (R2-2) — nothing inside the comment is ever parsed. An unclosed one ends with its
- *   container (R3-1).
+ *   CommonMark's type 2 does: its lines are dropped, and text after its `-->` opens a paragraph
+ *   (R2-2, R4-3) — nothing inside the comment is ever parsed. An unclosed one ends with its
+ *   container (R3-1); a blank line inside it does not end it (R4-1).
  *
- * Only the text after the comment is emitted (as a paragraph, parsed inline like any text): the
- * comment is never turned into markup. Each call scans forward once through {@link nextClose}.
+ * Only the text after the comment is emitted (by markdown-it's paragraph rule, parsed inline like
+ * any text): the comment is never turned into markup. Each call scans forward once through {@link nextClose}.
  */
 function commentBlock(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
   if (state.sCount[startLine]! - state.blkIndent >= 4) return false;
@@ -90,18 +90,20 @@ function commentBlock(state: StateBlock, startLine: number, endLine: number, sil
     state.line = line;
     return true;
   }
-  const tail = state.src.slice(close + COMMENT_CLOSE.length, state.eMarks[line]).trim();
-  if (tail !== '') {
-    const open = state.push('paragraph_open', 'p', 1);
-    open.map = [line, line + 1];
-    const inline = state.push('inline', '', 0);
-    inline.content = tail;
-    inline.map = [line, line + 1];
-    inline.children = [];
-    state.push('paragraph_close', 'p', -1);
+  const after = close + COMMENT_CLOSE.length;
+  if (state.src.slice(after, state.eMarks[line]).trim() === '') {
+    state.line = line + 1;
+    return true;
   }
-  state.line = line + 1;
-  return true;
+  // Text after `-->`: the closing line now starts after the comment and opens a paragraph, so the
+  // text is that paragraph's first line and the lines that continue it stay with it (review round
+  // 4, R4-3). Always a paragraph — the text is never read as a heading, a list or code.
+  let text = after;
+  while (state.src[text] === ' ' || state.src[text] === '\t') text++;
+  state.bMarks[line] = after;
+  state.tShift[line] = text - after;
+  state.sCount[line] = state.blkIndent;
+  return paragraphRule(state, line, endLine, false);
 }
 
 /**
@@ -138,6 +140,10 @@ commentFreeMarkdown.block.ruler.before('lheading', 'comment_drop', commentBlock,
   alt: ['paragraph', 'reference', 'blockquote'],
 });
 commentFreeMarkdown.inline.ruler.before('text', 'comment_drop', commentInline);
+
+/** markdown-it's own paragraph rule, which the comment block hands the text after `-->` to. */
+const paragraphRule = commentFreeMarkdown.block.ruler.__rules__[commentFreeMarkdown.block.ruler.__find__('paragraph')]!
+  .fn as typeof commentBlock;
 
 /** Tags markdown-it emits (`default` preset, no raw HTML). */
 const MARKDOWN_TAGS = [

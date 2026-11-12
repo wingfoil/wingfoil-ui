@@ -479,3 +479,21 @@ generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
 
 Run `43289177462` on `4cad26df` (round 3's red `63e29719` and its fix): **success**. Every job
 of the task scope passed on the first attempt.
+
+### security review round 4 (2026-11-12)
+
+The review was independent and adversarial, on `d75b847d`. **PASS**: R3-1 and R3-2 hold (26
+targeted cases match a CommonMark oracle; about 90 000 fuzz cases show no structural difference);
+complexity stays linear and there are no regressions. Three findings: R4-1 and R4-3 are fixed here,
+red first (`80a66bdc`); R4-2 waits for the approver.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| R4-1 (minor, test strength) — the `&& !state.isEmpty(line)` term of the container check had no test | none needed: the term is right (a blank line inside a comment does not end it) | the F-4 table gained `'- x\n  <!--\n\n  secret [link](http://e)\n  -->\n'` and `'- <!-- a\n\n  hidden\n  b -->\n- c'`. They pass on the rule; with markdown-it's literal `if (state.sCount[line]! < state.blkIndent) break;` in its place (a scratch edit, restored with a file copy) both fail: the "secret" link and "hidden" are shown |
+| R4-3 (nit) — in a tight list the tail paragraph glued to the next line (`<li>tailnext</li>`) | `web/src/docs/render.ts`: the closing line now starts after `-->` (`bMarks`, `tShift`, `sCount` of that line) and goes to markdown-it's own paragraph rule. The text after the comment is the first line of a paragraph that its continuation lines join ("tail\nnext"), and it is always a paragraph — never read as a heading, a list or code | `'- a\n- <!-- x\n  y --> tail\n  next\n'` in the F-4 table failed at `80a66bdc` |
+| R4-2 (minor) — a single-line comment does not end its block as CommonMark's type 2 HTML block does, so an indented code block after it becomes paragraph text | **held**: the coordinator is asking the approver whether to align in this task or record a limitation | — |
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
+`test/web/docs/{render,comment-linear}` and `test/web/element/{summary,document}`. Not pushed yet:
+the coordinator holds the push until the approver answers on R4-2.
