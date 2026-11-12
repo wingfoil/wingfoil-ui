@@ -335,3 +335,7 @@ The three and D74-3 go into a spec-012 Process Note with the green commit.
 - Merged `design/dev-loop_v0.3` (`d0e3ca93`, W0-7, before review): task-062's web and docs
   changes; one conflict, `test/README.md`'s version line — 0.78 is task-062's, this task's suites
   0.79.
+- **gates.yml** (W2-4): run `43209159286` (`a2c2a146`, the merge and the notes on top of the
+  green): every job green — checks, coverage, contract, smoke, publish-smoke, `e2e-chromium` (1)
+  and (2) (the new `performance.spec.ts` test runs unasserted there), `own-specs` (Firefox,
+  WebKit: `performance.spec.ts`, no test on those engines); `e2e-wave` skipped (task scope).
