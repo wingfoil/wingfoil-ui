@@ -476,3 +476,6 @@ container.
 Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
 generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
 `test/web/docs/{render,comment-linear,docs}`, `test/web/element/{summary,document}`.
+
+Run `43289177462` on `4cad26df` (round 3's red `63e29719` and its fix): **success**. Every job
+of the task scope passed on the first attempt.
