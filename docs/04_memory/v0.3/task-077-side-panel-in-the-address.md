@@ -449,3 +449,13 @@ the bug file came with the phase branch at `fc36238d`, merged as `85a4c680`).
   passed; `test/web/repository/update-push`, `test/web/today/today`, `test/web/shell/toasts`,
   `test/web/element/{directives,history-text}`: 104 passed.
 - **Docs:** `CHANGELOG.md` *Unreleased* *Fixed* (bug-046, shipped in v0.2.0); `test/README.md` 0.85.
+
+Run `43228114005` on `1897a9d5` (bug-046 with its red `598a4f1b` and the merge `85a4c680`):
+**success**, every job of the task scope green on the first attempt.
+
+### the phase branch merged in for task-074 (2026-11-12)
+
+`design/dev-loop_v0.3` at `52d6ce9f` (task-074, the Traceability API: server, contracts and the
+text sweep, no web change; `package-lock.json` unchanged) merged into the task branch, as the
+coordinator asked: the only conflict was `test/README.md`'s version line — task-074's 0.84 kept,
+this task's entries renumbered 0.85 (the side panel) and 0.86 (bug-046).

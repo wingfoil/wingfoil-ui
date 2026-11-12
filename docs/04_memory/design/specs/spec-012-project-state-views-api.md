@@ -594,3 +594,21 @@ every object `additionalProperties: false`, as the other API schemas.
   and re-read on the next request, but no further `repo` tells an open page to refetch it. The confirmed mismatches are kept for every file of the newest state (no fixed number) and
   recorded also by a read that settles after its memo was dropped, so a checkout with converted line
   ends settles in one drop.
+- 2026-11-12 — clarified in task-074 (design D74-2 … D74-7, decided by the approver, Q1 (a),
+  Q2 (a), Q3 (a); plan `backlog-item-rel-v0.3-plan`). §4 `elements[].inScope` is the rule of §1
+  against the current element whenever one exists, also with `applied: project` (so *Whole
+  project* can still mark the current release's elements); `true` for every element only when
+  there is none. §4 `coverage` whose required types have no listed readable element is `{ carrying:
+  0, total: 0, percent: null }` (`percent` `integer | null`, as a row's; `no-requires` keeps
+  meaning that `taxonomy.requires` names no type). §4 a row is keyed by its kind and its id: an
+  element carrying its own id as a value a pattern matches (rule 1 excludes the own id, rule 2
+  applies) gives a pattern row beside the element row of that id, the element row first, while
+  `completion` keeps §3's one key per id, so its `references` may merge what the rows split; a
+  row's category is that of the first reference met (`memory search` order, then value order) —
+  two pattern values never share an escaped text (the escape doubles a backslash, and a value with
+  a line break is no reference), so only the first case occurs. §4 and §10: `scope` is checked
+  after the `:pid` lookup by the route itself (a query schema would answer 400 before the 404).
+  §7 the `/elements` item is `elements.schema.json` `definitions.row` and `/progress`'s completion
+  `progress.schema.json` `definitions.completion`; draft-07 has no `unevaluatedProperties`, so the
+  traceability item names each row property by `$ref` plus `done` and `inScope`, and carries no
+  `missingCategories` (the `missing` section holds them). No other shape changes.

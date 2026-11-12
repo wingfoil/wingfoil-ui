@@ -252,6 +252,24 @@ const RULES: readonly Rule[] = [
   { pattern: /^progress \.(?:figures\.\w+\.(?:ids|doneIds)\[\]|unreadable\[\]|capped\[\])$/, cls: 'c' },
   { pattern: /^progress \.figures\.(?:phase|phaseCompletion)\.reason\..+$/, cls: 'e' },
   { pattern: /^elements \.missingReferences\.(?:unreadable|capped)\[\]$/, cls: 'c' },
+  // `/traceability` (task-074 D74-8, D74-9); the row descriptors by the DESCRIPTOR rule above.
+  { pattern: /^traceability \.(?:ui\.warning\.failure|eventsError\.message)$/, cls: 'a' },
+  {
+    pattern: /^traceability \.(?:scope\.type|scope\.current\.title|elements\[\]\.title)$/,
+    cls: 'b',
+    note: 'a title escaped; the scope type echoed from ui.yaml, escaped as /config ui echoes it',
+  },
+  {
+    pattern: /^traceability \.(?:references\[\]\.id|figures\.completion\.references\[\]\.id)$/,
+    cls: 'b',
+    note: 'a pattern reference escaped (§9); an element reference the target id of memory search',
+  },
+  {
+    pattern:
+      /^traceability \.(?:scope\.current\.(?:id|shortId|type|status)|references\[\]\.linked\[\]|figures\.completion\.ids\[\]|missing\[\]\.id|elements\[\]\.(?:path|id|shortId|type|status|tags\[\])|unreadable\[\]|capped\[\])$/,
+    cls: 'c',
+  },
+  { pattern: /^traceability \.(?:figures\.phaseCompletion\.reason\..+|eventsError\.code)$/, cls: 'e' },
 ];
 
 /** The class of `key` (`<schema> <path>`), or `undefined`. */
@@ -366,6 +384,7 @@ const SWEPT_ROUTES: Readonly<Record<string, string>> = {
   '/api/p/:pid/events/memory': 'memory-events',
   '/api/p/:pid/progress': 'progress',
   '/api/projects': 'projects.list.response',
+  '/api/p/:pid/traceability': 'traceability',
 };
 
 /** The GET routes not swept, and why. */
@@ -399,6 +418,13 @@ const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
   'config .workflows.data.workflows[].phases[].actions[]': 'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
   'config .workflows.data.workflows[].phases[].produces[]':
     'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
+  // task-074 D74-6: Traceability names only the elements a reference, a link or the missing flag
+  // names, and none of the hostile fixture's member-actor rows is one. Its rows are `/elements`'s
+  // (project-routes `listedRow`, `descriptorBody`): the leaves are reached by this sweep as
+  // `elements .elements[].descriptor.actor.member.name|email`, and by the test TODAY_ACTOR names
+  // (review round 1 F-3).
+  'traceability .elements[].descriptor.actor.member.name': `this sweep › elements .elements[].descriptor.actor.member.name; ${TODAY_ACTOR}`,
+  'traceability .elements[].descriptor.actor.member.email': `this sweep › elements .elements[].descriptor.actor.member.email; ${TODAY_ACTOR}`,
 };
 
 /** `.a.<key>[]` → a pattern matching `.a.<any key>[]` of a body. */
@@ -656,6 +682,8 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
       ['directive', `/directives/${repository.directive}`],
       ['projects.list.response', '/api/projects'],
       ['progress', '/progress'],
+      ['traceability', '/traceability'],
+      ['traceability', '/traceability?scope=project'],
     ];
     // Today in every role view of the identified user (task-072): each list holds rows.
     for (const view of (await get('')).roleViews as string[]) routes.push(['today', `/today?view=${view}`]);
