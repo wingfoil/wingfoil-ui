@@ -71,3 +71,200 @@ here; a console-wide one goes through `bug-ingest`) apply.
   (dl-011).
 
 ## Execution Notes
+
+### design (2026-11-12)
+
+Read (dl-015): this task; task-062's file whole (D62-13 … D62-18, the approver's Q2 (b) and Q3 (a),
+its red/green and review notes); task-077's file whole (D77-1 … D77-9, the bug-046 focus logic of
+`ElementFooter`, F-5 and R2-5's `<bdi>`); task-072's decisions (D72-1, D72-6, D72-12, Q5:
+repository display text escaped by the server, keys shown raw, bug-041); bug-043; spec-011 whole
+with its Process Notes; `adr-002`; `ux-reference.md` 1.18 §4.2 (v0.1 … v0.3), §4.9, §5 *Modal
+dismissal* and *Feedback*; the features `g/decision-log.feature` (G-03.x, G-08.x) and
+`r/documentation.feature` (R-09.x). Code at `4ebb40cb`: `web/src/element/{ElementView,ElementPage,
+ElementSidePanel,SidePanel,Candidates,ElementFooter,model,queries}.ts(x)`, `web/src/routes/element.tsx`,
+`web/src/docs/{render,links,RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`,
+`web/src/routes/{docs,directives}.tsx` (the lazy chunks), `contracts/src/{api,cli}.ts`
+(`ElementDetail.body`, `element.path`); tests `test/web/docs/{docs,render}.test.ts(x)`,
+`test/web/element/{page,panel,side-panel,model}.test.ts(x)`, `test/e2e/documentation.spec.ts`
+(R-09.4), `test/e2e/support/{element,screens}.ts`; the custom fixture (`builder.ts`: `dl-001` by
+Alex, approved; `dl-002-use-fastify` added and submitted by Casey, `in-discussion`; its body the
+decision-log template, every section an HTML comment) and `team.ts` (Casey `product-owner`).
+
+#### Probes
+
+- **P1 — markdown-it 14.3.2's inline `text` rule** (`lib/rules_inline/text.mjs`) stops at `<`
+  (0x3C), so an inline rule at `<` sees every `<!--` of an inline run that is not inside a code span
+  (the backtick rule consumes the span first); fenced and indented code are block rules that run
+  before a paragraph. A block rule placed before `paragraph` sees a line that starts with `<!--`
+  (up to three spaces) → D78-3.
+- **P2 — React Aria's Escape** (`react-aria` 1.x `useOverlay`, `react-aria-components` 1.21.1):
+  Escape is a `useKeyboard` shortcut, which stops the event's propagation when handled, so it does
+  not bubble through the portal to the element page's `<section onKeyDown>` or the side panel's
+  `.drawer` handler. Read from the source; the red test "Escape closes the document dialog only"
+  (page and side panel) decides it — a guard (`event.isPropagationStopped`/a `data-` check) only
+  if it fails.
+- **P3 — where `RenderedArticle` loses the anchor (bug-043).** `replaceContent` sets
+  `article.innerHTML` on every new `html`; `DocumentView` recomputes `html` whenever the lookup
+  changes (index, elements, each probe), so every anchor is a new node after each answer, also the
+  ones whose classification did not change (an external link never waits). The same code serves the
+  Directives view (one change of `byPath`) and, with this task, the element document.
+- **P4 — the merged element views.** `ElementContent` (shared by the page and the side panel) shows
+  the v0.1 `summaryOf` as text; markdown-it is only in the lazy chunks of `docs/pages` and
+  `directives/pages` (`lazyRouteComponent`), not in the entry chunk. `ElementPage` shows the
+  address value raw in the topline (`{shown ? shown.element.id : eid}`) and in a refusal's heading
+  (`element.error ? eid`); `Candidates` has the `<bdi>` in its heading (R2-5) and a plain-text
+  `aria-label` on its list; `ElementSidePanel` has the `<bdi>` in both places (F-5).
+- To run at red: **R1** — WingFoil 0.3.1 lets Casey, holding `approver` on the copy's DNA, approve
+  `dl-002-use-fastify` that Casey submitted (no self-approval rule in `.wingfoil/memory.yaml` for
+  `decision-log`; G-08.1 and G-08.2 as written need it — if the CLI refuses, I stop and report);
+  **R2** — P2's Escape.
+
+#### Decisions
+
+Task-062's D62-13 … D62-17 re-checked against the merged page and panel: they hold, with the
+changes below (the summary and the dialog live in `ElementContent`, so the page and the side panel
+get them at once; the side panel can sit over the Documentation view, which makes D62-15's
+`eldoc-` prefix needed; anchors in the summary, D78-5).
+
+- **D78-1 — bug-043: the anchors are kept, the marks updated in place (AC-6).** `finishDocument`
+  keeps its output and DOMPurify stays last. `RenderedArticle` remembers the last `html` it set;
+  for a new one it compares the two *frames* — each one's inert copy with every link group replaced
+  by an empty placeholder carrying its `data-doc-link` index. Equal frames (only classifications
+  changed): each group whose HTML differs is replaced **by that group from the new, sanitised
+  output** (imported nodes, never an attribute written by hand), every other node — the clicked
+  anchor included — stays the same element; the focus rule of today applies to a replaced group
+  (the same key, else the article). Different frames (a new document, a refetched body): the whole
+  content is set as today. A *group* is the `[data-doc-link="<i>"]` element and, for a refused
+  link, its mark: the mark span gets `data-doc-mark="<i>"` (added to the final pass's allow-list,
+  with the space before it as a text node of the group), so groups are found by attribute, not by
+  sibling order. Comparing with the last `html` string, not the live DOM, keeps a heading's
+  `tabindex="-1"` set by the fragment focus from forcing a full replace. The Documentation,
+  Directives and element views all get it (one component).
+- **D78-2 — The summary (D62-13).** `element/summary.ts` (in the lazy chunk): `summarySource(body)`
+  parses with the element instance of D78-3 and renders the first top-level `paragraph` alone
+  (tokens `paragraph_open` … `paragraph_close` at level 0, with the document's `env`, so
+  `[x][ref]` resolves); then `DOMPurify` with the allow-list of step 1, and `finishDocument`.
+  "No summary in the document." when there is none; the missing required fields stay below it.
+  `summaryOf` (v0.1) and its tests go (`model.ts`, `model.test.ts`). Shown through
+  `RenderedArticle` as a `div` (no landmark, no name, no focus on load).
+- **D78-3 — HTML comments (the approver's Q2 (b)).** `markdownToSafeHtml(source, { comments: 'drop'
+  })`: a second markdown-it instance with the same options (`html: false`) and two rules — a block
+  rule before `paragraph` that drops a comment block (a line starting with `<!--`, through the line
+  holding `-->`, as CommonMark's HTML block type 2; an unclosed one to the end, as v0.1's summary)
+  and an inline rule that drops `<!--` … `-->` in a run of text (P1). Code (fenced, indented, code
+  spans) keeps them. The default stays the Documentation and Directives behaviour (comments shown as
+  text). *Source* shows the body as written, comments included.
+- **D78-4 — The document dialog (D62-14).** *Open document*, a button under the summary, opens a
+  React Aria `DialogTrigger` › `Modal` (`isDismissable={false}`, ux §5) › `Dialog` named by the
+  element's title (the server-escaped title, K1, as React text) with *Close*; a `ToggleButtonGroup`
+  *Rendered / Source* (single selection, never empty, Rendered by default, not in the URL); Rendered
+  — the whole body through D78-3 and `finishDocument` in a labelled `RenderedArticle`; Source — the
+  body as written in a focusable `<pre>` (React text, monospace, no wrap, scrolls, named "Source").
+  An empty or whitespace-only body: "No content yet" in both modes
+  (G-03.3). Escape and *Close* close it and give the focus back to *Open document*
+  (the trigger). Opened from the element page and from the side panel alike.
+- **D78-5 — Links and images (D62-15, adr-002, AC-3).** Relative links resolve against
+  `element.path` (`resolveLink`), classified by `classifyLink` against the lookup of D78-6: an
+  indexed document opens in the Documentation view, a Memory file its element page, `http(s)` in a
+  new tab (`noopener noreferrer`), every other scheme, `//host`, a path above the root marked as
+  today; images become their marked alternative text (no `img` in the page allow-list: nothing is
+  fetched). A link selected in the dialog closes it and navigates (`router.navigate({ href })`; from
+  the side panel the address loses `panel=`: G-03.4 lands on the element page). Anchors
+  (`#section`): `FinishOptions.headingPrefix` (default `doc-`, the element document `eldoc-`) and
+  a `RenderedArticle` prop `onAnchor(fragment)` — in the dialog the heading of the same article
+  takes the focus, no navigation; in the summary the dialog opens on Rendered with that heading
+  focused. The anchor's `href` is `#<fragment>`, never a route.
+- **D78-6 — The lookup moves (D62-15).** `useLinkLookup` moves from `docs/pages.tsx` to
+  `docs/link-lookup.ts` unchanged (the index, `GET /elements`, at most `MAX_LINK_CHECKS` = 100
+  `/files/content` checks), with one option `{ onlyWithRepositoryLinks }` that the element document
+  sets: a body with no repository-path link reads nothing beyond the element. One lookup per
+  element, over the whole body, shared by the summary and the dialog. The Documentation view calls
+  it as today.
+- **D78-7 — Lazy module.** `element/document.tsx` (`React.lazy` from `ElementContent`, `Suspense`
+  with the polite line "Loading the summary…"): the summary, the button and the dialog, so
+  markdown-it stays out of the entry chunk as for the Documentation and Directives views.
+- **D78-8 — Text from the body is document content (D62-16, D56-2).** The body is rendered and
+  shown in *Source* as written (no character escape; a Markdown backslash stays one), as the
+  Documentation view does; titles and texts the server escapes (K1, task-072) are React text. No
+  script, no raw HTML (`html: false`, DOMPurify last), no image request: the security review's
+  checks (Q3 (a): no Content-Security-Policy here, bug-039).
+- **D78-9 — The address value isolated on the element page (AC-7).** `ElementPage`'s topline and a
+  refusal's heading wrap the address value in `<bdi>` as `ElementSidePanel` does (the server's
+  `element.id` once shown stays a key shown raw, bug-041). The candidates' list is named by its
+  heading (`aria-labelledby`, the heading holds the `<bdi>`), not by a second plain-text copy:
+  Q3. The page title (`document.title`) keeps the value as text: Q2.
+- **D78-10 — Strings and screens (D62-17).** Catalogue keys (sorted in place):
+  `element.document.open` "Open document", `element.document.view` (the switch's label "View"),
+  `element.document.rendered` "Rendered", `element.document.source` "Source",
+  `element.document.empty` "No content yet", `element.summary.loading` "Loading the summary…".
+  `SCREENS` (append-only): "element document — rendered" and "element document — source"
+  (`dl-002-use-fastify` with a scenario-local body: headings, a table, a link of each class, an
+  image), both themes, both builds.
+- **D78-11 — e2e support.** `expectNoImageRequest(page, action)` in `test/e2e/support/element.ts`
+  (a `request` listener on `resourceType() === 'image'` and any URL ending in an image name of the
+  body, around the action); `documentDialog(page)` → `getByRole('dialog', { name: <title> })`.
+  `sidePanel(page)` keeps `[role="dialog"][data-element-view]` (the document dialog has no
+  `data-element-view`).
+
+#### Files
+
+New: `web/src/element/{document.tsx,summary.ts}`, `web/src/docs/link-lookup.ts`,
+`test/web/element/{document.test.tsx,summary.test.ts}`, `test/web/docs/classification-in-place.test.tsx`,
+`test/e2e/decision-log.spec.ts`. Changed: `web/src/element/{ElementView,ElementPage,Candidates,model,
+element.css}`, `web/src/docs/{render.ts,RenderedArticle.tsx,pages.tsx,docs.css}`, `web/src/i18n/en.json`,
+`test/web/element/{page,panel,model}.test.ts(x)` (the summary is lazy: `findBy`), `test/web/docs/render.test.ts`
+(the `data-doc-mark` attribute), `test/e2e/documentation.spec.ts` (bug-043's test appended),
+`test/e2e/support/{element,screens}.ts`. Docs: `ux-reference.md` 1.19 (§4.2 v0.3: comments left out
+of the rendered document, anchors, the dialog's links), `CHANGELOG.md` *Unreleased* (*Added* the
+rendered summary and document; *Fixed* bug-043), `docs/user-guide.md` (reading an element's
+document), `test/README.md` (version line, the new suites); adr-002 and spec-011 hold as written.
+No server, contract or `.wingfoil/` change.
+
+#### Acceptance criteria — class and test plan
+
+| AC / scenario | Class | Test (file › title) |
+|---|---|---|
+| AC-6 bug-043 | red-first | `test/web/docs/classification-in-place.test.tsx` › "bug-043 — a link keeps its element while a lookup answers, and a click on it opens" (the probe of a missing file held; the external and the document link taken; the probe answered; the same nodes `isConnected`, the *broken link* mark shown, a click on the held document link navigates) — red today (`isConnected` false); › "a refetched body replaces the content" (characterization); › "a focused link whose group changes keeps the focus by its key" (characterization of review F1's rule) |
+| AC-6 bug-043 e2e | red-first | `test/e2e/documentation.spec.ts` › `bug-043 — A link clicked while a link check is pending opens` (`page.route` holds `/files/content?path=…missing-file.md` until after the click on *Guide*; the new tab opens; then the route is released and *broken link* shows); R-09.4 unchanged |
+| AC-7 | red-first | `test/web/element/page.test.tsx` › "AC-7 — isolates the address value on the element page" (an `eid` holding U+202E: the topline's and a 404 heading's value inside a `bdi`); › "AC-7 — names the candidates' list by its heading" (`aria-labelledby`, the name unchanged) — red today |
+| AC-3 summary | red-first | `test/web/element/summary.test.ts`: the first top-level paragraph after comments, headings and a list; a reference link; emphasis and code; a comment inside a code span kept; none → `undefined` |
+| AC-3 dialog | red-first | `test/web/element/document.test.tsx`: the summary rendered on the page and in the side panel; *Open document*; Rendered by default; Source as written (comments kept); "No content yet"; Escape and *Close* back to the button; Escape closes the dialog only (page and side panel, R2); raw HTML (`<img src=x onerror=…>`, `<script>`) as text; `javascript:`, `data:`, `//host` marked; a relative link to an element file → `/p/<pid>/e/<id>`, selected → the dialog closes and the page navigates; an anchor focuses its heading in place, from the summary opens the dialog on it; images as marked text, no `img` in the DOM; heading ids `eldoc-`; comments left out of Rendered (Q2 (b)); a body with no repository link reads only the element (the stub API's requests) |
+| AC-3 renderer | characterization + red | `test/web/docs/render.test.ts` (`comments: 'drop'` cases; the default unchanged); `test/web/docs/docs.test.tsx` unchanged (the lookup moved) |
+| AC-1 G-03.1 … G-03.4 | red-first | `test/e2e/decision-log.spec.ts` (new, `prebuild: ['custom']`, copies with scenario-local commits, `identity.ts` for Casey): `G-03.1 — Read a decision-log as a rendered document` (the body with Context, Options, Decision; the dialog's headings; the history line "submitted by Casey" with its commit); `G-03.2 — Open the decision-log from Documentation links` (`docs/01_vision/00_index.md` links to `dl-002`'s file; the page in `main`, no side panel, the summary's emphasis rendered); `G-03.3 — Read a decision-log with an empty body` (`dl-003-empty` added and its body emptied on the copy); `G-03.4 — Open a linked element from a summary in the main region` (Casey's *Waiting on others* side panel of `dl-002`, its summary's link to `dl-001`'s file → `dl-001`'s page); `AC-3 — No image is requested when the document opens` (`expectNoImageRequest` around opening the dialog of a body with a remote and a relative image) |
+| AC-2 G-08.1 … G-08.3 | red-first (G-08.1, G-08.2: the copy's DNA gives Casey `approver`, R1) · characterization (G-08.3, the v0.2 reserved line) | same spec: `G-08.1 — Approve a decision-log as a product owner holding approver`, `G-08.2 — Send a decision-log back to draft` (the commits' subjects; Today's row "Rejected by Casey: Needs a cost estimate"), `G-08.3 — Keep the decision informational for a product owner without approver` |
+| AC-4 | red-first | `test/e2e/accessibility.spec.ts` — the two `SCREENS` entries of D78-10 (X-06.4, X-09.1, both themes, both builds); keyboard in `decision-log.spec.ts` (`expectFocusVisible` on *Open document*, the switch, the Source block, the dialog's *Close*; Tab stays in the dialog) |
+| AC-4 three engines | gate | `gates.yml` own specs: `decision-log`, `documentation`, `accessibility` and every spec changed |
+| AC-5 | docs, gates | the docs above; local typecheck, lint, format:check, `docs:api`, targeted `npx vitest run --maxWorkers=2`, `check_tasks.py v0.3`, `public-text`; heavy gates on `gates.yml` (run id, commit, result); the G-08.x suites commit through the console: on the CI runner (a fresh account, task-071) and, for any local git-touching suite, the strict-identity recipe (dl-011) |
+
+Red first for bug-043 and AC-7: the failing tests are committed before the fix; a test that passes
+on its first run gets a guard removal (Wave 3 lesson). The e2e of the red commit runs on `gates.yml`
+with the green commit (no local Playwright).
+
+#### Security review (for the adversarial reviewer)
+
+No script (markdown-it `html: false`, DOMPurify last on every path, D78-1's patch moving only nodes
+of a sanitised output), raw HTML only as text, links confined (`resolveLink`, `classifyLink`, the
+final pass's `ALLOWED_URI_REGEXP`), no image request (no `img` in the page allow-list; the e2e),
+the comment rule (D78-3) unable to turn text into markup (it only drops input), the address value
+isolated (D78-9), the Documentation view's behaviour unchanged but for D78-1.
+
+#### Open questions
+
+- **Q1 — Size (RP3-20 G2): about 1.25 active days.** Options: (a) no split — bug-043 changes the
+  `RenderedArticle` the element document is built on, AC-7 is a few lines; (b) bug-043 in a task of
+  its own before this one. **Recommendation: (a)** — one renderer change, one security review.
+- **Q2 — The page title holds the address value** (`title.projectElement`, `document.title` is
+  plain text: no `<bdi>` there). Options: (a) as it is, recorded with bug-041's keys shown raw (AC-7
+  lists the page's visible places only); (b) the value between U+2068 and U+2069 in the title (every
+  `toHaveTitle` of an element page changes). **Recommendation: (a).**
+- **Q3 — The candidates' list name** (AC-7 names it; an `aria-label` is a string, no `<bdi>`).
+  Options: (a) the list named by its heading (`aria-labelledby`): the one visible text holds the
+  `<bdi>`, the accessible name is unchanged; (b) U+2068/U+2069 around the value in the `aria-label`
+  (the name changes for the tests of task-062 and task-077). **Recommendation: (a).**
+
+#### Size
+
+About 1.25 active days: bug-043's patch and its tests 0.25 d; the summary, the comment rule, the
+dialog, the lookup move, the renderer options and their web tests 0.45 d; AC-7 0.05 d; the
+decision-log spec with its scenario-local fixtures, the two screens and the characterization moves
+0.3 d; docs, `gates.yml` runs, review rounds 0.2 d. Above one day: Q1.
