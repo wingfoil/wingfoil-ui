@@ -166,8 +166,9 @@ test.describe('US-T-02 — Requires you', () => {
       if (r.method() === 'POST' && new URL(r.url()).pathname.startsWith('/api/p/')) posts.push(r.url());
     });
     await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`);
-    await expect(page.getByRole('region', { name: 'Login form', exact: true })).toBeVisible({ timeout: COLD_READ_MS });
+    // The side panel over Today (task-077).
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today?panel=task-001-login-form`);
+    await expect(page.getByRole('dialog', { name: 'Login form', exact: true })).toBeVisible({ timeout: COLD_READ_MS });
     expect(posts).toEqual([]);
   });
 
@@ -326,9 +327,9 @@ test.describe('US-T-11 — Waiting on others', () => {
     await expect(rowOf(waiting(page), 'task-004-session-timeout').locator('.today-who')).toHaveText(
       'Jordan (creator) must act',
     );
-    // A row opens the element panel.
+    // A row opens the element's side panel over Today (task-077).
     await rowOf(waiting(page), 'task-002-password-reset').getByRole('link').click();
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-002-password-reset`);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today?panel=task-002-password-reset`);
   });
 
   test('T-11.2 — Name the workflow engine for an engine-waiting state', async ({ page, fixtures, consoles }) => {

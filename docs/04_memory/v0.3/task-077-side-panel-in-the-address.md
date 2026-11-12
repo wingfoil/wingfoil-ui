@@ -271,3 +271,53 @@ other parsed form is *not found* without a request (D77-1); Q2 (a) — opening p
 panel is open, otherwise the value is replaced keeping the entry's state, so one *Close* / Back
 returns to the view (D77-4). Both recorded in spec-011's Process Note and `ux-reference.md` §4.2
 v0.3.
+
+### red / green / refactor (2026-11-12)
+
+- **Red** (`57ff40f7`; `npx vitest run --maxWorkers=2 test/web/element/side-panel.test.tsx
+  test/web/element/address.test.ts`): `side-panel.test.tsx` 21 failed, 2 passed — every panel test
+  failed on behaviour (the title's link was `/p/<pid>/e/…`, no `dialog` opened, no `?panel=` read);
+  the two that passed are characterization of the element page (the bell on the page opens the
+  page; `panel=` on `/e/` reads nothing) and show their guard-removal failure below.
+  `address.test.ts` failed on the missing module `web/src/element/side-panel.ts`: its `panelSearch`
+  cases are covered on behaviour by the hostile values of `side-panel.test.tsx` (`123`, a repeated
+  `panel=`, `''`). The e2e `side-panel.spec.ts` and the two `SCREENS` entries were committed with
+  the red tests and run on `gates.yml` with the green commit (no local Playwright, the 2026-11-11
+  override).
+- **Green:** `web/src/element/{side-panel.ts,SidePanel.tsx,ElementSidePanel.tsx}` (new),
+  `routes/project.tsx` (`validateSearch: panelSearch`, the panel after `<main>`),
+  `element/Candidates.tsx` (`linkTo`), `today/{TodayView,RoleSummary}.tsx` (the openers through
+  `panelLinkOptions`, the opener record moved to `side-panel.ts`, the restore driven by
+  `onPanelClosed`), `shell/NotificationBell.tsx` (`ElementLink`: the panel, or the page on the
+  element page), `element.body.label` re-added; the comment of `routes/element.tsx`.
+- **Deviations from the design.** (1) R1 decided: React Aria's `Dialog` focuses itself on mount, after
+  the panel's effect, so the heading takes the focus again a frame later when the focus is on the
+  dialog itself, lost, or on the bell's trigger (`headingShouldTakeFocus`), never when it is on a
+  control inside the panel (the footer's reason) or one the user chose. (2) R2: the panel's
+  navigations pass `resetScroll: false` (test "does not reset the scroll of the view"). (3) R3
+  needs no code: `useCanGoBack()` reads the router's own index, which a reload keeps. (4) A relative
+  `to: '.'` with no `from` resolves against the current location's leaf match in TanStack Router
+  1.170.41 (`buildLocation`, `currentMatch()`), so the bell and the candidates — rendered under the
+  project layout — open the panel over the current view, not over `/p/<pid>`. (5) The bell forgets
+  any opener recorded on Today (`forgetOpener`): a bell item's panel closes to the main region.
+  (6) `address.test.ts` › `panelSearch` maps an absent value only when the key is missing or
+  `undefined`.
+- **Guard removals** (scratch edits, restored with a file copy): the `!onElementPage` condition of
+  `routes/project.tsx` removed → "ignores panel= on the element page" fails (1 failed, 22 skipped
+  by `-t`); `ElementLink`'s page branch removed → "opens a bell item on the element page as that
+  item's element page" fails (1 failed, 22 skipped).
+- **Characterization moved:** web — `today/today.test.tsx` (the links' `?panel=` addresses, the
+  action's `search`, the bug-018 tests now waiting for `panel=` to go), `today/summary.test.tsx`,
+  `shell/notification-bell.test.tsx`; e2e — `today.spec.ts` (T-02.2, T-11.1: the panel's address
+  and dialog), `gate-footer.spec.ts` (G-04.3's address), `notification-bell.spec.ts` (S-21.1's
+  address). Unchanged and green: `npx vitest run --maxWorkers=2` on `test/web/element/{page,panel,
+  gate-footer,submit-footer,directives,history-text}`, `test/web/today/{cards,title-text}`,
+  `test/web/memory/list`, `test/web/shell/{switch-target,project-switcher,toasts,shell}`,
+  `test/web/docs/docs`, `test/web/project/how-to-join`, `test/web/i18n/*` (118 + 133 + 119 passed
+  across the runs).
+- **Local checks:** `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run
+  docs:api` generated; `check_tasks.py v0.3` OK; `npx vitest run test/docs/public-text.test.ts`
+  passed.
+- **Docs:** spec-011 Process Note (2026-11-12: Q1 (a), Q2 (a), the bell on the page);
+  `ux-reference.md` 1.17 (§4.2 v0.3 *The side panel*); `CHANGELOG.md` *Unreleased* *Added*;
+  `docs/user-guide.md` 0.35; `test/README.md` 0.79.

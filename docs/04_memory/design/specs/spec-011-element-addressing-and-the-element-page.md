@@ -286,3 +286,17 @@ remember across the session exchange, and where, is adr-003's.
   fallback, when the page was not reached inside the console, is now the project's Memory list
   `/p/<pid>/memory` as §2 decides (`web/src/routes/element.tsx`, task-062); the "today the fallback
   is `/p/<pid>`" of §2 describes the code before task-062 (task-062 review round 1, F-2).
+- 2026-11-12 — at task-077-side-panel-in-the-address's design (decided by the approver, "confermo
+  le decisioni raccomandate"; task-077 D77-1 … D77-7, Q1 (a), Q2 (a)): §2 *The side panel in the
+  URL* holds, with three precisions. (Q1 (a)) A present `panel=` always opens the panel: a string
+  value is looked up as §3 says — `''`, `.` and `..` refused as *not found* before any request (§6,
+  2026-11-11) —, and any other form the search parser yields (a number, a boolean, `null`, an
+  object, a repeated parameter) is *not found* without a request. (Q2 (a)) Opening pushes a history
+  entry only when no panel is open; opening another element while one is (another Today row, a bell
+  item, a candidate) replaces the value and keeps the entry, so one *Close* or one Back returns to
+  the view without the panel. *Close* and Escape go back in history when the console pushed the
+  entry, else replace it without `panel=`; every other search parameter is kept. (Task-062 Q1 (a))
+  On the element page `/p/<pid>/e/…`, where `panel=` is ignored, a bell item opens that item's
+  element page. §6 holds as written: the value is only the `<eid>` of `GET /api/p/<pid>/elements/…`
+  and its history, never a link, a navigation target or a page title; the two rewrites write the
+  server's `element.id` or a candidate's id (`web/src/element/{side-panel.ts,SidePanel.tsx}`).

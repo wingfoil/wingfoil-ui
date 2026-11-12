@@ -7,10 +7,17 @@
  * also fills the right end of the global header (current user, role view). The sidebar wrapper
  * `.project-sidebar` holds the views navigation and, in `.sidebar-foot` below it, the git status
  * (task-039, D39-1).
+ *
+ * **The side panel (task-077, spec-011 §2):** `?panel=<id>` is a search parameter of this layout
+ * (`panelSearch`), so every view under `/p/$pid` sees it and keeps its own; while it is present and
+ * the element page is not shown (there it is ignored), the element's side panel is rendered after
+ * `<main>`, keyed by the project, over the view — which stays mounted (D77-1).
  */
-import { createRoute, Link, Outlet, useRouter } from '@tanstack/react-router';
+import { createRoute, Link, Outlet, useRouter, useRouterState } from '@tanstack/react-router';
 import { useMemo, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { SidePanel } from '../element/SidePanel.js';
+import { panelSearch } from '../element/side-panel.js';
 import { HowToJoinProvider } from '../project/HowToJoin.js';
 import { ProjectHeader } from '../project/ProjectHeader.js';
 import { GitStatus } from '../repository/GitStatus.js';
@@ -54,6 +61,10 @@ function ProjectLayout(): ReactNode {
   const { pid } = projectRoute.useParams();
   const router = useRouter();
   const groups = useMemo(() => navGroups(Object.values(router.routesById)), [router]);
+  const { panel } = projectRoute.useSearch();
+  // The element page already shows an element: `panel=` is ignored there (spec-011 §2). The route id
+  // is compared as text, so that this layout does not import the element route (which imports it).
+  const onElementPage = useRouterState({ select: (s) => s.matches.some((m) => m.routeId === ELEMENT_ROUTE_ID) });
   return (
     <HowToJoinProvider pid={pid}>
       {/* The sidebar (D39-1): the views, then the git status pinned at the bottom (ux-reference §2). */}
@@ -69,9 +80,18 @@ function ProjectLayout(): ReactNode {
         <ProjectHeader pid={pid} />
         <Outlet />
       </main>
+      {panel !== undefined && !onElementPage && <SidePanel key={pid} pid={pid} eid={panel} />}
     </HowToJoinProvider>
   );
 }
 
-/** `/p/$pid`: the layout of every project view. */
-export const projectRoute = createRoute({ getParentRoute: () => rootRoute, path: '/p/$pid', component: ProjectLayout });
+/** The route id of the element page (`routes/element.tsx`). */
+const ELEMENT_ROUTE_ID = '/p/$pid/e/$eid';
+
+/** `/p/$pid`: the layout of every project view; `?panel=` its search parameter (task-077). */
+export const projectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/p/$pid',
+  validateSearch: panelSearch,
+  component: ProjectLayout,
+});

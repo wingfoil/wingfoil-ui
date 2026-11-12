@@ -5,7 +5,7 @@
  * single-role member, S-23.3). Nothing is recomputed here (spec-003 §8).
  *
  * A line is a button "approver · 2" that switches the role view (S-23.2), followed by its items
- * (links to the element panel) and "N more", which switches to that view too (D42-7). The line of
+ * (links that open the element's side panel, task-077) and "N more", which switches to that view too (D42-7). The line of
  * the current view is marked and is no switch. Each switch is described by "Switches the role view"
  * (review R7) — a `hidden` element: `aria-describedby` still resolves it and browse mode does not
  * read it as stray text (review round 2, R2-3). The switch itself is Today's (`onSwitch`): its
@@ -17,7 +17,7 @@ import { Link } from '@tanstack/react-router';
 import { useId, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { rememberOpener } from './TodayView.js';
+import { panelLinkOptions, rememberOpener, usePanelOpen } from '../element/side-panel.js';
 
 /** Props of {@link RoleSummary}. */
 export interface RoleSummaryProps {
@@ -34,6 +34,7 @@ export function RoleSummary({ pid, lines, view, onSwitch }: RoleSummaryProps): R
   const intl = useIntl();
   const titleId = useId();
   const hintId = useId();
+  const panelOpen = usePanelOpen();
   return (
     <section className="today-card today-summary" aria-labelledby={titleId}>
       <h2 className="today-card-title" id={titleId}>
@@ -72,8 +73,7 @@ export function RoleSummary({ pid, lines, view, onSwitch }: RoleSummaryProps): R
                     <li key={element.id} data-eid={element.id}>
                       <Link
                         className="today-summary-item"
-                        to="/p/$pid/e/$eid"
-                        params={{ pid, eid: element.id }}
+                        {...panelLinkOptions(element.id, panelOpen)}
                         // The focus comes back to this item when the panel closes (bug-018, R2-1).
                         onClick={(event) => rememberOpener(pid, element.id, 'today-summary-item', event)}
                       >

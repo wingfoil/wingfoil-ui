@@ -176,7 +176,8 @@ it('opens with the keyboard, lists the Requires you rows and closes with Escape 
   const items = within(section(dialog, 'To unblock')).getAllByRole('listitem');
   expect(items.map((i) => i.getAttribute('data-eid'))).toEqual(['task-001-login', 'bug-001-crash']);
   const link = within(items[0]!).getByRole('link', { name: 'Title of task-001-login' });
-  expect(link.getAttribute('href')).toBe(`/p/${PID}/e/task-001-login`);
+  // task-077: an item opens the side panel over the current view.
+  expect(link.getAttribute('href')).toBe(`/p/${PID}/today?panel=task-001-login`);
   expect(items[0]!.querySelector('.bell-verb')?.textContent).toBe('Approve');
   expect(within(dialog).getByRole('link', { name: 'Open Today' }).getAttribute('href')).toBe(`/p/${PID}/today`);
   await user.keyboard('{Escape}');
@@ -191,7 +192,8 @@ it('opens the element panel from a row with the gate reason focused, and closes 
   await user.click(await bell('Notifications, 2 to unblock'));
   const dialog = await panel();
   await user.click(within(dialog).getByRole('link', { name: 'Title of bug-001-crash' }));
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/e/bug-001-crash`));
+  await waitFor(() => expect(router.state.location.search).toEqual({ panel: 'bug-001-crash' }));
+  expect(router.state.location.pathname).toBe(`/p/${PID}/today`);
   expect(router.state.location.state.gateFocus).toBe(true);
   await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
 });
@@ -219,7 +221,7 @@ it('reads the last 10 Memory events only when the panel opens, newest first as r
     null,
   ]);
   expect(within(items[1]!).getByRole('link', { name: 'task-003-logout' }).getAttribute('href')).toBe(
-    `/p/${PID}/e/task-003-logout`,
+    `/p/${PID}/today?panel=task-003-logout`,
   );
   expect(items[0]!.querySelector('time')?.textContent).toBe('3 days ago');
   expect(items[0]!.querySelector('time')?.getAttribute('dateTime')).toBe(DAYS_3);

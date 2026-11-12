@@ -8,21 +8,26 @@
  *   not 0 and in the button's accessible name (no live region of its own: Today announces its
  *   changes, D42-4);
  * - a panel (the project switcher's popover pattern: Escape closes it, the focus returns to the
- *   bell) with *To unblock* — every Requires you row (spec-003 §5: the same rows), each a link to
- *   the element panel with the gate reason focused as Today's action (D37-1) — and *Updates*, the
+ *   bell) with *To unblock* — every Requires you row (spec-003 §5: the same rows), each a link that
+ *   opens the element with the gate reason focused as Today's action (D37-1) — and *Updates*, the
  *   last 10 Memory events newest first (TT-PERF-11), read only while the panel is open (D42-2).
+ *
+ * v0.3 (task-077, spec-011 §2): an item opens the element's side panel over the current view
+ * (`?panel=<id>`, `ElementLink`); on the element page, which ignores `panel=`, it opens the item's
+ * element page (the approver's Q1 (a)).
  *
  * A write or a `repo` event invalidates the project's queries, so the count follows an action
  * (S-21.3). A refused read is an error inside the panel, never "Nothing to unblock" (D31-3).
  */
 import type { ProjectHeader, Today } from '@wingfoil-ui/contracts';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import { useId, useState, type ReactNode } from 'react';
 import { Button, Dialog, DialogTrigger, Heading, Popover } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { memoryEventsQuery, todayQuery } from '../api/queries.js';
+import { forgetOpener, panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
 import { durationOf } from '../today/model.js';
 import { ErrorText } from './ErrorText.js';
 import { Bell } from './icons.js';
@@ -35,6 +40,46 @@ export const UPDATES_LIMIT = 10;
 /** A failed read as an API error (a non-API failure renders as `internal`). */
 function asApiError(error: Error): ApiError {
   return error instanceof ApiError ? error : new ApiError(0, 'internal', error.message, undefined);
+}
+
+/** The route id of the element page (`routes/element.tsx`), compared as text. */
+const ELEMENT_ROUTE_ID = '/p/$pid/e/$eid';
+
+/**
+ * A link of the bell to element `eid`: the side panel over the current view, or — on the element
+ * page — that element's page (Q1 (a)). The bell keeps no focus to return to (its popover closes):
+ * the panel's close gives it to the main region (ux-reference §4.2 v0.2).
+ */
+function ElementLink({
+  pid,
+  eid,
+  className,
+  gateFocus = false,
+  onNavigate,
+  children,
+}: {
+  pid: string;
+  eid: string;
+  className: string;
+  gateFocus?: boolean;
+  onNavigate(): void;
+  children: ReactNode;
+}): ReactNode {
+  const onElementPage = useRouterState({ select: (s) => s.matches.some((m) => m.routeId === ELEMENT_ROUTE_ID) });
+  const panelOpen = usePanelOpen();
+  const onClick = (): void => {
+    forgetOpener();
+    onNavigate();
+  };
+  return onElementPage ? (
+    <Link className={className} to="/p/$pid/e/$eid" params={{ pid, eid }} state={{ gateFocus }} onClick={onClick}>
+      {children}
+    </Link>
+  ) : (
+    <Link className={className} {...panelLinkOptions(eid, panelOpen, gateFocus)} onClick={onClick}>
+      {children}
+    </Link>
+  );
 }
 
 /** Props of {@link NotificationBell}. */
@@ -149,16 +194,16 @@ function ToUnblock({ pid, today, onNavigate }: BellPanelProps): ReactNode {
           <span className="bell-verb">
             <FormattedMessage id="today.action" values={{ action }} />
           </span>
-          <Link
+          <ElementLink
+            pid={pid}
+            eid={element.id}
             className="bell-link"
-            to="/p/$pid/e/$eid"
-            params={{ pid, eid: element.id }}
             // A gate opens with its reason focused, as from Today's action (D37-1).
-            state={{ gateFocus: action === 'approve' || action === 'review' }}
-            onClick={onNavigate}
+            gateFocus={action === 'approve' || action === 'review'}
+            onNavigate={onNavigate}
           >
             {element.title}
-          </Link>
+          </ElementLink>
         </li>
       ))}
     </ul>
@@ -215,14 +260,9 @@ function UpdateItem({
   return (
     <li className="bell-update" data-sha={line.sha}>
       <span className="bell-update-main">
-        <Link
-          className="bell-link bell-update-id"
-          to="/p/$pid/e/$eid"
-          params={{ pid, eid: line.id }}
-          onClick={onNavigate}
-        >
+        <ElementLink pid={pid} eid={line.id} className="bell-link bell-update-id" onNavigate={onNavigate}>
           {line.id}
-        </Link>
+        </ElementLink>
         <span className="bell-update-what">
           <FormattedMessage id="element.history.entry" values={{ operation: line.operation, name: line.name }} />
         </span>

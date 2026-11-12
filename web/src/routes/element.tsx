@@ -1,8 +1,9 @@
 /**
  * The element page route `/p/$pid/e/$eid` (US-G-01; spec-011 §2; ux-reference §4.2 v0.3, N5):
  * the element in the main region, reached by its address (G-01.4), from the Memory list (task-017),
- * from document, directive and element links (task-020, RP3-16 P2) — and, until task-077 opens the
- * side panel, from Today and the bell. It has no sidebar entry. Reads, nothing per reference
+ * from document, directive and element links (task-020, RP3-16 P2), and from a bell item while the
+ * page is shown (task-077, Q1 (a)); Today and the bell elsewhere open the side panel (`?panel=`,
+ * `element/SidePanel.tsx`), which this page ignores. It has no sidebar entry. Reads, nothing per reference
  * (TT-PERF-05): the element and its history, plus the project's directives and header (task-019,
  * shared with the Directives view); every key sits under `['p', pid]`, so the `repo` event
  * refreshes an open page (S-26.2).

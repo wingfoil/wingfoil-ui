@@ -104,7 +104,8 @@ it('summarises each role in the order received, with its count and first items (
   const approver = all[0]!;
   const links = within(approver).getAllByRole('link');
   expect(links.map((l) => l.textContent)).toEqual(['Title of task-001', 'Title of task-002', 'Title of task-003']);
-  expect(links[0]!.getAttribute('href')).toBe(`/p/${PID}/e/task-001`);
+  // task-077: an item opens the side panel over Today.
+  expect(links[0]!.getAttribute('href')).toBe(`/p/${PID}/today?panel=task-001`);
   expect(within(approver).getByRole('button', { name: '2 more for approver' }).textContent).toBe('2 more');
   // A role with nothing: only its count.
   expect(within(all[1]!).queryAllByRole('link')).toEqual([]);
