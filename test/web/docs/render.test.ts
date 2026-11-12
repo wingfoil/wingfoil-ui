@@ -324,6 +324,12 @@ describe('the comment rules drop only the comment (review round 1, F-1, F-4)', (
     ['- item\n  <!-- a\n\nOutside para\n\n  -->', '- item\n\nOutside para\n\n  -->'],
     ['> <!-- a\nb -->\nvisible', '>\nb -->\nvisible'],
     ['> > <!-- a\n> b\n-->', '> >\n> b\n-->'],
+    // Review round 4, R4-1: a blank line inside the comment does not end it (only a non-blank line
+    // outside the container does).
+    ['- x\n  <!--\n\n  secret [link](http://e)\n  -->\n', '- x\n'],
+    ['- <!-- a\n\n  hidden\n  b -->\n- c', '-\n- c'],
+    // Review round 4, R4-3: the text after the comment stays the first line of its paragraph.
+    ['- a\n- <!-- x\n  y --> tail\n  next\n', '- a\n- tail\n  next\n'],
   ];
 
   it.each(CASES)('F-4 — %j renders as the same Markdown without its comment', (source, without) => {
