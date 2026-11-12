@@ -14,8 +14,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   rendered or as its source, on the element page and in the side panel alike. The rendering is the
   Documentation view's — raw HTML shown as text, no image loaded, relative links read from the
   element file's folder (another element's file opens its page) — and leaves the body's HTML
-  comments out (the source keeps them). A decision-log is read and decided from its element by a
-  product owner holding `approver`.
+  comments out, only the comments: the text after one is kept, and the source keeps them. When the
+  summary and the document cannot be loaded (a tab left open across an upgrade), their place says
+  so and offers *Reload the page*; the rest of the element stays. A decision-log is read and
+  decided from its element by a product owner holding `approver`.
 - **The side panel in the address** (task-077, US-G-01 G-01.8, US-S-21 S-21.4; spec-011 §2, §6):
   Today's rows and the notification bell's items open the element in a side
   panel over the current view, which stays as it was (Today keeps its filters); the address carries

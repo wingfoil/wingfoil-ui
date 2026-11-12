@@ -28,45 +28,89 @@ const COMMENT_OPEN = '<!--';
 const COMMENT_CLOSE = '-->';
 
 /**
- * A comment block (task-078, D78-3): a line that starts with `<!--` (up to three spaces in), through
- * the line holding `-->` (CommonMark's HTML block type 2), when nothing but blanks follows that
- * `-->`; or to the end of its container when it is never closed (CommonMark's type 2 block; GitHub
- * hides the rest the same way). A comment followed by text on its closing line is no block: the
- * paragraph keeps the text and {@link commentInline} drops the comment alone (review round 1, F-1).
- * Nothing is emitted: the input is only dropped, never turned into markup.
+ * The first `-->` of `src` at or after `from`, or -1 (task-078 review round 2, R2-1). The answer of
+ * the last search of each parse state is kept: a later search from a position between that search's
+ * start and its answer has the same answer, so the forward scans of a parse stay linear in the source
+ * (the rules ask again for every line, every opener and every link label they are tried on).
+ */
+const closeScans = new WeakMap<object, { from: number; found: number }>();
+function nextClose(owner: object, src: string, from: number): number {
+  const last = closeScans.get(owner);
+  if (last && from >= last.from && (last.found < 0 || from <= last.found)) return last.found;
+  const found = src.indexOf(COMMENT_CLOSE, from);
+  closeScans.set(owner, { from, found });
+  return found;
+}
+
+/**
+ * A comment block (task-078, D78-3; review rounds 1 and 2): a line that starts with `<!--` (up to
+ * three spaces in), through the line holding the first `-->` (CommonMark's HTML block type 2), or to
+ * the end of its container when it is never closed (as CommonMark and GitHub hide the rest).
+ *
+ * - A comment that closes on its own line is a block only where a block starts, and only when blanks
+ *   alone follow its `-->`. Inside a paragraph (silent mode: the terminator check), or with text
+ *   after it, the paragraph keeps the line and {@link commentInline} drops the comment alone, so the
+ *   text stays and the lines around it stay one paragraph (F-1, R2-3, R2-4).
+ * - A comment over several lines is a block wherever it starts, interrupting a paragraph as
+ *   CommonMark's type 2 does: its lines are dropped, and text after its `-->` becomes a paragraph of
+ *   its own (R2-2) — nothing inside the comment is ever parsed.
+ *
+ * Only the text after the comment is emitted (as a paragraph, parsed inline like any text): the
+ * comment is never turned into markup. Each call scans forward once through {@link nextClose}.
  */
 function commentBlock(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
   if (state.sCount[startLine]! - state.blkIndent >= 4) return false;
   const start = state.bMarks[startLine]! + state.tShift[startLine]!;
   if (!state.src.startsWith(COMMENT_OPEN, start)) return false;
-  let line = startLine;
-  for (; line < endLine; line++) {
-    const from = line === startLine ? start + 2 : state.bMarks[line]!;
-    const close = state.src.slice(from, state.eMarks[line]).indexOf(COMMENT_CLOSE);
-    if (close < 0) continue;
-    // Text after the comment on its closing line: not a block (the same answer in silent mode).
-    if (state.src.slice(from + close + COMMENT_CLOSE.length, state.eMarks[line]).trim() !== '') return false;
-    break;
+  const close = nextClose(state, state.src, start + 2);
+  const firstEnd = state.eMarks[startLine]!;
+  if (close >= 0 && close + COMMENT_CLOSE.length <= firstEnd) {
+    // Closed on its own line: a block only where a block starts and with nothing after it.
+    if (silent) return false;
+    if (state.src.slice(close + COMMENT_CLOSE.length, firstEnd).trim() !== '') return false;
+    state.line = startLine + 1;
+    return true;
   }
   if (silent) return true;
-  state.line = Math.min(line + 1, endLine);
+  // Over several lines: find the closing line inside the container, else run to its end.
+  let line = startLine + 1;
+  while (line < endLine && (close < 0 || state.eMarks[line]! < close + COMMENT_CLOSE.length)) line++;
+  if (line >= endLine || close < state.bMarks[line]!) {
+    state.line = endLine;
+    return true;
+  }
+  const tail = state.src.slice(close + COMMENT_CLOSE.length, state.eMarks[line]).trim();
+  if (tail !== '') {
+    const open = state.push('paragraph_open', 'p', 1);
+    open.map = [line, line + 1];
+    const inline = state.push('inline', '', 0);
+    inline.content = tail;
+    inline.map = [line, line + 1];
+    inline.children = [];
+    state.push('paragraph_close', 'p', -1);
+  }
+  state.line = line + 1;
   return true;
 }
 
 /**
  * An inline comment `<!--` … `-->` in a run of text (code spans are consumed before, D78-3): only
- * the comment is dropped. An opener with no `-->` in the run is text, as CommonMark reads it (review
- * round 1, F-1).
+ * the comment is dropped. An opener with no `-->` in the run is text, as CommonMark reads it (F-1).
+ * A comment that is a whole line of a paragraph takes its line break along, so its neighbours stay
+ * one line apart (R2-4); one that opens a line takes the blanks after it. The search is bounded and
+ * kept per run ({@link nextClose}); the line start is found by looking back over blanks only (R2-1).
  */
 function commentInline(state: StateInline, _silent: boolean): boolean {
   if (!state.src.startsWith(COMMENT_OPEN, state.pos)) return false;
-  const close = state.src.indexOf(COMMENT_CLOSE, state.pos + 2);
+  const close = nextClose(state, state.src, state.pos + 2);
   if (close < 0 || close + COMMENT_CLOSE.length > state.posMax) return false;
   let end = close + COMMENT_CLOSE.length;
-  // A comment that opens its line leaves no leading blank there, as a line without it would read.
-  const lineStart = state.src.lastIndexOf('\n', state.pos - 1) + 1;
-  if (state.src.slice(lineStart, state.pos).trim() === '') {
+  let back = state.pos - 1;
+  while (back >= 0 && (state.src[back] === ' ' || state.src[back] === '\t')) back--;
+  if (back < 0 || state.src[back] === '\n') {
     while (end < state.posMax && (state.src[end] === ' ' || state.src[end] === '\t')) end++;
+    // A whole line: its line break goes too (the previous line's break stays).
+    if (back >= 0 && state.src[end] === '\n') end++;
   }
   state.pos = end;
   return true;
@@ -74,7 +118,8 @@ function commentInline(state: StateInline, _silent: boolean): boolean {
 
 /** markdown-it as {@link markdown}, with the HTML comments left out (an element's document). */
 export const commentFreeMarkdown = new MarkdownIt('default', OPTIONS);
-commentFreeMarkdown.block.ruler.before('paragraph', 'comment_drop', commentBlock, {
+// Before `lheading`: a comment line followed by `===` is no setext heading's text (R2-4).
+commentFreeMarkdown.block.ruler.before('lheading', 'comment_drop', commentBlock, {
   alt: ['paragraph', 'reference', 'blockquote'],
 });
 commentFreeMarkdown.inline.ruler.before('text', 'comment_drop', commentInline);

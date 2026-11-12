@@ -15,12 +15,23 @@ import { Component, lazy, Suspense, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage } from 'react-intl';
 import { ApiError } from '../api/client.js';
+import { ownAddress } from '../session/session.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { History } from './History.js';
 import { fieldEntries } from './model.js';
 import './element.css';
 
 const ElementDocument = lazy(() => import('./document.js'));
+
+/**
+ * How *Reload the page* loads the page again: its own address without the fragment, as the session
+ * recovery does (task-063 D63-6; task-078 review round 2, R2-5). An object, so tests can replace it.
+ */
+export const pageReload = {
+  replace(address: string): void {
+    window.location.replace(address);
+  },
+};
 
 /**
  * The summary's place when the document module cannot be loaded or throws (task-078 security review
@@ -42,7 +53,7 @@ class DocumentBoundary extends Component<{ children: ReactNode }, { failed: bool
         <p>
           <FormattedMessage id="element.document.unavailable" />
         </p>
-        <Button className="button" onPress={() => window.location.reload()}>
+        <Button className="button" onPress={() => pageReload.replace(ownAddress(window.location.href))}>
           <FormattedMessage id="element.document.reload" />
         </Button>
       </div>

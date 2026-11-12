@@ -298,7 +298,8 @@ describe('the comment rules drop only the comment (review round 1, F-1, F-4)', (
     ['Text <!-- a --> after.\n', 'Text  after.\n'],
     ['<!-- one\n two -->\n\n## Heading\n', '\n\n## Heading\n'],
     ['<!-- hint --> Decision.\n', ' Decision.\n'],
-    ['Line\n<!-- a -->\nNext\n', 'Line\n\nNext\n'],
+    // A comment line inside a paragraph keeps the paragraph (review round 2, R2-4).
+    ['Line\n<!-- a -->\nNext\n', 'Line\nNext\n'],
     ['- item <!-- a --> b\n', '- item  b\n'],
     ['<!-- a --><script>x</script>\n', '<script>x</script>\n'],
     // `<!-->` is a whole (empty) comment (CommonMark 0.31, HTML): what follows it is text.

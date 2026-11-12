@@ -422,3 +422,26 @@ generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on:
 
 Run `43273562501` on `bd46e453` (round 1's red `bc919ac8` and its fixes): **success**. Every job
 of the task scope passed on the first attempt.
+
+### security review round 2 (2026-11-12)
+
+The review was independent and adversarial, on `07d87c2e`. **FAIL**: F-2 … F-6 verified fixed; no
+markup can be created (about 50 probes, zero `html_*` tokens). Round 1's F-1 fix brought two
+regressions (R2-1, R2-2). All six findings are fixed here. Red first: `cbd3006f`. Every check below
+that deletes code was a scratch edit, restored with a file copy.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| R2-1 (major, availability) — the comment rules scanned in quadratic time: the block rule's silent scan ran on every line, the inline `indexOf` ran to the end for every unclosed opener, and `lastIndexOf` searched back to the line start for every comment. A 100 KB body took 2.6–6.7 s | `web/src/docs/render.ts` › `nextClose`: one forward search for `-->`, whose answer each parse state keeps; a later search starting between that search's start and its answer reuses the answer, so the scans of a parse stay linear. The block rule searches once per call. The inline rule bounds the close to `posMax` and finds the line start by looking back over blanks only. Measured with a throwaway probe file (`plainMarkdown` vs `commentFreeMarkdown`): 100 KB lines 88 / 6 ms, link label 35 / 31 ms, unclosed openers 10 / 12 ms, closed comments 22 / 4 ms; 1 MB 158 / 50 ms | `test/web/docs/comment-linear.test.ts`: each body within 5 × plain markdown-it on the same input + 250 ms, with one retry. The four 100 KB cases failed at `cbd3006f` (7143, 5770, 2642, 458 ms over budget). The 1 MB case was not run on the old code, to spare the machine. With `nextClose`'s cache disabled: "unclosed inline openers" failed |
+| R2-2 (minor) — a multi-line comment whose closing line carried text showed its hidden content (a heading, a live link) | a comment over several lines is a block wherever it starts, interrupting a paragraph as CommonMark's type 2 does. Its lines are dropped, and the text after its `-->` becomes a paragraph of its own (`paragraph_open` / `inline` / `paragraph_close`, the text parsed inline); nothing inside the comment is parsed | `render.test.ts` › the F-4 table's three cases of the reviewer: failed at `cbd3006f` |
+| R2-3 (minor, test strength) — the silent-mode answer was untested | a single-line comment never interrupts a paragraph (silent mode answers no); a multi-line one does | the F-4 table gained `'Line\n<!-- a --> tail'`, `'> q\n> <!-- a --> tail'` and `'- a\n<!-- c --> lazy'`. They passed at red: the old code answered the same. With `if (silent) return true;` moved before the scan: 2 failed |
+| R2-4 (nit) — `'<!-- c -->\n==='` rendered an empty heading; `'- item\n  <!-- c -->\n  more'` gave `itemmore` | the block rule is registered before `lheading`. A comment line inside a paragraph keeps the paragraph, and the inline rule drops a whole-line comment with its line break, so its neighbours stay one line apart. The F-4 case `'Line\n<!-- a -->\nNext'` is now one paragraph, "Line\nNext" (it was two) | both cases in the F-4 table failed at `cbd3006f`. With the rule before `paragraph` again: the `===` case failed; without the line-break removal: the list case failed |
+| R2-5 (nit) — *Reload the page* kept a `#…` fragment | `ElementView.tsx` › `pageReload.replace(ownAddress(window.location.href))`, as the session recovery does (task-063 D63-6) | `document-unavailable.test.tsx` › "R2-5 — Reload the page replaces the address without its fragment" failed at `cbd3006f` on the missing `pageReload` seam (the test needs it to spy). With the button back on `window.location.reload()`: 1 failed |
+| R2-6 (nit, docs) | `docs/user-guide.md` 0.40 and the `CHANGELOG.md` entry: only the comments are left out, and the "could not be loaded / Reload the page" state; `ux-reference.md` 1.20; `test/README.md` 0.88 lists `document-unavailable` and `comment-linear` | — |
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on:
+- `test/web/docs/{render,comment-linear,docs,classification-in-place}`
+- `test/web/element/{summary,document,document-unavailable,page,panel}`
+- `test/web/directives/directives`
+- `test/web/i18n/{catalogue,key-rendering}`
