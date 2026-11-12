@@ -151,7 +151,8 @@ test.describe('US-G-01 / US-S-21 — the side panel in the address', () => {
     expect(params(page)).toEqual(['show=all']);
     await page.goForward();
     await expect(sidePanel(page).locator('.type-tag')).toBeVisible({ timeout: COLD_READ_MS });
-    // A reload keeps it; Escape then closes it by replacing the entry, the other parameter kept.
+    // A reload keeps it and the entry the console pushed (D77-5): Escape then goes back to the view
+    // without the panel, the other parameter kept.
     await page.reload();
     await expect(sidePanel(page).locator('.type-tag')).toBeVisible({ timeout: COLD_READ_MS });
     await sidePanel(page).getByRole('heading', { level: 2 }).focus();

@@ -323,12 +323,12 @@ it('goes back once on a double Escape (task-062 N-3)', async () => {
   await todayHeading();
   await user.click(within(requiresYou()).getByRole('link', { name: 'Login form' }));
   const dialog = await panel('Login form');
-  const back = vi.spyOn(router.history, 'back');
+  // Back does nothing here, so the panel stays mounted for the second Escape (review F-2).
+  const back = vi.spyOn(router.history, 'back').mockImplementation(() => {});
   fireEvent.keyDown(dialog, { key: 'Escape' });
   fireEvent.keyDown(dialog, { key: 'Escape' });
+  expect(dialog.isConnected).toBe(true);
   expect(back).toHaveBeenCalledTimes(1);
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
-  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Login form' })).toBeNull());
 });
 
 it('keeps Today mounted: an expanded card stays expanded through the panel (task-061 Q3)', async () => {
@@ -384,17 +384,18 @@ it.each([
   ['task-009-elsewhere', 'task-009-elsewhere'],
 ])('shows not found for panel=%j and navigates nowhere (AC-4)', async (raw, encoded) => {
   const fetch = stubApi(api());
-  const search = `?panel=${raw}`;
-  const { router } = renderApp(`/p/${PID}/today${search}`);
+  // Another parameter of the view (review F-7): it stays as it was.
+  const search = `?show=all&panel=${raw}`;
+  const { router } = renderApp(`/p/${PID}/directives${search}`);
   const dialog = await screen.findByRole('dialog');
   expect(await within(dialog).findByRole('alert')).toBeTruthy();
-  await todayHeading();
   const before = router.history.length;
   await frame();
   const reads = elementReads(fetch);
   // Only this project's element path, with the value as one encoded segment (none when refused).
   expect(reads).toEqual(encoded === null ? [] : [`${API}/${encoded}`, `${API}/${encoded}/history`]);
-  expect(router.state.location.pathname).toBe(`/p/${PID}/today`);
+  expect(router.state.location.pathname).toBe(`/p/${PID}/directives`);
+  expect((router.state.location.search as { show?: string }).show).toBe('all');
   expect(router.history.length).toBe(before);
   // No footer, no link built from the value.
   expect(dialog.querySelector('.element-footer-slot')).toBeNull();
@@ -419,4 +420,75 @@ it('signals a close only once no panel of the project is mounted (React strict m
   } finally {
     off();
   }
+});
+
+// Review F-3: a bell item keeps no opener — the panel it opens closes to the main region, even when
+// a Today row opened the panel first; a modified click of a bell item (another tab) forgets nothing.
+it('closes to the main region after a bell item replaced a panel opened from Today (review F-3)', async () => {
+  stubApi(api());
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/today`);
+  await todayHeading();
+  await user.click(within(requiresYou()).getByRole('link', { name: 'Login form' }));
+  await panel('Login form');
+  await user.click(await screen.findByRole('button', { name: 'Notifications, 1 to unblock' }));
+  const bell = await screen.findByRole('dialog', { name: 'Notifications' });
+  await user.click(within(bell).getByRole('link', { name: 'Login form' }));
+  const dialog = await panel('Login form');
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
+  await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Login form' })).toBeNull());
+  await waitFor(() => expect(document.activeElement?.id).toBe('main'));
+});
+
+it('keeps the opener of Today on a modified click of a bell item (review F-3)', async () => {
+  stubApi(api());
+  const user = userEvent.setup();
+  const { router } = renderApp(`/p/${PID}/today`);
+  await todayHeading();
+  await user.click(within(requiresYou()).getByRole('link', { name: 'Login form' }));
+  const dialog = await panel('Login form');
+  await user.click(await screen.findByRole('button', { name: 'Notifications, 1 to unblock' }));
+  const bell = await screen.findByRole('dialog', { name: 'Notifications' });
+  await user.keyboard('{Control>}');
+  await user.click(within(bell).getByRole('link', { name: 'Login form' }));
+  await user.keyboard('{/Control}');
+  expect(router.state.location.search).toEqual({ panel: EID });
+  if (screen.queryByRole('dialog', { name: 'Notifications' })) await user.keyboard('{Escape}');
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull());
+  await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Login form' })).toBeNull());
+  await waitFor(() =>
+    expect(document.activeElement).toBe(within(requiresYou()).getByRole('link', { name: 'Login form' })),
+  );
+});
+
+// Review F-4: a server-answered id that is path syntax is no address — *not found*, no rewrite.
+it.each(['..', '.'])(
+  'does not rewrite panel= to a server-answered id %j: not found, no navigation (review F-4)',
+  async (bad) => {
+    const answered = detail(bad, 'Odd');
+    const fetch = stubApi(api({ [`${API}/task-001`]: { status: 200, body: answered } }));
+    const { router } = renderApp(`/p/${PID}/today?panel=task-001`);
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByRole('alert')).toBeTruthy();
+    const before = router.history.length;
+    await frame();
+    expect(router.state.location.search).toEqual({ panel: 'task-001' });
+    expect(router.history.length).toBe(before);
+    expect(elementReads(fetch).filter((p) => !p.startsWith(`${API}/task-001`))).toEqual([]);
+    expect(within(dialog).queryByText('Odd')).toBeNull();
+  },
+);
+
+// Review F-5: the address's value is shown isolated from the text around it (bidi), in the topline
+// and in the heading that names the panel after a refusal.
+it('isolates the address value it shows from the surrounding text (review F-5)', async () => {
+  stubApi(api());
+  const value = 'x\u202eevil';
+  renderApp(`/p/${PID}/today?panel=${encodeURIComponent(value)}`);
+  const dialog = await screen.findByRole('dialog');
+  await within(dialog).findByRole('alert');
+  const isolated = [...dialog.querySelectorAll('bdi')].map((b) => b.textContent);
+  expect(isolated).toEqual([value, value]);
 });
