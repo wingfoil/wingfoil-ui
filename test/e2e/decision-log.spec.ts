@@ -60,6 +60,9 @@ async function setBody(fx: Fixture, file: string, body: string): Promise<void> {
 async function caseyCopy(fixtures: FixtureBuilds, prepare: (fx: Fixture) => Promise<void> = async () => {}) {
   const fx = await fixtures.copy('custom');
   await actAs(fx, 'Casey');
+  // The author name of the console's commits too (the copy's last builder identity is Alex's): a
+  // rejection reads "Rejected by <author name>".
+  await git(fx.dir, ['config', 'user.name', 'Casey'], fx.env);
   await prepare(fx);
   return fx;
 }
@@ -162,10 +165,9 @@ test.describe('US-G-03 — read a decision-log as a document', () => {
   test('G-03.4 — Open a linked element from a summary in the main region', async ({ page, fixtures, consoles }) => {
     const fx = await caseyCopy(fixtures, (f) => setBody(f, DL_FILE, BODY));
     const c = await consoles.start({ projects: [fx] });
-    await openConsole(page, c, { path: `/p/${c.pids[0]}` });
-    const row = page.getByRole('region', { name: 'Waiting on others' }).locator(`li[data-eid="${DL}"]`);
-    await expectFirstLoad(row);
-    await row.locator('.today-title').click();
+    // The side panel of dl-002 open on Today (the scenario's Given), by its address: Casey's
+    // Waiting on others shows 10 rows, and the custom fixture's gates fill them before dl-002.
+    await openConsole(page, c, { path: `/p/${c.pids[0]}/today?panel=${DL}` });
     const panel = sidePanel(page);
     await expect(panel).toBeVisible({ timeout: COLD_READ_MS });
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today?panel=${DL}`);

@@ -288,8 +288,8 @@ spec-011 and adr-002 hold as written, so no Process Note is added.
   the side panel. React Aria's overlay stops the key (P2). Tests: `document.test.tsx` › "closes with
   Escape and with Close, …" and "opens from the side panel too, and Escape closes the dialog only
   (R2)". No guard was needed.
-- **Probe P1, correction:** the web bundles markdown-it **15.0.2** (`web/node_modules`); the root
-  14.3.2 belongs to another package. 15.0.2's `isTerminatorChar` also stops the text rule at `<`
+- **Probe P1, correction:** the web bundles markdown-it **15.0.2** (`web/node_modules`); the copy
+  in the root `node_modules`, read at design, is 14.3.2. 15.0.2's `isTerminatorChar` also stops the text rule at `<`
   (`dist/markdown-it.mjs`), so D78-3 holds.
 - **Red** (`9e0d5c8f`; `npx vitest run --maxWorkers=2 test/web/docs/classification-in-place.test.tsx
   test/web/element/page.test.tsx`, then `test/web/element/summary.test.ts test/web/docs/render.test.ts
@@ -353,3 +353,20 @@ spec-011 and adr-002 hold as written, so no Process Note is added.
 - **Docs:** `CHANGELOG.md` *Unreleased* (*Added* the element's document; *Fixed* bug-043 and AC-7);
   `docs/user-guide.md` 0.39; `ux-reference.md` 1.19 (§4.2 v0.3 *The rendered document*);
   `test/README.md` 0.87.
+- **`gates.yml` run `43257871356` on `4b844e37`:** checks, contract, coverage, smoke,
+  publish-smoke and e2e-chromium shard 2 green. e2e-chromium shard 1 failed 6 tests, the Firefox
+  and WebKit own specs 3 each. bug-043's new e2e, R-09.4, G-03.1 … G-03.3, G-08.1, G-08.3 and AC-3
+  passed on all three engines. The causes, all fixed in the next commit:
+  - **Contrast in dark theme (axe `color-contrast`, serious)** on the switch's options in X-06.4
+    and in AC-4. The options are React Aria `ToggleButton`s, so `<button>`s that kept the browser's
+    button fill under `.segmented-option`, a style written for other markup. Fix: no frame or fill
+    on the switch's options, and their focus ring (`element.css`).
+  - **X-09.1 *element document — rendered*:** the image's alternative text ("Architecture
+    diagram") is a word of a long body, which the catalogue check does not count as data. The
+    image is removed from the screen's body; images stay covered by AC-3's e2e and the web tests.
+  - **G-03.4:** `dl-002` was not among Casey's 10 *Waiting on others* rows (the custom fixture's
+    gates fill them first). The scenario's Given ("the side panel of dl-002 is open on Today") now
+    opens `/p/<pid>/today?panel=dl-002-use-fastify` by its address.
+  - **G-08.2:** the row read "Rejected by Alex": `actAs` sets only `user.email` on the copy, and its
+    `user.name` was still Alex, the builder's last identity. The spec's copy now sets
+    `user.name Casey` too, as the harness's `as()` does.

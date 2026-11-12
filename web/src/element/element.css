@@ -164,6 +164,21 @@
 }
 
 /* task-078 (D78-4): the document dialog — wider than a form, its body scrolls inside the window. */
+/* The switch's options are buttons (React Aria ToggleButton): no browser button frame or fill. */
+.element-document-mode .segmented-option {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+
+.element-document-mode .segmented-option[data-selected] {
+  background: var(--color-bg);
+}
+
+.element-document-mode .segmented-option[data-focus-visible] {
+  outline: var(--focus-ring);
+}
+
 .element-document-modal {
   width: min(880px, 100%);
 }

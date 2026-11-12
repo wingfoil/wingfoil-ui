@@ -402,9 +402,10 @@ export const SCREENS: readonly Screen[] = [
     },
   },
   {
-    // task-078 (D78-10): the document dialog of a decision-log, rendered — its body answered with a
-    // heading of each level used, a table, a link of each class and an image (the screens console
-    // holds the template's body), through `page.route` on the element read.
+    // task-078 (D78-10): the document dialog of a decision-log, rendered — its body answered with
+    // headings, a table, a link of each class and a code block (the screens console holds the
+    // template's body), through `page.route` on the element read. No image: its alternative text is
+    // a word of a long body, which X-09.1 does not count as data (the images are AC-3's e2e).
     name: 'element document — rendered',
     open: (page, c) => openDocumentScreen(page, c, 'rendered'),
   },
@@ -429,8 +430,6 @@ const DOCUMENT_SCREEN_BODY = [
   '| Option | Kept |',
   '|---|:---:|',
   '| Fastify | yes |',
-  '',
-  '![Architecture diagram](diagram.png)',
   '',
   '```',
   'npm install fastify',
