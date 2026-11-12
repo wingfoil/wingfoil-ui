@@ -19,7 +19,7 @@ test.use({ prebuild: ['custom'] });
 /** Open the element panel of `eid` by its URL, after its cold reads (bug-004). */
 async function openPanel(page: Page, c: RunningConsole, eid: string): Promise<Locator> {
   await openConsole(page, c, { path: `/p/${c.pids[0]}/e/${eid}` });
-  const panel = page.getByRole('dialog');
+  const panel = page.locator('[data-element-view]');
   await expectFirstLoad(panel.locator('.type-tag'));
   await expectLoaded(panel);
   return panel;

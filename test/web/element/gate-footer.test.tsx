@@ -231,7 +231,7 @@ it('G-06.2 — an outcome posts the decision; a toast says the result; the focus
   ]);
   // The project's queries are read again (the panel shows the new state).
   await waitFor(() => expect(fetch.mock.calls.filter((c) => String(c[0]) === BASE).length).toBeGreaterThan(reads));
-  expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+  expect(document.querySelector('[data-element-view]')?.contains(document.activeElement)).toBe(true);
 });
 
 it('G-05.2 — a reject posts to /reject with the reason', async () => {
@@ -296,7 +296,7 @@ it('G-04.2 — Cancel closes the panel and sends nothing', async () => {
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
   await userEvent.click(within(f).getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'A gated element' })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'A gated element' })).toBeNull());
   expect(posts(fetch)).toEqual([]);
 });
 
@@ -387,7 +387,7 @@ it('S-24.6 — a held gate for a member without the role: the hold line only, no
     { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
   );
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Waits for 1 referencing element to be done')).toBeTruthy();
   expect(within(dialog).queryByText(/Reserved to/)).toBeNull();
   expect(within(dialog).queryByRole('button', { name: /→/ })).toBeNull();
@@ -403,14 +403,14 @@ it('task-069 — the plural of the referencing elements', async () => {
     { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
   );
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Waits for 3 referencing elements to be done')).toBeTruthy();
 });
 
 it('G-09.1 — a member without the gate role sees who can act and no outcome', async () => {
   stub(GATE, { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   const line = await within(dialog).findByText(
     (_, el) => el?.tagName === 'P' && el.textContent === `Reserved to ${ROLE} — Mo, Al can act`,
   );
@@ -425,7 +425,7 @@ it('D37-6 — a gate-waiting state for a member without the role: reserved witho
     { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
   );
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText(`Reserved to ${ROLE}`)).toBeTruthy();
   expect(within(dialog).getByText('Waiting for the workflow engine to advance')).toBeTruthy();
 });
@@ -433,7 +433,7 @@ it('D37-6 — a gate-waiting state for a member without the role: reserved witho
 it('S-13.2 — not in the team: the read-only line with How to join, no outcome', async () => {
   stub(GATE, { kind: 'not-in-team', email: 'zed@x.test' });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   const line = await within(dialog).findByText('Read-only: zed@x.test is not in the team —');
   const join = within(line.closest('.element-footer') as HTMLElement).getByRole('button', { name: 'How to join' });
   expect(within(dialog).queryByRole('button', { name: /→/ })).toBeNull();
@@ -444,7 +444,7 @@ it('S-13.2 — not in the team: the read-only line with How to join, no outcome'
 it('S-15.2 — an ambiguous identity: the read-only line pointing to the notice, no outcome', async () => {
   stub(GATE, { kind: 'ambiguous', email: 'j@x.test', members: ['Jo', 'Sa'] });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Read-only: see the notice above the view')).toBeTruthy();
   expect(within(dialog).queryByRole('button', { name: /→/ })).toBeNull();
   expect(within(dialog).queryByRole('button', { name: 'How to join' })).toBeNull();
@@ -453,7 +453,7 @@ it('S-15.2 — an ambiguous identity: the read-only line pointing to the notice,
 it('S-24.2 — a waiting state: the engine note, no button', async () => {
   stub({ ...GATE, kind: 'waiting', tone: 'neutral', verbs: [], actor: { kind: 'engine' } });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Waiting for the workflow engine (state: s2)')).toBeTruthy();
   expect(
     within(dialog)
@@ -465,7 +465,7 @@ it('S-24.2 — a waiting state: the engine note, no button', async () => {
 it('S-24.1 — a final state: the chip says final, the note says no action, no button', async () => {
   stub({ ...GATE, status: 's3', kind: 'last', tone: 'done', verbs: [], actor: { kind: 'none' } });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
   const current = within(dialog).getByRole('list', { name: 'State machine' }).querySelector('[aria-current="step"]');
   expect(current?.querySelector('.visually-hidden')?.textContent).toBe('s3, final state');
@@ -484,7 +484,7 @@ it('shows no footer for a submit-only element (task-038) nor without a descripto
     actor: { kind: 'none' },
   });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   await within(dialog).findByText('Summary.');
   expect(within(dialog).queryByRole('region', { name: 'Decision' })).toBeNull();
   expect(within(dialog).queryByText(/Final state|Waiting for the workflow engine/)).toBeNull();
@@ -512,7 +512,7 @@ it('review F2 — a refusal stays shown when the refetched element has no gate f
   );
   renderApp(`/p/${PID}/e/${EID}`);
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
-  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  const dialog = screen.getByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
   expect(assertiveToasts().textContent).toContain('This element changed since you opened it');
 });
@@ -527,7 +527,7 @@ it('review F4, F5 — after a success the outcomes stay disabled until the state
   for (const name of ['Approve → s3', 'Reject → s1']) {
     expect(outcome(await footer(), name).getAttribute('aria-disabled')).toBe('true');
   }
-  expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'A gated element' }));
+  expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'A gated element' }));
 });
 
 it('review F9 — the blank reason field is described by the hint', async () => {
@@ -567,7 +567,7 @@ it('review F12 — outcomes are enabled again when the element comes back to the
   );
   const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
-  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  const dialog = screen.getByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
   // A later change (e.g. a hand edit, a live refresh) brings the element back to the gate.
   stub(GATE);
@@ -594,11 +594,11 @@ it('D38-10 — the panel shows no result of its own: the refusal is a toast outs
   renderApp(`/p/${PID}/e/${EID}`);
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
   await waitFor(() => expect(assertiveToasts().textContent).toContain('This element changed since you opened it'));
-  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  const dialog = screen.getByRole('region', { name: 'A gated element' });
   expect(within(dialog).queryByRole('alert')).toBeNull();
   expect(document.querySelector('.element-footer-alert')).toBeNull();
   expect(within(dialog).getByRole('status').textContent).toBe('');
-  expect(document.querySelectorAll('.drawer .element-footer')).toHaveLength(1);
+  expect(document.querySelectorAll('[data-element-view] .element-footer')).toHaveLength(1);
 });
 
 // task-040 — G-12.2 (D40-2): the Update link of the copy-behind reason runs the update of the project
@@ -668,7 +668,7 @@ it('R3 — a focus the user moved out of the footer meanwhile is left alone', as
   const f = await footer();
   await userEvent.click(updateLink(f));
   await waitFor(() => expect(updateLink(f).getAttribute('aria-disabled')).toBeNull());
-  const close = within(screen.getByRole('dialog', { name: 'A gated element' })).getAllByRole('button', {
+  const close = within(screen.getByRole('region', { name: 'A gated element' })).getAllByRole('button', {
     name: /close/i,
   })[0]!;
   close.focus();

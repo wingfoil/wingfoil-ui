@@ -21,6 +21,7 @@ import { CliError, cliErrorEnvelope } from '../cli/adapter.js';
 import { CloneCancelledError } from '../projects/clone.js';
 import { InvalidProjectRequest, ProjectRefusal, type ProjectList } from '../projects/project-list.js';
 import { envelope } from './app.js';
+import { projectItemBody } from './serialise.js';
 
 /** Path of the list. */
 export const PROJECTS_PATH = '/api/projects';
@@ -93,18 +94,23 @@ async function answerAdd(
 export function registerProjectListRoutes(app: FastifyInstance, options: ProjectListRoutesOptions): void {
   const { projects } = options;
 
-  app.get(PROJECTS_PATH, async (): Promise<ProjectListResponse> => ({ projects: await projects.list() }));
+  // Each item's name and remote as class (b) (task-072 D72-4).
+  app.get(PROJECTS_PATH, async (): Promise<ProjectListResponse> => ({
+    projects: (await projects.list()).map(projectItemBody),
+  }));
 
   app.post<{ Body: ProjectAddRequest }>(PROJECTS_PATH, {
     schema: { body: ADD_SCHEMA },
     validatorCompiler: () => validateAdd,
-    handler: (request, reply) => answerAdd(request, reply, (signal) => projects.add(request.body.path, signal)),
+    handler: (request, reply) =>
+      answerAdd(request, reply, async (signal) => projectItemBody(await projects.add(request.body.path, signal))),
   });
 
   app.post<{ Body: CloneRequest }>(`${PROJECTS_PATH}/clone`, {
     schema: { body: CLONE_SCHEMA },
     validatorCompiler: () => validateClone,
-    handler: (request, reply) => answerAdd(request, reply, (signal) => projects.clone(request.body, signal)),
+    handler: (request, reply) =>
+      answerAdd(request, reply, async (signal) => projectItemBody(await projects.clone(request.body, signal))),
   });
 
   app.delete<{ Params: { pid: string } }>(`${PROJECTS_PATH}/:pid`, async (request, reply) => {

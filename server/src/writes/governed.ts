@@ -47,6 +47,7 @@ import { CliNotFoundError } from '../cli/discovery.js';
 import type { EventBus } from '../events/bus.js';
 import { blocksWrites } from '../git/copy.js';
 import { redactLocalPaths } from '../git/redact.js';
+import { repositoryText } from '../http/serialise.js';
 import { matchIdentity } from '../identity/identity.js';
 import type { WriteLock } from '../process/write-lock.js';
 import { DirectReadError } from '../reads/confine.js';
@@ -150,11 +151,20 @@ export function isoSeconds(date: Date): string {
   return date.toISOString().replace(/\.\d+Z$/, 'Z');
 }
 
-/** 500 `write-incomplete` (W2-1, W2-4, W2-5): a fixed message, never the CLI's text. */
+/**
+ * 500 `write-incomplete` (W2-1, W2-4, W2-5): a fixed message, never the CLI's text; `detail.file`, a
+ * repository path the catalogue shows, as class (b) (task-072 D72-9).
+ */
 function incomplete(what: string, detail: { file: string; commit?: string }): WriteOutcome {
   return {
     status: 500,
-    body: { error: { code: 'write-incomplete', message: `The write did not finish: ${what}`, detail } },
+    body: {
+      error: {
+        code: 'write-incomplete',
+        message: `The write did not finish: ${what}`,
+        detail: { ...detail, file: repositoryText(detail.file) },
+      },
+    },
   };
 }
 
@@ -296,13 +306,15 @@ export class GovernedWrites {
       if (!(error instanceof DirectReadError)) throw error;
       if (error.kind === 'mismatch' || error.kind === 'missing') return ELEMENT_CHANGED;
       log.warn({ kind: error.kind }, 'governed write: element file unreadable');
+      // The path is shown through the catalogue: class (b) (task-072 review round 1 F-1).
+      const shown = repositoryText(match.path);
       return {
         status: 502,
         body: {
           error: {
             code: 'read-error',
-            message: `Cannot read ${match.path}: ${error.kind}`,
-            detail: { file: match.path, kind: error.kind },
+            message: `Cannot read ${shown}: ${error.kind}`,
+            detail: { file: shown, kind: error.kind },
           },
         },
       };

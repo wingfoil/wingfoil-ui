@@ -390,14 +390,18 @@ describe('GET /api/p/:pid/elements — the missing-reference flag (spec-012 §5)
   }, 300_000);
 
   it.each(['plain', 'unknown'] as const)(
-    'AC-3 without requires (%s): shown false, no flag, and no index (no ls-tree, no element file read)',
+    'AC-3 without requires (%s): shown false, no flag, and no index (no element file read; only the ls-tree of the read tie)',
     async (variant) => {
       const c = await start(variant);
       const res = await c.get(`/api/p/${c.pid}/elements`);
       expectSchema('elements.schema.json', res.body);
       expect(res.body.missingReferences).toEqual({ shown: false, unreadable: [], capped: [] });
       expect(res.body.elements.some((e: any) => e.missingCategories)).toBe(false);
-      expect(c.runner.spawned.filter((r) => r.args.includes('ls-tree'))).toHaveLength(0);
+      // No index: no element file read. The one HEAD listing is the read tie's (task-075 D75-2:
+      // `.wingfoil` and the Memory folders, one `git ls-tree -r` per new HEAD for the direct reads).
+      const lsTrees = c.runner.spawned.filter((r) => r.args.includes('ls-tree'));
+      expect(lsTrees.length).toBeLessThanOrEqual(1);
+      for (const r of lsTrees) expect(r.args.slice(r.args.indexOf('--') + 1)).toContain('.wingfoil');
       expect(c.elementReads()).toEqual([]);
     },
     300_000,

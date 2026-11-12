@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.2
 
-**Version:** 0.34 · **Date:** 2026-11-11 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1; 0.29: held gates and the actor after an approve, unreleased v0.3 — task-069; 0.30: the files that are not elements named in the Memory list, WingFoil's reasons in a refusal toast, unreleased v0.3, and the WingFoil 0.2.2 limitation of a frontmatter that does not parse — task-070 / bug-024, bug-036; 0.31: a move into a state at its limit, unreleased v0.3 — task-073; 0.32: the Today cards' filters, 10 rows, short ids and entry dates, unreleased v0.3 — task-061; 0.33: the full time as the description of the date and of the row's link — its review round 1; 0.34: *Your roles* as one line of role tags, unreleased v0.3 — task-076)
+**Version:** 0.37 · **Date:** 2026-11-12 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1; 0.29: held gates and the actor after an approve, unreleased v0.3 — task-069; 0.30: the files that are not elements named in the Memory list, WingFoil's reasons in a refusal toast, unreleased v0.3, and the WingFoil 0.2.2 limitation of a frontmatter that does not parse — task-070 / bug-024, bug-036; 0.31: a move into a state at its limit, unreleased v0.3 — task-073; 0.32: the Today cards' filters, 10 rows, short ids and entry dates, unreleased v0.3 — task-061; 0.33: the full time as the description of the date and of the row's link — its review round 1; 0.34: the element page, short ids in its address and the candidates of an ambiguous one, unreleased v0.3 — task-062; 0.35: every name the repository supplies shown safely, unreleased v0.3 — task-072 / bug-035; 0.36: a page of a restarted console recovers in place, unreleased v0.3 — task-063; 0.37: *Your roles* as one line of role tags, unreleased v0.3 — task-076)
 
 WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
 project, see on **Today** what requires you, decide its gates and submit its work, and keep your
@@ -66,6 +66,11 @@ at every interval, for the projects opened since the console started.
   printed in its terminal — in a new tab or pasted into this one (the page then reads the new token
   without a reload of its own). A page whose session the console still knows ignores a `#token=…`
   it did not need and keeps its session.
+- From v0.3 (unreleased): when the console was started again **on the same port** (`--port`), a
+  page showing that notice reconnects by itself as soon as the new URL is opened in any tab of the
+  same browser — usually the tab `--open` opens at start — or when you come back to it: it opens
+  again at the same address (the element it showed, for example). Without `--port` the console
+  gets another port at each start and old pages cannot reconnect: open the new URL instead.
 - The console keeps up to 64 browser sessions; opening one more evicts the oldest, whose page then
   shows the same **This page is no longer recognised by the console**.
 - When the console cannot be reached for 10 s, a banner says so (**Cannot reach the console…**);
@@ -276,6 +281,17 @@ no items there), and it is still listed.
 Otherwise the focus goes to the main region: for example after a gate you have just decided (it
 leaves *Requires you*), or when you opened the panel from the notification bell or from its
 address.
+
+**Unreleased, v0.3 — the element page** (task-062): the element opens as a **page** in the main
+region, with the sidebar, instead of a panel over the view — the same content and footer, the
+title as the page's heading, the footer in a bar at the bottom of the window. *Close* and Escape go
+back to where you opened it, or to the Memory list when you opened its address directly. The
+address also takes an element's **short id** — `/p/<id>/e/task-046` opens
+`task-046-wingfoil-0.3-support-read-wingfoil-0.3.x-and-pin-0.3.1` and the address bar then shows
+the full id; a short id that names several elements lists them, each a link to its page, instead
+of *Not found*; a short id is matched exactly (`task-46` is not `task-046`). Opening an element from
+Today or the notification bell in a side panel over the current view is planned for later in v0.3
+(task-077).
 
 The panel shows:
 
@@ -498,8 +514,13 @@ repository changes:
   cut around one line. An element's title shows such characters as visible escapes (`\u202e`) in
   the Memory list, the element panel and Today, and a backslash in a title is shown doubled
   (`Fix \\n handling`). An element's body and its other fields, a directive and a file are shown
-  as written; the DNA's names, the directives' titles, the workflow texts, file names and the states
-  named in the history are not escaped yet.
+  as written.
+- **Every other name the repository supplies is shown safely as well** (unreleased, v0.3): the
+  project's name and remote, the DNA's texts, the members' names and emails (and your own git
+  email), the directives' names and titles, the workflow descriptions, the states an element's
+  history names, and the documentation's file names and paths show control, format and separator
+  characters as visible escapes, as the titles do. A document's link still opens the file as it is
+  named. Ids, types, states, roles and tags are shown as WingFoil returns them.
 
 ## Automatic sync with the remote
 
