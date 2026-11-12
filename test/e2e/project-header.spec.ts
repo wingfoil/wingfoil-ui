@@ -215,7 +215,7 @@ test.describe('US-S-09 — version outside the supported range', () => {
       .getByRole('link', { name: /Login form/ })
       .first()
       .click();
-    const panel = page.getByRole('dialog');
+    const panel = page.locator('[data-element-view]');
     await expectFirstLoad(panel.locator('.type-tag'));
     // v0.2 (task-037): the gate footer shows the outcomes, none enabled, with the version reason.
     const outcomes = panel.getByRole('button', { name: GOVERNED });

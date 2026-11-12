@@ -92,7 +92,7 @@ const VIEWS: View[] = [
     name: 'element panel',
     from: (pid) => `/p/${pid}/memory?type=task`,
     target: (page) => page.locator('.memory-row[data-eid="task-250-generated-task-151"]'),
-    ready: '.drawer .history-sha',
+    ready: '[data-element-view] .history-sha',
     reads: (pid) => `/api/p/${pid}/elements/task-250-generated-task-151/history`,
   },
   {
@@ -345,7 +345,7 @@ test.describe(`TT-PERF-02 — gate and submit latency ${PERF_TAG}`, () => {
       for (const [i, element] of elements.entries()) {
         if (i === 0) await openConsole(page, c, { path: `/p/${pid}/e/${element.id}` });
         else await page.goto(`${c.origin}/p/${pid}/e/${element.id}`, { timeout: COLD_READ_MS });
-        const button = page.locator('.drawer').getByRole('button', { name: series.button });
+        const button = page.locator('[data-element-view]').getByRole('button', { name: series.button });
         const ms = await timeWrite(page, button, element.id);
         if (i === 0) warmUp = ms;
         else times.push(ms);
