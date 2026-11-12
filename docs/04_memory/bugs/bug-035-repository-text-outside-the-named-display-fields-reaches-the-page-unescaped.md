@@ -63,3 +63,4 @@ chosen at Wave 2's start.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-12): fixed by task-072 (`done` `fa920889`), merged into the phase branch in `917ecb6b`; resolved by the approver (`07738689`). Every repository-sourced display string is escaped once on the server, keys stay raw (bug-041), and a sweep over every GET route and display field guards it (`test/server/http/repository-text.test.ts`, `test/web/shell/repository-text.test.tsx`). It closes with Wave 2's merge into `main`.
