@@ -3,12 +3,12 @@ id: bug-045-a-name-with-a-zero-width-joiner-between-two-letters-shows-the-joiner
 type: bug
 title: "A name with a zero width joiner between two letters shows the joiner as an escape"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,43 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+A member name (or another repository display text) that writes a zero width non-joiner (U+200C) or
+a zero width joiner (U+200D) between two letters, as Persian and several Indic scripts do, is shown
+with the joiner as a visible escape (`\u200c`), because `neutralise` (`server/src/git/redact.ts`)
+escapes every Unicode format character (Cf), the bidi controls and these joiners alike.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. In a project on WingFoil 0.3.1, give a member in `.wingfoil/dna.yaml` a name with U+200C
+   between two letters (a Persian name spelled with its ZWNJ).
+2. Open the console's Team view, or the project header signed in as that member.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The name is shown as written: a ZWNJ or ZWJ between two letters is part of the spelling and has no
+bidi effect. The bidi controls, the other format characters and a joiner not between two letters
+keep their visible escape.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+The name shows `\u200c` in place of the joiner (Team, the header, Today, the element panel's
+footer); the initials of a name whose first character is escaped can come out as `\`. An escaped
+`identity.email` in *How to join*'s command writes a literal backslash into the DNA; harmless in
+the shell (`shellWord` single-quotes anything with a backslash).
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-072's security review round 1 (2026-11-12), finding F-5 (nit): the rule is inherited from
+task-056's K1 (`UNSAFE = /(?![\n\t])[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u`,
+`server/src/git/redact.ts`); task-072 extended `neutralise` to every repository display string,
+so names now reach it too.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Low: the name stays readable, with a visible escape. Fix direction: let U+200C and U+200D through
+when both neighbours are letters (`\p{L}` or `\p{M}`), keep every other Cf escaped, and a test row
+for each side. The approver chose to open it (2026-11-12, "f-5 come consigli (a)"), to plan at
+v0.4's release planning.
 
 ## Triage & Execution Notes
 
