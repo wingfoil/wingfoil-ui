@@ -892,3 +892,123 @@ it('G-12.2 — the focus goes to the reason field also when the refetch removes 
   release();
   await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
 });
+
+// task-077 review round 3: the *Update* focus request (D40-2) lives for one update only.
+/** The API with a descriptor that can change and the POSTs held while `hold` is set. */
+function liveApi(posts: FakeApi): { set(d: ActionDescriptor): void; hold(): () => void } {
+  let inner = stub(GATE, MO, posts);
+  let held: Promise<void> | undefined;
+  const wrapper = vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST' && held) await held;
+    return (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+  });
+  vi.stubGlobal('fetch', wrapper);
+  return {
+    set(d) {
+      inner = stub(d, MO, posts);
+      vi.stubGlobal('fetch', wrapper);
+    },
+    hold() {
+      let release: () => void = () => {};
+      held = new Promise<void>((r) => (release = r));
+      return () => {
+        held = undefined;
+        release();
+      };
+    },
+  };
+}
+const heading = () => screen.getByRole('heading', { name: 'A gated element' });
+const UPDATED = { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } };
+
+it('R3-1 — a refused update drops the request: when the copy becomes current later, the focus is not moved to the reason', async () => {
+  const api = liveApi({
+    [UPDATE]: {
+      status: 409,
+      body: { error: { code: 'local-changes-in-the-way', message: 'x', detail: { files: ['a.md'] } } },
+    },
+  });
+  api.set(BEHIND);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await user.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  // The copy becomes current by other means (a fetch and update from the sidebar, a terminal).
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(heading());
+});
+
+it('R3-2 (S2) — a heading the user focused on purpose during an update keeps the focus after it', async () => {
+  const api = liveApi(UPDATED);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  outcome(await footer(), 'Approve → s3').focus();
+  // A decision taken outside: the fallback moves the focus to the heading.
+  api.set(FINAL_STATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(document.activeElement).toBe(heading()));
+  // Back at the gate, behind the remote: Update, its reply held.
+  api.set(BEHIND);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  const f = await footer();
+  const release = api.hold();
+  updateLink(f).focus();
+  await user.keyboard('{Enter}');
+  act(() => heading().focus());
+  release();
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(heading());
+});
+
+it('R3-2 (S3) — the control: the heading the fallback focused during the update gives the focus on to the reason', async () => {
+  const api = liveApi(UPDATED);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  outcome(await footer(), 'Approve → s3').focus();
+  api.set(FINAL_STATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(document.activeElement).toBe(heading()));
+  api.set(BEHIND);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  const f = await footer();
+  const release = api.hold();
+  updateLink(f).focus();
+  await user.keyboard('{Enter}');
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  release();
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
+});
+
+it('R3-3 — an update the copy stays behind after spends the request: a later catch-up leaves the focus on Cancel', async () => {
+  const api = liveApi(UPDATED);
+  api.set(BEHIND);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await user.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  // The update's refresh: still behind (another commit arrived meanwhile), the link stays.
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(updateLink(f)).toBeTruthy();
+  const cancel = within(f).getByRole('button', { name: 'Cancel' });
+  act(() => cancel.focus());
+  // Much later the copy catches up.
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(within(f).getByRole('button', { name: 'Cancel' }));
+});

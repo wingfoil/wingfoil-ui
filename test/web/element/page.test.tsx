@@ -302,3 +302,12 @@ it('shows only catalogue keys for the candidates with the key catalogue (spec-00
   expect(await screen.findByRole('list', { name: 'element.candidates.title el-001' })).toBeTruthy();
   expect(screen.getByText('element.candidates.more 3')).toBeTruthy();
 });
+
+// task-077 review round 3, R3-4: the candidates' heading isolates the address value on the page too.
+it('isolates the address value in the candidates’ heading on the element page (review R3-4)', async () => {
+  stubApi(api({ [`${API}/el-001`]: { status: 409, body: AMBIGUOUS } }));
+  renderApp(`/p/${PID}/e/el-001`);
+  await screen.findByRole('list', { name: 'el-001 names several elements' });
+  const heading = screen.getByRole('heading', { level: 2, name: 'el-001 names several elements' });
+  expect([...heading.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['el-001']);
+});
