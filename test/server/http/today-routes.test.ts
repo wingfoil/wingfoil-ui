@@ -230,7 +230,8 @@ describe('GET /api/p/:pid/today — the scenarios', () => {
     expect(res.body.summary.map((l: any) => [l.role, l.count])).toEqual(
       memberByName('Alex').roles.map((r) => [r, r === 'approver' || r === 'reviewer' ? 2 : 0]),
     );
-    expect(res.body.summary.every((l: any) => l.items.length <= 3 && l.more === Math.max(0, l.count - 3))).toBe(true);
+    // One count per role, no item and no "N more" (task-076, D76-1).
+    expect(res.body.summary.every((l: any) => Object.keys(l).sort().join() === 'count,role')).toBe(true);
   });
 
   it('RP-27: an unidentified user — view and Requires you null, Waiting on others computed, no summary', async () => {

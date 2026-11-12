@@ -34,15 +34,11 @@ export interface TodayActionRow extends TodayRow {
   action: TodayAction;
 }
 
-/** One line of the all-roles summary (S5, REQ-PERF-11). */
+/** One tag of the all-roles summary (S5, REQ-PERF-11 v0.3: the count, no item — task-076, D76-1). */
 export interface TodaySummaryLine {
   role: string;
   /** The length of Requires you in this role view. */
   count: number;
-  /** Its first rows, at most 3. */
-  items: TodayActionRow[];
-  /** `count − 3` when positive, else 0 ("N more"). */
-  more: number;
 }
 
 /** `GET /api/p/:pid/today?view=<role>`. */

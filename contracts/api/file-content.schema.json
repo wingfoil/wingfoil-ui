@@ -4,10 +4,14 @@
   "title": "GET /api/p/:pid/files/content",
   "description": "The content of one file of the documentation scope (v0.1), confined to the repository (REQ-SEC-06). A refused path is a 404 not-found with detail.kind outside, missing, not-allowed or too-large.",
   "type": "object",
-  "required": ["path", "size", "content"],
+  "required": ["path", "label", "size", "content"],
   "properties": {
     "path": {
       "type": "string"
+    },
+    "label": {
+      "type": "string",
+      "description": "The text the page shows: the path with every unsafe character as a visible escape (spec-004 §5, task-072)."
     },
     "size": {
       "type": "integer",

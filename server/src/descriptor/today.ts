@@ -3,17 +3,14 @@
  * descriptors, the user's identity and the role view, *Requires you* with each row's action,
  * *Waiting on others* without the Requires you rows (T-11.3), both in the order of
  * {@link compareRequiresYou} (rejected first, then oldest in the current state, then id — D31-4),
- * and the all-roles summary of a member holding two or more roles (S5, REQ-PERF-11: the first
- * {@link SUMMARY_ITEMS} rows of each role view and "N more").
+ * and the all-roles summary of a member holding two or more roles (S5, REQ-PERF-11 v0.3: one count
+ * per role view, no item — task-076, D76-1).
  *
  * Pure: the route (`http/project-routes.ts`) reads the inputs once per repository state and checks
  * the role view (`?view=` must be one of the member's role views, spec-004 §3).
  */
 import type { Identity, Today, TodayActionRow, TodayRow, TodaySummaryLine } from '@wingfoil-ui/contracts';
 import { compareRequiresYou, placement, type PlacementUser } from './placement.js';
-
-/** Rows of each role view in the all-roles summary (REQ-PERF-11). */
-export const SUMMARY_ITEMS = 3;
 
 const byOrder = (a: TodayRow, b: TodayRow): number => compareRequiresYou(a.descriptor, b.descriptor);
 
@@ -48,12 +45,7 @@ export function today(rows: readonly TodayRow[], identity: Identity, view: strin
   if (identity.roles.length < 2) return { view, ...current };
   const summary = identity.roles.map((role): TodaySummaryLine => {
     const own = role === view ? current.requiresYou : lists(rows, user, role).requiresYou;
-    return {
-      role,
-      count: own.length,
-      items: own.slice(0, SUMMARY_ITEMS),
-      more: Math.max(0, own.length - SUMMARY_ITEMS),
-    };
+    return { role, count: own.length };
   });
   return { view, ...current, summary };
 }

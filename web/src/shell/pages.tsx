@@ -4,7 +4,7 @@ import { Link } from 'react-aria-components';
 import { FormattedMessage } from 'react-intl';
 import { TITLES, usePageTitle } from './page-title.js';
 
-/** The page's session is gone (console stopped or restarted): open the terminal's URL again. */
+/** The page's session is gone (console stopped or restarted): open the terminal's URL in any tab; the page then reconnects by itself on the same port (adr-003 D6). */
 export function SessionLostPage(): ReactNode {
   usePageTitle(TITLES.sessionLost);
   return (

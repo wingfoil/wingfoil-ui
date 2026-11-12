@@ -42,8 +42,8 @@ type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
 
 /**
  * The control to focus when Today mounts again — the opener: set when a Requires you action, a
- * Requires you title link, a Waiting on others link or an item of the all-roles summary (review
- * round 2, R2-1) opens the element panel, used once by Today of
+ * Requires you title link or a Waiting on others link opens the element panel (the all-roles
+ * summary has no item from task-076), used once by Today of
  * the same project after the panel is closed — *Cancel*, Escape or its Close (bug-018, task-043 AC-7,
  * review R1 / D43-10; the Memory list's opener handling, X-06.3, W3-23). `opener` is the class of
  * the control inside the element's row.
@@ -402,7 +402,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
       ) : (
         <>
           <IdentitySentence header={header.data} />
-          {data.summary && <RoleSummary pid={pid} lines={data.summary} view={data.view} onSwitch={switchTo} />}
+          {data.summary && <RoleSummary lines={data.summary} view={data.view} onSwitch={switchTo} />}
           {rows !== null && (
             <section className="today-card" aria-labelledby={requiresId}>
               <h2 className="today-card-title" id={requiresId} ref={requiresHeading} tabIndex={-1}>

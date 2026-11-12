@@ -118,6 +118,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   diverged or detached, and when the preset does not fit the project (`ui.yaml not written: type
   service is not declared in memory.yaml`); it never overwrites a file. Nothing shows it yet.
 
+- **A page of a restarted console recovers in place** (task-063, US-X-02 X-02.3; adr-003 D6, D7;
+  spec-004 §2): when the console was stopped and started again on the same port (`--port`), a page
+  that shows *This page is no longer recognised by the console* reconnects by itself once the new
+  console URL is opened in any tab of the same browser, or when you return to it, and opens again
+  at its own address — the element it showed, for example. No token or session crosses tabs and
+  nothing is added to the address; a page of a console started without `--port` cannot reconnect
+  (another port is another origin), as the notice says.
+
 ### Changed
 
 - **Close and Escape on an element opened from its address** (task-062, spec-011 §2) go to the
@@ -137,6 +145,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Every process the console's process runner starts (the CLI, git and what they start) gets the
   absolute `PATH` entries only, so a program a repository ships is never found through an empty or
   relative entry.
+
+- **Your roles on one line** (task-076, US-S-23 S-23.4, S-23.5; REQ-PERF-11; spec-003 §5): on
+  *Today*, *Your roles* is one line of role tags, each with its count (*approver · 2*): pressing a
+  tag switches the role view and moves the focus to *Requires you*, the tag of the current view is
+  marked *current view*. The v0.2 items and *N more* under each role are gone, and so are `items`
+  and `more` from the `summary` of `GET /api/p/:pid/today` (`{ role, count }` only).
 
 ### Fixed
 
@@ -190,9 +204,55 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Memory element (id, title, type, status missing or not text)`), archived elements included.
   WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
   defect shipped in v0.1.0 and v0.2.0.
+- **Every name the repository supplies is shown as safe text** (bug-035, task-072): the project's
+  name (the header, the project switcher, the page title, *Already in the list*) and its remote,
+  the DNA's texts (the project, modules, technologies, methodologies, role descriptions, agents,
+  paths), the members' names and emails (the header, Team, Today, the element panel's footer), your
+  own git email, the directives' names and titles (the list, the page's heading and title), the
+  workflow descriptions, the states an element's history names, the documentation's file names
+  and paths (the index, a document's toolbar and page title) and a file named in an error passed on
+  a bidi override or a control character as written. They now show it as a visible escape
+  (`\u202e`), as the titles do; the links of the documentation still open the file as named. Ids,
+  types, states, roles and tags are still shown as WingFoil returns them (bug-041). The defect
+  shipped in v0.1.0 and v0.2.0.
+- **An edit undone before the console looked again is no longer shown** (bug-034, task-075): a file
+  edited, read by a page and put back before the console's next look at the repository gave the
+  same repository state again, and the console kept serving what it had read from the edited file
+  (an element, `ui.yaml`, `memory.yaml`, a directive) until the next change. Each read is now tied
+  to what the console's check saw: a read of other content, or a `wingfoil` read that finished after
+  a file event, answers once, then the console checks again and the page refetches. The defect
+  shipped in v0.1.0 and v0.2.0.
+- **The console and WingFoil agree on which frontmatters have a duplicate key** (bug-037, task-075):
+  keys that are one key for WingFoil's YAML loader — `1` and `"1"`, `true` and `"true"`, `~` and
+  `"null"`, two spellings of one date, an alias repeating a key, a repeated complex key — were read
+  as two by the console, which showed as an element a file every `wingfoil` command leaves out
+  (`duplicated mapping key`); and `2026-01-01` with `"2026-01-01"`, two keys for WingFoil, was
+  refused. Keys are now compared as WingFoil stores them (also in `.wingfoil/memory.yaml`). A key
+  with a tag the console does not emulate (`!!binary`, `!!set`, a local tag) or a nested list is
+  refused. The defect shipped in v0.1.0 and v0.2.0.
+
+- **A build asset whose name is too long answers 404** (bug-031, task-063; spec-004 §5): a path
+  the file system refuses as too long answered 403 `invalid-request`; it is now missing — 404
+  `not-found` under `/assets/`, the application for any other path — and every client error gets
+  a code that matches its status (`forbidden`, `payload-too-large`, `unsupported-media-type`, …)
+  instead of `invalid-request`.
 
 ### Security
 
+- **An empty key no longer makes an element of a file WingFoil leaves out** (bug-040, task-075): a
+  frontmatter with a line `: value` (a key with nothing before the colon) was read by the console,
+  while every `wingfoil` command leaves the file out. Such a key is now refused as WingFoil refuses
+  it; an empty key WingFoil accepts (written `? ` alone, with a tag or an anchor, or inside `{…}`)
+  is still read. The defect shipped in v0.1.0 and v0.2.0.
+- **A file with many YAML aliases no longer blocks the console** (bug-042, task-075): reading a
+  Memory file or `.wingfoil/memory.yaml` holding thousands of aliases (`*name`) took time growing
+  with the square of their number — minutes for a large file — while every other request waited.
+  Such a file is now refused as unreadable at once (`too many aliases to resolve`); a file with the
+  aliases a project writes by hand is read as before. The defect shipped in v0.1.0 and v0.2.0.
+- **The token fragment is removed on this origin only** (task-063 AC-8): the page builds the
+  address it keeps after removing `#token=…` from its whole URL, so a path starting with `//` can
+  no longer make that step fail and leave the token in the address bar (unreachable today: the
+  console refuses such a path).
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
   the Memory list, the element panel and Today comes back with control, bidi and invisible
   characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
@@ -200,9 +260,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   (`Fix \\n handling`), so that every escape on the page is one the console wrote. Ids, types and
   states stay as WingFoil returns them (they are what a page sends back), and a document — an
   element's or a directive's body and fields (but the reject's reason, a commit text), a file — is
-  shown as written. The other names the repository supplies (the DNA's names and descriptions, the
-  directives' titles, the workflow texts, file names and paths of the documentation, the states
-  named in an element's history, the project's name) are not escaped yet (bug-035).
+  shown as written. The other names the repository supplies follow the same rule (bug-035,
+  *Fixed*).
 
 ### Known limitations
 

@@ -102,11 +102,16 @@ import { naturalOrder } from '../project-state/order.js';
 import type { UiCategory } from '../ui-config/types.js';
 import {
   descriptorBody,
+  directiveBody,
+  directiveFrontmatterBody,
+  dnaBody,
   frontmatterBody,
   historyBody,
+  identityBody,
   matchBody,
   memoryEventBody,
   repositoryText,
+  workflowsBody,
   toolTextSanitiser,
   type TextSanitiser,
 } from './serialise.js';
@@ -146,9 +151,15 @@ function refusalOf(error: unknown, base: ReadBase, log: FastifyBaseLogger): Refu
     if (error.kind === 'outside') log.warn({ kind: error.kind, file }, 'direct read refused');
     else log.info({ kind: error.kind, file }, 'direct read failed');
     const reason = error.kind === 'outside' ? 'outside the project' : error.kind;
+    // The page shows the file through the catalogue: a repository path, class (b) (task-072 D72-9).
+    const shown = repositoryText(file);
     return {
       status: 502,
-      error: { code: 'read-error', message: `Cannot read ${file}: ${reason}`, detail: { file, kind: error.kind } },
+      error: {
+        code: 'read-error',
+        message: `Cannot read ${shown}: ${reason}`,
+        detail: { file: shown, kind: error.kind },
+      },
     };
   }
   if (error instanceof GitReadError) {
@@ -527,10 +538,13 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
   await read.refreshEntry(name);
   return {
     id: entry.id,
-    name,
+    // The project's name and the identity's names and email: class (b) (task-072 D72-3, D72-4),
+    // after the identity was matched and the stored name refreshed on the raw values.
+    name: repositoryText(name),
     wingfoil: wingfoilOf(detected),
     capabilities: evaluateCapabilities(detected, range),
     ...ids,
+    identity: identityBody(ids.identity),
     readOnly,
     repository: repositoryStatus(view.state, read.sync.of(entry.id, view.state.copy)),
     // spec-001 §6, spec-010 §7 (RP-25).
@@ -549,12 +563,14 @@ function wingfoilOf(detected: DetectedVersion): ProjectHeader['wingfoil'] {
   return { text, version, state, inRange, source };
 }
 
-/** One `/config` section. */
+/** One `/config` section, its data through `body` (task-072 D72-2: the DNA and the workflows). */
 function section<T>(
   settled: { ok: true; value: CliOutput<T> } | { ok: false; refusal: Refusal },
+  body: (data: T) => T = (data) => data,
 ): { data: T; warnings?: string[] } | { error: ApiError } {
   if (!settled.ok) return { error: settled.refusal.error };
-  const { data, warnings } = settled.value;
+  const { warnings } = settled.value;
+  const data = body(settled.value.data);
   return warnings.length > 0 ? { data, warnings } : { data };
 }
 
@@ -577,9 +593,9 @@ async function config(read: ProjectRead): Promise<ProjectConfig> {
     ),
   });
   return {
-    dna: section(dna),
+    dna: section(dna, dnaBody),
     paths: section(paths),
-    workflows: section(workflows),
+    workflows: section(workflows, workflowsBody),
     types: types.ok ? { data: resolved(types.value) } : { error: types.refusal.error },
     ...(ui.ok ? { ui: uiConfigBody(ui.value, await currentOrNull(read)) } : {}),
   };
@@ -694,7 +710,8 @@ async function directives(read: ProjectRead): Promise<DirectiveList> {
   const inForce = directivesInForce(list.data);
   const mine = new Set(directivesForRoleView(inForce, roleView));
   return {
-    entries: inForce.map((e) => ({ ...e, mine: mine.has(e) })),
+    // `mine` on the raw entries; their name and title written as class (b) (task-072 D72-5).
+    entries: inForce.map((e) => ({ ...directiveBody(e), mine: mine.has(e) })),
     warnings: list.data.warnings,
   };
 }
@@ -703,7 +720,12 @@ async function directives(read: ProjectRead): Promise<DirectiveList> {
 async function directive(read: ProjectRead, id: string): Promise<DirectiveDetail> {
   const found = valueOf(await read.settle(read.view.directive(id), '.wingfoil/'));
   if (!found) throw notFound();
-  return { entry: found.entry, frontmatter: found.content.frontmatter, body: found.content.body };
+  // The name and title (the page's heading) as class (b); the rest as written (task-072 D72-5).
+  return {
+    entry: directiveBody(found.entry),
+    frontmatter: directiveFrontmatterBody(found.content.frontmatter),
+    body: found.content.body,
+  };
 }
 
 /** `GET /api/p/:pid/docs`. */
@@ -711,7 +733,12 @@ async function docs(read: ProjectRead): Promise<DocumentationIndex> {
   // Walked per request, not kept for the state: a git-ignored document does not move the state.
   const scope = await read.documentationScope();
   const paths = await read.view.paths();
-  return { roots: paths.data.docs ?? [], documents: await documentationIndex(read.root, scope) };
+  // A document's path is the address the page links to; what it shows is its label (task-072 D72-6).
+  const documents = await documentationIndex(read.root, scope);
+  return {
+    roots: paths.data.docs ?? [],
+    documents: documents.map(({ path }) => ({ path, label: repositoryText(path) })),
+  };
 }
 
 const invalidRequest = (): Refused =>
@@ -985,12 +1012,20 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
   route(`${PROJECT_PATH}/docs`, docs);
   route<object, { path?: string }>(
     `${PROJECT_PATH}/files/tree`,
-    async (read, _p, query) => listDirectory(read.root, query.path ?? '', await read.documentationScope()),
+    async (read, _p, query) => {
+      const tree = await listDirectory(read.root, query.path ?? '', await read.documentationScope());
+      // An entry's name is shown, its path is the address (task-072 D72-7).
+      return { ...tree, entries: tree.entries.map((e) => ({ ...e, name: repositoryText(e.name) })) };
+    },
     pathQuery(false),
   );
   route<object, { path: string }>(
     `${PROJECT_PATH}/files/content`,
-    async (read, _p, query) => readWorkingTreeFile(read.root, query.path, await read.documentationScope()),
+    async (read, _p, query) => {
+      const file = await readWorkingTreeFile(read.root, query.path, await read.documentationScope());
+      // The path is the address; the label is what the page shows (task-072 D72-6).
+      return { ...file, label: repositoryText(file.path) };
+    },
     pathQuery(true),
   );
   // task-031 (v0.2): query parameters checked in the handlers, after the project lookup (404 first).

@@ -2,6 +2,8 @@
  * The documentation index (US-R-08, R-08.1; ux-reference §4.9, prototype; decision W3-28): the
  * documents of `GET /docs` grouped by folder, numbered as the prototype (`1`, `1.1`), each entry
  * with its file name as the title and its full path. No description: the API gives paths only.
+ * What is shown is each document's `label` (the path as the server escaped it, task-072 D72-6); the
+ * link goes to its `path`, the address.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { DocumentationIndex } from '@wingfoil-ui/contracts';
@@ -16,23 +18,36 @@ import './docs.css';
 export interface IndexSection {
   /** `1`, `2`, … */
   number: string;
-  /** The folder (`.` for the repository root). */
+  /** The folder as shown (`.` for the repository root), from the labels. */
   folder: string;
-  /** The documents: number (`1.1`), file name (the title) and path. */
-  entries: { number: string; name: string; path: string }[];
+  /** The documents: number (`1.1`), file name (the title) and label as shown, and the path (the address). */
+  entries: { number: string; name: string; label: string; path: string }[];
 }
 
-/** The documents grouped by folder, in the index's order (sorted by path). */
-export function indexSections(paths: readonly string[]): IndexSection[] {
-  const sections = new Map<string, string[]>();
-  for (const path of paths) {
-    const folder = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '.';
-    sections.set(folder, [...(sections.get(folder) ?? []), path]);
+/** The folder of `text` (`.` at the root). */
+const folderOf = (text: string): string => (text.includes('/') ? text.slice(0, text.lastIndexOf('/')) : '.');
+
+/**
+ * The documents grouped by folder, in the index's order (sorted by path). Grouped by the path; the
+ * folder and the file name shown are the label's (the escape writes no `/` and removes none).
+ */
+export function indexSections(documents: readonly { path: string; label: string }[]): IndexSection[] {
+  const sections = new Map<string, { folder: string; list: { path: string; label: string }[] }>();
+  for (const doc of documents) {
+    const key = folderOf(doc.path);
+    const section = sections.get(key) ?? { folder: folderOf(doc.label), list: [] };
+    section.list.push(doc);
+    sections.set(key, section);
   }
-  return [...sections].map(([folder, list], i) => ({
+  return [...sections.values()].map(({ folder, list }, i) => ({
     number: String(i + 1),
     folder,
-    entries: list.map((path, j) => ({ number: `${i + 1}.${j + 1}`, name: path.slice(path.lastIndexOf('/') + 1), path })),
+    entries: list.map(({ path, label }, j) => ({
+      number: `${i + 1}.${j + 1}`,
+      name: label.slice(label.lastIndexOf('/') + 1),
+      label,
+      path,
+    })),
   }));
 }
 
@@ -44,7 +59,7 @@ export interface DocsIndexProps {
 
 /** The index page's content. */
 export function DocsIndex({ pid, index }: DocsIndexProps): ReactNode {
-  const sections = index.data ? indexSections(index.data.documents.map((d) => d.path)) : [];
+  const sections = index.data ? indexSections(index.data.documents) : [];
   return (
     <div className="page docs-index">
       <h1>
@@ -80,7 +95,7 @@ export function DocsIndex({ pid, index }: DocsIndexProps): ReactNode {
                     {entry.number}
                   </span>
                   <div className="docs-title">{entry.name}</div>
-                  <div className="docs-path">{entry.path}</div>
+                  <div className="docs-path">{entry.label}</div>
                 </Link>
               </li>
             ))}

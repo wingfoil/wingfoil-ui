@@ -569,6 +569,31 @@ every object `additionalProperties: false`, as the other API schemas.
   `/config` builds the index too when `progress.scope` names a type in `sequence` mode, to derive
   `ui.progress.scope.current` (§2); the reuse of §8 keeps that to the changed files, and no CLI
   process is added.
+
+- 2026-11-11 — amended in task-075 (bug-034; task-059 design D59-13, Q2 (a), and task-075's Q1 (a),
+  Q2 (a), decided by the approver; task-075 D75-1 … D75-7): §8 *Per state* — a read is kept for its
+  state only when it read what that state's check saw. A direct read (`memory.yaml`, `ui.yaml`, an
+  element file, a directive file, the index's element files) is compared with the check's marks: a
+  status entry's content hash, a clean file's blob at HEAD (one `git ls-tree -r HEAD` over
+  `.wingfoil/` and the Memory directories per new HEAD, shared with the reuse below: a git process
+  where no index is built, no CLI process), `ui.yaml`'s mark; a CLI read is kept only if no watcher
+  event arrived after its state's check began. Otherwise the value answers its callers, the state's
+  memo is dropped, a check runs and `repo {pid, state}` is published when it ends, also with the
+  same key. A mismatch a later check confirms (line-end conversion, a clean filter,
+  `assume-unchanged`, `skip-worktree`) is accepted. Declared residuals: a file with no comparable
+  mark (marked by its `lstat`, ignored by git, or an unreadable HEAD tree) is kept as before; an edit
+  and revert the watcher does not report (degraded watching, an ignored file outside the watched
+  folders) keeps a CLI read until the state moves; two edit-and-revert cycles of the same bytes
+  across one check keep the second read.
+- 2026-11-11 — task-075 review round 1 (F-2, F-3, F-4; the coordinator's decision, keeping Q2 (a)):
+  §8 the same-key `repo` after a drop is published at most once per state key, until the key
+  changes — a writer outside the console firing the watcher (a log file in the project folder, even
+  one git ignores) would otherwise drop every CLI read and force a refetch that is dropped again.
+  Declared residual (review round 2 F-8): the limit holds for any later drop on the same key, with
+  or without such a writer — until the key moves, a second untied read on that key is served once
+  and re-read on the next request, but no further `repo` tells an open page to refetch it. The confirmed mismatches are kept for every file of the newest state (no fixed number) and
+  recorded also by a read that settles after its memo was dropped, so a checkout with converted line
+  ends settles in one drop.
 - 2026-11-12 — clarified in task-074 (design D74-2 … D74-7, decided by the approver, Q1 (a),
   Q2 (a), Q3 (a); plan `backlog-item-rel-v0.3-plan`). §4 `elements[].inScope` is the rule of §1
   against the current element whenever one exists, also with `applied: project` (so *Whole

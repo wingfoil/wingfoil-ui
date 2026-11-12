@@ -4,12 +4,30 @@
  * and the token exchanged with `POST /api/session` for the `HttpOnly` session cookie. A page opened
  * without a token (a reload) relies on that cookie. A 401 anywhere — the exchange, an API call, the
  * event stream's probe — means the console no longer knows this page (stopped or started again):
- * the session is **lost** for good and the shell shows the lost-session notice (decision W3-7).
+ * the session is **lost** — final inside the page — and the shell shows the lost-session notice
+ * (decision W3-7). A lost page leaves that state only by a full load of its own address, once the
+ * browser holds a session again (`recovery.ts`, adr-003 D6, task-063).
  *
  * A console URL pasted into a tab that already shows the console changes only the fragment, which
  * the browser does not reload for (bug-016): {@link watchFragmentToken} handles that case.
  */
 import { useSyncExternalStore } from 'react';
+
+/** The same-origin `BroadcastChannel` on which a successful exchange is announced (adr-003 D6). */
+export const SESSION_CHANNEL = 'wfui-session';
+
+/**
+ * Tell the other tabs of this origin that the browser holds a session again: a message that holds
+ * nothing (`null`) — no token, session id or path (task-063 D63-2). Nothing without
+ * `BroadcastChannel`.
+ */
+function announceSession(): void {
+  if (typeof BroadcastChannel !== 'function') return;
+  const channel = new BroadcastChannel(SESSION_CHANNEL);
+  channel.postMessage(null);
+  // Closing right after is safe: the message is queued for every other channel at the post (HTML).
+  channel.close();
+}
 
 /** `connecting` until the bootstrap ends, then `connected` or `lost` (final). */
 export type SessionStatus = 'connecting' | 'connected' | 'lost';
@@ -75,16 +93,31 @@ export async function bootstrapSession(): Promise<SessionStatus> {
       headers: { Authorization: `Bearer ${token}` },
     });
     setStatus(response.status === 204 ? 'connected' : 'lost');
+    if (response.status === 204) announceSession();
   } catch {
     setStatus('lost');
   }
   return status;
 }
 
-/** Remove the fragment from the address bar (path and query kept), as the bootstrap does. */
+/** Remove the fragment from the address bar (path and query kept, on this origin), as the bootstrap does. */
 function stripFragment(): void {
-  window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+  window.history.replaceState(window.history.state, '', ownAddress(window.location.href));
 }
+
+/**
+ * The page's own address without its fragment, as an absolute URL of its origin (task-063 D63-6,
+ * AC-8): never `pathname + search`, which a path starting with `//` would make a protocol-relative
+ * address of another host. Used by the fragment strip and by the recovery's reload.
+ */
+export function ownAddress(href: string): string {
+  const url = new URL(href);
+  url.hash = '';
+  return url.href;
+}
+
+/** Longest wait for the answer of a session probe, `GET /api/server` (review round 2 S2-8 of task-040). */
+export const PROBE_TIMEOUT_MS = 10_000;
 
 /** Options of {@link watchFragmentToken}. */
 export interface WatchFragmentOptions {
@@ -106,7 +139,7 @@ export interface WatchFragmentOptions {
  */
 export function watchFragmentToken(options: WatchFragmentOptions = {}): () => void {
   const reload = options.reload ?? (() => window.location.reload());
-  const timeoutMs = options.probeTimeoutMs ?? 10_000;
+  const timeoutMs = options.probeTimeoutMs ?? PROBE_TIMEOUT_MS;
   // One probe at a time: a storm of fragment changes sends no more (review round 1 S6).
   let probing = false;
   const onChange = (): void => {

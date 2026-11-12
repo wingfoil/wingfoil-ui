@@ -363,3 +363,37 @@ its schema, and run the §4.1 resolution check. A failure blocks the matrix adva
   anything is counted), and the server keeps only the entries whose value is a positive integer.
   The kept `limits` are part of the resolved states, so `/config` and the element read serve them
   (spec-004 §3, additive). Only spec-003 §6 rule 5 uses them, and only on WingFoil 0.3.0 or later.
+- 2026-11-11 — amended in task-075 (bug-037; task-059 design D59-14, Q3 (a), decided by the
+  approver; task-075 D75-9): §4.2 duplicate keys are compared as WingFoil's YAML loader
+  (`js-yaml` 4.x, default schema) stores keys — `String()` of each key's value, so `1` and `"1"`,
+  `true` and `"true"`, `~` and `"null"`, two spellings of one timestamp, an alias of a key and two
+  equal complex keys are duplicates, while `2026-01-01` (a date there) and `"2026-01-01"` are not;
+  a merge key is a plain `<<` only. A key with a tag outside `str`, `null`, `bool`, `int`, `float`,
+  `timestamp` (or `!`), or a sequence key holding a sequence, is a `shape` error ("unsupported
+  key") — declared residual: the CLI may list such a file. The same rule applies to
+  `.wingfoil/memory.yaml` (§4.1). The values read are unchanged (the YAML 1.2 core schema).
+- 2026-11-11 — task-075 review round 1 (F-1, F-5): §4.2 alias keys are resolved in one pass over
+  the frontmatter (the check stays linear with aliases); a collection key tagged other than
+  `!!map` on a map or `!!seq` on a sequence is an unsupported key, as for js-yaml; a `!!merge` key
+  `<<` (quoted or not) or plain and empty is a merge key, as in both libraries, and a quoted empty
+  one an unsupported key (review round 2 F-7). Declared residual: the YAML library merges a
+  `!!str <<` key, which js-yaml stores as the key `<<` (refused when its value is not a map).
+- 2026-11-11 — amended in task-075 (bug-040, absorbed by the approver the same day; AC-4): §4.2 an
+  implicit empty key of a block mapping (`: a`, also nested, in a sequence entry or inside an
+  explicit key) is a `shape` error ("empty key"), as WingFoil's js-yaml refuses it; an explicit
+  empty key (`?` alone), one with a tag or an anchor, and one in a flow collection are read (js-yaml's
+  `null` key). The parse keeps the source tokens to tell the explicit indicator.
+- 2026-11-11 — amended in task-075 (bug-042, absorbed by the approver the same day, "toJS a"; AC-5):
+  §4.1, §4.2 the parse of `memory.yaml` and of every frontmatter (element read, reference index)
+  counts, in the key check's one pass, the steps the YAML library would take to resolve the aliases
+  (each alias scans the anchored nodes and aliases before it) and refuses the file as a `shape`
+  error ("too many aliases to resolve") above 2 000 000 steps — about 1 100 aliases of distinct
+  anchors — before building the values. The library's own limit (100 aliases per anchor, weighted by
+  the aliases inside it) stays.
+- 2026-11-12 — task-075 review round 3 (F-11, F-12): §4.1, §4.2 the alias steps also count, for
+  every alias of an anchored collection, the aliases inside it times the file's nodes (the library
+  walks the whole file to count them); an empty key is named at its `:`. The count is an upper bound
+  (review round 4 F-13): it charges that walk once per alias where the library walks once per
+  anchor, and the scan of distinct aliases reaches the bound near 2 000 of them — a file holding
+  more than roughly 1 000–2 000 aliases may be refused even when WingFoil lists it (declared
+  residual; no file of this repository holds any).
