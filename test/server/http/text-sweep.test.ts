@@ -384,6 +384,7 @@ const SWEPT_ROUTES: Readonly<Record<string, string>> = {
   '/api/p/:pid/events/memory': 'memory-events',
   '/api/p/:pid/progress': 'progress',
   '/api/projects': 'projects.list.response',
+  '/api/p/:pid/traceability': 'traceability',
 };
 
 /** The GET routes not swept, and why. */
@@ -417,6 +418,11 @@ const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
   'config .workflows.data.workflows[].phases[].actions[]': 'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
   'config .workflows.data.workflows[].phases[].produces[]':
     'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
+  // task-074 D74-6: Traceability names only the elements a reference, a link or the missing flag
+  // names, and none of the hostile fixture's member-actor rows is one; its rows are written by the
+  // `/elements` row builder (project-routes `listedRow`, `descriptorBody`), which this sweep reaches.
+  'traceability .elements[].descriptor.actor.member.name': 'the /elements row builder: project-routes listedRow',
+  'traceability .elements[].descriptor.actor.member.email': 'the /elements row builder: project-routes listedRow',
 };
 
 /** `.a.<key>[]` → a pattern matching `.a.<any key>[]` of a body. */

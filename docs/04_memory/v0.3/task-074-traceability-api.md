@@ -339,3 +339,15 @@ The three and D74-3 go into a spec-012 Process Note with the green commit.
   green): every job green — checks, coverage, contract, smoke, publish-smoke, `e2e-chromium` (1)
   and (2) (the new `performance.spec.ts` test runs unasserted there), `own-specs` (Firefox,
   WebKit: `performance.spec.ts`, no test on those engines); `e2e-wave` skipped (task scope).
+- Merged `design/dev-loop_v0.3` again (`30d30abc`, at `e7430c84`: task-072, task-075, task-063,
+  task-076 on top of task-062), before review: `npm ci` (task-075's `js-yaml`); conflicts only in
+  spec-012's Process Notes (both appended: the phase side's first, this task's after, in date
+  order) and `test/README.md`'s version line (the phase side to 0.83, this task 0.84). task-072's
+  guards on the merged `text-sweep`: `/api/p/:pid/traceability` joins `SWEPT_ROUTES`, and the two
+  (b) leaves `traceability .elements[].descriptor.actor.member.name|email` join
+  `REACHED_ELSEWHERE` — the hostile fixture names no member-actor row in Traceability, whose rows
+  `listedRow` writes as `/elements`'s, which the sweep reaches. Local after the merge: typecheck,
+  lint, format:check clean; `check_tasks.py v0.3` OK; `npx vitest run --maxWorkers=2` on
+  `text-sweep`, `public-text`, `traceability-routes`, `project-routes`, `progress-routes`,
+  `server/project-state`, the traceability and progress contract tests, `test/lint`, `test/docs`
+  passed.
