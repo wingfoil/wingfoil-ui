@@ -175,7 +175,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 - **A link clicked while the documentation view checks its links opens** (bug-043; task-078): a
   link check answering while a link is clicked no longer replaces the link the click lands on (seen
   on WebKit as an external link whose new tab never opened); only the links whose mark changes are
-  updated. The same holds in the Directives view and an element's document.
+  updated. The same holds in the Directives view and an element's document. The defect shipped in
+  v0.1.0 and v0.2.0.
 - **The address value on the element page is isolated from the text around it** (task-078; task-077
   security review F-5): an address holding right-to-left or other directional characters can no
   longer reorder the text next to it in the element page's top line or its *Not found* heading, as

@@ -45,4 +45,12 @@ describe('the comment rules are linear (review round 2, R2-1)', () => {
     expect(source.length).toBeGreaterThan(1_000_000);
     expect(withinBudget(source).comments).toBe(0);
   }, 60_000);
+
+  // The checker's N-4: a 1 MB body whose every block searches for a `-->` that never comes — with
+  // the search's answer not kept (`nextClose`), each of its 150 000 openers would scan to the end.
+  it('a 1 MB body of unclosed openers in list items', () => {
+    const source = '- <!--\n'.repeat(150000);
+    expect(source.length).toBeGreaterThan(1_000_000);
+    expect(withinBudget(source).comments).toBe(0);
+  }, 60_000);
 });
