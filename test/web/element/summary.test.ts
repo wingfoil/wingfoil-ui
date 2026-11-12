@@ -58,10 +58,10 @@ describe('summaryHtml keeps the text around a comment (review round 1, F-1)', ()
     );
   });
 
-  it('an indented comment, then the next line', () => {
-    expect(host(summaryHtml('   <!-- hint -->Second line kept?\nmore text')).textContent).toBe(
-      'Second line kept?\nmore text',
-    );
+  // Since review round 4, R4-2 the comment line is a block, as CommonMark's: its text is a paragraph
+  // of that line, which is the summary; the next line is a paragraph of its own.
+  it('an indented comment: the text after it, alone', () => {
+    expect(host(summaryHtml('   <!-- hint -->Second line kept?\nmore text')).textContent).toBe('Second line kept?');
   });
 
   it('an unclosed inline opener', () => {

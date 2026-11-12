@@ -11,7 +11,7 @@ import {
   markdownToSafeHtml,
   type FinishOptions,
 } from '../../../web/src/docs/render.js';
-import { agrees } from './commonmark-oracle.js';
+import { agrees, inlineCommentQuirk } from './commonmark-oracle.js';
 
 const DOC = 'docs/guide/a.md';
 const LOOKUP: LinkLookup = {
@@ -345,6 +345,10 @@ describe('the comment rules drop only the comment (review round 1, F-1, F-4)', (
     // The text after `-->` loses a later unclosed comment, as the HTML tokenizer hides it.
     '<!-- a --> tail <!-- b\nnext line',
     '<!-- a --> x <!-- b --> y',
+    // Blanks before an inline comment at a line end make no hard line break (CommonMark's inline HTML).
+    'Text  <!-- c -->\nmore',
+    // `--!>` also closes a comment for the browser: the text after it in the block is shown.
+    '<!-- a --!> shown\n-->',
   ];
 
   it.each(CASES)('F-4 — %j agrees with CommonMark with its comments left out', (source) => {
@@ -365,6 +369,8 @@ describe('the comment rules agree with CommonMark on generated bodies (review ro
     '-->',
     '<!-- a -->',
     '<!-->',
+    '<!--->',
+    '--!>',
     'text',
     'word',
     ' ',
@@ -401,7 +407,11 @@ describe('the comment rules agree with CommonMark on generated bodies (review ro
 
   it('400 bodies: the same text and structure, and no html_* token', () => {
     const differ: string[] = [];
-    for (const body of bodies) {
+    // markdown-it 15.0.2 rejects some comments CommonMark 0.31 accepts (`inlineCommentQuirk`): those
+    // bodies are left out, and they stay few.
+    const compared = bodies.filter((body) => !inlineCommentQuirk(body));
+    expect(compared.length).toBeGreaterThan(300);
+    for (const body of compared) {
       const tokens = commentFreeMarkdown.parse(body, {});
       if (tokens.flatMap((t) => [t, ...(t.children ?? [])]).some((t) => t.type.startsWith('html_'))) differ.push(body);
       const { text, structure } = agrees(body);

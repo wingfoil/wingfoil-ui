@@ -315,6 +315,9 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   another branch moved into the state, or another element's `status:` edited by hand and not
   committed, can make the console offer a move WingFoil refuses (shown as a toast) or, for an
   uncommitted edit into the state, disable one WingFoil would accept (design probes P3, P4, P6, P7).
+- **A document of many quotes, each followed by a lazy line, renders in quadratic time**
+  (bug-047): such a Markdown body can freeze the Documentation view, the Directives view or an
+  element's document while it renders (markdown-it 15.0.2's own cost; planned for v0.4).
 
 ## [0.2.0] - 2026-10-20
 

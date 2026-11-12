@@ -11,10 +11,10 @@
  * {@link agrees} compares `commentFreeMarkdown` with it on the visible text and on the structure of
  * the HTML (paragraph tags aside: markdown-it hides them in tight lists only for its own tokens).
  */
-import type { Token } from 'markdown-it';
 import { commentFreeMarkdown, plainMarkdown } from '../../../web/src/docs/render.js';
 
 type MarkdownIt = typeof plainMarkdown;
+type Token = ReturnType<MarkdownIt['parse']>[number];
 const MarkdownItClass = plainMarkdown.constructor as new (preset: 'default', options: object) => MarkdownIt;
 const reference = new MarkdownItClass('default', { html: true, linkify: true, typographer: false });
 const TokenClass = (reference.parse('x', {})[0] as Token).constructor as new (
@@ -125,4 +125,20 @@ export function agrees(source: string): { text: [string, string]; structure: [st
   const got = commentFreeMarkdown.render(source);
   const want = oracleHtml(source);
   return { text: [visibleText(got), visibleText(want)], structure: [structure(got), structure(want)] };
+}
+
+/**
+ * Whether `source` holds a comment that markdown-it 15.0.2's inline HTML rule rejects although
+ * CommonMark 0.31 and the HTML tokenizer read it as one: a `--` inside it, or a `-` just before its
+ * `-->` (its regular expression keeps CommonMark 0.30's rule). Such a body is no evidence either
+ * way: the oracle's inline reading is the outdated one there.
+ */
+export function inlineCommentQuirk(source: string): boolean {
+  for (let open = source.indexOf('<!--'); open >= 0; open = source.indexOf('<!--', open + 1)) {
+    const close = source.indexOf('-->', open + 2);
+    if (close < open + 4) continue;
+    const inner = source.slice(open + 4, close);
+    if (inner.includes('--') || inner.endsWith('-')) return true;
+  }
+  return false;
 }
