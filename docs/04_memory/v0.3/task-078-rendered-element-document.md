@@ -448,3 +448,31 @@ generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on:
 
 Run `43280997677` on `e632664b` (round 2's red `cbd3006f` and its fixes): **success**. Every job
 of the task scope passed on the first attempt.
+
+### security review round 3 (2026-11-12)
+
+The review was independent and adversarial, on `8fc87035`. **FAIL**: R2-1 … R2-6 verified, each
+failing with its guard removed; linear on 33 adversarial inputs (every ratio ≤ 1.51 against plain
+markdown-it); no markup can be created (about 70 probes). Two findings, both handled here. Red
+first: `63e29719`.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| R3-1 (major, content integrity) — a comment over several lines escaped its container (a list item, a quote's lazy lines) and hid content CommonMark and GitHub show: an unclosed `<!--` in a list item hid the rest of the document | `web/src/docs/render.ts` › `commentBlock`: the comment ends at the first non-blank line indented less than the container's content (`sCount < blkIndent`, as markdown-it's own `html_block` breaks), with `state.line` at that line; it is closed only when its `-->` lies on a line before that | the six repros in the F-4 table (each matches the same Markdown with only the comment removed): 6 failed at `63e29719`, i.e. on the previous rule. With the container check removed (scratch edit, restored): 6 failed |
+| R3-2 (nit, test strength) — the inline rule's `posMax` bound had no test | kept as **defensive**, with a code comment: markdown-it lowers `posMax` only to tokenize a link's text, whose label `skipToken` has already scanned with this rule, so no input reaches past the label's end (the reviewer found none, nor did I) | — (replacing it with `if (close < 0) return false;` keeps every test green, as the reviewer found) |
+
+`comment-linear.test.ts` passed again after R3-1, with a new case: an unclosed opener in each of
+20 000 list items. A probe found one cost that is not the rule's. A quote whose comment is followed
+by a lazy line (`'> <!--\nlazy\n'` repeated) ends the quote's content at the lazy line, as markdown-it
+does after any non-paragraph block. markdown-it 15.0.2 is then quadratic on it: 2 500 / 5 000 pairs
+took 1 542 / 5 700 ms with the comment rules, and plain markdown-it took 1 457 / 4 924 ms on
+`'> # h\nlazy\n'` and 5 565 ms on `'> ```\nlazy\n'` (5 000). That cost is the Documentation and
+Directives views' too. It is reported to the coordinator, not tested against the budget here.
+
+The CHANGELOG, `docs/user-guide.md` and `ux-reference.md` line "only the comments … text after
+one is kept" stays true: an unclosed comment still hides only itself, now up to the end of its
+container.
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
+`test/web/docs/{render,comment-linear,docs}`, `test/web/element/{summary,document}`.

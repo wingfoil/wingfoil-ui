@@ -53,7 +53,8 @@ function nextClose(owner: object, src: string, from: number): number {
  *   text stays and the lines around it stay one paragraph (F-1, R2-3, R2-4).
  * - A comment over several lines is a block wherever it starts, interrupting a paragraph as
  *   CommonMark's type 2 does: its lines are dropped, and text after its `-->` becomes a paragraph of
- *   its own (R2-2) — nothing inside the comment is ever parsed.
+ *   its own (R2-2) — nothing inside the comment is ever parsed. An unclosed one ends with its
+ *   container (R3-1).
  *
  * Only the text after the comment is emitted (as a paragraph, parsed inline like any text): the
  * comment is never turned into markup. Each call scans forward once through {@link nextClose}.
@@ -72,11 +73,21 @@ function commentBlock(state: StateBlock, startLine: number, endLine: number, sil
     return true;
   }
   if (silent) return true;
-  // Over several lines: find the closing line inside the container, else run to its end.
+  // Over several lines: find the closing line inside the container. The comment ends with its
+  // container — at the first non-blank line indented less than the container's content (a list
+  // item's next item or outdented text, a quote's lazy line: `sCount` -1), as markdown-it's own HTML
+  // block does (review round 3, R3-1) — or at the end of the parse range.
   let line = startLine + 1;
-  while (line < endLine && (close < 0 || state.eMarks[line]! < close + COMMENT_CLOSE.length)) line++;
-  if (line >= endLine || close < state.bMarks[line]!) {
-    state.line = endLine;
+  for (; line < endLine; line++) {
+    if (state.sCount[line]! < state.blkIndent && !state.isEmpty(line)) break;
+    if (close >= 0 && close + COMMENT_CLOSE.length <= state.eMarks[line]!) break;
+  }
+  const closed =
+    line < endLine &&
+    !(state.sCount[line]! < state.blkIndent && !state.isEmpty(line)) &&
+    close >= state.bMarks[line]!;
+  if (!closed) {
+    state.line = line;
     return true;
   }
   const tail = state.src.slice(close + COMMENT_CLOSE.length, state.eMarks[line]).trim();
@@ -103,6 +114,10 @@ function commentBlock(state: StateBlock, startLine: number, endLine: number, sil
 function commentInline(state: StateInline, _silent: boolean): boolean {
   if (!state.src.startsWith(COMMENT_OPEN, state.pos)) return false;
   const close = nextClose(state, state.src, state.pos + 2);
+  // The `posMax` bound is defensive (review round 3, R3-2): markdown-it lowers `posMax` only to
+  // tokenize a link's text, whose label `skipToken` has already scanned with this rule, so a comment
+  // there never reaches past the label's end; no input found reaches it. It keeps the rule inside its
+  // run whatever a later markdown-it does.
   if (close < 0 || close + COMMENT_CLOSE.length > state.posMax) return false;
   let end = close + COMMENT_CLOSE.length;
   let back = state.pos - 1;
