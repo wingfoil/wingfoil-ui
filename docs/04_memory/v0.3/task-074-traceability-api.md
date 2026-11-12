@@ -213,9 +213,10 @@ New: `contracts/api/traceability.schema.json`, `contracts/src/traceability.ts`,
 `test/server/project-state/traceability.test.ts`, `test/contracts/traceability-api-schema.test.ts`.
 Changed: `contracts/api/elements.schema.json` (`definitions.row`), `contracts/api/progress.schema.json`
 (`definitions.completion`), `contracts/src/index.ts`, `server/src/project-state/figures.ts`
-(`coverageFigure`), `bodies.ts` (`traceabilityBody`), `server/src/presets/api.ts` (status words),
+(`coverageFigure`), `bodies.ts` (`traceabilityBody`, named `traceabilityParts` at green), `server/src/presets/api.ts` (status words),
 `server/src/http/project-routes.ts` (route, `listedRow`, module table), `test/server/http/
-text-sweep.test.ts` (D74-9), `test/e2e/performance.spec.ts` (D74-10), `test/README.md` (0.78),
+text-sweep.test.ts` (D74-9), `test/e2e/performance.spec.ts` (D74-10), `test/README.md` (0.84 — planned as 0.78, renumbered at
+the two merges of the phase branch),
 `CHANGELOG.md` *Unreleased*, spec-012 Process Note (Q1 … Q3, D74-3) with the green commit. The
 route test file builds its own variants once (bug-028) with a console helper like
 `progress-routes`' (the two files stay apart: one console per test, bug-023). spec-004 §3 already
@@ -225,11 +226,11 @@ lists the route: no change.
 
 | AC / scenario | Test |
 |---------------|------|
-| AC-1 shape: schema on the custom fixture (preset, plain), the unknown fixture, both scopes; `applied`; `patterns`; rows of every category and the `no-elements` rows with `project`; `elements` with `done`/`inScope`; figures | `test/server/http/traceability-routes.test.ts` › "AC-1 …"; units in `test/server/project-state/traceability.test.ts` (rows by kind and key, status codes, the `current` omission, natural order and the tie, `percent: null`, coverage and `no-requires`, Q1 … Q3) |
+| AC-1 shape: schema on the custom fixture (preset, plain), the unknown fixture, both scopes; `applied`; `patterns`; rows of every category and the `no-elements` rows with `project`; `elements` with `done`/`inScope`; figures | `test/server/http/traceability-routes.test.ts` › "AC-1 the elements are the /elements rows plus done and inScope; phaseCompletion read-only"; units in `test/server/project-state/traceability.test.ts` (rows by kind and key, status codes, the `current` omission, natural order and the tie, `percent: null`, coverage and `no-requires`, Q1 … Q3) |
 | AC-1 contract | `test/contracts/traceability-api-schema.test.ts` (Ajv strict; module bodies pass; an unknown key, a bad `status`, a `percent` above 100, a bad `applied` fail; `elements` still valid with `definitions.row`) |
-| AC-2 §10 rows | `traceability-routes` › "§10 unknown :pid → 404 (also with a bad scope)", "a bad scope, another parameter, a repeated scope → 400", "memory search fails (exit 1, 2) → the CLI envelope, as /elements", "memory.yaml unreadable → 502 read-error", "ui.yaml missing / ignored → 200, inferred values", "an unreadable file and one with 201 values → unreadable / capped", "events fail → eventsError, descriptors without events", "dna show fails → no field, member actors fall back" |
-| AC-3 caching and processes | `traceability-routes` › "a repeated /traceability (both scopes) starts 0 processes; X-Repo-State", "a cold Traceability: each CLI command at most once, one ls-tree, none per element", "an events failure is not kept: the next request reads the events again" |
-| AC-4 K1 | `traceability-routes` › "K1 a bidi and a C1 control in a title and in a reference value come back escaped"; `test/server/http/text-sweep.test.ts` (D74-9) |
+| AC-2 §10 rows | `traceability-routes` › "unknown :pid → 404, also with a bad scope (404 before 400)", "a bad scope, another parameter, a repeated scope → 400 invalid-request", "memory search fails (exit $exitCode) → the CLI envelope, no partial body (as /elements answers it)" (exit 1 and 2), "memory.yaml unreadable → 502 read-error", "ui.yaml ignored → 200 with ui.status and the inferred values", "ui.yaml missing → 200 with ui.status and the inferred values", "an unreadable element file and one with 201 values → unreadable / capped", "events fail → eventsError, descriptors computed without events", "dna show fails → 200 with no field; member actors fall back" |
+| AC-3 caching and processes | `traceability-routes` › "a repeated /traceability (both scopes) starts 0 processes; X-Repo-State on each answer", "a cold Traceability: each CLI command at most once, one ls-tree, none per element", "an events failure is not kept: the next request reads the events again, its descriptors with them", and (review round 1 F-2) "two requests of one scope compute once, another scope once more; an events failure computes on every request" |
+| AC-4 K1 | `traceability-routes` › "a bidi and a C1 control in a title and in a reference value come back escaped" (in "K1 — repository text escaped (AC-4, spec-012 §9)"); `test/server/http/text-sweep.test.ts` (D74-9) |
 | AC-5 timing | `test/e2e/performance.spec.ts` › "AC-5 (task-074) — /traceability answers within 1.0 s (p95, warm cache), both scopes" (`@perf`; `test:timing` the coordinator's) |
 | R-01.1 | `traceability-routes` › "R-01.1 List references with their completion — 25 %, coverage 3/5, US-M-01 50 % · 1/2, US-S-01 0 % · 0/1" |
 | R-01.5 | › "R-01.5 Show the rows outside the current release under the whole project — US-S-09 with scope=project only" (`setFrontmatterValue` dl-001 `ref: US-S-09`) |
@@ -237,7 +238,7 @@ lists the route: no change.
 | R-01.7 | › "R-01.7 List references between Memory elements without ui.yaml — patterns false, dl-001 decision, linked task-001" (`related:` on task-001, no `ui.yaml`) |
 | R-01.8 | › "R-01.8 Open the elements missing required references in Memory — missing = task-004-themes, adr-001-local-server" |
 | R-01.9 | › "R-01.9 Filter references by category — the requirement rows US-M-01 and US-S-01" |
-| R-01.2, R-01.3, R-01.4 (their e2e in task-067; API facts only) | › "R-01.2 … the linked elements' rows: task-002 done, task-003's descriptor" (pre-packs + preset), "R-01.3 … no row completed", "R-01.4 … unknown fixture: references [], patterns false" |
+| R-01.2, R-01.3, R-01.4 (their e2e in task-067; API facts only) | › "R-01.2 Show who must act on a reference’s open elements — the linked rows: task-002 done, task-003 waiting for the engine" (pre-packs + preset), "R-01.3 Filter references by status — no row is completed", "R-01.4 Explain an empty traceability — unknown fixture: no reference, patterns false" |
 
 #### Gates and where they run
 
@@ -357,7 +358,7 @@ The three and D74-3 go into a spec-012 Process Note with the green commit.
 
 ### review round 1 (2026-11-12)
 
-On `c21d2ff3` (run `43216324952`): PASS with two minor findings and a nit. The guards existed; each
+On `c21d2ff3` (run `43216324952`): PASS with two minor findings and a nit, fixed in `df150d48`. The guards existed; each
 new test passes on the code and was seen failing with its guard removed, the code then restored.
 
 | # | Finding | Fix | Red evidence |
@@ -367,3 +368,15 @@ new test passes on the code and was seen failing with its guard removed, the cod
 | F-3 (nit) | the two `REACHED_ELSEWHERE` values named a code path, not a covering test | each now names this sweep's `elements .elements[].descriptor.actor.member.name\|email` (reached, the same `listedRow`) and the `descriptorBody` test `TODAY_ACTOR` names | — |
 
 Checks after the fixes: typecheck, lint, format:check clean; `check_tasks.py v0.3` OK; `npx vitest run --maxWorkers=2` on `traceability-routes`, `server/project-state`, `text-sweep`, `test/docs`, `test/lint` 270 passed; `traceability-routes` under the strict-identity `git` wrapper 25 passed.
+
+Run `43222852560` (`df150d48`, the round 1 fixes): every job green — checks, coverage, contract,
+smoke, publish-smoke, `e2e-chromium` (1) and (2), `own-specs` (Firefox, WebKit); `e2e-wave`
+skipped (task scope).
+
+### checker (2026-11-12)
+
+On `df150d48`: NOT READY on the notes only. G-1: the test plan's cells for R-01.2, R-01.3, R-01.4
+and the AC-1 … AC-4 rows now carry the exact titles of `traceability-routes.test.ts` (each title
+checked against the file with `grep -F`); N-1: run `43222852560` above; N-2: round 1 names its fix
+commit `df150d48`; N-3: the *Files* list says `test/README.md` 0.84 (renumbered at the merges); N-4:
+the approver's quote is left as written, as the precedent.
