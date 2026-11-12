@@ -54,6 +54,10 @@ here; a console-wide one goes through `bug-ingest`) apply.
   how a link is marked, not the element clicked (`RenderedArticle` keeps its anchors, the marks are
   updated in place); a test red first holds a lookup and clicks during it, and R-09.4 passes on
   WebKit.
+- **AC-7 — The address value isolated on the element page** (the approver, 2026-11-12, task-077
+  security review F-5 (a)): where `ElementPage.tsx` (task-062) shows the address value — its topline,
+  a refusal's heading, the candidates' heading and list name — the value is wrapped in `<bdi>`, as
+  task-077's side panel does; a test red first with a value holding U+202E.
 - **AC-5 — Docs and gates**: `CHANGELOG.md` *Unreleased*; the checks of `CLAUDE.md` (heavy gates on
   `gates.yml`), `check_tasks.py v0.3`, with commands and results in the Execution Notes.
 
