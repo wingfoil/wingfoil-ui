@@ -398,3 +398,21 @@ after a decision reaches a final state" — passes. Attempt 2, the failed job re
 every job of the task scope green. Recorded for the review as a possible WebKit timing of the
 footer's focus after a decision in the side panel (`ElementFooter`'s focus on `.drawer-title` in
 `onSuccess`), not reproduced.
+
+### security review round 1 (2026-11-12)
+
+Independent, adversarial, on `0d50a422`: PASS, no security defect; one minor waiting for the
+approver (F-1), two minors and four nits fixed here. Red first: `8b7d5e97`.
+
+| Finding | Fix | Test |
+|---------|-----|------|
+| F-1 (minor) — after a decision the focus falls to `<body>` until the POST's reply arrives: the server publishes the `repo` event before its HTTP reply, the refetch replaces the footer and unmounts the focused outcome, and `ElementFooter`'s `onSuccess` focuses the heading only later — X-06.2's WebKit failure of run `43215888917`; the race is task-037's, on the element page too | **not yet**: the coordinator asks the approver whether it is a bug absorbed here or a later task; `ElementFooter` and X-06.2 unchanged | — |
+| F-2 (minor) — the double-Escape test did not reach `closing` (memory history's Back unmounted the panel before the second Escape) | none needed: the guard is right | `side-panel.test.tsx` › "goes back once on a double Escape" with `history.back` a no-op and both Escapes on the mounted panel; with `if (closing.current) return;` removed (a scratch edit, restored with a file copy): 1 failed, 28 skipped by `-t` |
+| F-3 (minor) — the bell's `forgetOpener()` was untested, and it also forgot the opener on a modified or middle click (another tab) | `forgetOpener(event)` applies the click rule of `rememberOpener` (`followedHere`): only a click followed in this page forgets | "closes to the main region after a bell item replaced a panel opened from Today" — with `forgetOpener()` removed: 1 failed; "keeps the opener of Today on a modified click of a bell item" — red before the fix (the focus went to `#main`, not to Today's title) |
+| F-4 (nit) — the rewrite's path-syntax check on the server's id was untested | none needed | "does not rewrite panel= to a server-answered id %j" (`..`, `.`): *not found*, `panel=task-001` and the history length unchanged; with both checks of `SidePanel.tsx` removed: 2 failed |
+| F-5 (nit) — the address value became the panel's heading and name with no bidi isolation | the value in the topline and in a refusal's heading is wrapped in `<bdi>` (chosen over a "Not found" title: the user still sees which value was refused, as the element page does) | "isolates the address value it shows from the surrounding text" — red before the fix (no `bdi`) |
+| F-6 (nit) — the e2e comment said a close after a reload replaces the entry; D77-5 goes back (the reload keeps the pushed entry) | the comment of `side-panel.spec.ts` › AC-3 corrected | — |
+| F-7 (nit) — AC-4's "other parameters unchanged" was not asserted | the hostile values now open on `/p/<pid>/directives?show=all&panel=…` and assert `show=all` kept | the `it.each` of AC-4, characterization (the parameters are never rewritten) |
+
+The element page shows its address value the same way (task-062's `ElementPage.tsx`, no `bdi`);
+left as it is here, for the coordinator.

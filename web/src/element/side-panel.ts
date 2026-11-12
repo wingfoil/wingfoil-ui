@@ -141,9 +141,13 @@ export function panelClosed(pid: string): void {
   if (!taken) requestAnimationFrame(focusMainWhenLost);
 }
 
-/** Forget the opener: the panel is opened by a control that keeps no focus to return to (the bell). */
-export function forgetOpener(): void {
-  opener = undefined;
+/**
+ * Forget the opener: the panel is opened by a control that keeps no focus to return to (the bell).
+ * Given the click of a link, only a click followed in this page counts: a modified or middle click
+ * opens the element elsewhere and leaves this page's panel and its opener as they are (review F-3).
+ */
+export function forgetOpener(event?: MouseEvent<HTMLAnchorElement>): void {
+  if (event === undefined || followedHere(event)) opener = undefined;
 }
 
 /** How many side panels of each project are mounted (one; React's strict mode mounts twice in development). */

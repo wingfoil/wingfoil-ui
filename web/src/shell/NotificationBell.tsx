@@ -22,7 +22,7 @@
 import type { ProjectHeader, Today } from '@wingfoil-ui/contracts';
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { Link, useRouterState } from '@tanstack/react-router';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, type MouseEvent, type ReactNode } from 'react';
 import { Button, Dialog, DialogTrigger, Heading, Popover } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
@@ -67,8 +67,8 @@ function ElementLink({
 }): ReactNode {
   const onElementPage = useRouterState({ select: (s) => s.matches.some((m) => m.routeId === ELEMENT_ROUTE_ID) });
   const panelOpen = usePanelOpen();
-  const onClick = (): void => {
-    forgetOpener();
+  const onClick = (event: MouseEvent<HTMLAnchorElement>): void => {
+    forgetOpener(event);
     onNavigate();
   };
   return onElementPage ? (

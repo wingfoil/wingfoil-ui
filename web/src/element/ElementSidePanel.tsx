@@ -97,13 +97,14 @@ export function ElementSidePanel({
         <div className="drawer-header">
           <div className="drawer-topline">
             {shown && <span className="type-tag">{shown.element.type}</span>}
-            <span className="element-id">{shown ? shown.element.id : eid}</span>
+            {/* The address's value is isolated from the text around it (bidi, review F-5). */}
+            <span className="element-id">{shown ? shown.element.id : <bdi>{eid}</bdi>}</span>
             <Button className="button button-quiet" onPress={onClose}>
               <FormattedMessage id="common.action.close" />
             </Button>
           </div>
           <Heading slot="title" level={2} ref={heading} className="drawer-title" tabIndex={-1}>
-            {shown ? shown.element.title : element.error ? eid : <FormattedMessage id="element.loading" />}
+            {shown ? shown.element.title : element.error ? <bdi>{eid}</bdi> : <FormattedMessage id="element.loading" />}
           </Heading>
           {shown && (
             <StateMachine
