@@ -58,3 +58,4 @@ Low: reached only by hand-made requests.
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-12): fixed by task-063 (`done` `fc344493`), merged into the phase branch in `cc430f77`; resolved by the approver (`7adaddab`). A static path the file system refuses as too long is missing: 404 `not-found` under `/assets/`, the application for any other path; a 4xx the error handler does not name gets a code matching its status (`test/server/http/app.test.ts`, spec-004 §5). It closes with Wave 2's merge into `main`.
