@@ -11,6 +11,7 @@ import {
   markdownToSafeHtml,
   type FinishOptions,
 } from '../../../web/src/docs/render.js';
+import { agrees } from './commonmark-oracle.js';
 
 const DOC = 'docs/guide/a.md';
 const LOOKUP: LinkLookup = {
@@ -293,50 +294,119 @@ describe('the comment rules drop only the comment (review round 1, F-1, F-4)', (
     expect(text('Write <!-- to open a comment.')).toBe('Write <!-- to open a comment.');
   });
 
-  const CASES: [string, string][] = [
-    ['<!-- a -->\n\nText.\n', '\n\nText.\n'],
-    ['Text <!-- a --> after.\n', 'Text  after.\n'],
-    ['<!-- one\n two -->\n\n## Heading\n', '\n\n## Heading\n'],
-    ['<!-- hint --> Decision.\n', ' Decision.\n'],
-    // A comment line inside a paragraph keeps the paragraph (review round 2, R2-4).
-    ['Line\n<!-- a -->\nNext\n', 'Line\nNext\n'],
-    ['- item <!-- a --> b\n', '- item  b\n'],
-    ['<!-- a --><script>x</script>\n', '<script>x</script>\n'],
+  // Each case agrees with the CommonMark oracle (`commonmark-oracle.ts`) since review round 4, R4-2;
+  // before it, the table compared each case with the same Markdown without its comment, which
+  // R4-2's alignment changes on purpose for the R2-3 and R2-4 cases (a comment line now ends the
+  // paragraph it is in, as CommonMark's HTML block does).
+  const CASES: string[] = [
+    '<!-- a -->\n\nText.\n',
+    'Text <!-- a --> after.\n',
+    '<!-- one\n two -->\n\n## Heading\n',
+    '<!-- hint --> Decision.\n',
+    // A comment line ends the paragraph it is in (review round 4, R4-2: CommonMark's HTML block).
+    'Line\n<!-- a -->\nNext\n',
+    '- item <!-- a --> b\n',
+    '<!-- a --><script>x</script>\n',
     // `<!-->` is a whole (empty) comment (CommonMark 0.31, HTML): what follows it is text.
-    ['<!--> <img src=x onerror=alert(1)> -->\n', ' <img src=x onerror=alert(1)> -->\n'],
+    '<!--> <img src=x onerror=alert(1)> -->\n',
     // Review round 2, R2-3: a comment line with text inside a paragraph, a quote and a lazy line.
-    ['Line\n<!-- a --> tail', 'Line\ntail'],
-    ['> q\n> <!-- a --> tail', '> q\n> tail'],
-    ['- a\n<!-- c --> lazy', '- a\nlazy'],
+    'Line\n<!-- a --> tail',
+    '> q\n> <!-- a --> tail',
+    '- a\n<!-- c --> lazy',
     // Review round 2, R2-2: a comment over several lines, text after its close — only that text.
-    ['<!--\n# hidden heading\n--> tail', 'tail'],
-    ['<!--\n[hidden](http://evil.example)\n\nstill hidden\n--> tail', 'tail'],
-    ['Intro\n\n<!--\nGuidance: one paragraph.\n\nExample: [ex](http://example.com)\n--> Real text.', 'Intro\n\nReal text.'],
+    '<!--\n# hidden heading\n--> tail',
+    '<!--\n[hidden](http://evil.example)\n\nstill hidden\n--> tail',
+    'Intro\n\n<!--\nGuidance: one paragraph.\n\nExample: [ex](http://example.com)\n--> Real text.',
     // Review round 2, R2-4: a comment line before `===` is no setext heading's text; a comment line
-    // inside a paragraph keeps one line break between its neighbours.
-    ['<!-- c -->\n===', '==='],
-    ['- item\n  <!-- c -->\n  more', '- item\n  more'],
+    // inside a list item's paragraph leaves a line break between its neighbours.
+    '<!-- c -->\n===',
+    '- item\n  <!-- c -->\n  more',
     // Review round 3, R3-1: a comment over several lines ends with its container (a list item, a
     // quote's lazy lines), as markdown-it's own HTML block does: what lies outside stays shown.
-    ['- <!-- a\n\npara outside list\n\n# Heading outside\n', '-\n\npara outside list\n\n# Heading outside\n'],
-    ['1. <!-- x\n2. second\n3. third -->', '1.\n2. second\n3. third -->'],
-    ['- a\n- <!-- b\n- c\n\n-->', '- a\n-\n- c\n\n-->'],
-    ['- item\n  <!-- a\n\nOutside para\n\n  -->', '- item\n\nOutside para\n\n  -->'],
-    ['> <!-- a\nb -->\nvisible', '>\nb -->\nvisible'],
-    ['> > <!-- a\n> b\n-->', '> >\n> b\n-->'],
+    '- <!-- a\n\npara outside list\n\n# Heading outside\n',
+    '1. <!-- x\n2. second\n3. third -->',
+    '- a\n- <!-- b\n- c\n\n-->',
+    '- item\n  <!-- a\n\nOutside para\n\n  -->',
+    '> <!-- a\nb -->\nvisible',
+    '> > <!-- a\n> b\n-->',
     // Review round 4, R4-1: a blank line inside the comment does not end it (only a non-blank line
     // outside the container does).
-    ['- x\n  <!--\n\n  secret [link](http://e)\n  -->\n', '- x\n'],
-    ['- <!-- a\n\n  hidden\n  b -->\n- c', '-\n- c'],
-    // Review round 4, R4-3: the text after the comment stays the first line of its paragraph.
-    ['- a\n- <!-- x\n  y --> tail\n  next\n', '- a\n- tail\n  next\n'],
+    '- x\n  <!--\n\n  secret [link](http://e)\n  -->\n',
+    '- <!-- a\n\n  hidden\n  b -->\n- c',
+    // Review round 4, R4-3: in a tight list the text after the comment does not glue to the next line.
+    '- a\n- <!-- x\n  y --> tail\n  next\n',
+    // Review round 4, R4-2: a comment line ends its block, so an indented code block may follow.
+    'Intro\n<!-- c -->\n    <!-- shown as code -->\n',
+    '<!-- n --> Run:\n    npm ci\n',
+    // Review round 1, F-1, and the text after the comment on its line.
+    '<!-- hint --> Decision: we do NOT approve.',
+    '   <!-- hint -->Second line kept?\nmore text',
+    'Write <!-- to open a comment.',
+    // The text after `-->` loses a later unclosed comment, as the HTML tokenizer hides it.
+    '<!-- a --> tail <!-- b\nnext line',
+    '<!-- a --> x <!-- b --> y',
   ];
 
-  it.each(CASES)('F-4 — %j renders as the same Markdown without its comment', (source, without) => {
+  it.each(CASES)('F-4 — %j agrees with CommonMark with its comments left out', (source) => {
     const tokens = commentFreeMarkdown.parse(source, {});
     const all = tokens.flatMap((t) => [t, ...(t.children ?? [])]);
     expect(all.filter((t) => t.type.startsWith('html_'))).toEqual([]);
-    // The same instance on the source without its comment (no rule fires there): only text went.
-    expect(commentFreeMarkdown.render(source)).toBe(commentFreeMarkdown.render(without));
+    const { text: [gotText, wantText], structure: [got, want] } = agrees(source);
+    expect(gotText).toBe(wantText);
+    expect(got).toBe(want);
+  });
+});
+
+// Review round 4, R4-2: a bounded, seeded fuzz of the comment rules against the CommonMark oracle —
+// pieces of Markdown structure, comment openers and closers, text and line breaks.
+describe('the comment rules agree with CommonMark on generated bodies (review round 4, R4-2)', () => {
+  const PIECES = [
+    '<!--',
+    '-->',
+    '<!-- a -->',
+    '<!-->',
+    'text',
+    'word',
+    ' ',
+    '\n',
+    '\n',
+    '\n\n',
+    '- ',
+    '1. ',
+    '> ',
+    '    ',
+    '  ',
+    '# ',
+    '===',
+    '`x`',
+    '[l](u)',
+    '*e*',
+    '--',
+    '-',
+  ];
+  /** A seeded generator (mulberry32): the same cases on every run. */
+  function random(seed: number): () => number {
+    let a = seed;
+    return () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const next = random(78);
+  const bodies = Array.from({ length: 400 }, () =>
+    Array.from({ length: 4 + Math.floor(next() * 14) }, () => PIECES[Math.floor(next() * PIECES.length)]!).join(''),
+  );
+
+  it('400 bodies: the same text and structure, and no html_* token', () => {
+    const differ: string[] = [];
+    for (const body of bodies) {
+      const tokens = commentFreeMarkdown.parse(body, {});
+      if (tokens.flatMap((t) => [t, ...(t.children ?? [])]).some((t) => t.type.startsWith('html_'))) differ.push(body);
+      const { text, structure } = agrees(body);
+      if (text[0] !== text[1] || structure[0] !== structure[1]) differ.push(body);
+    }
+    expect(differ).toEqual([]);
   });
 });
