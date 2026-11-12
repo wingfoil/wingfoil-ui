@@ -145,3 +145,21 @@ export function panelClosed(pid: string): void {
 export function forgetOpener(): void {
   opener = undefined;
 }
+
+/** How many side panels of each project are mounted (one; React's strict mode mounts twice in development). */
+const mounted = new Map<string, number>();
+
+/**
+ * Record a side panel of `pid` as mounted; the returned cleanup signals {@link panelClosed} once no
+ * panel of `pid` is mounted any more — checked after the current task, so that an unmount followed
+ * at once by a mount (React's strict mode in development) is no close.
+ */
+export function trackPanel(pid: string): () => void {
+  mounted.set(pid, (mounted.get(pid) ?? 0) + 1);
+  return () => {
+    mounted.set(pid, (mounted.get(pid) ?? 1) - 1);
+    queueMicrotask(() => {
+      if ((mounted.get(pid) ?? 0) === 0) panelClosed(pid);
+    });
+  };
+}

@@ -315,6 +315,12 @@ v0.3.
   `test/web/memory/list`, `test/web/shell/{switch-target,project-switcher,toasts,shell}`,
   `test/web/docs/docs`, `test/web/project/how-to-join`, `test/web/i18n/*` (118 + 133 + 119 passed
   across the runs).
+- **Refactor:** the close signal no longer runs in the panel's effect cleanup directly: React's strict
+  mode (`web/src/main.tsx`) mounts twice in development, and the first cleanup would have consumed
+  the opener and given the focus to it while the panel stayed open. `trackPanel(pid)` counts the
+  mounted panels and signals `panelClosed` after the current task only when none is left; test
+  "signals a close only once no panel of the project is mounted", with its guard removal (the
+  cleanup calling `panelClosed` at once: 1 failed, 23 skipped by `-t`).
 - **Local checks:** `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run
   docs:api` generated; `check_tasks.py v0.3` OK; `npx vitest run test/docs/public-text.test.ts`
   passed.

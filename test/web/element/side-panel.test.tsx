@@ -10,6 +10,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
+import { onPanelClosed, trackPanel } from '../../../web/src/element/side-panel.js';
 import { resetSession } from '../../../web/src/session/session.js';
 import { header } from '../project/header-data.js';
 import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js';
@@ -398,4 +399,24 @@ it.each([
   // No footer, no link built from the value.
   expect(dialog.querySelector('.element-footer-slot')).toBeNull();
   expect(within(dialog).queryAllByRole('link')).toEqual([]);
+});
+
+it('signals a close only once no panel of the project is mounted (React strict mode remounts in development)', async () => {
+  const seen: string[] = [];
+  const off = onPanelClosed((pid) => {
+    seen.push(pid);
+    return true;
+  });
+  try {
+    const first = trackPanel('p_x');
+    first();
+    const second = trackPanel('p_x');
+    await Promise.resolve();
+    expect(seen).toEqual([]);
+    second();
+    await Promise.resolve();
+    expect(seen).toEqual(['p_x']);
+  } finally {
+    off();
+  }
 });

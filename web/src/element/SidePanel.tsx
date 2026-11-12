@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { directivesQuery, projectHeaderQuery } from '../api/queries.js';
 import { ElementSidePanel } from './ElementSidePanel.js';
 import { elementKeys, elementQuery, historyQuery, isPathSyntaxId, notFound } from './queries.js';
-import { panelClosed, withoutPanel } from './side-panel.js';
+import { trackPanel, withoutPanel } from './side-panel.js';
 
 /** The panel's error for an answered id that is no address (task-062 N-2). */
 const NOT_FOUND = notFound();
@@ -81,7 +81,7 @@ export function SidePanel({ pid, eid }: SidePanelProps): ReactNode {
   }, [canGoBack, pushed, router]);
 
   // Whatever closes the panel (D77-7): the focus goes back to its opener, or to the main region.
-  useEffect(() => () => panelClosed(pid), [pid]);
+  useEffect(() => trackPanel(pid), [pid]);
 
   return (
     <ElementSidePanel
