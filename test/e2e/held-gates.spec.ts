@@ -27,7 +27,7 @@ test.use({ prebuild: ['custom'] });
 const HELD_BY_CONFIG = 'Approved outside the console (ui.yaml)';
 const HELD_ONE = 'Waits for 1 referencing element to be done';
 
-const drawer = (page: Page): Locator => page.locator('.drawer');
+const drawer = (page: Page): Locator => page.locator('[data-element-view]');
 const footer = (page: Page): Locator => drawer(page).locator('.element-footer');
 const requiresYou = (page: Page): Locator => page.getByRole('region', { name: 'Requires you' });
 const waiting = (page: Page): Locator => page.getByRole('region', { name: 'Waiting on others' });

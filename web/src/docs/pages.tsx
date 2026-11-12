@@ -97,9 +97,11 @@ export function DocumentPage(): ReactNode {
   const path = _splat ?? '';
   const hash = useLocation({ select: (l) => l.hash });
   const router = useRouter();
-  // The document's path is the view (project data, W5-5).
-  useProjectTitle(pid, path);
+  const intl = useIntl();
   const content = useQuery(documentContentQuery(pid, path));
+  // The document's label is the view (project data, W5-5): the path as the server escaped it
+  // (task-072 D72-6) — the view's name until it is read, never the raw path.
+  useProjectTitle(pid, content.data?.label ?? intl.formatMessage(DOCS_LABELS.nav));
   const safeHtml = useDocumentHtml(content.data?.content);
   const lookup = useLinkLookup(pid, path, safeHtml);
   const navigate = useCallback((href: string) => void router.navigate({ href }), [router]);

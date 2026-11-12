@@ -102,7 +102,7 @@ test.describe('US-S-16 — switch project', () => {
   test('S-16.2 — Close the element panel of the previous project on switch', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban'), await fixtures.get('custom')] });
     await openConsole(page, c, { path: `/p/${c.pids[0]}/e/task-001-login-form` });
-    const panel = page.getByRole('dialog').filter({ hasText: 'task-001-login-form' });
+    const panel = page.locator('[data-element-view]').filter({ hasText: 'task-001-login-form' });
     await expectFirstLoad(panel);
     // The panel is not modal (W4-8): the switcher stays operable while it is open.
     await openSwitcher(page);
@@ -111,7 +111,7 @@ test.describe('US-S-16 — switch project', () => {
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[1]}/today`);
     await expect(panel).toBeHidden();
     await expectToday(page);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('[data-element-view]')).toHaveCount(0);
   });
 });
 

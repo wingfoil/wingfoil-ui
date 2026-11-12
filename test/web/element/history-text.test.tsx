@@ -114,7 +114,7 @@ const raw = (text: string): boolean => [0x202e, 0x200b, 0x1b].some((c) => text.i
 it('shows the escaped title, rejection and history texts as written (bug-027, K1)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: TITLE });
+  const dialog = await screen.findByRole('region', { name: TITLE });
   const d = within(dialog);
   expect(d.getByText(`Rejected by ${REJECTER}: ${REASON}`)).toBeTruthy();
   await d.findByText('edited outside a WingFoil verb by Jordan \\u202enadroJ');

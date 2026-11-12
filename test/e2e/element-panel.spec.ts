@@ -1,11 +1,13 @@
-// task-018 — the read-only element panel on the real bin (US-G-01: G-01.1…G-01.4), on the built
-// kanban and custom fixtures. The panel is read-only: the identity of a scenario ("I am Morgan")
+// task-018 — the element on the real bin (US-G-01: G-01.1…G-01.4), on the built kanban and custom
+// fixtures; since task-062 the address opens the element page in the main region (spec-011 §2).
+// Short ids, candidates and long ids: `element-page.spec.ts`. The panel is read-only: the identity of a scenario ("I am Morgan")
 // changes nothing it shows, so the fixtures' own identity (Alex) is used.
 import type { Page } from '@playwright/test';
 import type { DirectiveEntry, MemoryHistory } from '@wingfoil-ui/contracts';
 import { scanThemes } from './support/axe.js';
-import { expectFirstLoad, expectLoaded } from './support/cold-read.js';
-import { openConsole, type RunningConsole } from './support/console.js';
+import { expectFirstLoad } from './support/cold-read.js';
+import { openElementPage } from './support/element.js';
+import type { RunningConsole } from './support/console.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cli, commitFile } from './support/events.js';
@@ -16,14 +18,9 @@ import { expectFocusVisible } from './support/keyboard.js';
 // The fixtures of this spec, built before its first test (shared support, bug-004).
 test.use({ prebuild: ['kanban', 'custom'] });
 
-/** Open the element panel of `eid` by its URL. */
-async function openPanel(page: Page, c: RunningConsole, eid: string) {
-  await openConsole(page, c, { path: `/p/${c.pids[0]}/e/${eid}` });
-  const panel = page.getByRole('dialog');
-  // The cold reads of the element and of its history (bug-004).
-  await expectFirstLoad(panel.locator('.type-tag'));
-  await expectLoaded(panel);
-  return panel;
+/** Open the element page of `eid` by its URL. */
+function openPanel(page: Page, c: RunningConsole, eid: string) {
+  return openElementPage(page, c, eid);
 }
 
 /** The chip of `state` in the panel's state machine (found by the name it shows). */
@@ -51,7 +48,7 @@ test.describe('US-G-01 — element panel', () => {
     await expect(panel).toHaveAccessibleName('Login form');
     await expect(panel.getByText('task', { exact: true })).toBeVisible();
     await expect(panel.getByText('task-001-login-form', { exact: true })).toBeVisible();
-    await expect(panel.getByRole('heading', { level: 2, name: 'Login form' })).toBeVisible();
+    await expect(panel.getByRole('heading', { level: 1, name: 'Login form' })).toBeVisible();
     await expectChip(page, 'draft', 'past');
     await expectChip(page, 'pending', 'current');
     await expectChip(page, 'approved', 'future');
@@ -71,23 +68,17 @@ test.describe('US-G-01 — element panel', () => {
     await expect(line).toContainText(submit.sha.slice(0, 7));
     await expect(line).toContainText(date);
     await expect(line.getByTitle(submit.sha)).toBeVisible();
-    // Keyboard: the focus is in the panel; Close is reachable with a visible focus; Escape closes.
+    // Keyboard: the heading has the focus; Close, before it in the page's header, is reachable with a
+    // visible focus (Shift+Tab); Escape closes.
     const close = panel.getByRole('button', { name: 'Close' });
-    for (let i = 0; i < 5 && !(await close.evaluate((el) => el === document.activeElement)); i++) {
-      await page.keyboard.press('Tab');
-    }
+    await expect(panel.getByRole('heading', { level: 1 })).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
     await expectFocusVisible(close);
-    // The scrollable body is reachable with Tab (keyboard scrolling), with a visible focus.
-    const body = panel.getByRole('region', { name: 'Element details' });
-    for (let i = 0; i < 5 && !(await body.evaluate((el) => el === document.activeElement)); i++) {
-      await page.keyboard.press('Tab');
-    }
-    await expectFocusVisible(body);
     expect(await scanThemes(page)).toEqual([]);
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden();
-    // Opened from its URL: Close goes to the project, whose landing view is Today (W3-22; task-036, D36-1).
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today`);
+    // Opened from its URL: Close goes to the project's Memory list (spec-011 §2; was Today, W3-22).
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/memory`);
     await expect(page.locator('main#main')).toBeFocused();
   });
 
@@ -114,7 +105,7 @@ test.describe('US-G-01 — element panel', () => {
     expect(await scanThemes(page)).toEqual([]);
   });
 
-  test('G-01.4 — Open an element panel from its URL', async ({ page, fixtures, consoles }) => {
+  test('G-01.4 — Open an element page from its URL', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openPanel(page, c, 'task-001-login-form');
     const copied = page.url();
@@ -123,7 +114,7 @@ test.describe('US-G-01 — element panel', () => {
     const tab = await page.context().newPage();
     try {
       await tab.goto(copied);
-      const panel = tab.getByRole('dialog', { name: 'Login form', exact: true });
+      const panel = tab.getByRole('region', { name: 'Login form', exact: true });
       await expectFirstLoad(panel.locator('.type-tag'));
       await expect(panel.getByText('task-001-login-form', { exact: true })).toBeVisible();
       await expect(tab).toHaveTitle(/· task-001-login-form — WingFoil UI$/);
@@ -133,8 +124,8 @@ test.describe('US-G-01 — element panel', () => {
   });
 });
 
-test.describe('element panel layout', () => {
-  test('a long unbroken value wraps inside the drawer: no horizontal scroll', async ({ page, fixtures, consoles }) => {
+test.describe('element page layout', () => {
+  test('a long unbroken value wraps inside the page: no horizontal scroll', async ({ page, fixtures, consoles }) => {
     const kanban = await fixtures.copy('kanban');
     const file = 'docs/memory/task/task-004-session-timeout.md';
     const long = 'X'.repeat(300);
@@ -143,10 +134,16 @@ test.describe('element panel layout', () => {
     const c = await consoles.start({ projects: [kanban] });
     const panel = await openPanel(page, c, 'task-004-session-timeout');
     await expect(panel.getByText(long).first()).toBeVisible();
-    const overflow = await page
-      .locator('.drawer-body')
-      .evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }));
+    // Neither the page nor its body scrolls sideways.
+    const overflow = await page.evaluate(() => ({
+      scroll: document.documentElement.scrollWidth,
+      client: document.documentElement.clientWidth,
+    }));
     expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
+    const body = await page
+      .locator('.element-page-body')
+      .evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }));
+    expect(body.scroll).toBeLessThanOrEqual(body.client);
   });
 });
 
@@ -156,7 +153,7 @@ test.describe('US-G-02 — directives in the element panel', () => {
   /** The ids listed by the Directives section of the open panel. */
   const directiveIds = (page: Page) =>
     page
-      .getByRole('dialog')
+      .locator('[data-element-view]')
       .getByRole('region', { name: 'Directives', exact: true })
       .locator('.directive-link-item .field-value');
 
@@ -193,7 +190,7 @@ test.describe('US-G-02 — directives in the element panel', () => {
     await expectFocusVisible(link);
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/directives/${id}`);
-    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('[data-element-view]')).toHaveCount(0);
     // The Directives view on that directive, with its body rendered.
     const article = page.getByRole('article', { name: title });
     await expectFirstLoad(article);

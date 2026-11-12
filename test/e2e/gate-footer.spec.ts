@@ -23,7 +23,7 @@ test.use({ prebuild: ['kanban', 'custom', 'unknown'] });
 const DEFAULT_REASON = 'Approved via WingFoil UI';
 
 /** The element panel. */
-const drawer = (page: Page): Locator => page.locator('.drawer');
+const drawer = (page: Page): Locator => page.locator('[data-element-view]');
 
 /** The gate footer of the panel. */
 const gate = (page: Page): Locator => drawer(page).getByRole('region', { name: 'Decision' });
@@ -439,7 +439,7 @@ test.describe('US-X-06 — keyboard (TT-PERF-10)', () => {
     await expectLastCommit(kanban, 'wf(task): approve task-001-login-form [pending → approved]');
     // The focus stays in the panel once the outcome is gone (D37-9).
     await expect(footer(page)).toHaveText('Final state: no action is possible', { timeout: COLD_READ_MS });
-    expect(await page.evaluate(() => document.activeElement?.closest('.drawer') !== null)).toBe(true);
+    expect(await page.evaluate(() => document.activeElement?.closest('[data-element-view]') !== null)).toBe(true);
   });
   // task-043 AC-3 (gap G4): Reject of the gate footer by keyboard only, from Today.
   test('X-06.2 — Reject a gate with the keyboard only (G4)', async ({ page, fixtures, consoles }) => {

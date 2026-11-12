@@ -35,7 +35,7 @@ const PRESET = 'chore(ui): apply the Kanban preset';
 
 const gitStatus = (page: Page): Locator => page.getByRole('region', { name: 'Git status' });
 const syncButton = (page: Page, name: string): Locator => gitStatus(page).getByRole('button', { name, exact: true });
-const drawer = (page: Page): Locator => page.locator('.drawer');
+const drawer = (page: Page): Locator => page.locator('[data-element-view]');
 const gate = (page: Page): Locator => drawer(page).getByRole('region', { name: 'Decision' });
 const reasonField = (page: Page): Locator =>
   gate(page).getByRole('textbox', { name: 'Reason, recorded in the commit' });

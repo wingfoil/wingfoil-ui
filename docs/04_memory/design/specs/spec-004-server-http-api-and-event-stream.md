@@ -122,8 +122,8 @@ v0.1 routes are defined by the schemas in `contracts/api/` (errors: `error.schem
 | `GET /api/p/:pid/elements/:eid` | `element.schema.json`, with `element.shortId` (spec-011 §1, v0.3); 404 `not-found` and 409 `ambiguous-id` `element.refusal.schema.json` (spec-011 §3) |
 | `GET /api/p/:pid/elements/:eid/history` | `history.schema.json` — the `memory history` entries on their contract fields only (a CLI's added fields, e.g. 0.3.x's `wingfoil`, are not passed on; task-048) |
 | `GET /api/p/:pid/directives`, `/directives/:did` | `directives.schema.json`, `directive.schema.json` |
-| `GET /api/p/:pid/docs` | `docs.schema.json` |
-| `GET /api/p/:pid/files/tree`, `/files/content` | `file-tree.schema.json`, `file-content.schema.json` |
+| `GET /api/p/:pid/docs` | `docs.schema.json` — each document's `path` (the address) and, from v0.3, its `label` (the text shown, §5 *Repository texts*) |
+| `GET /api/p/:pid/files/tree`, `/files/content` | `file-tree.schema.json`, `file-content.schema.json` — from v0.3 the content's `label` too |
 
 **Identity and role view (addendum, dev-loop task-009).** The identity part of `GET /api/p/:pid`
 is `{ identity, roleViews, roleView }`, defined by `contracts/api/identity.schema.json`:
@@ -255,25 +255,37 @@ the sanitiser of tool messages where the route serialises them — after the des
 the authors' emails against the team (spec-002 §1), which reads them as committed.
 
 Repository texts (v0.3, release-planning v0.3 step 5c K1, spec-012 §9; implemented with bug-027's
-task, the same class): every display string a read body takes from the repository passes through
+task, the same class; widened to the whole class by bug-035's task): every display string a read
+body takes from the repository passes through
 the sanitiser's character escape (`neutralise`, without the folder redaction) where the route
-serialises it — element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
+serialises it. A *display string* is any string a body takes from the project — a committed or
+working-tree file (the DNA, a directive, a workflow, `memory.yaml`, `ui.yaml`, an element), a file
+or folder name, the project's `origin`, the user's git email, or the console's stored copy of one —
+that the page only shows; a *key* is a value the page sends back, builds an address from, or
+compares with another key, and stays raw; a value that is both is sent raw with a display sibling
+(a document's `label` next to its `path`). Among the display strings: element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
 of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** values of
 `/progress` and `/traceability`, and the **`ui.yaml` strings** `/config` echoes in `ui`
 (`patterns[].match` — a regular-expression source, its backslashes kept as written —, type
-names, `phases`, `holds` types and states, `artifacts` paths). Element
+names, `phases`, `holds` types and states, `artifacts` paths), the DNA's texts in `/config` `dna`
+(every string but the role names, a member's roles and an agent's roles — a field a newer CLI adds
+is escaped), the workflow texts in `/config` `workflows` (every string but the workflow, phase and
+step names, kinds, roles, element types and included files; 0.3.x's `message` and `diagnostics`
+are tool messages), member names and emails wherever a body names them (the header's `identity`,
+the descriptor's `actor`) — the same text in every body —, the project's name (the header, the
+project list, `already-listed`) and its `remote`, a directive's `name` and `title` (the list and the
+page), a history entry's and a Memory event's `from` and `to`, a file-tree entry's `name`, a document's `label`, and a
+repository path in an error detail the page shows (`read-error`'s `detail.file` and the file in its
+message, `write-incomplete`'s `detail.file`). Element
 ids, types and states stay as `memory search` returns them: they are the keys a page sends back.
-So does every other key whatever its source — an event's `type`, `id`, `from` and `to`, read from
-the commit subject and patch (spec-002 §3), the roles, the paths a page sends back. Document
+So does every other key whatever its source — an event's `type` and `id`, read from the commit
+subject (spec-002 §3), the roles, the paths a page sends back. Document
 content — a frontmatter value, an element or directive body, a working-tree file — is served as
 written: the page renders it as a document, and the escape would change it (a doubled backslash in
 Markdown); the one frontmatter field outside it is `rejection_reason`, which `memory reject` writes
 from its reason (spec-001 §3): commit text, sanitised as the descriptor's `rejection.reason`. The rules live in one module, `server/src/http/serialise.ts` (task-056): `repositoryText`
-(the escape) and the commit-text sanitiser, used by every route that serialises such a field. The
-repository display text outside the fields named here (the DNA's names and descriptions, the
-directives' names and titles — the directive page's heading included —, the workflow texts, a file
-tree's names, the documentation index's paths, the states of a history entry, the project list's
-name and `remote`) is not escaped yet: bug-035.
+(the escape) and the commit-text sanitiser, used by every route that serialises such a field. Keys stay raw even where the page shows them (an element's id,
+type and `status`, a role, a tag, a directive's or an element's path): bug-041.
 
 - Success of a write (`write.response.schema.json`): `{ result: <CLI output>, commits: [{ sha,
   subject }], push: { status, code?, message? } }` — `status` is `pushed`, `off` or `failed`
@@ -535,6 +547,25 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   the `cli-refused` reasons' cap (200 and a count line), the details' `file` left out, `detail`
   only with a reason, and the envelope's schema `contracts/api/cli.refusal.schema.json` (the
   `cli-refused` branch of `write.refusal.schema.json` refers to it).
+- 2026-11-11 — amended in development (task-072 design D72-1 … D72-15, plan backlog-item-rel-v0.3-plan;
+  decided by the approver, "tutto come consigliato", Q3 (a), Q4 (a), Q5 (a); bug-035): §5
+  *Repository texts* names the class — a display string is what the page only shows, a key what it
+  sends back, builds an address from or compares, a value that is both gets a display sibling —
+  instead of a list: the DNA's and the workflows' texts escaped by default, member names and emails,
+  the user's git email, the project's name and `remote`, the directives' names and titles, a
+  history entry's states, a file-tree name, the repository paths of `read-error` and
+  `write-incomplete`; the keys shown raw are bug-041. §3: `docs.schema.json`'s `documents[].label`
+  and `file-content.schema.json`'s `label`, required next to the `path`.
+- 2026-11-12 — amended in task-072 security review round 1 (F-1, F-2; the security review's findings):
+  §5 a Memory event's `from` and `to` are display text (the bell only shows them), escaped as a
+  history entry's; its `type` and `id` stay keys. A governed write's `read-error` (row 9) names the
+  element's path escaped, as the read routes' does.
+- 2026-11-11 — amended in task-075 (bug-034, spec-012 §8 of the same day): §5 a body served under an
+  `X-Repo-State` is read from the content that state stands for — a read whose files differ from
+  the state check's marks, or a CLI read finishing after a watcher event, still answers its request,
+  and the server then checks again and emits `repo` also when the key did not move, so the page
+  refetches — at most once per state key, until the key moves (spec-012 §8, task-075 review round
+  1 F-2). The header format is unchanged.
 - 2026-11-11 — amended in development (task-063, plan backlog-item-rel-v0.3-plan; decided by the
   approver, "tutto come consigliato": Q1 (a), Q3 (a), Q4 (a)): §2 "the page does not retry" becomes
   the recovery in place of adr-003 D6 (the message, the triggers, the probe with the cookie, the

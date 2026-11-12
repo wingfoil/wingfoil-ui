@@ -79,10 +79,18 @@ export class Fingerprinter {
   /** Folders `lstat`ed by the last {@link fingerprint} call, each once (bug-033). */
   lastAncestorChecks = 0;
 
+  /**
+   * The mark of each entry of the last {@link fingerprint} call, by its path relative to the top
+   * level (`sha:<hex>`, `stat:…`, `link:…`, `other:…`, `via:…`, `missing`): what that check saw, to
+   * which a later read of the same state is tied (bug-034, task-075 D75-1). Checks never overlap.
+   */
+  lastMarks: ReadonlyMap<string, string> = new Map();
+
   /** The fingerprint (hex SHA-256) of the content of `entries` under the project folder. */
   async fingerprint(entries: readonly StatusEntry[]): Promise<string> {
     const listed = entries.filter((e) => e.path.startsWith(this.prefix));
     const parts = new Array<string>(listed.length);
+    const marks = new Map<string, string>();
     const next = new Map<string, Cached>();
     let budget = MAX_FINGERPRINT_BYTES_PER_CHECK;
     let reads = 0;
@@ -119,6 +127,7 @@ export class Fingerprinter {
           const via = await throughLink(entry.path);
           if (via !== undefined) {
             parts[index] = `${entry.path}\0${via}`;
+            marks.set(entry.path, via);
             continue;
           }
           const info = await lstat(file, { bigint: true });
@@ -150,6 +159,7 @@ export class Fingerprinter {
           mark = 'missing';
         }
         parts[index] = `${entry.path}\0${mark}`;
+        marks.set(entry.path, mark);
       }
     };
     await Promise.all(Array.from({ length: Math.min(FINGERPRINT_CONCURRENCY, listed.length) }, worker));
@@ -157,6 +167,7 @@ export class Fingerprinter {
     this.cache = next;
     this.lastReads = reads;
     this.lastAncestorChecks = folders.size;
+    this.lastMarks = marks;
     return createHash('sha256').update(parts.join('\0')).digest('hex');
   }
 }

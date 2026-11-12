@@ -9,6 +9,13 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **The element page** (task-062, US-G-01 G-01.4 … G-01.7; spec-011 §2, §3): an element opens as a
+  page of the main region, with the sidebar — from its address, the Memory list and a link inside
+  a document, a directive or another element — with the same content and footer as the v0.2 panel,
+  the footer in a bar at the bottom of the window (the toasts stay above it). An address with a
+  short id (`/p/<project>/e/task-046`) opens its element and is rewritten to the full id; a short
+  id that names several elements lists them, each a link to its page, instead of *not found*; an
+  element whose id is longer than 100 characters is opened and decided like any other.
 - **Progress figures and missing references in the API** (task-059, TT-STATE-08; spec-012 §2,
   §3, §5): `GET /api/p/:pid/progress` serves the progress card's figures of a repository state —
   the current element of the `ui.yaml` scope (the most advanced release, derived on every WingFoil
@@ -113,6 +120,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Changed
 
+- **Close and Escape on an element opened from its address** (task-062, spec-011 §2) go to the
+  project's Memory list, no longer to its landing view.
 - **WingFoil 0.3 support** (task-046): a project on WingFoil 0.2.2 to 0.3.x is supported
   (contract-tested: 0.2.2 and 0.3.1); this repository pins `wingfoil@0.3.1`. The `--version` text
   of WingFoil 0.3, which carries its build (`0.3.1 (870bd44…)`), is read as its version; the
@@ -181,6 +190,32 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Memory element (id, title, type, status missing or not text)`), archived elements included.
   WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
   defect shipped in v0.1.0 and v0.2.0.
+- **Every name the repository supplies is shown as safe text** (bug-035, task-072): the project's
+  name (the header, the project switcher, the page title, *Already in the list*) and its remote,
+  the DNA's texts (the project, modules, technologies, methodologies, role descriptions, agents,
+  paths), the members' names and emails (the header, Team, Today, the element panel's footer), your
+  own git email, the directives' names and titles (the list, the page's heading and title), the
+  workflow descriptions, the states an element's history names, the documentation's file names
+  and paths (the index, a document's toolbar and page title) and a file named in an error passed on
+  a bidi override or a control character as written. They now show it as a visible escape
+  (`\u202e`), as the titles do; the links of the documentation still open the file as named. Ids,
+  types, states, roles and tags are still shown as WingFoil returns them (bug-041). The defect
+  shipped in v0.1.0 and v0.2.0.
+- **An edit undone before the console looked again is no longer shown** (bug-034, task-075): a file
+  edited, read by a page and put back before the console's next look at the repository gave the
+  same repository state again, and the console kept serving what it had read from the edited file
+  (an element, `ui.yaml`, `memory.yaml`, a directive) until the next change. Each read is now tied
+  to what the console's check saw: a read of other content, or a `wingfoil` read that finished after
+  a file event, answers once, then the console checks again and the page refetches. The defect
+  shipped in v0.1.0 and v0.2.0.
+- **The console and WingFoil agree on which frontmatters have a duplicate key** (bug-037, task-075):
+  keys that are one key for WingFoil's YAML loader — `1` and `"1"`, `true` and `"true"`, `~` and
+  `"null"`, two spellings of one date, an alias repeating a key, a repeated complex key — were read
+  as two by the console, which showed as an element a file every `wingfoil` command leaves out
+  (`duplicated mapping key`); and `2026-01-01` with `"2026-01-01"`, two keys for WingFoil, was
+  refused. Keys are now compared as WingFoil stores them (also in `.wingfoil/memory.yaml`). A key
+  with a tag the console does not emulate (`!!binary`, `!!set`, a local tag) or a nested list is
+  refused. The defect shipped in v0.1.0 and v0.2.0.
 
 - **A build asset whose name is too long answers 404** (bug-031, task-063; spec-004 §5): a path
   the file system refuses as too long answered 403 `invalid-request`; it is now missing — 404
@@ -190,6 +225,16 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Security
 
+- **An empty key no longer makes an element of a file WingFoil leaves out** (bug-040, task-075): a
+  frontmatter with a line `: value` (a key with nothing before the colon) was read by the console,
+  while every `wingfoil` command leaves the file out. Such a key is now refused as WingFoil refuses
+  it; an empty key WingFoil accepts (written `? ` alone, with a tag or an anchor, or inside `{…}`)
+  is still read. The defect shipped in v0.1.0 and v0.2.0.
+- **A file with many YAML aliases no longer blocks the console** (bug-042, task-075): reading a
+  Memory file or `.wingfoil/memory.yaml` holding thousands of aliases (`*name`) took time growing
+  with the square of their number — minutes for a large file — while every other request waited.
+  Such a file is now refused as unreadable at once (`too many aliases to resolve`); a file with the
+  aliases a project writes by hand is read as before. The defect shipped in v0.1.0 and v0.2.0.
 - **The token fragment is removed on this origin only** (task-063 AC-8): the page builds the
   address it keeps after removing `#token=…` from its whole URL, so a path starting with `//` can
   no longer make that step fail and leave the token in the address bar (unreachable today: the
@@ -201,9 +246,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   (`Fix \\n handling`), so that every escape on the page is one the console wrote. Ids, types and
   states stay as WingFoil returns them (they are what a page sends back), and a document — an
   element's or a directive's body and fields (but the reject's reason, a commit text), a file — is
-  shown as written. The other names the repository supplies (the DNA's names and descriptions, the
-  directives' titles, the workflow texts, file names and paths of the documentation, the states
-  named in an element's history, the project's name) are not escaped yet (bug-035).
+  shown as written. The other names the repository supplies follow the same rule (bug-035,
+  *Fixed*).
 
 ### Known limitations
 
