@@ -459,3 +459,6 @@ Run `43228114005` on `1897a9d5` (bug-046 with its red `598a4f1b` and the merge `
 text sweep, no web change; `package-lock.json` unchanged) merged into the task branch, as the
 coordinator asked: the only conflict was `test/README.md`'s version line — task-074's 0.84 kept,
 this task's entries renumbered 0.85 (the side panel) and 0.86 (bug-046).
+
+Run `43231463745` on `f86ce0cf` (the task-074 merge over bug-046's fix): **success**, every job of
+the task scope green on the first attempt.
