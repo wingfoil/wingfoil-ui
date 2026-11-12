@@ -68,3 +68,4 @@ F-1 di task 77").
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-12): fixed by task-077 as its AC-7 (`done` `407a1b86`), merged into the phase branch in `a051736a`; resolved by the approver (`208a3db3`). The gate footer tracks whether it holds the focus: when a refetch removes the focused control before the reply, the heading takes the focus if it was left on `<body>`, never from where the user placed it; the *Update* link's focus request lives for one update (`test/web/element/gate-footer.test.tsx` › "bug-046 — …", approve and reject, on the page and in the side panel; `test/e2e/gate-footer.spec.ts` › X-06.2 waits for the focus). It closes with Wave 2's merge into `main`.
