@@ -501,3 +501,14 @@ and every guard removal failed as it should.
 |---|-----|--------------|
 | N-1 | spec-004's Process Note of 2026-11-12 called the findings "the coordinator's" | "the security review's findings" |
 | N-2 | the run of `2fd8592b` and round 2 missing from these notes | added (above and this section) |
+
+### the phase branch with task-062 merged in (2026-11-12, the coordinator)
+
+`33ce3391`: task-062's element page replaces the panel dialog, so
+`test/web/shell/repository-text.test.tsx` › "a history entry's states show as written" looked for a
+`dialog` and timed out — push run `43126528493` on `33ce3391` failed in `coverage` on that test only
+(found by the checker). The merge's adaptation of this task's test (`'dialog'` → `'region'`, as the
+merge did for `test/web/element/history-text.test.tsx`) is the next commit. The version lines after
+the merges: `docs/user-guide.md` 0.35 (this task's entry, written as 0.31), `test/README.md` 0.79
+(written as 0.70).
+

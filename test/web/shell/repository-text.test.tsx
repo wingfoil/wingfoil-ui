@@ -146,9 +146,9 @@ it('the directives list and page, the switcher, the header and the page title sh
 it("a history entry's states show as written", async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'Hand state' });
-  const d = within(dialog);
+  const page = await screen.findByRole('region', { name: 'Hand state' });
+  const d = within(page);
   expect(await d.findByText(`draft → ${STATE}`)).toBeTruthy();
   expect(d.getByText(`${STATE} → draft`)).toBeTruthy();
-  expect(unsafe(dialog.textContent ?? '')).toBe(false);
+  expect(unsafe(page.textContent ?? '')).toBe(false);
 });
