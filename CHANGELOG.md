@@ -193,9 +193,34 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   (`\u202e`), as the titles do; the links of the documentation still open the file as named. Ids,
   types, states, roles and tags are still shown as WingFoil returns them (bug-041). The defect
   shipped in v0.1.0 and v0.2.0.
+- **An edit undone before the console looked again is no longer shown** (bug-034, task-075): a file
+  edited, read by a page and put back before the console's next look at the repository gave the
+  same repository state again, and the console kept serving what it had read from the edited file
+  (an element, `ui.yaml`, `memory.yaml`, a directive) until the next change. Each read is now tied
+  to what the console's check saw: a read of other content, or a `wingfoil` read that finished after
+  a file event, answers once, then the console checks again and the page refetches. The defect
+  shipped in v0.1.0 and v0.2.0.
+- **The console and WingFoil agree on which frontmatters have a duplicate key** (bug-037, task-075):
+  keys that are one key for WingFoil's YAML loader — `1` and `"1"`, `true` and `"true"`, `~` and
+  `"null"`, two spellings of one date, an alias repeating a key, a repeated complex key — were read
+  as two by the console, which showed as an element a file every `wingfoil` command leaves out
+  (`duplicated mapping key`); and `2026-01-01` with `"2026-01-01"`, two keys for WingFoil, was
+  refused. Keys are now compared as WingFoil stores them (also in `.wingfoil/memory.yaml`). A key
+  with a tag the console does not emulate (`!!binary`, `!!set`, a local tag) or a nested list is
+  refused. The defect shipped in v0.1.0 and v0.2.0.
 
 ### Security
 
+- **An empty key no longer makes an element of a file WingFoil leaves out** (bug-040, task-075): a
+  frontmatter with a line `: value` (a key with nothing before the colon) was read by the console,
+  while every `wingfoil` command leaves the file out. Such a key is now refused as WingFoil refuses
+  it; an empty key WingFoil accepts (written `? ` alone, with a tag or an anchor, or inside `{…}`)
+  is still read. The defect shipped in v0.1.0 and v0.2.0.
+- **A file with many YAML aliases no longer blocks the console** (bug-042, task-075): reading a
+  Memory file or `.wingfoil/memory.yaml` holding thousands of aliases (`*name`) took time growing
+  with the square of their number — minutes for a large file — while every other request waited.
+  Such a file is now refused as unreadable at once (`too many aliases to resolve`); a file with the
+  aliases a project writes by hand is read as before. The defect shipped in v0.1.0 and v0.2.0.
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
   the Memory list, the element panel and Today comes back with control, bidi and invisible
   characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a

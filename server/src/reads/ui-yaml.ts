@@ -153,16 +153,35 @@ async function inspect(root: string, fs: UiYamlFs): Promise<Inspected> {
 
 /** Read the entry at `<root>/.wingfoil/ui.yaml` (`root`: the project's realpath). */
 export async function readUiYaml(root: string, fs: UiYamlFs = nodeUiYamlFs): Promise<UiYamlEntry> {
+  return (await readMarkedUiYaml(root, fs)).entry;
+}
+
+/**
+ * {@link readUiYaml} with the {@link uiYamlMark} of what this read saw — the same steps, one pass —
+ * to which a per-state read is tied (bug-034, task-075 D75-3).
+ */
+export async function readMarkedUiYaml(
+  root: string,
+  fs: UiYamlFs = nodeUiYamlFs,
+): Promise<{ entry: UiYamlEntry; mark: string }> {
   const found = await inspect(root, fs);
-  if (found.kind === 'absent') return found;
-  if (found.kind === 'refused') return { kind: 'refused', failure: found.failure };
+  const mark = markOf(found);
+  if (found.kind === 'absent') return { entry: found, mark };
+  if (found.kind === 'refused') return { entry: { kind: 'refused', failure: found.failure }, mark };
   let text: string;
   try {
     text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: false }).decode(found.bytes);
   } catch {
-    return { kind: 'refused', failure: 'not valid UTF-8' };
+    return { entry: { kind: 'refused', failure: 'not valid UTF-8' }, mark };
   }
-  return { kind: 'text', text, sha256: createHash('sha256').update(found.bytes).digest('hex') };
+  return { entry: { kind: 'text', text, sha256: mark.slice('sha:'.length) }, mark };
+}
+
+/** The mark of what {@link inspect} found (one rule for the read and the check). */
+function markOf(found: Inspected): string {
+  if (found.kind === 'absent') return 'absent';
+  if (found.kind === 'refused') return found.mark;
+  return `sha:${createHash('sha256').update(found.bytes).digest('hex')}`;
 }
 
 /**
@@ -175,8 +194,5 @@ export async function readUiYaml(root: string, fs: UiYamlFs = nodeUiYamlFs): Pro
  * new content), or `error:<code>`. The bytes are hashed, neither kept nor exposed.
  */
 export async function uiYamlMark(root: string, fs: UiYamlFs = nodeUiYamlFs): Promise<string> {
-  const found = await inspect(root, fs);
-  if (found.kind === 'absent') return 'absent';
-  if (found.kind === 'refused') return found.mark;
-  return `sha:${createHash('sha256').update(found.bytes).digest('hex')}`;
+  return markOf(await inspect(root, fs));
 }

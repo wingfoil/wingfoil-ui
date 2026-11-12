@@ -552,3 +552,9 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   §5 a Memory event's `from` and `to` are display text (the bell only shows them), escaped as a
   history entry's; its `type` and `id` stay keys. A governed write's `read-error` (row 9) names the
   element's path escaped, as the read routes' does.
+- 2026-11-11 — amended in task-075 (bug-034, spec-012 §8 of the same day): §5 a body served under an
+  `X-Repo-State` is read from the content that state stands for — a read whose files differ from
+  the state check's marks, or a CLI read finishing after a watcher event, still answers its request,
+  and the server then checks again and emits `repo` also when the key did not move, so the page
+  refetches — at most once per state key, until the key moves (spec-012 §8, task-075 review round
+  1 F-2). The header format is unchanged.
