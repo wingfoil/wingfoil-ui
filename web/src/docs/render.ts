@@ -26,29 +26,45 @@ const COMMENT_CLOSE = '-->';
 
 /**
  * A comment block (task-078, D78-3): a line that starts with `<!--` (up to three spaces in), through
- * the line holding `-->` (CommonMark's HTML block type 2), or to the end when it is never closed (as
- * the v0.1 summary did). Nothing is emitted: the input is only dropped, never turned into markup.
+ * the line holding `-->` (CommonMark's HTML block type 2), when nothing but blanks follows that
+ * `-->`; or to the end of its container when it is never closed (CommonMark's type 2 block; GitHub
+ * hides the rest the same way). A comment followed by text on its closing line is no block: the
+ * paragraph keeps the text and {@link commentInline} drops the comment alone (review round 1, F-1).
+ * Nothing is emitted: the input is only dropped, never turned into markup.
  */
 function commentBlock(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
   if (state.sCount[startLine]! - state.blkIndent >= 4) return false;
   const start = state.bMarks[startLine]! + state.tShift[startLine]!;
   if (!state.src.startsWith(COMMENT_OPEN, start)) return false;
-  if (silent) return true;
   let line = startLine;
   for (; line < endLine; line++) {
     const from = line === startLine ? start + 2 : state.bMarks[line]!;
-    const text = state.src.slice(from, state.eMarks[line]);
-    if (text.includes(COMMENT_CLOSE)) break;
+    const close = state.src.slice(from, state.eMarks[line]).indexOf(COMMENT_CLOSE);
+    if (close < 0) continue;
+    // Text after the comment on its closing line: not a block (the same answer in silent mode).
+    if (state.src.slice(from + close + COMMENT_CLOSE.length, state.eMarks[line]).trim() !== '') return false;
+    break;
   }
+  if (silent) return true;
   state.line = Math.min(line + 1, endLine);
   return true;
 }
 
-/** An inline comment `<!--` … `-->` in a run of text (code spans are consumed before, D78-3). */
+/**
+ * An inline comment `<!--` … `-->` in a run of text (code spans are consumed before, D78-3): only
+ * the comment is dropped. An opener with no `-->` in the run is text, as CommonMark reads it (review
+ * round 1, F-1).
+ */
 function commentInline(state: StateInline, _silent: boolean): boolean {
   if (!state.src.startsWith(COMMENT_OPEN, state.pos)) return false;
   const close = state.src.indexOf(COMMENT_CLOSE, state.pos + 2);
-  const end = close < 0 || close + COMMENT_CLOSE.length > state.posMax ? state.posMax : close + COMMENT_CLOSE.length;
+  if (close < 0 || close + COMMENT_CLOSE.length > state.posMax) return false;
+  let end = close + COMMENT_CLOSE.length;
+  // A comment that opens its line leaves no leading blank there, as a line without it would read.
+  const lineStart = state.src.lastIndexOf('\n', state.pos - 1) + 1;
+  if (state.src.slice(lineStart, state.pos).trim() === '') {
+    while (end < state.posMax && (state.src[end] === ' ' || state.src[end] === '\t')) end++;
+  }
   state.pos = end;
   return true;
 }

@@ -396,3 +396,26 @@ e2e closure — every scenario and criterion this task closes, at the tip:
 | AC-6 (bug-043) | `test/web/docs/classification-in-place.test.tsx` › "bug-043 — a link keeps its element while a lookup answers, and a click on it opens"; `test/e2e/documentation.spec.ts` › `bug-043 — A link clicked while a link check is pending opens`; R-09.4 unchanged and green on WebKit in runs `43257871356`, `43262058499` and `43265905928` |
 | AC-7 | `test/web/element/page.test.tsx` › "AC-7 — isolates the address value on the element page (topline and a refusal’s heading)", "AC-7 — names the candidates’ list by its heading (one text, the value isolated)" |
 | AC-5 | this section's checks and runs; `CHANGELOG.md`, `docs/user-guide.md` 0.39, `ux-reference.md` 1.19, `test/README.md` 0.87 |
+
+### security review round 1 (2026-11-12)
+
+The review was independent and adversarial, on `99857c0f`. **FAIL**: no security defect, no major
+finding. F-1 and F-2 are behaviour defects (minor); F-3 … F-6 are about test strength. All six are
+fixed here. Red first: `bc919ac8`. Every check below that deletes code was a scratch edit, restored
+with a file copy; `git status` showed only the fix's own files afterwards.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| F-1 (minor) — the comment rules dropped real text. `<!-- hint --> Decision: …` rendered empty and the summary read "No summary"; `   <!-- hint -->Second line kept?\nmore text` kept only "more text"; an unclosed inline `Write <!-- to open a comment.` rendered "Write" | `web/src/docs/render.ts`: the block rule applies only when blanks alone follow the `-->` of its closing line, giving the same answer in silent mode; otherwise the paragraph keeps the line and the inline rule drops the comment alone. An inline `<!--` with no `-->` in its run is text, as CommonMark reads it. A comment that opens its line takes the blanks after it along. An unclosed comment *block* still runs to the end of its container (CommonMark's type 2; GitHub hides it the same way) | `render.test.ts` › the three "F-1 — …" tests and `summary.test.ts` › *summaryHtml keeps the text around a comment* (3 tests): all six failed at `bc919ac8` (`''`, `'more text'`, `'Write'`) |
+| F-2 (minor) — a failed load of the lazy document module had no error boundary: TanStack's "Something went wrong!" replaced the whole app | `web/src/element/ElementView.tsx`: `DocumentBoundary` around the `Suspense`, keyed by element. It shows "The summary and the document could not be loaded. Reload the page to try again." and *Reload the page*: a rejected `React.lazy` import stays cached, so only a reload fetches the module again. The rest of the element and the shell stay. Two catalogue keys | `test/web/element/document-unavailable.test.tsx` (`vi.mock` of `element/document.js` throwing on import): the page, the side panel over Directives and the key build — 3 failed at `bc919ac8` (the text not found; the app's error screen instead) |
+| F-3 (minor) — once review F1's test was inverted, nothing tested the focus restore on a full replace | none needed: the restore is right | `classification-in-place.test.tsx` › "a focused link keeps the focus by its key when a refetched body replaces the content (F-3)". It is written against correct code, so it passed at once. With `restoreFocus` removed from `replaceContent`: 1 failed |
+| F-4 (nit) — the "never makes markup" tests could not fail, because DOMPurify hid any `html_*` token | none needed beyond F-1 | `render.test.ts` › "F-4 — %j renders as the same Markdown without its comment" (8 cases). On `commentFreeMarkdown.parse` it asserts no `html_*` token; on its render, before DOMPurify, it asserts the same HTML as the source without its comment. 3 cases failed at `bc919ac8` (F-1's). With the inline rule pushing an `html_inline` token: 5 failed |
+| F-5 (nit) — nothing tested that the dialog closes on navigate | none needed | `document.test.tsx` › "a link to the element’s own file closes the dialog, the page kept (F-5)". The page stays, so only `setOpen(false)` closes the dialog. Passed at once; with `setOpen(false)` removed: 1 failed |
+| F-6 (nit) — the design's planned test "a focused link whose group changes keeps the focus by its key" was missing | none needed | `classification-in-place.test.tsx` › "a focused link whose group changes keeps the focus by its key": a waiting link, focused, becomes a document link when its check answers; the focus is on the new anchor with the same key, and the other links keep their elements. Passed at once; with `restoreFocus` removed from `patchLinks`: 1 failed |
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on:
+- `test/web/docs/{docs,render,classification-in-place}`
+- `test/web/element/{document,document-unavailable,summary,page,panel,side-panel,gate-footer}`
+- `test/web/directives/directives`
+- `test/web/i18n/{catalogue,key-catalogue,key-rendering}`

@@ -11,7 +11,8 @@
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { ElementDetail, MemoryHistory } from '@wingfoil-ui/contracts';
-import { lazy, Suspense, type ReactNode } from 'react';
+import { Component, lazy, Suspense, type ReactNode } from 'react';
+import { Button } from 'react-aria-components';
 import { FormattedMessage } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
@@ -20,6 +21,34 @@ import { fieldEntries } from './model.js';
 import './element.css';
 
 const ElementDocument = lazy(() => import('./document.js'));
+
+/**
+ * The summary's place when the document module cannot be loaded or throws (task-078 security review
+ * round 1, F-2): e.g. a tab left open across an upgrade, whose old chunk is gone. A line from the
+ * catalogue and *Reload the page* — a rejected `React.lazy` import is cached, so only a reload
+ * fetches the module again; the rest of the element (its footer included) and the shell stay.
+ */
+class DocumentBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  override render(): ReactNode {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div className="element-notice element-document-unavailable">
+        <p>
+          <FormattedMessage id="element.document.unavailable" />
+        </p>
+        <Button className="button" onPress={() => window.location.reload()}>
+          <FormattedMessage id="element.document.reload" />
+        </Button>
+      </div>
+    );
+  }
+}
 
 /** An error of a query as the catalogue renders it. */
 export function QueryError({ error }: { error: Error }): ReactNode {
@@ -81,15 +110,17 @@ export function ElementContent({
         <h3 id="element-summary" className="section-title">
           <FormattedMessage id="element.summary.title" />
         </h3>
-        <Suspense
-          fallback={
-            <p className="muted" role="status">
-              <FormattedMessage id="element.summary.loading" />
-            </p>
-          }
-        >
-          <ElementDocument pid={pid} detail={detail} />
-        </Suspense>
+        <DocumentBoundary key={`${pid}:${detail.element.id}`}>
+          <Suspense
+            fallback={
+              <p className="muted" role="status">
+                <FormattedMessage id="element.summary.loading" />
+              </p>
+            }
+          >
+            <ElementDocument pid={pid} detail={detail} />
+          </Suspense>
+        </DocumentBoundary>
         {missing.length > 0 && (
           <ul className="missing-list">
             {missing.map((r) => (
