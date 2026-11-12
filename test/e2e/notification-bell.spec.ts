@@ -1,6 +1,7 @@
 // task-042 — the notification bell, the all-roles summary and the empty Today on the real bin
-// (US-S-21, US-S-23, US-T-07; TT-PERF-09's S-23.1, TT-PERF-11's S-21.1 and S-23.4; `shell.feature`,
-// `requires-you.feature`; decisions D42-1…D42-8). The user is set with `actAs` on a kanban copy;
+// (US-S-21, US-S-23, US-T-07; TT-PERF-09's S-23.1, TT-PERF-11's S-21.1 and S-23.4 — the count of a
+// role, no item, since task-076; `shell.feature`, `requires-you.feature`; decisions D42-1…D42-8).
+// task-076 — the line of role tags: S-23.4, S-23.5 (D76-2, D76-7). The user is set with `actAs` on a kanban copy;
 // element states are moved with the pinned CLI before the console starts. Every first read is
 // waited for with `COLD_READ_MS`, lists with retrying expects (bug-009); assertions are on what the
 // user sees and on the accessible names.
@@ -37,11 +38,12 @@ async function idsOf(list: Locator): Promise<string[]> {
   return list.locator('li[data-eid]').evaluateAll((els) => els.map((el) => el.getAttribute('data-eid') ?? ''));
 }
 
-/** The summary line of `role` (its switch, or the current view's text). */
+/** The role tags of the summary. */
+const tags = (page: Page): Locator => summary(page).locator('.today-summary-tag');
+
+/** The summary tag of `role` (its switch, or the current view's text). */
 const lineOf = (page: Page, role: string): Locator =>
-  summary(page)
-    .locator('.today-summary-line')
-    .filter({ has: page.locator('.today-summary-role', { hasText: new RegExp(`^${role} · \\d+$`) }) });
+  tags(page).filter({ has: page.locator('.today-summary-role', { hasText: new RegExp(`^${role} · \\d+$`) }) });
 
 /** A kanban copy where the user is `name`, after `prepare` (CLI changes). */
 async function copyAs(
@@ -148,11 +150,11 @@ test.describe('US-S-23 — all-roles summary', () => {
     const c = await consoles.start({ projects: [await copyAs(fixtures, 'Alex')] });
     await openToday(page, c);
     await expect(summary(page)).toBeVisible({ timeout: COLD_READ_MS });
-    await expect(summary(page).locator('.today-summary-line')).toHaveCount(7, { timeout: COLD_READ_MS });
-    const approver = lineOf(page, 'approver');
-    await expect(approver.locator('.today-summary-role')).toHaveText('approver · 2');
-    expect(await idsOf(approver)).toEqual(['task-001-login-form', 'bug-001-crash-on-save']);
+    await expect(tags(page)).toHaveCount(7, { timeout: COLD_READ_MS });
+    await expect(lineOf(page, 'approver').locator('.today-summary-role')).toHaveText('approver · 2');
     await expect(lineOf(page, 'developer').locator('.today-summary-role')).toHaveText('developer · 0');
+    // A count per role, no item (task-076, D76-7).
+    expect(await idsOf(summary(page))).toEqual([]);
     expect(await scanThemes(page)).toEqual([]);
   });
 
@@ -184,7 +186,7 @@ test.describe('US-S-23 — all-roles summary', () => {
     await expect(summary(page)).toHaveCount(0);
   });
 
-  test('S-23.4 — Show at most 3 items per role', async ({ page, fixtures, consoles }) => {
+  test('S-23.4 — Show the count of a role, not its items', async ({ page, fixtures, consoles }) => {
     const kanban = await copyAs(fixtures, 'Alex', async (fx) => {
       // 5 elements in "pending": the 2 of the fixture, 2 drafts submitted, 1 task added and submitted.
       await cli(fx, ['memory', 'submit', 'task-002-password-reset']);
@@ -198,9 +200,81 @@ test.describe('US-S-23 — all-roles summary', () => {
     await openToday(page, c);
     const approver = lineOf(page, 'approver');
     await expect(approver.locator('.today-summary-role')).toHaveText('approver · 5', { timeout: COLD_READ_MS });
-    await expect(approver.locator('li[data-eid]')).toHaveCount(3);
-    const more = approver.getByRole('button', { name: '2 more for approver' });
-    await expect(more).toHaveText('2 more');
+    // It lists no element and no link "more".
+    await expect(summary(page).locator('li[data-eid]')).toHaveCount(0);
+    await expect(summary(page).getByRole('link')).toHaveCount(0);
+    await expect(summary(page).getByRole('button', { name: /more/ })).toHaveCount(0);
+    await expect(summary(page)).not.toContainText(/more/);
+  });
+
+  test('S-23.5 — Switch the role view from the line of role tags', async ({ page, fixtures, consoles }) => {
+    const c = await consoles.start({ projects: [await copyAs(fixtures, 'Alex')] });
+    await openToday(page, c);
+    // Given the role view "developer", through the header's selector.
+    await page
+      .getByRole('banner')
+      .getByRole('button', { name: /Role view$/ })
+      .click();
+    await page.getByRole('listbox').getByRole('option', { name: 'developer', exact: true }).click();
+    await expect(page.locator('.today .page-intro')).toHaveText('Role view: developer', { timeout: COLD_READ_MS });
+    await expect(lineOf(page, 'developer')).toHaveAttribute('aria-current', 'true', { timeout: COLD_READ_MS });
+    // The tag "approver · 2", from the keyboard with a visible focus (AC-4).
+    const tag = summary(page).getByRole('button', { name: 'approver · 2', exact: true });
+    await tabUntil(page, tag);
+    await expectFocusVisible(tag);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.today .page-intro')).toHaveText('Role view: approver', { timeout: COLD_READ_MS });
+    await expect(page.getByRole('banner').getByRole('button', { name: /Role view$/ })).toContainText('approver');
+    // D42-6: the focus moves to Requires you once the new view is read.
+    await expect(requiresYou(page).getByRole('heading', { name: 'Requires you' })).toBeFocused({
+      timeout: COLD_READ_MS,
+    });
+    // The 7 tags on one line, "approver · 2" the current view and no switch.
+    await expect(tags(page)).toHaveCount(7);
+    // One line: every tag shares one horizontal band (the current tag's box may sit a few pixels
+    // lower — its text and "current view" — but never on a row of its own).
+    const boxes = await tags(page).evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom };
+      }),
+    );
+    const band = { top: Math.max(...boxes.map((b) => b.top)), bottom: Math.min(...boxes.map((b) => b.bottom)) };
+    expect(band.top, `tag boxes ${JSON.stringify(boxes)}`).toBeLessThan(band.bottom);
+    const current = lineOf(page, 'approver');
+    await expect(current).toHaveAttribute('aria-current', 'true');
+    await expect(current).toContainText('current view');
+    await expect(current.getByRole('button')).toHaveCount(0);
+    await expect(summary(page).locator('[aria-current="true"]')).toHaveCount(1);
+    expect(await scanThemes(page)).toEqual([]);
+  });
+
+  // task-076 review round 1, F-1: a long role name from the DNA wraps inside its tag and the card.
+  test('a long role name wraps inside the Your roles card at 400 px (F-1)', async ({ page, fixtures, consoles }) => {
+    const long = 'release-coordination-and-cross-team-dependency-management-leads';
+    const kanban = await copyAs(fixtures, 'Morgan', async (fx) => {
+      await cli(fx, ['dna', 'add', 'team.roles', '--value', long]);
+      await cli(fx, [
+        'dna',
+        'update',
+        'team.members',
+        '--value',
+        'Morgan',
+        '--entry-roles',
+        `approver, tech-lead, ${long}`,
+      ]);
+    });
+    const c = await consoles.start({ projects: [kanban] });
+    await page.setViewportSize({ width: 400, height: 600 });
+    await openToday(page, c);
+    await expect(tags(page)).toHaveCount(3, { timeout: COLD_READ_MS });
+    const tag = summary(page).getByRole('button', { name: `${long} · 0`, exact: true });
+    await expect(tag).toBeVisible();
+    const card = await summary(page).evaluate((el) => el.getBoundingClientRect().right);
+    const rights = await tags(page).evaluateAll((els) =>
+      els.flatMap((el) => [el, ...el.querySelectorAll('*')]).map((el) => el.getBoundingClientRect().right),
+    );
+    expect(Math.max(...rights), `card right ${card}, tag rights ${rights.join(', ')}`).toBeLessThanOrEqual(card);
   });
 });
 

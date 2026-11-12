@@ -138,6 +138,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   absolute `PATH` entries only, so a program a repository ships is never found through an empty or
   relative entry.
 
+- **Your roles on one line** (task-076, US-S-23 S-23.4, S-23.5; REQ-PERF-11; spec-003 §5): on
+  *Today*, *Your roles* is one line of role tags, each with its count (*approver · 2*): pressing a
+  tag switches the role view and moves the focus to *Requires you*, the tag of the current view is
+  marked *current view*. The v0.2 items and *N more* under each role are gone, and so are `items`
+  and `more` from the `summary` of `GET /api/p/:pid/today` (`{ role, count }` only).
+
 ### Fixed
 
 - **The identity is the author WingFoil authorises** (bug-029): the console reads who you are as

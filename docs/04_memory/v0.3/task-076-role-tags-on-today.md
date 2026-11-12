@@ -62,3 +62,240 @@ its design's decisions D61-2, D61-3, D61-11, D61-13 … D61-15 and the approver'
 - Every server task regenerates the `npm run docs:api` output.
 
 ## Execution Notes
+
+### design (2026-11-11)
+
+Read (dl-015): this task; task-061's design, its approval (W2-7) and Execution Notes on its branch
+(D61-2, D61-3, D61-11 … D61-15, Q2 (a)); task-055's Execution Notes (`depends_on`: no Today summary
+change); task-042's (D42-5 … D42-7: the card, the switch, the focus to *Requires you*, "N more")
+and task-043's (D43-10, review round 2 R2-1: the summary item as an opener); spec-003 §5 and its
+Process Notes; `ux-reference.md` §4.1 (v0.2 summary, v0.3), §4.2 (the openers, v0.2);
+REQ-PERF-11 (`docs/02_requirements/03_sard/02_performance-latency.md` 0.6); `shell.feature`
+S-23.1 … S-23.5; RP3-7 N1, RP3-15 F9, RP3-16 P1, P4; the stage plan W2-7; directives
+`definition-of-done` 1.4, `ux-consistency`, `accessibility`. The code: `server/src/descriptor/today.ts`,
+`contracts/{api/today.schema.json,src/today.ts}`, `web/src/today/{RoleSummary.tsx,TodayView.tsx,today.css}`,
+`web/src/i18n/en.json`; the tests `test/server/descriptor/today.test.ts`,
+`test/server/http/today-routes.test.ts`, `test/server/snapshot/process-audit.test.ts`,
+`test/contracts/api-element-schema.test.ts`, `test/web/today/summary.test.tsx`,
+`test/e2e/notification-bell.spec.ts`, `test/e2e/support/screens.ts`; `docs/user-guide.md` *Today*;
+`test/README.md`; `CHANGELOG.md` *Unreleased*.
+
+#### Probes
+
+| # | What | Result |
+|---|------|--------|
+| P1 | Who reads `summary[].items`, `more`, `SUMMARY_ITEMS` (`grep -rn` over `server/src`, `web/src`, `contracts/src`, `test`) | `RoleSummary.tsx` only (web); `today.ts` (server); the tests `today.test.ts` (S-23.1, S-23.4), `today-routes.test.ts` (S-23.1), `summary.test.tsx`, `notification-bell.spec.ts` (S-23.1, S-23.4). The process audit reads `summary[].role` only; the bell reads `requiresYou` (D31-6). Nothing imports `SUMMARY_ITEMS` outside `today.ts`; its `{@link}` in the module comment must go with it (typedoc `invalidLink`) |
+| P2 | What task-061's branch changes next to this task's files (`git diff 4194e638 task/task-061-…` on `TodayView.tsx`, `today.css`, `en.json`) | `TodayView.tsx` hunks at the imports (old lines 31–36), `RequiresYouRow`, `WaitingRow` and the two cards' lists (old 398 on); `today.css` appends after old line 214; `en.json` inserts after `today.age` and `today.roleView`. This task's edits — `TodayView.tsx` old lines 39–41 (the `returnOpener` comment) and 390 (the `RoleSummary` element), `today.css` old 155–209 (the summary block), `en.json` old 391–392 — touch none of those lines and none adjacent to them |
+| P3 | The width S-23.5 asks for: Alex's 7 roles (`test/harness/fixtures/team.ts`) at Playwright's default 1280 × 720 viewport, `.page` `max-width: 1180px` (`web/src/theme/base.css`) | the longest tags are "product-owner · 0" and "tech-lead · 0"; seven tags at 13–14 px with the "current view" text fit one line of the main region at 1280 px by estimate — measured in the red e2e (every tag's top equal), see D76-3 |
+
+No console was started, no `wfui-*` entry created, nothing committed by the probes.
+
+#### Decisions (D76-n)
+
+- **D76-1 — The summary without items (D61-2 re-checked against the code; AC-2, F9, REQ-PERF-11
+  v0.3).** `today()` (`server/src/descriptor/today.ts`) maps each role to `{ role, count }`:
+  `SUMMARY_ITEMS`, `items` and `more` go, and the module comment says "one count per role view".
+  The count stays the length of *Requires you* of that role view (the current view reuses its own
+  list, the others are computed once each, as now — no new read, P1); `summary` stays absent for a
+  single-role member, a member with no role and a user not identified (S-23.3, RP-27, D31-5).
+  `contracts/api/today.schema.json`: `summary.items` `required: ["role", "count"]`, the `items` and
+  `more` properties removed, `additionalProperties: false` kept, so an `items` key is refused;
+  `TodaySummaryLine` in `contracts/src/today.ts` loses `items` and `more`, its comment cites
+  REQ-PERF-11 v0.3. Schema, types and the contract test land first, in the red commit (RP-55).
+- **D76-2 — *Your roles* as one line of tags (D61-3 re-checked; AC-1, AC-3, AC-4; N1, S-23.4,
+  S-23.5).** `RoleSummary.tsx` keeps its region (`section` labelled by its `h2` "Your roles") and
+  the `hidden` hint "Switches the role view"; its props lose `pid` (no links any more). Its body is
+  one bar: the heading, then one `ul.today-summary-tags` of `li.today-summary-tag` per line of
+  `summary`, in the server's order. A non-current tag holds a React Aria `Button`
+  (`button today-summary-role`) "approver · 2" (`today.summary.line`, unchanged) with
+  `aria-describedby` = the hint, `onPress` = Today's `switchTo` (unchanged: the refusal is shown by
+  Today outside the card, the focus goes to the *Requires you* heading once the new view is read,
+  D42-6). The current tag's `li` has `aria-current="true"` and holds a non-interactive
+  `span.today-summary-role` with the same text plus the visible `today.summary.current` "current
+  view" — no `aria-pressed` (it is not a toggle), the pressed look only through CSS. No items, no
+  "N more", no link: D42-7 and the summary item as an opener (task-043 R2-1) end with them.
+- **D76-3 — The layout (`today.css`).** The bar is a flex row that wraps (`flex-wrap: wrap`,
+  `align-items: center`, the card's `14px 16px` padding): the heading `flex: none`, the list a flex
+  container of its own with `flex-wrap: wrap` and a small gap, so the tags stay on one line where
+  they fit (S-23.5 at 1280 px, P3) and wrap on a narrow viewport rather than scroll. A tag is a
+  compact chip (a `--color-divider` border, `--radius-md`); the current one takes the Memory list's
+  selected-chip look (`.filter-link[aria-current='page']` in `web/src/memory/memory.css`:
+  `--color-text` filled, `--color-bg` text; no new token). The v0.2 rules of the
+  summary block (`.today-summary-lines`, `.today-summary-line`, `.today-summary-head`,
+  `.today-summary-items`, `.today-summary-item`, `span.today-summary-more`) are replaced **in
+  place**, inside the summary block, which task-061 does not touch (P2) — see Q2. The block's
+  comment cites task-076, D76-3.
+- **D76-4 — `TodayView.tsx`: two edits, inside `TodayView` and one module comment.** (1) In the
+  function `TodayView`, the `RoleSummary` element loses `pid={pid}` (old line 390); (2) the doc
+  comment of the module-level `returnOpener` drops "or an item of the all-roles summary (review
+  round 2, R2-1)". No other function changes: `rememberOpener`, the opener effects, `switchTo` and
+  the focus effect of D42-6 stay as they are (the summary no longer imports `rememberOpener`). The
+  file's header comment (lines 12–14, inside task-061's header hunk) stays as it is — it is still
+  true ("a switch from it moves the focus to the Requires you heading").
+- **D76-5 — Catalogue (spec-008, X-09.1).** `today.summary.more` and `today.summary.moreLabel`
+  removed (two lines of `en.json`, none of task-061's, P2); no key added: `today.summary.title`,
+  `.line`, `.current`, `.switchHint` keep their texts.
+- **D76-6 — Tests (the F9 updates and the red tests).** Server: `today.test.ts` S-23.1 asserts
+  every line is exactly `{ role, count }` with the count of that role view's *Requires you*;
+  "S-23.4: the count of a role, no items" replaces "at most 3 items per role, and N more" (five
+  pending rows → `{ role: 'approver', count: 5 }`, no other key); `today-routes.test.ts` S-23.1
+  asserts each line's keys are `role` and `count` (D61-14). Contract:
+  `api-element-schema.test.ts` gains a `today.schema.json` summary block — `{ role, count }`
+  accepted, a line with `items` or `more` refused, a line without `count` refused. Web:
+  `summary.test.tsx` — the tags in the server's order with their counts and no link or "more" (S-23.1,
+  S-23.4); the current tag `aria-current`, no button, "current view"; the switch from a tag with the
+  focus to *Requires you* (S-23.2, S-23.5); the refusal outside the card (unchanged); "switches from
+  N more" and "returns the focus to the summary item" removed (no such control any more). The
+  bug-018 opener tests of `today.test.tsx` (task-061's file) are not touched.
+- **D76-7 — e2e (`test/e2e/notification-bell.spec.ts`, the existing `US-S-23` describe).** S-23.1
+  (F9): 7 tags, "approver · 2", "developer · 0", no `li[data-eid]` in the region, axe in both themes.
+  S-23.2, S-23.3: the locators follow the new classes, assertions unchanged. S-23.4 (renamed "Show
+  the count of a role, not its items"): its Given as today (the two drafts submitted, one task added
+  and submitted with the pinned CLI — Q1); the tag "approver · 5"; in the region no `li[data-eid]`,
+  no link, no button or text matching "more". S-23.5 (new): Alex in the `developer` view (the
+  header's selector, as S-23.2), the tag "approver · 2" reached with Tab (`tabUntil`), its focus
+  visible (`expectFocusVisible`), Enter; the header shows "approver"; the region holds 7 tags whose
+  bounding boxes share one top at 1280 × 720; the `approver` tag `aria-current="true"` with "current
+  view" and no button; the *Requires you* heading focused; axe 0 serious/critical in both themes.
+  The file's header comment cites S-23.5 and TT-PERF-11's S-23.4 as "the count, no item".
+- **D76-8 — Screens, a11y, cost.** No new `SCREENS` entry: *today* (Morgan, several roles) already
+  shows *Your roles* and its axe scan covers the new markup in both themes; X-09.1's key build
+  (`test/e2e/support/strings.ts`) needs no change (no new key, two removed). No new query or route;
+  the server does less; the process audits (TT-PERF-05) stay as they are; REQ-ARC-05: no type or
+  state literal (the properties are `role`, `count`).
+- **D76-9 — Docs.** spec-003 §5: the shape block's `summary?: [{ role, count }]`, the `summary`
+  bullet rewritten (one count per role view; `items` and `more` dropped in v0.3) and a dated
+  Process Note (task-076, Q2 (a) of task-061, decided by the approver; it supersedes the 2026-11-03
+  note's "kept but unused"). REQ-PERF-11 already says "one tag per role with its count and no item"
+  (unchanged). `CHANGELOG.md` *Unreleased* *Changed*: *Your roles* is one line of tags with counts,
+  the API's summary carries `role` and `count` only (appended to the section). `docs/user-guide.md`
+  *Today*: the *Your roles* bullet and the openers paragraph (no summary item) with "Unreleased
+  (v0.3)"; `test/README.md` the task-042 paragraph's S-23 list (S-23.5 added) and a version line —
+  both version lines are also bumped by task-061 (0.32, 0.71): the second to merge takes the next
+  number. `ux-reference.md` unchanged (§4.1 v0.3 already describes this).
+
+#### File layout
+
+Server and contracts: `server/src/descriptor/today.ts`, `contracts/api/today.schema.json`,
+`contracts/src/today.ts`. Web: `web/src/today/RoleSummary.tsx`, `web/src/today/TodayView.tsx` (D76-4
+only), `web/src/today/today.css` (the summary block), `web/src/i18n/en.json` (two keys removed).
+Tests: `test/server/descriptor/today.test.ts`, `test/server/http/today-routes.test.ts`,
+`test/contracts/api-element-schema.test.ts`, `test/web/today/summary.test.tsx`,
+`test/e2e/notification-bell.spec.ts`. Docs: spec-003, `CHANGELOG.md`, `docs/user-guide.md`,
+`test/README.md`. Merge hot spots with task-061: `en.json`, `today.css`, `CHANGELOG.md`, the
+version lines of `docs/user-guide.md` and `test/README.md` (P2: no overlapping line elsewhere).
+
+#### Test plan
+
+| AC / scenario | Kind | Where (file: title) |
+|---|---|---|
+| S-23.4 (AC-1, AC-3) | red-first | e2e `notification-bell.spec.ts`: "S-23.4 — Show the count of a role, not its items"; server `today.test.ts`: "S-23.4: the count of a role, no items"; web `summary.test.tsx`: "shows one tag per role with its count, no item and no more (S-23.1, S-23.4)" |
+| S-23.5 (AC-1, AC-4) | red-first | e2e `notification-bell.spec.ts`: "S-23.5 — Switch the role view from the line of role tags" (keyboard, visible focus, 7 tags on one line, `aria-current`, focus on *Requires you*, axe both themes); web `summary.test.tsx`: "switches the role view from a tag and moves the focus to Requires you (S-23.2, S-23.5, D42-6)", "marks the current tag, which is not a switch" |
+| S-23.1 (AC-1, F9) | updated | e2e: "S-23.1 — Summarise what requires each of my roles" (tags and counts, no item); server `today.test.ts` "S-23.1: Alex — one tag per role in the DNA order, with its count only"; `today-routes.test.ts` "S-23.1: Alex — one summary line per role, approver · 2, developer · 0" (keys `role`, `count`) |
+| S-23.2, S-23.3 (AC-1) | characterization | e2e `notification-bell.spec.ts` S-23.2, S-23.3 (locators only); `today.test.ts` "T-03.1, S-23.3"; `summary.test.tsx` the refusal tests (review R2) |
+| AC-2 contract | red-first | `api-element-schema.test.ts`: "today.schema.json summary: role and count only" (accepted / `items` refused / `more` refused / no `count` refused); `today-routes.test.ts` `expectSchema` on every Today answer |
+| AC-4 a11y | e2e | S-23.5 above; *today* in `accessibility.spec.ts` (both themes) on `gates.yml`; catalogue `test/web/i18n/*` (the two keys gone, no stray use) |
+| AC-5 | gates | local: `npm run typecheck`, `lint`, `format:check`, `docs:api`, `check_tasks.py v0.3`, `npx vitest run test/server/descriptor/today.test.ts test/server/http/today-routes.test.ts test/contracts/api-element-schema.test.ts test/web/today test/docs`; `gates.yml` on the pushes: `test:coverage`, `test:contract`, `test:e2e:chromium`, the own spec `notification-bell.spec.ts` on Firefox and WebKit (run ids in these notes) |
+
+e2e closure (at design): S-23.1, S-23.2, S-23.3, S-23.4, S-23.5 → `test/e2e/notification-bell.spec.ts`
+(`US-S-23 — all-roles summary`).
+
+#### Questions
+
+- **Q1 — S-23.4's Given (D61-12 said `addPendingTasks(copy, 3)`).** That helper
+  (`test/harness/fixtures/pending-tasks.ts`) is on task-061's branch, not on this one. (a) Keep
+  S-23.4's present Given — the two kanban drafts submitted and one task added and submitted with the
+  pinned CLI (5 pending, already green on v0.2) — and leave the helper's reuse to a later change;
+  (b) wait for task-061's merge into the phase branch and its merge into this branch (W0-7), then
+  use the helper. **Recommended (a)**: it needs no other task, the Given is the scenario's
+  ("5 elements … are in the state pending"), and it keeps this task independent of task-061's
+  merge order.
+- **Q2 — `today.css` in place (the brief asked for append-only).** The summary's v0.2 rules
+  (old lines 155–209) become dead with the items and "N more". (a) Replace them in place inside the
+  summary block — task-061 only appends after old line 214 (P2), so the two merge without a
+  conflict; (b) append the new rules at the end and leave the old ones (dead CSS, an override
+  order to keep in mind). **Recommended (a).**
+
+#### Size estimate
+
+About 0.5 active day: server, contracts and the contract test 0.1; `RoleSummary.tsx`, CSS and
+catalogue 0.1; the F9 test updates, `summary.test.tsx` and the S-23.4/S-23.5 e2e 0.2; docs and the
+gates' runs 0.1.
+
+### design approved (2026-11-11)
+
+The approver, 2026-11-11: "task-076 come consigliato" — Q1 (a) S-23.4 keeps its CLI Given (the
+two kanban drafts submitted, one task added and submitted: 5 pending); Q2 (a) the v0.2 summary
+rules of `today.css` replaced in place, inside the summary block.
+
+### red / green / refactor (2026-11-11)
+
+- **Red** (`1dd9f615`, contracts first — RP-55): `contracts/api/today.schema.json` (summary items
+  `{ role, count }`, `additionalProperties: false`), `TodaySummaryLine` without `items` and `more`,
+  and `test/contracts/api-element-schema.test.ts` "today.schema.json summary: role and count only"
+  — against the v0.2 schema: 2 failed, 19 passed ("accepts one tag per role with its count",
+  "refuses a tag with the v0.2 items and more"). With only the v0.2 types (`contracts/src/today.ts`)
+  restored for the run — the new schema in place (with both restored: 13 failed, 48 passed — the checker's run) — `npx vitest run test/server/descriptor/today.test.ts test/server/http/today-routes.test.ts
+  test/contracts/api-element-schema.test.ts test/web/today/summary.test.tsx`: 16 failed, 45 passed
+  — S-23.1 and S-23.4 of `today.test.ts` (`expected { role: 'approver', count: 2, …(2) } to deeply
+  equal { role: 'approver', count: 2 }`), the route tests on the new schema (`must NOT have
+  additional properties` `items`, `more`), `summary.test.tsx` (no *Your roles* region: the v0.2
+  component reads `line.items`). The e2e `notification-bell.spec.ts`: S-23.1 and S-23.4 updated,
+  S-23.5 added (D76-7).
+- **Green** (`72345723`): `server/src/descriptor/today.ts` (`{ role, count }`, `SUMMARY_ITEMS`
+  gone), `web/src/today/RoleSummary.tsx` (the bar, one list of tags, no `pid`), `today.css` (the
+  summary block replaced in place, Q2 (a)), `en.json` (two keys removed), `TodayView.tsx` — only
+  the `RoleSummary` element in `TodayView` and the `returnOpener` comment (D76-4). Docs in the same
+  change: spec-003 §5 and its Process Note, `CHANGELOG.md` *Unreleased* *Changed*,
+  `docs/user-guide.md` 0.32, `test/README.md` 0.71. Local: `npm run typecheck`, `npm run lint`,
+  `npm run format:check`, `npm run docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run`
+  of the four files above plus `test/server/http/held-gates-routes.test.ts`,
+  `test/server/http/state-limit-routes.test.ts`, `test/web/today`, `test/web/i18n`: 12 files, 113
+  passed; `npx vitest run test/docs test/governance` 93 passed after the commit (before it,
+  `workflow-diagnostics` counted the uncommitted spec-003 as `W_UNCOMMITTED_INPUTS`, as expected).
+- **Gates on `gates.yml`**: run `43099206003` on `72345723` — checks, contract, smoke,
+  publish-smoke, e2e-chromium (1) green; failed: coverage (`test/server/http/commit-text.test.ts`
+  and `test/server/http/text-sweep.test.ts` still collected `summary[].items` as Today rows —
+  `Cannot read properties of undefined (reading 'element')`: two readers P1 missed, its grep's
+  output was cut at 60 lines), and S-23.5 on the three engines (`tag tops 209, 209, 209, 209, 209,
+  212, 209`: the current tag, a shorter box centred in the line, sits 3 px lower — one line, but the
+  test compared exact tops). Fixed in the next commit: the two server tests read only *Requires
+  you* and *Waiting on others*; S-23.5 asserts that every tag's box shares one horizontal band (the
+  largest top below the smallest bottom). `npx vitest run test/server/http/commit-text.test.ts
+  test/server/http/text-sweep.test.ts`: 11 passed.
+  Run `43103291767` on `47d81c48`: green — checks, coverage, contract, smoke, publish-smoke,
+  e2e-chromium both shards, own specs (`notification-bell.spec.ts`) on Firefox and WebKit.
+- **Refactor**: none needed — `RoleSummary.tsx` is one list with no state of its own, the server
+  change is a field removal; `TodayView.tsx` kept to D76-4's two edits.
+
+**e2e closure (task-076):**
+
+| Scenario | Spec file › test |
+|---|---|
+| S-23.1 Summarise what requires each of my roles | `test/e2e/notification-bell.spec.ts` › "S-23.1 — Summarise what requires each of my roles" |
+| S-23.2 Switch role view from the summary | same spec › "S-23.2 — Switch role view from the summary" |
+| S-23.3 Show no summary to a single-role member | same spec › "S-23.3 — Show no summary to a single-role member" |
+| S-23.4 Show the count of a role, not its items | same spec › "S-23.4 — Show the count of a role, not its items" |
+| S-23.5 Switch the role view from the line of role tags | same spec › "S-23.5 — Switch the role view from the line of role tags" |
+| F-1 (review round 1) a long role name wraps inside its tag and the card | same spec › "a long role name wraps inside the Your roles card at 400 px (F-1)" |
+
+### review round 1 (2026-11-11: PASS, one minor and a nit)
+
+On `586848eb` (the coordinator's merge of the phase branch — task-073, task-060 — into this
+branch; `test/README.md` 0.72); its run `43108560261`: success.
+
+| Finding | Change | Evidence |
+|---------|--------|----------|
+| F-1 (minor) — a long role name from the DNA did not wrap: at 400 × 600 a 63-character name pushed its tag to 480–503 px, the card ending at 384 px | `today.css`: `.today-summary-tag` `flex: 0 1 auto`, `min-width: 0`, `max-width: 100%`, `flex-wrap: wrap`; its button and the current tag's span `white-space: normal`, `overflow-wrap: anywhere`, `text-align: start` | red first (`3fbbe747`): `notification-bell.spec.ts` "a long role name wraps inside the Your roles card at 400 px (F-1)" — the role added with `dna add team.roles` and given to Morgan with `dna update team.members` on the copy — on Chromium alone, locally (`npx playwright test test/e2e/notification-bell.spec.ts --project=chromium -g "F-1" --workers=1`): `card right 384, tag rights … 503` failed; after the fix the F-1 test and S-23.1 … S-23.5: 6 passed |
+| N-1 (nit) — the contract test did not refuse an unknown key | `api-element-schema.test.ts` refuses `{ role, count, foo }` | `npx vitest run --maxWorkers=2 test/contracts/api-element-schema.test.ts`: 22 passed; with `additionalProperties` removed from the summary items for one run, the `{ role, count, foo }` row fails ("refuses a tag with another key", with the `items` and `more` rows: 4 failed, 18 passed), the schema restored after it |
+
+The local Playwright run of F-1 (Chromium only, one spec, `--workers=1`) came after the
+coordinator's "no local Playwright" rule of the machine restart, under round 1's own allowance
+("single spec locally on Chromium only"); the three-engine evidence is the run below. Gates: run
+`43111304094` on `c8aa2a35`: success — checks, coverage, contract, e2e-chromium both shards, own
+specs (`notification-bell.spec.ts`, the F-1 test included) on Firefox and WebKit, smoke,
+publish-smoke.
+
+Local: `npm run typecheck`, `npm run lint`, `npm run format:check` clean. The header's
+`.current-user` that scrolls the page sideways at 400 px is not this task's (the coordinator opens a
+bug).
