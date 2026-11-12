@@ -127,7 +127,7 @@ export function ElementSidePanel({
           ) : element.error ? (
             <QueryError error={element.error} />
           ) : shown ? (
-            <ElementContent detail={shown} history={history}>
+            <ElementContent pid={pid} detail={shown} history={history}>
               <ElementDirectives pid={pid} directives={directives} header={header} />
             </ElementContent>
           ) : (

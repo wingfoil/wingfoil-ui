@@ -141,9 +141,62 @@
 
 .element-summary {
   min-width: 0;
+  margin: 0;
   overflow-wrap: anywhere;
   color: var(--color-text-2);
   line-height: 1.55;
+}
+
+/* task-078 (D78-2): the summary rendered as Markdown — the article's styles without its frame. */
+.doc-article.element-summary {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+}
+
+.doc-article.element-summary > p {
+  margin: 0;
+}
+
+.element-document-open {
+  align-self: flex-start;
+}
+
+/* task-078 (D78-4): the document dialog — wider than a form, its body scrolls inside the window. */
+.element-document-modal {
+  width: min(880px, 100%);
+}
+
+.element-document {
+  max-height: 80vh;
+}
+
+.element-document-body,
+.element-document-source {
+  min-height: 0;
+  overflow: auto;
+}
+
+.element-document-body {
+  padding: var(--space-4) var(--space-5);
+}
+
+.element-document-source {
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.element-document-source:focus-visible {
+  outline: var(--focus-ring);
 }
 
 .muted {

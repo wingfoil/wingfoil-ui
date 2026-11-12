@@ -65,10 +65,7 @@ async function caseyCopy(fixtures: FixtureBuilds, prepare: (fx: Fixture) => Prom
 }
 
 /** The summary section of the element shown. */
-const summary = (page: Page): Locator =>
-  elementView(page)
-    .locator('.element-section')
-    .filter({ has: page.locator('.element-summary') });
+const summary = (page: Page): Locator => elementView(page).getByRole('region', { name: 'Summary' });
 
 /** Open the document dialog from the summary of the element shown. */
 async function openDocument(page: Page): Promise<Locator> {

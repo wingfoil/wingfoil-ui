@@ -161,7 +161,8 @@ it('shows the element: type, id, title, chips, banner, summary, missing field, r
   expect(chips[0]?.getAttribute('aria-current')).toBe('step');
   expect(chips[0]?.className).toContain('tone-neutral');
   expect(d.getByText('Rejected by Morgan: Missing acceptance criteria')).toBeTruthy();
-  expect(d.getByText('Users forget passwords.')).toBeTruthy();
+  // The summary renders once the document module is loaded (task-078, D78-7).
+  expect(await d.findByText('Users forget passwords.')).toBeTruthy();
   expect(d.getByText('link_ref — required field, missing')).toBeTruthy();
   expect(d.queryByText('id — required field, missing')).toBeNull();
   expect(d.getByText('US-1')).toBeTruthy();
@@ -179,11 +180,13 @@ it('shows the element: type, id, title, chips, banner, summary, missing field, r
   expect(lines[2]).toContain('2222222');
   expect(lines[3]).toContain('created by Jordan');
   expect(d.getByText('2222222').getAttribute('title')).toBe(HISTORY.entries[1]?.sha);
-  // No Edit; no verb for a user who is not identified (task-037: the read-only line has no button).
-  expect(d.getAllByRole('button').map((b) => b.textContent)).toEqual(['Close']);
+  // No Edit; no verb for a user who is not identified (task-037: the read-only line has no button);
+  // *Open document* since task-078 (D78-4).
+  expect(d.getAllByRole('button').map((b) => b.textContent)).toEqual(['Close', 'Open document']);
   await waitFor(() => expect(document.title).toBe(`kanban · ${EID} — WingFoil UI`));
   // The element and its history, plus the project's directives and header (task-019, once per
-  // project), the notification bell's Today read (task-042, D42-1); nothing per reference.
+  // project), the notification bell's Today read (task-042, D42-1); nothing per reference, and no
+  // link lookup for a body with no repository link (task-078, D78-6).
   const paths = fetch.mock.calls.map((c) => String(c[0])).filter((p) => p.startsWith(`/api/p/`));
   expect(new Set(paths)).toEqual(
     new Set([BASE, `${BASE}/history`, `/api/p/${PID}/directives`, `/api/p/${PID}`, `/api/p/${PID}/today`]),

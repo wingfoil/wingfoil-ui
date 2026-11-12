@@ -347,7 +347,8 @@ describe('the focus while the links are classified (review F1)', () => {
     release();
     await waitFor(() => expect(within(article).getByRole('link', { name: 'decision' })).toBeTruthy());
     expect(document.activeElement).toBe(within(article).getByRole('link', { name: 'vision' }));
-    expect(document.activeElement).not.toBe(vision);
+    // Since task-078 (bug-043, D78-1) the link is the same element: only the changed groups are new.
+    expect(document.activeElement).toBe(vision);
   });
 
   it('the heading of the URL fragment keeps the focus when the classification updates', async () => {

@@ -164,7 +164,7 @@ describe('the summary (D78-2)', () => {
     const section = await summary();
     const text = section.querySelector('.element-summary')!;
     expect(text.textContent).not.toContain('<!--');
-    expect(within(section).getByRole('link', { name: 'the first decision' }).getAttribute('href')).toBe(
+    expect((await within(section).findByRole('link', { name: 'the first decision' })).getAttribute('href')).toBe(
       `/p/${PID}/e/dl-001-x`,
     );
     await waitFor(() =>
@@ -175,8 +175,9 @@ describe('the summary (D78-2)', () => {
     const guide = within(section).getByRole('link', { name: 'the guide (opens in a new tab)' });
     expect(guide.getAttribute('target')).toBe('_blank');
     expect(guide.getAttribute('rel')).toBe('noopener noreferrer');
+    // markdown-it's own link validation: a `javascript:` link is no link, its Markdown stays text.
     expect(within(section).queryByRole('link', { name: 'a script' })).toBeNull();
-    expect(within(section).getByText('a script').nextElementSibling?.textContent).toBe('link not supported');
+    expect(text.textContent).toContain('[a script](javascript:alert(1))');
   });
 
   it('says when there is none, and offers no document for an empty body (G-03.3)', async () => {
@@ -194,7 +195,7 @@ describe('the summary (D78-2)', () => {
     stubApi(api());
     const { router } = renderApp(`/p/${PID}/e/${EID}`);
     const section = await summary();
-    await userEvent.click(within(section).getByRole('link', { name: 'the first decision' }));
+    await userEvent.click(await within(section).findByRole('link', { name: 'the first decision' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/e/dl-001-x`));
   });
 
@@ -242,11 +243,12 @@ describe('the document dialog (D78-4, D78-5)', () => {
     expect(article.textContent).not.toContain('The situation or question');
     expect(article.textContent).toContain('<img src=x onerror="window.__pwned=1">');
     expect(article.textContent).toContain('<script>window.__pwned=2</script>');
-    expect(document.querySelector('img, script:not([src]):not([type])')).toBeNull();
+    expect(dialog.querySelector('img, script')).toBeNull();
     expect(within(article).getByText('Image not shown: Architecture diagram')).toBeTruthy();
     expect(within(article).getByText('Image not shown: remote')).toBeTruthy();
+    expect(within(article).queryByRole('link', { name: 'data' })).toBeNull();
+    expect(article.textContent).toContain('[data](data:text/html,x)');
     const refusals: [string, string][] = [
-      ['data', 'link not supported'],
       ['host', 'link not supported'],
       ['up', 'outside the repository'],
     ];
@@ -290,7 +292,7 @@ describe('the document dialog (D78-4, D78-5)', () => {
     stubApi(api());
     const { router } = renderApp(`/p/${PID}/e/${EID}`);
     const dialog = await openDocument(await summary());
-    await userEvent.click(within(dialog).getByRole('link', { name: 'the first decision' }));
+    await userEvent.click(await within(dialog).findByRole('link', { name: 'the first decision' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/e/dl-001-x`));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: TITLE })).toBeNull());
   });
@@ -315,9 +317,12 @@ describe('the document dialog (D78-4, D78-5)', () => {
     const section = within(panel).getByRole('heading', { name: 'Summary' }).closest('section')!;
     await waitFor(() => expect(section.querySelector('.element-summary strong')?.textContent).toBe('Fastify'));
     await userEvent.click(within(section).getByRole('button', { name: 'Open document' }));
-    await waitFor(() => expect(screen.getAllByRole('dialog', { name: TITLE })).toHaveLength(2));
+    // The modal makes the rest of the page inert: only the document dialog is in the tree.
+    const dialog = await screen.findByRole('dialog', { name: TITLE });
+    expect(dialog.classList.contains('element-document')).toBe(true);
     await userEvent.keyboard('{Escape}');
-    await waitFor(() => expect(screen.getAllByRole('dialog', { name: TITLE })).toHaveLength(1));
+    await waitFor(() => expect(document.querySelector('.element-document')).toBeNull());
+    expect(screen.getByRole('dialog', { name: TITLE })).toBe(panel);
     expect(router.state.location.search).toEqual({ panel: EID });
     await waitFor(() =>
       expect(document.activeElement).toBe(within(section).getByRole('button', { name: 'Open document' })),

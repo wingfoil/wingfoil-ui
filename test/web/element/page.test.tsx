@@ -110,7 +110,8 @@ it('shows the element as a page of the main region, named by its level-1 title, 
   expect(screen.getByRole('main').contains(page)).toBe(true);
   expect(within(page).getByRole('heading', { level: 1, name: 'Password reset' })).toBeTruthy();
   expect(within(page).getByText(EID)).toBeTruthy();
-  expect(within(page).getByText('Users forget passwords.')).toBeTruthy();
+  // The summary renders once the document module is loaded (task-078, D78-7).
+  expect(await within(page).findByText('Users forget passwords.')).toBeTruthy();
   expect(screen.queryByRole('dialog')).toBeNull();
   // The sidebar stays: the page is a view of the project layout.
   expect(screen.getByRole('navigation', { name: 'Project views' })).toBeTruthy();
@@ -243,7 +244,8 @@ it('names the page "Loading the element…" until the element is read, not by th
   const heading = await screen.findByRole('heading', { level: 1, name: 'Loading the element…' });
   const page = screen.getByRole('region', { name: 'Loading the element…' });
   expect(page.contains(heading)).toBe(true);
-  expect(within(page).getByText(EID).classList.contains('element-id')).toBe(true);
+  // The address's value in the topline, inside its `<bdi>` since task-078 AC-7.
+  expect(within(page).getByText(EID).closest('.element-id')).not.toBeNull();
   expect(screen.queryByRole('heading', { level: 1, name: EID })).toBeNull();
 });
 

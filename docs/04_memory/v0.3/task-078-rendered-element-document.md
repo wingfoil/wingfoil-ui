@@ -274,3 +274,82 @@ decision-log spec with its scenario-local fixtures, the two screens and the char
 bug-041-repository-keys-shown-on-the-page-are-not-escaped (keys shown raw); Q3 (a) — the
 candidates' list is named by its heading (`aria-labelledby`). The design names no spec change:
 spec-011 and adr-002 hold as written, so no Process Note is added.
+
+### red / green / refactor (2026-11-12)
+
+- **R1 (red):** WingFoil 0.3.1 lets Casey approve the decision-log Casey submitted once the DNA
+  gives Casey `approver`. A scratch vitest file run once and then deleted (`buildFixture('custom')`,
+  `dna update team.members --value Casey --entry-roles 'product-owner, approver'` as Casey, then
+  `memory approve dl-002-use-fastify --reason …` as Casey) gave exit 0 and the last commit
+  `wf(decision-log): approve dl-002-use-fastify [in-discussion → ready]` by casey@example.test.
+  `wingfoil/dist/core/approval-authority.js` checks only the `approver` role at `HEAD`; it has no
+  self-approval rule. G-08.1 and G-08.2 hold as written.
+- **R2 (red):** Escape in the document dialog closes the dialog only, on the element page and on
+  the side panel. React Aria's overlay stops the key (P2). Tests: `document.test.tsx` › "closes with
+  Escape and with Close, …" and "opens from the side panel too, and Escape closes the dialog only
+  (R2)". No guard was needed.
+- **Probe P1, correction:** the web bundles markdown-it **15.0.2** (`web/node_modules`); the root
+  14.3.2 belongs to another package. 15.0.2's `isTerminatorChar` also stops the text rule at `<`
+  (`dist/markdown-it.mjs`), so D78-3 holds.
+- **Red** (`9e0d5c8f`; `npx vitest run --maxWorkers=2 test/web/docs/classification-in-place.test.tsx
+  test/web/element/page.test.tsx`, then `test/web/element/summary.test.ts test/web/docs/render.test.ts
+  test/web/element/document.test.tsx`). Every new test failed on its behaviour except
+  `summary.test.ts`, which failed on the missing module (`summaryHtml`); `document.test.tsx` covers
+  the same summary on behaviour.
+  - **bug-043:** `isConnected` was false after the link check answered.
+  - **AC-7:** no `bdi` in the topline or the 404 heading; the list was named by `aria-label`.
+  - **D78-3:** the comments were shown as text.
+  - **D78-1:** the mark had no `data-doc-mark`.
+  - **D78-5:** heading ids stayed `doc-`.
+  - **Dialog:** no *Open document* and no rendered summary (12 tests).
+  - **Passed at red (characterization):** "a refetched document replaces the content" and two of
+    the comment cases ("keeps a comment inside code", "dropping a comment never makes markup") pass
+    because the `comments` option is ignored. Guard removals below.
+
+  The e2e (`decision-log.spec.ts`, bug-043 in `documentation.spec.ts`, the two `SCREENS` entries)
+  was committed with the red tests and runs on `gates.yml` with the green commit.
+- **Green:**
+  - **`docs/render.ts`:** `commentFreeMarkdown` with a block rule and an inline rule that drop
+    comments; `markdownToSafeHtml(source, { comments })`; `sanitiseMarkdownHtml`;
+    `FinishOptions.headingPrefix`; the refused mark carries `data-doc-mark`, added to the final
+    pass's allow-list.
+  - **`docs/RenderedArticle.tsx`:** `patchLinks`. It compares the frames of the last and the new
+    HTML and replaces only the changed groups with nodes imported from the new sanitised output;
+    otherwise the content is replaced as before. New props: `as`, `className`, `focusOnShow`,
+    `headingPrefix`, `onAnchor`.
+  - **`docs/link-lookup.ts`:** the lookup moved from `pages.tsx`, with `onlyWithRepositoryLinks`.
+    `pages.tsx` re-exports `MAX_LINK_CHECKS`.
+  - **`element/summary.ts`, `element/document.tsx`:** new; `document.tsx` is lazy, loaded from
+    `ElementView.tsx`. `ElementContent` takes `pid`.
+  - **`ElementPage.tsx`:** the `<bdi>`.
+  - **`Candidates.tsx`:** the list is named by its heading (`aria-labelledby`).
+  - **Removed:** `model.ts`'s `summaryOf` and its tests.
+  - **`element.css`, `en.json`:** the styles of the summary and the dialog; six catalogue keys.
+  - **Chunks** (`npm run -s build -w web`): markdown-it is only in the lazy `docs-*.js` chunk; the
+    entry and project chunks hold none of its code (`isTerminatorChar` absent).
+- **Characterization changed** (the lazy summary and the new button):
+  - `docs.test.tsx` › "a focused link keeps the focus …": the focused link is now the same element
+    (`toBe(vision)`, before `not.toBe`). This is bug-043's fix, seen from F1's test.
+  - `page.test.tsx`: the summary read with `findByText`; the loading test finds the id inside its
+    `bdi`.
+  - `panel.test.tsx`: the buttons now include *Open document*; the summary read with `findByText`.
+  - `gate-footer.test.tsx` S-24.1 and S-24.2: the footer's buttons exclude *Open document*.
+- **Guard removals** (scratch edits, restored with a file copy):
+  - The inline comment rule given precedence over code spans (`backticks` disabled) → "keeps a
+    comment inside code": 1 failed.
+  - `patchLinks`' frame check removed → "a refetched document replaces the content": 1 failed.
+- **Local checks:** `npm run typecheck`, `npm run lint`, `npm run format:check` clean;
+  `npm run docs:api` generated; `check_tasks.py v0.3` OK.
+- **Targeted vitest runs** (`--maxWorkers=2`):
+  - `test/web/element/{document,page,panel,side-panel,gate-footer,submit-footer,directives,history-text,summary,model,address,footer}`
+  - `test/web/docs/{docs,render,links,labels,classification-in-place}`
+  - `test/web/directives/directives`
+  - `test/web/today/{today,summary,cards}`
+  - `test/web/shell/{notification-bell,toasts}`
+  - `test/web/memory/list`
+  - `test/web/i18n/*`
+
+  All passed. `test/web/docs` was once run as a folder by mistake (5 files) — noted, not repeated.
+- **Docs:** `CHANGELOG.md` *Unreleased* (*Added* the element's document; *Fixed* bug-043 and AC-7);
+  `docs/user-guide.md` 0.39; `ux-reference.md` 1.19 (§4.2 v0.3 *The rendered document*);
+  `test/README.md` 0.87.

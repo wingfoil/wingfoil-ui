@@ -458,6 +458,8 @@ it('S-24.2 — a waiting state: the engine note, no button', async () => {
   expect(
     within(dialog)
       .getAllByRole('button')
+      // *Open document* of the summary (task-078) is no footer action.
+      .filter((b) => !b.classList.contains('element-document-open'))
       .map((b) => b.textContent),
   ).toEqual(['Close']);
 });
@@ -472,6 +474,8 @@ it('S-24.1 — a final state: the chip says final, the note says no action, no b
   expect(
     within(dialog)
       .getAllByRole('button')
+      // *Open document* of the summary (task-078) is no footer action.
+      .filter((b) => !b.classList.contains('element-document-open'))
       .map((b) => b.textContent),
   ).toEqual(['Close']);
 });
