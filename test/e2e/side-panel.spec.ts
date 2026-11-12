@@ -186,6 +186,54 @@ test.describe('US-G-01 / US-S-21 — the side panel in the address', () => {
     await expectFocusVisible(title);
   });
 
+  test('AC-5 — The candidates are keyboard operable and the shell stays operable while the panel is open', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const c = await consoles.start({ projects: [await morgan(fixtures)], settings: { autoFetch: false } });
+    const pid = c.pids[0]!;
+    // The 409 of an ambiguous short value (the screens' stub: the kanban fixture holds none).
+    await page.route(`**/api/p/${pid}/elements/task-001`, (route) =>
+      route.fulfill({
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: {
+            code: 'ambiguous-id',
+            message: 'Ambiguous id',
+            detail: {
+              candidates: [
+                { id: ID, shortId: 'task-001', title: 'Login form', type: 'task', status: 'pending' },
+                { id: `${ID}-copy`, shortId: 'task-001', title: 'Login form copy', type: 'task', status: 'pending' },
+              ],
+              more: 0,
+            },
+          },
+        }),
+      }),
+    );
+    await openConsole(page, c, { path: `/p/${pid}/today?panel=task-001` });
+    const candidates = sidePanel(page).getByRole('list', { name: 'task-001 names several elements' });
+    await expectFirstLoad(candidates);
+    // The shell stays operable while the panel is open (non-modal, W4-8): the bell opens and closes,
+    // the panel stays.
+    await bell(page).click();
+    await expect(bellPanel(page)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(bellPanel(page)).toHaveCount(0);
+    await expect(candidates).toBeVisible();
+    // A candidate is reached with Tab, with a visible focus, and opens in the panel on the same view.
+    const first = candidates.getByRole('link').first();
+    await tabUntil(page, first);
+    await expectFocusVisible(first);
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(`${c.origin}/p/${pid}/today?panel=${ID}`);
+    await expect(sidePanel(page).getByRole('heading', { level: 2, name: 'Login form' })).toBeVisible({
+      timeout: COLD_READ_MS,
+    });
+  });
+
   for (const size of [
     { width: 1280, height: 720 },
     { width: 600, height: 720 },

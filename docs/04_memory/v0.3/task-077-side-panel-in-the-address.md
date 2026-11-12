@@ -226,12 +226,13 @@ outcome), `CHANGELOG.md` *Unreleased*, `docs/user-guide.md` (the side panel), `t
 |---|---|---|
 | AC-1 G-01.8 | red-first | `test/e2e/side-panel.spec.ts` › `G-01.8 — Open an element from Requires you in the side panel and keep it on reload` (Today's heading and the dialog both visible, `toHaveURL` `/p/<pid>/today?panel=task-001-login-form` before and after `page.reload()`) |
 | AC-2 S-21.4 | red-first | same › `S-21.4 — Open an item of the bell in the side panel of the current view` (the Memory list at `?type=task`, the bell's *To unblock* item: the list and its filter stay, the address `/p/<pid>/memory?type=task&panel=task-001-login-form` in either order of parameters) |
-| AC-2 Q1 (a) | red-first | same › `AC-2 — On the element page a bell item opens that item's element page`; `test/web/element/side-panel.test.tsx` › the bell on `/e/` links to the page, elsewhere to `?panel=` |
+| AC-2 Q1 (a) | red-first | same › `AC-2 — On the element page a bell item opens that item’s element page`; `test/web/element/side-panel.test.tsx` › the bell on `/e/` links to the page, elsewhere to `?panel=` |
 | AC-2 S-21.1 … S-21.3 | characterization (S-21.1's address now `?panel=`) | `test/e2e/notification-bell.spec.ts`, titles unchanged |
 | AC-3 | red-first | `side-panel.spec.ts` › `AC-3 — Opening pushes, a reload keeps, closing removes panel= and keeps the other parameters`; `X-06.3 — Escape on the side panel returns the focus to its opener` (Today's action; the Memory list keeps its own X-06.3 in `accessibility.spec.ts`); `side-panel.test.tsx` (memory history): a push from Today; *Close* → Back, Forward reopens; *Close* after a fresh load → `replace` without `panel`; other parameters kept; `panel=` on `/e/` ignored with no request; a short value replaced in place (one element read, path unchanged, the entry replaced); a 409's candidates are `?panel=` links on the same view; a second opening replaces (Q2); *Close*, Escape and *Cancel* to the opener, to `#main` after a bell item, after the browser's Back; a double Escape goes back once; Today's card filter kept through open and close (task-061 Q3); the scroll of the view kept (R2) |
 | AC-4 | red-first | `side-panel.test.tsx` › `it.each` `../x`, `https://example.test/x`, `.`, `..`, `''`, `%2e%2e`, `123`, a repeated `panel=`, another project's element id → the panel's *not found*; the stub API saw no request but `/api/p/<pid>/elements/<encoded>` (none for the refused ones); `location.pathname`, the other parameters and the history length unchanged; `address.test.ts` › `panelSearch` (a string kept, `''` kept, every other form `''`, absent stays absent) |
-| AC-5 | red-first | `test/e2e/accessibility.spec.ts` — the two `SCREENS` entries of D77-9, both themes, both builds; keyboard in `side-panel.spec.ts` (`expectFocusVisible` on *Close*, the candidates, Tab into the footer, the shell operable while open — W4-8); `side-panel.spec.ts` › `AC-5 — The toasts never cover the side panel's footer actions` (`document.elementFromPoint` at each action after a decision at 1280×720, 600×720, 400×600) |
+| AC-5 | red-first | `test/e2e/accessibility.spec.ts` — the two `SCREENS` entries of D77-9, both themes, both builds; keyboard in `side-panel.spec.ts` (`expectFocusVisible` on *Close*, the candidates, Tab into the footer, the shell operable while open — W4-8); `side-panel.spec.ts` › `AC-5 — The toasts never cover the side panel’s actions (<width>×<height>)` (`document.elementFromPoint` at *Close* and the footer after a decision at 1280×720, 600×720, 400×600), `AC-5 — The candidates are keyboard operable and the shell stays operable while the panel is open` (added at the checker, N-3) |
 | AC-5 three engines | gate | `gates.yml` own-spec selection: `side-panel` and every spec changed below |
+| AC-7 bug-046 (absorbed, 2026-11-12) | red-first | `test/web/element/gate-footer.test.tsx` › `bug-046 — on the ${where}, after ${verb === 'approve' ? 'an approve' : 'a reject'}, the heading takes the focus when the refetch removes the focused outcome before the reply` (4 cases: the page and the side panel, approve and reject); `test/e2e/gate-footer.spec.ts` › `X-06.2 — Decide a gate with the keyboard only` (the focus inside the element after the decision, `expect.poll`) |
 | AC-6 | docs, gates | spec-011 Process Note (D77-1, D77-4, Q1 (a), Q1, Q2); `CHANGELOG.md`; local typecheck, lint, format:check, `docs:api`, targeted vitest (`--maxWorkers=2`), `check_tasks.py v0.3`, `public-text`; heavy gates on `gates.yml` (run id, commit, result) |
 
 Characterization that moves with the openers (asserts the address or Today's remount): web —
@@ -365,7 +366,8 @@ e2e closure — every scenario and criterion this task closes, at the tip:
 | AC-3 | `side-panel.spec.ts` › `AC-3 — Opening pushes, a reload keeps, closing removes panel= and keeps the other parameters`; `side-panel.test.tsx` › the push, Close back / Forward, fresh load replaced on close, other parameters kept, ignored on the element page, a short value replaced in place, the `?panel=` candidates, a second opening replaces (Q2 (a)), the browser's Back, the double Escape, Today kept mounted, the scroll kept |
 | X-06.3 on the side panel (AC-3) | `side-panel.spec.ts` › `X-06.3 — Escape on the side panel returns the focus to its opener` |
 | AC-4 | `side-panel.test.tsx` › "shows not found for panel=%j and navigates nowhere (AC-4)" (`../x`, `https://example.test/x`, `%2e%2e`, `.`, `..`, `''`, `123`, a repeated `panel=`, another project's id); `test/web/element/address.test.ts` › `panelSearch`; `side-panel.spec.ts` › AC-3's hostile address |
-| AC-5 | `test/e2e/accessibility.spec.ts` — the `SCREENS` entries *element side panel (Today)*, *element side panel — candidates* (X-06.4, X-09.1, both themes); `side-panel.spec.ts` › `AC-5 — The toasts never cover the side panel’s actions` at 1280×720, 600×720, 400×600; `scanThemes` in X-06.3 |
+| AC-7 (bug-046) | `test/web/element/gate-footer.test.tsx` › `bug-046 — on the ${where}, after ${verb === 'approve' ? 'an approve' : 'a reject'}, the heading takes the focus when the refetch removes the focused outcome before the reply`; `test/e2e/gate-footer.spec.ts` › `X-06.2 — Decide a gate with the keyboard only` |
+| AC-5 | `test/e2e/accessibility.spec.ts` — the `SCREENS` entries *element side panel (Today)*, *element side panel — candidates* (X-06.4, X-09.1, both themes); `side-panel.spec.ts` › `AC-5 — The toasts never cover the side panel’s actions (<width>×<height>)` at 1280×720, 600×720, 400×600, `AC-5 — The candidates are keyboard operable and the shell stays operable while the panel is open`; `scanThemes` in X-06.3 |
 
 Run `43210245345` on `32d6604a` (the merge, with the AC-5 test fix `3ff8b4bc` and the refactor
 `46927f10`; the run of `3ff8b4bc` was cancelled by the push of the merge, `cancel-in-progress`):
@@ -418,7 +420,7 @@ approver (F-1), two minors and four nits fixed here. Red first: `8b7d5e97`.
 | F-4 (nit) — the rewrite's path-syntax check on the server's id was untested | none needed | "does not rewrite panel= to a server-answered id %j" (`..`, `.`): *not found*, `panel=task-001` and the history length unchanged; with both checks of `SidePanel.tsx` removed: 2 failed |
 | F-5 (nit) — the address value became the panel's heading and name with no bidi isolation | the value in the topline and in a refusal's heading is wrapped in `<bdi>` (chosen over a "Not found" title: the user still sees which value was refused, as the element page does) | "isolates the address value it shows from the surrounding text" — red before the fix (no `bdi`) |
 | F-6 (nit) — the e2e comment said a close after a reload replaces the entry; D77-5 goes back (the reload keeps the pushed entry) | the comment of `side-panel.spec.ts` › AC-3 corrected | — |
-| F-7 (nit) — AC-4's "other parameters unchanged" was not asserted | the hostile values now open on `/p/<pid>/directives?show=all&panel=…` and assert `show=all` kept | the `it.each` of AC-4, characterization (the parameters are never rewritten) |
+| F-7 (nit) — AC-4's "other parameters unchanged" was not asserted | the hostile values now open on `/p/<pid>/directives?show=all&panel=…` and assert `show=all` kept | the `it.each` of AC-4, characterization: no code navigates on a refusal, so there is no guard to remove; mutation check at the checker (G-2) — a scratch effect in `SidePanel.tsx` that replaces the address with `{ panel }` alone on a read error → 9 failed (`show` undefined), restored with a file copy |
 
 The element page shows its address value the same way (task-062's `ElementPage.tsx`, no `bdi`);
 left as it is here, for the coordinator.
@@ -433,8 +435,9 @@ bug-046-the-focus-falls-to-the-page-body-after-a-gate-decision-until-the-server-
 the bug file came with the phase branch at `fc36238d`, merged as `85a4c680`).
 
 - **Red** (`598a4f1b`; `npx vitest run --maxWorkers=2 test/web/element/gate-footer.test.tsx -t
-  bug-046`): 2 failed — "bug-046 — on the page / on the side panel, the heading takes the focus when
-  the refetch removes the focused outcome before the reply": with the POST held and the project's
+  bug-046`): 2 failed — the test then titled "bug-046 — on the ${where}, the heading takes the focus when the
+  refetch removes the focused outcome before the reply" (page and side panel; since round 2's R2-3
+  `bug-046 — on the ${where}, after ${verb === 'approve' ? 'an approve' : 'a reject'}, the heading takes the focus when the refetch removes the focused outcome before the reply`, over approve and reject): with the POST held and the project's
   queries invalidated (the `repo` event's refetch) to the final state, `document.activeElement` was
   `<body>`, not the `h1` / `h2`. X-06.2 of `gate-footer.spec.ts` now waits for the focus with
   `expect.poll`.
@@ -473,10 +476,26 @@ first: `c0bb5c7e`.
 |---------|-----|--------------|
 | R2-1 (low, test gap) — the guards of `ElementFooter`'s focus fallback (`onFocusOut`, the `<body>` check, `!left.isConnected`) had no test | none needed: the guards are right | `gate-footer.test.tsx` › "a focus the user let go of (blurred to nothing) is not taken back…" — fails with `onBlur={onFocusOut}` removed and fails with the `isConnected` check removed; "a focus the user moved to Close before the refetch stays on Close" — `onFocusOut` and the `<body>` check each suffice for it, so it fails only with both removed (with either one removed it passes, recorded as two independent guards); scratch edits restored with a file copy |
 | R2-2 (low, behaviour) — the *Update* request was made in the update's per-call `onSuccess`, which TanStack Query drops when the link (its observer) unmounts: a `repo` refresh that removed the link before the reply left the focus on the heading, not on the reason (G-12.2); and while the flag was set the fallback did nothing | the request is made by the press (`UpdateLink`'s `onStarted`), dropped by a refusal while the link is shown (`onFailed`), and used once the link is gone; the fallback always runs and remembers the heading it focused, from which D40-2 moves the focus on to the reason | "G-12.2 — the focus goes to the reason field also when the refetch removes the Update link before the reply (R2-2)" (the update's POST held) — red at `c0bb5c7e` (the focus on the `h1`); task-040's R3 tests (no move after a refusal, from outside the footer) stay green |
-| R2-3 (info) — the bug-046 tests covered approve only | — | the bug-046 test over approve and reject (a typed reason), on the page and on the side panel: 4 cases, passing |
+| R2-3 (info) — the bug-046 tests covered approve only | the test parametrised over approve and reject (a typed reason) | `gate-footer.test.tsx` › `bug-046 — on the ${where}, after ${verb === 'approve' ? 'an approve' : 'a reject'}, the heading takes the focus when the refetch removes the focused outcome before the reply`, 4 cases; written after the code — guard removal at the checker (G-2): the fallback's layout effect in `ElementFooter.tsx` disabled → the two reject cases fail (2 failed, 48 skipped by `-t "after a reject"`) |
 | R2-4 (info) — "after the current task" for a `queueMicrotask` | the comment of `ElementFooter.tsx` and the bug-046 *Green* note say "in a microtask" | — |
-| R2-5 (info) — the candidates' heading showed the address value without isolation | the heading's `{id}` is a `<bdi>` (the list's `aria-label` stays plain text), on the page and on the side panel | `side-panel.test.tsx` › "isolates the address value in the candidates' heading (review R2-5)" — red at `c0bb5c7e` |
+| R2-5 (info) — the candidates' heading showed the address value without isolation | the heading's `{id}` is a `<bdi>` (the list's `aria-label` stays plain text), on the page and on the side panel | `side-panel.test.tsx` › "isolates the address value in the candidates’ heading (review R2-5)" — red at `c0bb5c7e` |
 
-Checks: `npx vitest run --maxWorkers=2` on `test/web/element/{gate-footer,side-panel,page,submit-footer,panel}`,
+Fix commit `edca8b13`. Checks: `npx vitest run --maxWorkers=2` on `test/web/element/{gate-footer,side-panel,page,submit-footer,panel}`,
 `test/web/repository/update-push`, `test/web/i18n/{key-rendering,catalogue}`: 181 passed.
+
+Run `43239460909` on `edca8b13` (round 2's red `c0bb5c7e`, its fixes and `779575d9`): **success**,
+every job of the task scope green on the first attempt.
+
+### checker round 1 (2026-11-12)
+
+The pre-gate checker on `edca8b13`: NOT READY on two notes gaps (G-1, G-2), no code defect; notes
+N-1 … N-3 done in the same round (N-4 accepted).
+
+| Finding | Change | Evidence |
+|---------|--------|----------|
+| G-1 — AC-7 (bug-046) had no row in the test plan or the e2e closure; the bug-046 *Red* note and the R2-3 row gave the pre-R2-3 title | AC-7 rows added to both tables with the current titles (the web test and X-06.2's `expect.poll`); the *Red* note and the R2-3 row give the current title | — |
+| G-2 — three tests written after the code had no guard-removal failure | removals recorded (scratch edits, restored with a file copy, `git status` clean after) | F-7's hostile values on `?show=all`: no guard on that path — a scratch navigation on refusal dropping the view's parameters → 9 failed; R2-3's reject cases: the fallback's layout effect disabled → 2 failed; `a479fff7`'s "task-077 — in the side panel, the focus stays inside it after a decision reaches a final state": `data-element-view` removed from the panel's `Dialog` (the footer finds the heading by it, D62-3) → 1 failed (the focus outside the panel) |
+| N-1 — run `43239460909` and round 2's fix commit missing | both recorded | — |
+| N-2 — straight vs curly apostrophes | the design table and the R2-5 row now match the titles (`’`) | `grep` of each title in the specs |
+| N-3 — the AC-5 keyboard plan promised `expectFocusVisible` on the candidates and the shell operable while open; X-06.3 checks *Close* and the title only | added as an e2e test: `side-panel.spec.ts` › `AC-5 — The candidates are keyboard operable and the shell stays operable while the panel is open` (the 409 stubbed as in the screens; the bell opens and closes with the panel open; Tab to a candidate, its visible focus, Enter opens it in the panel) — runs on `gates.yml` with the next push | — |
 
