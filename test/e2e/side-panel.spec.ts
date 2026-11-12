@@ -3,7 +3,7 @@
 // in a non-modal side panel over the current view, addressed by `?panel=<full id>`; a reload keeps
 // it; closing removes the parameter and keeps the others; on the element page a bell item opens that
 // item's page (Q1 (a)); the focus returns to the opener (X-06.3); the toasts never cover the panel's
-// actions. Every Given is scenario-local, on a kanban copy where the user is Morgan.
+// Close or its footer. Every Given is scenario-local, on a kanban copy where the user is Morgan.
 import type { Locator, Page } from '@playwright/test';
 import type { Fixture } from '../harness/fixtures/index.js';
 import { scanThemes } from './support/axe.js';
@@ -203,10 +203,15 @@ test.describe('US-G-01 / US-S-21 — the side panel in the address', () => {
       await approve.click({ timeout: COLD_READ_MS });
       const toast = page.locator('.toast').filter({ hasText: `Approved ${ID}` });
       await expect(toast).toBeVisible({ timeout: COLD_READ_MS });
+      // Hovered, its 8 s timer is paused (D38-2) while the checks run.
+      await toast.hover();
+      // The panel stays open on the new state: its footer line, then nothing of it under a toast (the
+      // footer read first — the gate's buttons are gone with the decision).
+      const footerLine = sidePanel(page).locator('.element-footer').getByText('Final state: no action is possible');
+      await expect(footerLine).toBeVisible({ timeout: COLD_READ_MS });
+      await expect(toast).toBeVisible();
       await expectOnTop(page, sidePanel(page).getByRole('button', { name: 'Close', exact: true }));
-      for (const button of await sidePanel(page).locator('.element-footer button').all()) {
-        await expectOnTop(page, button);
-      }
+      await expectOnTop(page, footerLine);
     });
   }
 });

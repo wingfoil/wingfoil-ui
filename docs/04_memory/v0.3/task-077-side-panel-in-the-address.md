@@ -327,3 +327,12 @@ v0.3.
 - **Docs:** spec-011 Process Note (2026-11-12: Q1 (a), Q2 (a), the bell on the page);
   `ux-reference.md` 1.17 (§4.2 v0.3 *The side panel*); `CHANGELOG.md` *Unreleased* *Added*;
   `docs/user-guide.md` 0.35; `test/README.md` 0.79.
+- **`gates.yml` run `43207595221` on `2387c507`:** checks, contract, coverage, smoke, publish-smoke,
+  e2e-chromium shard 1 and the own specs on Firefox green; e2e-chromium shard 2 and the own specs on
+  WebKit 1 failed each (64 passed on WebKit) — the same test, `side-panel.spec.ts` › AC-5 at
+  400 × 600: the loop collected the footer's buttons (`.all()`) before the decision's refetch
+  replaced them with "Final state: no action is possible", so it measured buttons already gone (the
+  page snapshot of the report shows the toast above the footer line, nothing covered). The test
+  now waits for the footer line, keeps the toast hovered (its timer paused, D38-2) and checks
+  *Close* and the footer line.
+
