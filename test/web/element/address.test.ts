@@ -4,6 +4,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../web/src/api/client.js';
 import { elementPath, elementQuery, historyQuery } from '../../../web/src/element/queries.js';
+import { panelSearch } from '../../../web/src/element/side-panel.js';
 
 describe('elementPath', () => {
   it.each([
@@ -51,5 +52,25 @@ describe('the element queries', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+// task-077 D77-1 (Q1 (a)): `panel=` as the project layout's search parameter — a string is kept as
+// written (`''` included, refused later by `elementPath`), any other parsed form becomes `''` (the
+// panel's *not found*, no request), and an absent parameter stays absent.
+describe('panelSearch', () => {
+  it.each([
+    [{ panel: 'task-001-login-form' }, { panel: 'task-001-login-form' }],
+    [{ panel: '' }, { panel: '' }],
+    [{ panel: '..' }, { panel: '..' }],
+    [{ panel: 123 }, { panel: '' }],
+    [{ panel: true }, { panel: '' }],
+    [{ panel: null }, { panel: '' }],
+    [{ panel: {} }, { panel: '' }],
+    [{ panel: ['a', 'b'] }, { panel: '' }],
+    [{}, {}],
+    [{ type: 'task' }, {}],
+  ])('reads %j as %j', (raw, expected) => {
+    expect(panelSearch(raw)).toEqual(expected);
   });
 });

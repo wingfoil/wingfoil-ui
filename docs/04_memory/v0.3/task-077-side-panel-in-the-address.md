@@ -264,3 +264,10 @@ About 0.9 active day: the panel shell, the controller and the rewrite 0.25 d; th
 bell and the focus signal 0.15 d; the web tests (address, hostile values, focus) 0.2 d; the new
 e2e spec, the two screens and the characterization moves 0.2 d; docs, `gates.yml` runs, review
 0.1 d. Within one day: no split.
+
+**Decisions of the approver** (2026-11-12, relayed by the coordinator: "confermo le decisioni
+raccomandate"): Q1 (a) — a present `panel=` always opens the panel: a string is looked up, any
+other parsed form is *not found* without a request (D77-1); Q2 (a) — opening pushes only when no
+panel is open, otherwise the value is replaced keeping the entry's state, so one *Close* / Back
+returns to the view (D77-4). Both recorded in spec-011's Process Note and `ux-reference.md` §4.2
+v0.3.
