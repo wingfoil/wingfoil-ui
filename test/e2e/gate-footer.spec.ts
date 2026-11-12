@@ -327,7 +327,10 @@ test.describe('US-S-24 — terminal and engine-waiting states', () => {
     const c = await consoles.start({ projects: [await copyAs(fixtures, 'custom', 'Morgan')] });
     await openPanel(page, c, 'dl-001-initialise-wingfoil-before-inception');
     await expect(footer(page)).toHaveText('Final state: no action is possible', { timeout: COLD_READ_MS });
-    await expect(drawer(page).getByRole('button')).toHaveText(['Close']);
+    // *Open document* of the summary (task-078) is no footer action.
+    await expect(drawer(page).getByRole('button').and(page.locator(':not(.element-document-open)'))).toHaveText([
+      'Close',
+    ]);
     await expect(drawer(page).locator('.state-machine [aria-current="step"] .visually-hidden')).toHaveText(
       'ready, final state',
     );
@@ -340,7 +343,10 @@ test.describe('US-S-24 — terminal and engine-waiting states', () => {
     await expect(footer(page)).toHaveText('Waiting for the workflow engine (state: planning)', {
       timeout: COLD_READ_MS,
     });
-    await expect(drawer(page).getByRole('button')).toHaveText(['Close']);
+    // *Open document* of the summary (task-078) is no footer action.
+    await expect(drawer(page).getByRole('button').and(page.locator(':not(.element-document-open)'))).toHaveText([
+      'Close',
+    ]);
     expect(await scanThemes(page)).toEqual([]);
   });
 

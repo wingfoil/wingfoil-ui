@@ -370,3 +370,8 @@ spec-011 and adr-002 hold as written, so no Process Note is added.
   - **G-08.2:** the row read "Rejected by Alex": `actAs` sets only `user.email` on the copy, and its
     `user.name` was still Alex, the builder's last identity. The spec's copy now sets
     `user.name Casey` too, as the harness's `as()` does.
+- **`gates.yml` run `43262058499` on `0874c6d5`:** every job green except e2e-chromium shard 1,
+  which failed 1 test (187 passed): `gate-footer.spec.ts` › S-24.1 listed the element's buttons as
+  `['Close']` and now also found *Open document*. The own specs on Firefox and WebKit passed,
+  including `decision-log.spec.ts`, bug-043's test and the two screens. S-24.1 and S-24.2 now leave
+  *Open document* out of the footer's buttons, as their web tests do.
