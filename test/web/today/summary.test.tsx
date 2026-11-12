@@ -265,7 +265,7 @@ it('returns the focus to the summary item that opened the panel (bug-018, R2-1)'
     within(lines(screen.getByRole('region', { name: 'Your roles' }))[2]!).getByRole('link');
   await card();
   await user.click(item());
-  await screen.findByRole('dialog');
+  await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
   await user.click(screen.getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
   await waitFor(() => expect(document.activeElement).toBe(item()));

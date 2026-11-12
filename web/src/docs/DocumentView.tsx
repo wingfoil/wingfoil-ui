@@ -78,7 +78,8 @@ export function DocumentView({
         <Link className="button" href={indexHref}>
           <FormattedMessage id="docs.document.back" />
         </Link>
-        <span className="docs-path">{path}</span>
+        {/* The label the server escaped (task-072 D72-6), not the address. */}
+        {content.data && <span className="docs-path">{content.data.label}</span>}
       </div>
       {kind !== undefined && (
         <p role="alert" className="docs-error">
@@ -91,7 +92,14 @@ export function DocumentView({
           <FormattedMessage id="docs.document.loading" />
         </p>
       )}
-      <RenderedArticle html={html} label={path} pageKey={path} hash={hash} hrefOf={hrefOf} onNavigate={onNavigate} />
+      <RenderedArticle
+        html={html}
+        label={content.data?.label ?? ''}
+        pageKey={path}
+        hash={hash}
+        hrefOf={hrefOf}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }

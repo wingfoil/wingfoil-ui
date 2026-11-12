@@ -18,7 +18,8 @@ import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js
 const PID = 'p_fx';
 const API = `/api/p/${PID}`;
 const content = (path: string) => `${API}/files/content?path=${encodeURIComponent(path)}`;
-const doc = (path: string, text: string) => ({ status: 200, body: { path, size: text.length, content: text } });
+// task-072 D72-6: the label the server sends with each path (a plain path's label is the path).
+const doc = (path: string, text: string) => ({ status: 200, body: { path, label: path, size: text.length, content: text } });
 const refused = (kind: string) => ({
   status: 404,
   body: { error: { code: 'not-found', message: 'Not found', detail: { kind } } },
@@ -53,11 +54,11 @@ function api(over: FakeApi = {}): FakeApi {
       body: {
         roots: ['docs'],
         documents: [
-          { path: 'docs/01_vision/00_index.md' },
-          { path: 'docs/01_vision/02_product-vision.md' },
-          { path: 'docs/01_vision/links.md' },
-          { path: 'docs/01_vision/my doc.md' },
-          { path: 'docs/guide.md' },
+          { path: 'docs/01_vision/00_index.md', label: 'docs/01_vision/00_index.md' },
+          { path: 'docs/01_vision/02_product-vision.md', label: 'docs/01_vision/02_product-vision.md' },
+          { path: 'docs/01_vision/links.md', label: 'docs/01_vision/links.md' },
+          { path: 'docs/01_vision/my doc.md', label: 'docs/01_vision/my doc.md' },
+          { path: 'docs/guide.md', label: 'docs/guide.md' },
         ],
       },
     },
@@ -103,17 +104,22 @@ afterEach(() => {
 
 describe('indexSections (W3-28)', () => {
   it('groups by folder, numbered as the prototype', () => {
-    expect(indexSections(['README.md', 'docs/a.md', 'docs/b/c.md', 'docs/d.md'])).toEqual([
-      { number: '1', folder: '.', entries: [{ number: '1.1', name: 'README.md', path: 'README.md' }] },
+    const docs = ['README.md', 'docs/a.md', 'docs/b/c.md', 'docs/d.md'].map((path) => ({ path, label: path }));
+    expect(indexSections(docs)).toEqual([
+      { number: '1', folder: '.', entries: [{ number: '1.1', name: 'README.md', label: 'README.md', path: 'README.md' }] },
       {
         number: '2',
         folder: 'docs',
         entries: [
-          { number: '2.1', name: 'a.md', path: 'docs/a.md' },
-          { number: '2.2', name: 'd.md', path: 'docs/d.md' },
+          { number: '2.1', name: 'a.md', label: 'docs/a.md', path: 'docs/a.md' },
+          { number: '2.2', name: 'd.md', label: 'docs/d.md', path: 'docs/d.md' },
         ],
       },
-      { number: '3', folder: 'docs/b', entries: [{ number: '3.1', name: 'c.md', path: 'docs/b/c.md' }] },
+      {
+        number: '3',
+        folder: 'docs/b',
+        entries: [{ number: '3.1', name: 'c.md', label: 'docs/b/c.md', path: 'docs/b/c.md' }],
+      },
     ]);
   });
 });

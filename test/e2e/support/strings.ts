@@ -24,7 +24,7 @@
  *   command (`joinCommand` of `web/src/project/join.ts`) rebuilt from a string value the page
  *   read (the email is one) and the key texts of its two placeholders — its words are WingFoil's CLI, never catalogue text.
  * - A frontmatter field name of the element panel's References (task-037 D37-13): the text of a
- *   `dt.field-name` inside `.drawer` is accepted only when it is a key of the `frontmatter` of a
+ *   `dt.field-name` inside the element view (`[data-element-view]`) is accepted only when it is a key of the `frontmatter` of a
  *   `GET /api/p/:pid/elements/:eid` answer read since `reset()` that the panel lists (`fieldEntries`) —
  *   the project's own field names.
  */
@@ -263,7 +263,7 @@ interface PageText {
   dismiss: boolean;
   /** Inside a CLI command shown as data (`code.cli-command[translate="no"]`, D35-3). */
   command: boolean;
-  /** A field name of the element panel's References (`.drawer dt.field-name`, D37-13). */
+  /** A field name of the element panel's References (`[data-element-view] dt.field-name`, D37-13). */
   fieldName: boolean;
 }
 
@@ -280,7 +280,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
       avatar: el?.closest('.current-user-avatar, .member-initials') != null,
       userAvatar: el?.closest('.current-user-avatar') != null,
       command: el?.closest('code.cli-command[translate="no"]') != null,
-      fieldName: el?.closest('.drawer dt.field-name') != null,
+      fieldName: el?.closest('[data-element-view] dt.field-name') != null,
     });
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {

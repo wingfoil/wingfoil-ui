@@ -167,7 +167,7 @@ test.describe('US-T-02 — Requires you', () => {
     });
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`);
-    await expect(page.getByRole('dialog', { name: 'Login form', exact: true })).toBeVisible({ timeout: COLD_READ_MS });
+    await expect(page.getByRole('region', { name: 'Login form', exact: true })).toBeVisible({ timeout: COLD_READ_MS });
     expect(posts).toEqual([]);
   });
 

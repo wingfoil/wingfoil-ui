@@ -18,6 +18,7 @@ import type { ServerEvent } from '@wingfoil-ui/contracts';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
 import type { EventBus } from '../../../server/src/events/bus.js';
 import { GIT_ALLOWED_SUBCOMMANDS, gitSubcommand } from '../../../server/src/git/git.js';
+import { MAX_DIRECT_READ_BYTES } from '../../../server/src/reads/confine.js';
 import { buildApp } from '../../../server/src/http/app.js';
 import { registerElementWriteRoutes } from '../../../server/src/http/element-writes.js';
 import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
@@ -775,6 +776,29 @@ describe('review S1 — the element as the fresh state lists it', () => {
     expect(res.body.result.path).toBe(moved);
   });
 
+  it('task-072 review round 1 F-1: row 9 read-error names a hostile element path escaped, message and detail', async () => {
+    const c = await start();
+    await c.warm();
+    const rel = await c.pathOf(LOGIN);
+    // The file renamed to a name holding U+202E and ESC, and made too large to read (kind `shape`).
+    const moved = path.join(path.dirname(rel), `task-001-login-form \u202ex\u001by.md`);
+    await git(c.fx.dir, ['mv', '--', rel, moved], c.fx.env);
+    await writeFile(
+      path.join(c.fx.dir, moved),
+      `${await readFile(path.join(c.fx.dir, moved), 'utf8')}\n${'x'.repeat(MAX_DIRECT_READ_BYTES)}\n`,
+    );
+    await git(c.fx.dir, ['add', '-A'], c.fx.env);
+    await git(c.fx.dir, ['commit', '--quiet', '-m', 'docs: a hostile name, too large'], c.fx.env);
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(502);
+    const shown = moved.replace('\u202e', '\\u202e').replace('\u001b', '\\x1b');
+    expect(res.body.error).toEqual({
+      code: 'read-error',
+      message: `Cannot read ${shown}: shape`,
+      detail: { file: shown, kind: 'shape' },
+    });
+  });
+
   it('W2-4: the CLI answering for another path → 500 write-incomplete with that path, no CLI text', async () => {
     const c = await start({
       intercept: async (request, real) => {
@@ -812,6 +836,21 @@ describe('review S1 — the element as the fresh state lists it', () => {
       expect(res.body.error.detail).toEqual({ file: await c.pathOf(LOGIN), commit: await c.head() });
     },
   );
+
+  it('task-072 D72-9: the other path, shown through the catalogue, is escaped (U+202E, ESC)', async () => {
+    const c = await start({
+      intercept: async (request, real) => {
+        if (!request.args.includes('approve')) return undefined;
+        const result = await real(request);
+        const data = JSON.parse(result.stdout) as Record<string, unknown>;
+        return { ...result, stdout: JSON.stringify({ ...data, path: 'docs/else\u202ewhere\u001b.md' }) };
+      },
+    });
+    await c.warm();
+    const res = await c.post('approve', LOGIN, { expectedStatus: 'pending', reason: 'ok' });
+    expect(res.status).toBe(500);
+    expect(res.body.error.detail).toEqual({ file: 'docs/else\\u202ewhere\\x1b.md' });
+  });
 });
 
 describe('review S2 — the whole entry of the element file', () => {
