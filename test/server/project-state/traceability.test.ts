@@ -90,7 +90,8 @@ describe('the rows (D74-2, spec-012 §4)', () => {
     expect((await rowsOf(rows)).map((r) => r.id)).toEqual(['US-M-01', 'US-S-01']);
     const project = await rowsOf(rows, 'project');
     expect(project.map((r) => r.id)).toEqual(['US-M-01', 'US-S-01', 'US-S-09']);
-    expect(project[2]).toMatchObject({ linked: [DL_001], element: false, status: 'not-started' });
+    // dl-001 is `ready`, the last state of its sequence: done.
+    expect(project[2]).toMatchObject({ linked: [DL_001], element: false, done: 1, status: 'completed' });
   });
 
   it('R-01.7 an element reference is a row of its target type’s category, element true', async () => {
@@ -120,7 +121,7 @@ describe('the rows (D74-2, spec-012 §4)', () => {
 
   it('project: a requirement or feature element no element references is a no-elements row', async () => {
     const ui = uiOf(
-      'version: 1\ntaxonomy: { categories: { adr: requirement }, patterns: [{ match: "^US-", category: requirement }] }\n',
+      'version: 1\ntaxonomy: { categories: { adr: requirement }, patterns: [{ match: "^US-", category: requirement }] }\nprogress: { mode: sequence, scope: { type: release } }\n',
     );
     const project = await rowsOf(CUSTOM, 'project', ui);
     expect(project.find((r) => r.id === 'adr-001-local-server')).toEqual({
@@ -231,7 +232,7 @@ describe('the body without its rows (D74-4, Q1 (a), K1)', () => {
     const { body, elements } = traceabilityParts(await inputs(rows, 'project'));
     expect(body.scope).toMatchObject({ applied: 'project', current: { id: 'minor-v0.1' } });
     expect(body.references.map((r) => r.id)).toEqual(['US-M-01', 'US-S-01', 'US-S-09']);
-    expect(elements.find((e) => e.id === DL_001)).toEqual({ id: DL_001, finished: false, inScope: false });
+    expect(elements.find((e) => e.id === DL_001)).toEqual({ id: DL_001, finished: true, inScope: false });
     expect(body.figures.completion).toMatchObject({ referencesCount: 3 });
   });
 

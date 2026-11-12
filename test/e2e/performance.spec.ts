@@ -7,7 +7,7 @@ import { cp, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Browser, Locator, Page } from '@playwright/test';
-import type { ElementList, Progress } from '@wingfoil-ui/contracts';
+import type { ElementList, Progress, Traceability } from '@wingfoil-ui/contracts';
 import { setFrontmatterValue, usePresetUiConfig } from '../harness/fixtures/index.js';
 import { buildLargeFixture, LARGE_ELEMENTS, type LargeFixture } from '../harness/fixtures/large.js';
 import { git } from '../harness/run.js';
@@ -406,6 +406,28 @@ test.describe(`TT-PERF-03, TT-PERF-04 — progress and missing references ${PERF
         if (route === '/elements') expect(first.body.missingReferences?.shown).toBe(true);
         const times: number[] = [];
         for (let i = 0; i < PERF_RUNS; i++) times.push((await get(route)).ms);
+        reportRuns(route, first.ms, times, `TT-PERF-04 ${route} with the preset (${times.length} runs, warm cache)`);
+        if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+
+  // task-074 AC-5 (REQ-PERF-04 since TQ-6 (a), D74-10): the Traceability view's read, both scopes.
+  test('AC-5 (task-074) — /traceability answers within 1.0 s (p95, warm cache), both scopes', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const { context, get } = await presetConsole(browser, large, consoles, testInfo.outputPath('large-trace'));
+    try {
+      for (const route of ['/traceability', '/traceability?scope=project']) {
+        const first = await get<Traceability>(route);
+        expect(first.body.figures.coverage.state).toBe('shown');
+        const times: number[] = [];
+        for (let i = 0; i < PERF_RUNS; i++) times.push((await get<Traceability>(route)).ms);
         reportRuns(route, first.ms, times, `TT-PERF-04 ${route} with the preset (${times.length} runs, warm cache)`);
         if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
       }

@@ -20,6 +20,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   is offered; `/config` fills `ui.progress.scope.current`. Computed once per state from the
   reference index, no CLI process added; titles and reference ids escaped. The screens are later
   tasks'.
+- **Traceability in the API** (task-074, US-R-01; spec-012 §4): `GET
+  /api/p/:pid/traceability?scope=current|project` serves every reference with a category — a
+  `taxonomy.patterns` value or another Memory element's id — with its linked elements in the
+  current release (default) or the whole project, their done count, percent and status
+  (completed, in progress, not started, no elements), the project completion, the reference
+  coverage, the elements missing required references and every element named, as the Memory
+  list's rows. Computed once per state from the reference index, no CLI process added; titles and
+  reference ids escaped. The page is a later task's.
 - **Today's cards** (task-061, US-T-02 T-02.4 … T-02.7; `ux-reference.md` §4.1 v0.3): *Requires
   you* and *Waiting on others* each have a type and a state filter, listing the types and states of
   that card's rows with their counts (a filter applies to its own card; the greeting and the bell

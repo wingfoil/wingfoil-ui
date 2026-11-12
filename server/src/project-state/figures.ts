@@ -113,8 +113,9 @@ export function coverageFigure(
   requires: ReadonlyMap<string, readonly UiCategory[]>,
   missing: ReadonlyMap<string, unknown>,
 ): CoverageFigure {
-  void index;
-  void requires;
-  void missing;
-  throw new Error('coverageFigure: not implemented');
+  if (requires.size === 0) return { state: 'unavailable', reason: { code: 'no-requires' } };
+  const required = index.elements.filter((e) => e.unreadable === undefined && (requires.get(e.type)?.length ?? 0) > 0);
+  const carrying = required.filter((e) => !missing.has(e.id)).length;
+  const total = required.length;
+  return { state: 'shown', carrying, total, percent: total === 0 ? null : percentOf(carrying, total) };
 }

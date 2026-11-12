@@ -19,14 +19,17 @@ import type { ShortIds } from '../reads/short-id.js';
 import type { IndexedElement, ReferenceIndex } from '../references/index.js';
 import type { EffectiveUiConfig, UiCategory } from '../ui-config/types.js';
 import { scopeType } from './current.js';
+import { REFERENCE_STATUS } from '../presets/api.js';
 import {
   completionFigure,
+  coverageFigure,
   iteratedFigure,
   openDefectsFigure,
   pendingGatesFigure,
   type FigureInputs,
 } from './figures.js';
 import { naturalOrder } from './order.js';
+import { traceabilityRows } from './traceability.js';
 
 /** The `ElementRef` of `element` (spec-012 §2): its title escaped, its tone from its kind. */
 export function elementRef(element: IndexedElement, match: Pick<MemoryMatch, 'title'>, shortIds: ShortIds): ElementRef {
@@ -114,6 +117,40 @@ export interface TraceabilityParts {
 
 /** `GET /api/p/:pid/traceability?scope=` (spec-012 §4) without its element rows. */
 export function traceabilityParts(inputs: TraceabilityInputs): TraceabilityParts {
-  void inputs;
-  throw new Error('traceabilityParts: not implemented');
+  const { index, ui, current, missing } = inputs;
+  const applied: TraceabilityScope = inputs.asked === 'current' && current ? 'current' : 'project';
+  const scoped = applied === 'current' ? current : undefined;
+  const references = traceabilityRows({ index, ui, current: scoped, applied });
+  const named = naturalOrder([
+    ...references.flatMap((r) => (r.element ? [r.id, ...r.linked] : r.linked)),
+    ...missing.keys(),
+  ]);
+  // Q1 (a): the current element's scope whenever one exists, whatever was asked.
+  const inScope = current ? new Set(index.inScope(current).map((e) => e.id)) : undefined;
+  return {
+    body: {
+      ui: ui.status,
+      patterns: ui.patterns.value.length > 0,
+      scope: {
+        type: escapedScopeType(ui),
+        current: current ? elementRef(current, inputs.match(current.id), inputs.shortIds) : null,
+        applied,
+      },
+      figures: {
+        completion: completionFigure({ index, ui, current: scoped }),
+        phaseCompletion: { state: 'read-only', reason: inputs.phaseReason },
+        coverage: coverageFigure(index, ui.requires.value, missing),
+        referencesWithoutElements: references.filter((r) => r.status === REFERENCE_STATUS.noElements).length,
+      },
+      references,
+      missing: naturalOrder(missing.keys()).map((id) => ({ id, categories: [...missing.get(id)!] })),
+      unreadable: naturalOrder(index.unreadable),
+      capped: naturalOrder(index.capped),
+    },
+    elements: named.map((id) => ({
+      id,
+      finished: index.get(id)?.finished ?? false,
+      inScope: inScope ? inScope.has(id) : true,
+    })),
+  };
 }

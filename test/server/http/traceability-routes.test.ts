@@ -117,7 +117,7 @@ interface StartOptions {
   prepare?: (fx: Fixture) => Promise<void>;
   /** Overrides of the direct reads (by the path's suffix). */
   fs?: (file: string) => Promise<string> | undefined;
-  /** The Memory events' `git log` fails (its output over the runner's limit) while `failing()` holds. */
+  /** The Memory events' `git log` fails (killed on its timeout: a transient failure) while `failing()` holds. */
   failLog?: () => boolean;
 }
 
@@ -135,7 +135,7 @@ async function start(variant: Variant, options: StartOptions = {}) {
     const run = audited.runner.run.bind(audited.runner);
     audited.runner.run = async (request) =>
       failing() && request.args.includes('log')
-        ? { exitCode: null, signal: 'SIGKILL', stdout: '', stderr: '', ended: 'overflow', durationMs: 1 }
+        ? { exitCode: null, signal: 'SIGKILL', stdout: '', stderr: '', ended: 'timeout', durationMs: 1 }
         : run(request);
   }
   registries.push(audited.snapshots);
@@ -354,7 +354,8 @@ describe('spec-012 §10 — errors (AC-2)', () => {
     const body = await traceability(c, '?scope=project');
     expect(body.unreadable).toEqual(['task-004-themes']);
     expect(body.capped).toEqual(['task-003-element-panel']);
-    expect(body.missing.map((m: any) => m.id)).toEqual(['adr-001-local-server']);
+    // task-003's reference is past its first 200 values: indexed incompletely, it misses it (§1).
+    expect(body.missing.map((m: any) => m.id)).toEqual(['adr-001-local-server', 'task-003-element-panel']);
     expect(body.figures.coverage).toMatchObject({ total: 4 });
   }, 300_000);
 
@@ -399,16 +400,23 @@ describe('caching and processes (AC-3, spec-012 §8)', () => {
     expect(new Set(commands).size).toBe(commands.length);
     const kinds = c.runner.spawned.filter((r) => processKind(r) === 'git').map((r) => gitSubcommand(r.args));
     expect(kinds.filter((k) => k === 'ls-tree')).toHaveLength(1);
-    expect(kinds.filter((k) => k === 'log').length).toBeLessThanOrEqual(1);
+    // No process per element: none names an element file, and fewer processes than elements read.
+    expect(c.runner.spawned.filter((r) => r.args.some((a) => a.endsWith('.md')))).toEqual([]);
     expect(c.runner.spawned.length).toBeLessThan(20);
   }, 300_000);
 
-  it('an events failure is not kept: the next request reads the events again and drops eventsError', async () => {
+  it('an events failure is not kept: the next request reads the events again, its descriptors with them', async () => {
     let failing = true;
     const c = await start('preset', { failLog: () => failing });
-    expect((await traceability(c)).eventsError).toBeDefined();
+    const first = await traceability(c);
+    expect(first.eventsError).toBeDefined();
     failing = false;
-    expect(await traceability(c)).not.toHaveProperty('eventsError');
+    const second = await traceability(c);
+    expect(second).not.toHaveProperty('eventsError');
+    // task-004 (backlog) requires its creator, known from the events only (spec-003 §4).
+    const actor = (body: any) => body.elements.find((e: any) => e.id === 'task-004-themes').descriptor.actor;
+    expect(actor(second)).not.toEqual(actor(first));
+    expect(actor(second)).toMatchObject({ kind: 'member' });
   }, 300_000);
 });
 
