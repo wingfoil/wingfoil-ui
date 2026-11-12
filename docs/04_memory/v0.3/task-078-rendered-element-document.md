@@ -9,7 +9,7 @@ module: "governance"             # optional — server | web | contracts (dna.ya
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3", "governance", "web", "element", "documentation"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-043-a-link-clicked-while-the-documentation-view-classifies-its-links-is-lost"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -49,6 +49,11 @@ here; a console-wide one goes through `bug-ingest`) apply.
 - **AC-4 — Screen and accessibility**: `ux-reference.md` §4.2 v0.3 and §4.9; the dialog modal,
   keyboard path, visible focus, axe-core 0 serious/critical in both themes, strings from the
   catalogue, `SCREENS` entries, the e2e specs on Chromium, Firefox and WebKit.
+- **AC-6 — bug-043** (absorbed by the approver, 2026-11-12, "bug 43 in task 78"): a link clicked
+  while the documentation view classifies its links opens; a classification arriving later changes
+  how a link is marked, not the element clicked (`RenderedArticle` keeps its anchors, the marks are
+  updated in place); a test red first holds a lookup and clicks during it, and R-09.4 passes on
+  WebKit.
 - **AC-5 — Docs and gates**: `CHANGELOG.md` *Unreleased*; the checks of `CLAUDE.md` (heavy gates on
   `gates.yml`), `check_tasks.py v0.3`, with commands and results in the Execution Notes.
 
