@@ -155,6 +155,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Fixed
 
+- **The focus stays on the element after a gate decision** (bug-046, shipped in v0.2.0; task-077):
+  when the console's refresh shows the new state before the decision's reply arrives, the element's
+  heading takes the keyboard focus at once instead of leaving it on the page body until the reply —
+  on the element page and on the side panel.
 - **The identity is the author WingFoil authorises** (bug-029): the console reads who you are as
   the WingFoil CLI does — `GIT_AUTHOR_EMAIL` of its environment, else `author.email`, else
   `user.email` — so a console started with another author identity no longer offers *Approve* or

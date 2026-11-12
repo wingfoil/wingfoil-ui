@@ -422,3 +422,30 @@ approver (F-1), two minors and four nits fixed here. Red first: `8b7d5e97`.
 
 The element page shows its address value the same way (task-062's `ElementPage.tsx`, no `bdi`);
 left as it is here, for the coordinator.
+
+Run `43223538114` on `9a0533c5` (round 1's fixes F-2 … F-7, with `a479fff7`): **success** — every job of
+the task scope green on the first attempt.
+
+### bug-046 (2026-11-12)
+
+The approver absorbed security review round 1's F-1 into this task as
+bug-046-the-focus-falls-to-the-page-body-after-a-gate-decision-until-the-server-answers (AC-7;
+the bug file came with the phase branch at `fc36238d`, merged as `85a4c680`).
+
+- **Red** (`598a4f1b`; `npx vitest run --maxWorkers=2 test/web/element/gate-footer.test.tsx -t
+  bug-046`): 2 failed — "bug-046 — on the page / on the side panel, the heading takes the focus when
+  the refetch removes the focused outcome before the reply": with the POST held and the project's
+  queries invalidated (the `repo` event's refetch) to the final state, `document.activeElement` was
+  `<body>`, not the `h1` / `h2`. X-06.2 of `gate-footer.spec.ts` now waits for the focus with
+  `expect.poll`.
+- **Green:** `ElementFooter.tsx` follows the focus in and out of its slot (`onFocus` / `onBlur`);
+  after every render that removed the focused control (a layout effect: the slot held the focus and
+  no longer does) the element's heading takes it when it is on `<body>`; a blur toward nothing is
+  checked after the current task and moves the focus only when the blurred control left the document
+  (engines that fire a blur on removal). The reason's *Update* keeps its own next step (D40-2: the
+  check is skipped while `focusAfterUpdate` is set — G-12.2 failed without it). One fix for both
+  presentations: the element page and the side panel share the footer. `npx vitest run
+  --maxWorkers=2` on `test/web/element/{gate-footer,submit-footer,page,side-panel,panel}`: 129
+  passed; `test/web/repository/update-push`, `test/web/today/today`, `test/web/shell/toasts`,
+  `test/web/element/{directives,history-text}`: 104 passed.
+- **Docs:** `CHANGELOG.md` *Unreleased* *Fixed* (bug-046, shipped in v0.2.0); `test/README.md` 0.85.

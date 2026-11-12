@@ -24,7 +24,17 @@
  * F4), and the focus moves to the panel's heading (review F5).
  */
 import type { ElementDetail, ProjectHeader } from '@wingfoil-ui/contracts';
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type ReactNode,
+} from 'react';
 import { FormattedMessage, defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from 'react-aria-components';
 import type { DisabledReason } from '@wingfoil-ui/contracts';
@@ -137,6 +147,40 @@ export function ElementFooter({
     next?.focus();
   });
 
+  // bug-046: the server publishes `repo` before it answers a decision, so the refetch may replace the
+  // footer — and remove the control that holds the focus — before `onSuccess` runs. Whenever a render
+  // removes the focused footer control (the footer's kind changes, the gate's controls unmount), the
+  // focus goes to the element's heading at once, not to `<body>`. `holdsFocus` follows the focus in
+  // and out of the footer; a blur toward nothing (a removal in some engines, or a click on no control)
+  // is checked after the current task: only a control that left the document moves the focus.
+  const holdsFocus = useRef(false);
+  const focusHeadingIfLost = (): void => {
+    // After the reason's *Update* the footer's own next step takes the focus (D40-2, above).
+    if (focusAfterUpdate.current) return;
+    const active = document.activeElement;
+    if (active !== null && active !== document.body) return;
+    (root.current?.closest('[data-element-view]')?.querySelector('.drawer-title') as HTMLElement | null)?.focus();
+  };
+  useLayoutEffect(() => {
+    if (!holdsFocus.current) return;
+    if (root.current?.contains(document.activeElement)) return;
+    holdsFocus.current = false;
+    focusHeadingIfLost();
+  });
+  const onFocusIn = (): void => {
+    holdsFocus.current = true;
+  };
+  const onFocusOut = (event: FocusEvent<HTMLDivElement>): void => {
+    const next = event.relatedTarget;
+    if (next instanceof Node && root.current?.contains(next)) return;
+    const left = event.target;
+    queueMicrotask(() => {
+      if (root.current?.contains(document.activeElement)) return;
+      holdsFocus.current = false;
+      if (!left.isConnected) focusHeadingIfLost();
+    });
+  };
+
   // The result and a refusal are toasts (`useElementWrite`); here only what follows a success.
   const run = (verb: ElementWriteVerb, reason: string | undefined, onDone: () => void) => {
     write.mutate(
@@ -160,7 +204,7 @@ export function ElementFooter({
   const submit = (onSubmitted: () => void) => run('submit', undefined, onSubmitted);
 
   return (
-    <div ref={root} className="element-footer-slot">
+    <div ref={root} className="element-footer-slot" onFocus={onFocusIn} onBlur={onFocusOut}>
       <p className="visually-hidden" role="status">
         {write.isPending &&
           (write.variables.verb === 'submit' ? (
