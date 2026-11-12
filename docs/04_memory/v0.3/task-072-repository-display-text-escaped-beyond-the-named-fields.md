@@ -489,3 +489,15 @@ Gates of round 1 (local, Vitest `--maxWorkers=2`, targeted):
 - `element-writes`, `commit-text`, `test/server/git`, `project-routes`, `web/shell/notification-bell` and `notifications`: 14 files, 433 passed.
 - Strict identity (`text-sweep`, `repository-text`, `element-writes`, `harness/git-identity`): 4
   files, 111 passed.
+
+On `gates.yml`: push run `43122806858` on `2fd8592b` (task scope) — success, every job.
+
+### review round 2 (2026-11-12, security-adversarial) — PASS, two nits
+
+On `2fd8592b`. No finding above a nit: the claim that no other producer serves a raw path held,
+and every guard removal failed as it should.
+
+| # | Nit | What changed |
+|---|-----|--------------|
+| N-1 | spec-004's Process Note of 2026-11-12 called the findings "the coordinator's" | "the security review's findings" |
+| N-2 | the run of `2fd8592b` and round 2 missing from these notes | added (above and this section) |

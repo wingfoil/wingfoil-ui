@@ -548,7 +548,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   history entry's states, a file-tree name, the repository paths of `read-error` and
   `write-incomplete`; the keys shown raw are bug-041. §3: `docs.schema.json`'s `documents[].label`
   and `file-content.schema.json`'s `label`, required next to the `path`.
-- 2026-11-12 — amended in task-072 security review round 1 (F-1, F-2; the coordinator's findings):
+- 2026-11-12 — amended in task-072 security review round 1 (F-1, F-2; the security review's findings):
   §5 a Memory event's `from` and `to` are display text (the bell only shows them), escaped as a
   history entry's; its `type` and `id` stay keys. A governed write's `read-error` (row 9) names the
   element's path escaped, as the read routes' does.
