@@ -316,6 +316,14 @@ describe('the comment rules drop only the comment (review round 1, F-1, F-4)', (
     // inside a paragraph keeps one line break between its neighbours.
     ['<!-- c -->\n===', '==='],
     ['- item\n  <!-- c -->\n  more', '- item\n  more'],
+    // Review round 3, R3-1: a comment over several lines ends with its container (a list item, a
+    // quote's lazy lines), as markdown-it's own HTML block does: what lies outside stays shown.
+    ['- <!-- a\n\npara outside list\n\n# Heading outside\n', '-\n\npara outside list\n\n# Heading outside\n'],
+    ['1. <!-- x\n2. second\n3. third -->', '1.\n2. second\n3. third -->'],
+    ['- a\n- <!-- b\n- c\n\n-->', '- a\n-\n- c\n\n-->'],
+    ['- item\n  <!-- a\n\nOutside para\n\n  -->', '- item\n\nOutside para\n\n  -->'],
+    ['> <!-- a\nb -->\nvisible', '>\nb -->\nvisible'],
+    ['> > <!-- a\n> b\n-->', '> >\n> b\n-->'],
   ];
 
   it.each(CASES)('F-4 — %j renders as the same Markdown without its comment', (source, without) => {

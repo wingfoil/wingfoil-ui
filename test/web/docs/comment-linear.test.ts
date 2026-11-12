@@ -31,6 +31,10 @@ describe('the comment rules are linear (review round 2, R2-1)', () => {
     ['unclosed openers inside a link label', '[' + '<!-- '.repeat(20000) + ']'],
     ['unclosed inline openers', 'x ' + '<!--'.repeat(20000)],
     ['many closed inline comments', 'x ' + '<!---->'.repeat(20000)],
+    // Review round 3, R3-1: an unclosed comment in each list item ends with its item. (A quote whose
+    // comment is followed by a lazy line costs what markdown-it 15.0.2 costs for any non-paragraph
+    // block there — `> # h\nlazy` repeated is quadratic in plain markdown-it too: not this rule's.)
+    ['unclosed openers in list items', '- <!--\n'.repeat(20000)],
   ])('%s (100 KB)', (_name, source) => {
     expect(withinBudget(source).comments).toBe(0);
   }, 60_000);
