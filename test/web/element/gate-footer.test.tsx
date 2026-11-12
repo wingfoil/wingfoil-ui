@@ -770,3 +770,47 @@ it('task-077 — in the side panel, the focus stays inside it after a decision r
   await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
   expect(panel.contains(document.activeElement)).toBe(true);
 });
+
+// bug-046 (absorbed by task-077): the server publishes `repo` before it answers a decision, so the
+// refetch can show the final state while the POST is still pending; the focused outcome is removed
+// then, and the focus must go to the element's heading at once — not rest on `<body>` until the reply.
+for (const where of ['page', 'side panel'] as const) {
+  it(`bug-046 — on the ${where}, the heading takes the focus when the refetch removes the focused outcome before the reply`, async () => {
+    const inner = stub(
+      GATE,
+      MO,
+      { [`${BASE}/approve`]: { status: 200, body: OK } },
+      {
+        ...GATE,
+        status: 's3',
+        kind: 'last',
+        tone: 'done',
+        verbs: [],
+        actor: { kind: 'none' },
+      },
+    );
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => (release = r));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const answer = (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+        if (init?.method === 'POST') await held;
+        return answer;
+      }),
+    );
+    const user = userEvent.setup();
+    const { queryClient } = renderApp(where === 'page' ? `/p/${PID}/e/${EID}` : `/p/${PID}/today?panel=${EID}`);
+    const f = await footer();
+    outcome(f, 'Approve → s3').focus();
+    await user.keyboard('{Enter}');
+    // The `repo` event's refetch, before the reply.
+    await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+    expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+    await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+    release();
+    expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+  });
+}

@@ -9,7 +9,7 @@ module: "governance"             # optional — server | web | contracts (dna.ya
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3", "governance", "web", "element"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+bug: ["bug-046-the-focus-falls-to-the-page-body-after-a-gate-decision-until-the-server-answers"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -52,6 +52,12 @@ its design's decisions D62-6 … D62-8, D62-10 and the approver's answer Q1 (a) 
 - **AC-5 — Screen and accessibility**: the panel non-modal (W4-8), keyboard path and visible focus,
   axe-core 0 serious/critical in both themes, strings from the catalogue, `SCREENS` entries, the
   e2e specs on Chromium, Firefox and WebKit.
+- **AC-7 — bug-046** (absorbed by the approver's decision, 2026-11-12, "ok per a in F-1 di task
+  77"; security review round 1 F-1): after a gate decision the focus never rests on `<body>`: when
+  the refetch that the server's `repo` event starts removes the focused footer control before the
+  decision's reply, the element's heading takes the focus at once — on the side panel and on the
+  element page (a web test with the POST held; X-06.2 of `gate-footer.spec.ts` waits for the focus
+  with a retrying assertion).
 - **AC-6 — Docs and gates**: spec-011 Process Note; `CHANGELOG.md` *Unreleased*; the checks of
   `CLAUDE.md` (heavy gates on `gates.yml`), `check_tasks.py v0.3`, with commands and results in the
   Execution Notes.
