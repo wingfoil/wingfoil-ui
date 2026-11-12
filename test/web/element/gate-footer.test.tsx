@@ -774,43 +774,121 @@ it('task-077 — in the side panel, the focus stays inside it after a decision r
 // bug-046 (absorbed by task-077): the server publishes `repo` before it answers a decision, so the
 // refetch can show the final state while the POST is still pending; the focused outcome is removed
 // then, and the focus must go to the element's heading at once — not rest on `<body>` until the reply.
-for (const where of ['page', 'side panel'] as const) {
-  it(`bug-046 — on the ${where}, the heading takes the focus when the refetch removes the focused outcome before the reply`, async () => {
-    const inner = stub(
-      GATE,
-      MO,
-      { [`${BASE}/approve`]: { status: 200, body: OK } },
-      {
-        ...GATE,
-        status: 's3',
-        kind: 'last',
-        tone: 'done',
-        verbs: [],
-        actor: { kind: 'none' },
-      },
-    );
-    let release: () => void = () => {};
-    const held = new Promise<void>((r) => (release = r));
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string, init?: RequestInit) => {
-        const answer = (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
-        if (init?.method === 'POST') await held;
-        return answer;
-      }),
-    );
-    const user = userEvent.setup();
-    const { queryClient } = renderApp(where === 'page' ? `/p/${PID}/e/${EID}` : `/p/${PID}/today?panel=${EID}`);
-    const f = await footer();
-    outcome(f, 'Approve → s3').focus();
-    await user.keyboard('{Enter}');
-    // The `repo` event's refetch, before the reply.
-    await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
-    expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
-    await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
-    release();
-    expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
-  });
+const FINAL_STATE: ActionDescriptor = {
+  ...GATE,
+  status: 's3',
+  kind: 'last',
+  tone: 'done',
+  verbs: [],
+  actor: { kind: 'none' },
+};
+
+/** Stub the API with the decision's POST held until `release()`; the refetch after it reads `after`. */
+function holdPost(posts: FakeApi, after: ActionDescriptor, before: ActionDescriptor = GATE): () => void {
+  const inner = stub(before, MO, posts, after);
+  let release: () => void = () => {};
+  const held = new Promise<void>((r) => (release = r));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const answer = (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+      if (init?.method === 'POST') await held;
+      return answer;
+    }),
+  );
+  return () => release();
 }
+
+const nextFrame = () => act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+
+for (const where of ['page', 'side panel'] as const) {
+  for (const verb of ['approve', 'reject'] as const) {
+    it(`bug-046 — on the ${where}, after ${verb === 'approve' ? 'an approve' : 'a reject'}, the heading takes the focus when the refetch removes the focused outcome before the reply`, async () => {
+      const release = holdPost(
+        { [`${BASE}/${verb}`]: { status: 200, body: OK } },
+        verb === 'approve' ? FINAL_STATE : { ...FINAL_STATE, status: 's1' },
+      );
+      const user = userEvent.setup();
+      const { queryClient } = renderApp(where === 'page' ? `/p/${PID}/e/${EID}` : `/p/${PID}/today?panel=${EID}`);
+      const f = await footer();
+      if (verb === 'reject') {
+        reasonField(f).focus();
+        await user.clear(reasonField(f));
+        await user.type(reasonField(f), 'Not yet');
+      }
+      outcome(f, verb === 'approve' ? 'Approve → s3' : 'Reject → s1').focus();
+      await user.keyboard('{Enter}');
+      // The `repo` event's refetch, before the reply.
+      await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+      expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+      await nextFrame();
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+      release();
+      expect(
+        await within(politeToasts()).findByText(`${verb === 'approve' ? 'Approved' : 'Rejected'} ${EID}`),
+      ).toBeTruthy();
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+    });
+  }
+}
+
+// task-077 security review round 2, R2-1: the footer takes the focus back only from a control it
+// removed — never from a focus the user moved away or let go of.
+it('bug-046 — a focus the user let go of (blurred to nothing) is not taken back when the refetch removes the outcome', async () => {
+  const release = holdPost({ [`${BASE}/approve`]: { status: 200, body: OK } }, FINAL_STATE);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  act(() => (document.activeElement as HTMLElement).blur());
+  await act(async () => Promise.resolve());
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+  await nextFrame();
+  expect(document.activeElement).toBe(document.body);
+  release();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+});
+
+it('bug-046 — a focus the user moved to Close before the refetch stays on Close', async () => {
+  const release = holdPost({ [`${BASE}/approve`]: { status: 200, body: OK } }, FINAL_STATE);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  const close = screen.getByRole('button', { name: 'Close' });
+  act(() => close.focus());
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+  await nextFrame();
+  expect(document.activeElement).toBe(close);
+  release();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+});
+
+// R2-2: G-12.2 with the update's reply after the `repo` refetch: the link is gone before the reply,
+// and the focus still ends on the reason field (D40-2), not on the heading.
+it('G-12.2 — the focus goes to the reason field also when the refetch removes the Update link before the reply (R2-2)', async () => {
+  const behind: ActionDescriptor = {
+    ...GATE,
+    verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason: { code: 'copy-behind', commits: 1 } as const })),
+  };
+  const release = holdPost(
+    { [`/api/p/${PID}/git/update`]: { status: 200, body: { repository: header(MO, ROLE).repository } } },
+    GATE,
+    behind,
+  );
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = within(f.querySelector('.gate-blocked') as HTMLElement).getByRole('button', { name: 'Update' });
+  link.focus();
+  await user.keyboard('{Enter}');
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  release();
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
+});

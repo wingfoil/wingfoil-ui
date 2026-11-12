@@ -492,3 +492,12 @@ it('isolates the address value it shows from the surrounding text (review F-5)',
   const isolated = [...dialog.querySelectorAll('bdi')].map((b) => b.textContent);
   expect(isolated).toEqual([value, value]);
 });
+
+// Review round 2, R2-5: the candidates' heading shows the address value isolated (as F-5).
+it('isolates the address value in the candidates’ heading (review R2-5)', async () => {
+  stubApi(api({ [`${API}/task-001`]: { status: 409, body: AMBIGUOUS } }));
+  renderApp(`/p/${PID}/today?panel=task-001`);
+  await screen.findByRole('list', { name: 'task-001 names several elements' });
+  const heading = screen.getByRole('heading', { level: 3, name: 'task-001 names several elements' });
+  expect([...heading.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['task-001']);
+});
