@@ -35,7 +35,9 @@
                 "remote-unreadable",
                 "refspec-outside-remotes",
                 "git-refused",
-                "internal"
+                "internal",
+                "payload-too-large",
+                "unsupported-media-type"
               ]
             }
           },

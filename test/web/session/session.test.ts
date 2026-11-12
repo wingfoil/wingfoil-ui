@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   bootstrapSession,
   markSessionLost,
+  PROBE_TIMEOUT_MS,
+  SESSION_CHANNEL,
   resetSession,
   sessionStatus,
   subscribeSession,
@@ -42,6 +44,20 @@ it('exchanges the fragment token for the session and removes the fragment', asyn
   expect(init.credentials).toBe('same-origin');
   expect(new Headers(init.headers).get('authorization')).toBe(`Bearer ${TOKEN}`);
   expect(init.body).toBeUndefined();
+});
+
+// task-063 AC-8 (the approver, "stripFragment a"): the address without the fragment is built from
+// the whole URL, so a path starting with `//` stays a path of this origin, never another host.
+it('AC-8 — removes the fragment of a `//host/…` path, keeping the address on this origin', async () => {
+  history.replaceState(null, '', `${location.origin}//evil.test/x?q=1#token=${TOKEN}`);
+  const replace = vi.spyOn(history, 'replaceState');
+  fetchAnswering(204);
+  expect(await bootstrapSession()).toBe('connected');
+  expect(replace).toHaveBeenCalledExactlyOnceWith(null, '', `${location.origin}//evil.test/x?q=1`);
+  replace.mockRestore();
+  expect(location.hash).toBe('');
+  expect(location.origin + location.pathname + location.search).toBe(`${location.origin}//evil.test/x?q=1`);
+  expect(location.href).not.toContain(TOKEN);
 });
 
 it('removes the fragment before the request answers', async () => {
@@ -123,9 +139,14 @@ describe('watchFragmentToken (bug-016)', () => {
     const reload = vi.fn();
     const fetchFn = fetchAnswering(401);
     await bootstrapSession();
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
     stop = watchFragmentToken({ reload });
     paste(`#token=${TOKEN}`);
     await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    // task-063 checker G-1: the probe waits the shared 10 s at most.
+    expect(PROBE_TIMEOUT_MS).toBe(10_000);
+    expect(timeout).toHaveBeenCalledExactlyOnceWith(10_000);
+    timeout.mockRestore();
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/server');
     expect(new Headers(init.headers).get('authorization')).toBeNull();
@@ -225,5 +246,63 @@ describe('watchFragmentToken (bug-016)', () => {
     watchFragmentToken({ reload })();
     paste(`#token=${TOKEN}`);
     expect(reload).not.toHaveBeenCalled();
+  });
+});
+
+// task-063 (adr-003 D6, AC-2; D63-2): a successful exchange tells the other tabs of this origin, on
+// the channel `wfui-session`, with a message that holds nothing; no other bootstrap posts.
+describe('announceSession (task-063)', () => {
+  const posted: { name: string; data: unknown }[] = [];
+  class RecordingChannel {
+    constructor(readonly name: string) {}
+    postMessage(data: unknown): void {
+      posted.push({ name: this.name, data });
+    }
+    close(): void {
+      posted.push({ name: this.name, data: 'closed' });
+    }
+  }
+  beforeEach(() => {
+    posted.length = 0;
+    vi.stubGlobal('BroadcastChannel', RecordingChannel);
+  });
+
+  it('announces a session after a 204 exchange, with an empty message', async () => {
+    history.replaceState(null, '', `/p/x?q=1#token=${TOKEN}`);
+    fetchAnswering(204);
+    await bootstrapSession();
+    // Checker N-3: the channel is closed once the message is posted (D63-2).
+    expect(posted).toEqual([
+      { name: SESSION_CHANNEL, data: null },
+      { name: SESSION_CHANNEL, data: 'closed' },
+    ]);
+    expect(SESSION_CHANNEL).toBe('wfui-session');
+  });
+
+  it('announces nothing on a 401, a network failure or a reload', async () => {
+    history.replaceState(null, '', `/#token=${TOKEN}`);
+    fetchAnswering(401);
+    await bootstrapSession();
+    resetSession();
+    history.replaceState(null, '', `/#token=${TOKEN}`);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+    await bootstrapSession();
+    resetSession();
+    history.replaceState(null, '', '/');
+    fetchAnswering(204);
+    await bootstrapSession();
+    expect(posted).toEqual([]);
+  });
+
+  it('a browser without BroadcastChannel still connects', async () => {
+    vi.stubGlobal('BroadcastChannel', undefined);
+    history.replaceState(null, '', `/#token=${TOKEN}`);
+    fetchAnswering(204);
+    expect(await bootstrapSession()).toBe('connected');
   });
 });

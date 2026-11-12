@@ -15,11 +15,14 @@ import { createRoot } from 'react-dom/client';
 import { createQueryClient } from './api/queries.js';
 import { App } from './app.js';
 import { createAppRouter } from './routes/tree.js';
+import { watchSessionRecovery } from './session/recovery.js';
 import { bootstrapSession, watchFragmentToken } from './session/session.js';
 
 void bootstrapSession().then(() => {
   // bug-016: a console URL pasted into this tab later changes only the fragment.
   watchFragmentToken();
+  // adr-003 D6: a lost page reloads its own address once the browser holds a session again.
+  watchSessionRecovery();
   const queryClient = createQueryClient();
   const router = createAppRouter({ queryClient });
   createRoot(document.getElementById('root')!).render(

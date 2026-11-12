@@ -110,6 +110,14 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   diverged or detached, and when the preset does not fit the project (`ui.yaml not written: type
   service is not declared in memory.yaml`); it never overwrites a file. Nothing shows it yet.
 
+- **A page of a restarted console recovers in place** (task-063, US-X-02 X-02.3; adr-003 D6, D7;
+  spec-004 §2): when the console was stopped and started again on the same port (`--port`), a page
+  that shows *This page is no longer recognised by the console* reconnects by itself once the new
+  console URL is opened in any tab of the same browser, or when you return to it, and opens again
+  at its own address — the element it showed, for example. No token or session crosses tabs and
+  nothing is added to the address; a page of a console started without `--port` cannot reconnect
+  (another port is another origin), as the notice says.
+
 ### Changed
 
 - **Close and Escape on an element opened from its address** (task-062, spec-011 §2) go to the
@@ -209,6 +217,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   with a tag the console does not emulate (`!!binary`, `!!set`, a local tag) or a nested list is
   refused. The defect shipped in v0.1.0 and v0.2.0.
 
+- **A build asset whose name is too long answers 404** (bug-031, task-063; spec-004 §5): a path
+  the file system refuses as too long answered 403 `invalid-request`; it is now missing — 404
+  `not-found` under `/assets/`, the application for any other path — and every client error gets
+  a code that matches its status (`forbidden`, `payload-too-large`, `unsupported-media-type`, …)
+  instead of `invalid-request`.
+
 ### Security
 
 - **An empty key no longer makes an element of a file WingFoil leaves out** (bug-040, task-075): a
@@ -221,6 +235,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   with the square of their number — minutes for a large file — while every other request waited.
   Such a file is now refused as unreadable at once (`too many aliases to resolve`); a file with the
   aliases a project writes by hand is read as before. The defect shipped in v0.1.0 and v0.2.0.
+- **The token fragment is removed on this origin only** (task-063 AC-8): the page builds the
+  address it keeps after removing `#token=…` from its whole URL, so a path starting with `//` can
+  no longer make that step fail and leave the token in the address bar (unreachable today: the
+  console refuses such a path).
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
   the Memory list, the element panel and Today comes back with control, bidi and invisible
   characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
