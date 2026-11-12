@@ -325,8 +325,8 @@ v0.3.
   docs:api` generated; `check_tasks.py v0.3` OK; `npx vitest run test/docs/public-text.test.ts`
   passed.
 - **Docs:** spec-011 Process Note (2026-11-12: Q1 (a), Q2 (a), the bell on the page);
-  `ux-reference.md` 1.17 (§4.2 v0.3 *The side panel*); `CHANGELOG.md` *Unreleased* *Added*;
-  `docs/user-guide.md` 0.35; `test/README.md` 0.79.
+  `ux-reference.md` 1.18 after the merge (§4.2 v0.3 *The side panel*); `CHANGELOG.md` *Unreleased* *Added*;
+  `docs/user-guide.md` 0.37 and `test/README.md` 0.83 after the merge.
 - **`gates.yml` run `43207595221` on `2387c507`:** checks, contract, coverage, smoke, publish-smoke,
   e2e-chromium shard 1 and the own specs on Firefox green; e2e-chromium shard 2 and the own specs on
   WebKit 1 failed each (64 passed on WebKit) — the same test, `side-panel.spec.ts` › AC-5 at
@@ -336,3 +336,14 @@ v0.3.
   now waits for the footer line, keeps the toast hovered (its timer paused, D38-2) and checks
   *Close* and the footer line.
 
+
+### the phase branch merged in (2026-11-12)
+
+`design/dev-loop_v0.3` at `0178e6f4` (task-072, task-075, task-063 since task-062) merged into the
+task branch (W0-7, the coordinator's request): conflicts only in the version lines of
+`ux-reference.md` (now 1.18), `docs/user-guide.md` (0.37) and `test/README.md` (0.83), each entry
+renumbered after the merged ones. No merged file uses the openers this task changed
+(`session-recovery.spec.ts` opens the element page by its address). Locally after `npm ci`:
+typecheck, lint, format:check clean; `npx vitest run --maxWorkers=2` on `test/web/element/{side-panel,
+address,page}`, `test/web/today/{today,summary}`, `test/web/shell/{notification-bell,repository-text}`,
+`test/web/i18n/*`, `test/docs/public-text.test.ts`: 11 files, 199 passed.

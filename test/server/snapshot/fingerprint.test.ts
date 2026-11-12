@@ -2,6 +2,7 @@
 // file, never follows a symbolic link, bounds the bytes read (size and time beyond the limits).
 // task-026 (AC-2, bug-005): every comparison first asserts the state of the file system it relies
 // on — the `lstat` changed, or stayed the same — so that no assertion passes on a cached mark.
+import { createHash } from 'node:crypto';
 import { lstat, mkdir, mkdtemp, readFile, rm, symlink, truncate, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -230,5 +231,32 @@ describe('bug-033 — no read through a linked folder of the project', () => {
     await mkdir(path.join(top, 'docs', 'memory', 'task'), { recursive: true });
     await writeFile(path.join(top, 'docs', 'memory', 'task', 'a.md'), 'A');
     expect(await f.fingerprint(entries)).not.toBe(before);
+  });
+});
+
+describe('Fingerprinter.lastMarks (bug-034, task-075 D75-1)', () => {
+  it('one mark per listed entry, as hashed: sha:, missing, link:, stat: past the file limit', async () => {
+    const sub = path.join(dir, 'marks');
+    await mkdir(sub, { recursive: true });
+    await writeFile(path.join(sub, 'a.md'), 'content A\n');
+    await symlink('a.md', path.join(sub, 'l.md'));
+    await writeFile(path.join(sub, 'big.md'), '');
+    await truncate(path.join(sub, 'big.md'), MAX_FINGERPRINT_FILE_BYTES + 1);
+    const fp = new Fingerprinter(dir, 'marks/', LATER);
+    await fp.fingerprint([
+      entry('marks/a.md'),
+      entry('marks/gone.md'),
+      entry('marks/l.md'),
+      entry('marks/big.md'),
+      entry('x.md'),
+    ]);
+    expect(Object.fromEntries(fp.lastMarks)).toEqual({
+      'marks/a.md': `sha:${createHash('sha256').update('content A\n').digest('hex')}`,
+      'marks/gone.md': 'missing',
+      'marks/l.md': 'link:a.md',
+      'marks/big.md': expect.stringMatching(/^stat:/),
+    });
+    await fp.fingerprint([entry('marks/a.md')]);
+    expect([...fp.lastMarks.keys()]).toEqual(['marks/a.md']);
   });
 });

@@ -5,6 +5,8 @@
 import fastifyStatic from '@fastify/static';
 import { fastify, type FastifyBaseLogger, type FastifyInstance, type FastifyReply } from 'fastify';
 import { existsSync } from 'node:fs';
+import { STATUS_CODES } from 'node:http';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { GitReadError } from '../git/git.js';
 import type { Logger } from 'pino';
@@ -54,6 +56,69 @@ function notFound(reply: FastifyReply): FastifyReply {
   return reply.code(404).send(envelope('not-found', 'Not found'));
 }
 
+/**
+ * The body codes of the client errors the error handler does not name otherwise (task-063 D63-10,
+ * the approver's Q3 a): a code that matches the status, `client-error` for any other 4xx. 400 is
+ * `invalid-request` and 404 `not-found`, as before.
+ */
+const CLIENT_ERROR_CODES: Readonly<Record<number, string>> = {
+  400: 'invalid-request',
+  403: 'forbidden',
+  404: 'not-found',
+  412: 'precondition-failed',
+  413: 'payload-too-large',
+  415: 'unsupported-media-type',
+  416: 'range-not-satisfiable',
+};
+
+/** The body code of the client error `status` (4xx). */
+export function clientErrorCode(status: number): string {
+  return CLIENT_ERROR_CODES[status] ?? 'client-error';
+}
+
+/** The route the static file plugin registers for every path (`wildcard: true`). */
+const STATIC_ROUTE = '/*';
+
+/**
+ * Below every file-system name limit in use (ext4 and most file systems 255 bytes, eCryptfs 143) and
+ * far below `PATH_MAX`: a path whose segments and length stay under these is never judged by a
+ * `stat` (task-063 review round 1 F-3, no system call on an ordinary request). An accepted residual
+ * (review round 2 R2-2): on a file system whose name limit is below 128 bytes, a name between that
+ * limit and 127 bytes still gets the plugin's 403 `forbidden`.
+ */
+const SHORT_SEGMENT_BYTES = 128;
+const SHORT_PATH_BYTES = 1024;
+
+/**
+ * bug-031 (task-063 D63-9): `true` when the file system refuses the static path `url` as too long
+ * (`ENAMETOOLONG`, its own limit, not a constant). A path with an empty, `.` or `..` segment, or a
+ * segment holding a backslash (a separator on Windows), is never judged here: the plugin's refusal of a
+ * non-canonical path stands, and the `stat` stays inside `root`. A segment holding `\0` needs no
+ * rule of its own: `stat` refuses it with `ERR_INVALID_ARG_VALUE`, never `ENAMETOOLONG`.
+ */
+async function isNameTooLong(root: string, url: string): Promise<boolean> {
+  let pathname: string;
+  try {
+    pathname = decodeURIComponent(url.split('?')[0] ?? '');
+  } catch {
+    return false;
+  }
+  const segments = pathname.split('/').slice(1);
+  if (
+    Buffer.byteLength(pathname) < SHORT_PATH_BYTES &&
+    segments.every((s) => Buffer.byteLength(s) < SHORT_SEGMENT_BYTES)
+  ) {
+    return false;
+  }
+  if (segments.some((s) => s === '' || s === '.' || s === '..' || s.includes('\\'))) return false;
+  try {
+    await stat(path.join(root, ...segments));
+    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ENAMETOOLONG';
+  }
+}
+
 /** Build the application; call `ready()` before handing `routing` to a server. */
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const loggerInstance: FastifyBaseLogger = options.logger;
@@ -82,6 +147,14 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerSessionRoute(app, options.security);
   const hasWebBuild = existsSync(path.join(options.staticDir, 'index.html'));
   if (hasWebBuild) {
+    // bug-031: a path the file system refuses as too long is missing — decided before the static
+    // plugin runs (it would answer 403, and an answer re-sent from the error handler left its
+    // stream's `close` listeners on the response: review round 1 F-3). The not-found handler
+    // answers: 404 under /assets/, the application else. The static route only (GET and HEAD).
+    app.addHook('preHandler', async (request, reply) => {
+      if (request.routeOptions.url !== STATIC_ROUTE) return;
+      if (await isNameTooLong(options.staticDir, request.url)) return reply.callNotFound();
+    });
     await app.register(fastifyStatic, {
       root: options.staticDir,
       prefix: '/',
@@ -95,8 +168,16 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.setErrorHandler((error: { statusCode?: number; validation?: unknown }, request, reply) => {
     const status = error.validation !== undefined ? 400 : (error.statusCode ?? 500);
     if (status === 404) return notFound(reply);
-    // A client error keeps its status (400, 413, 415, …); the request is what is wrong.
-    if (status >= 400 && status < 500) return reply.code(status).send(envelope('invalid-request', 'Invalid request'));
+    // A client error keeps its status (400, 403, 413, 415, …), with a code that matches it.
+    if (status >= 400 && status < 500)
+      return reply
+        .code(status)
+        .send(
+          envelope(
+            clientErrorCode(status),
+            status === 400 ? 'Invalid request' : (STATUS_CODES[status] ?? 'Client error'),
+          ),
+        );
     if (error instanceof GitReadError) {
       // Git's message may quote configuration values and paths (task-046 review rounds 3 m1, 4
       // minor-1): on any route, the kind and the exit only.
