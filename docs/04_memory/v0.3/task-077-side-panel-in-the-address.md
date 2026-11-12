@@ -312,7 +312,7 @@ v0.3.
 - **Guard removals** (scratch edits, restored with a file copy): the `!onElementPage` condition of
   `routes/project.tsx` removed → "ignores panel= on the element page" fails (1 failed, 22 skipped
   by `-t`); `ElementLink`'s page branch removed → "opens a bell item on the element page as that
-  item's element page" fails (1 failed, 22 skipped).
+  item’s element page" fails (1 failed, 22 skipped).
 - **Characterization moved:** web — `today/today.test.tsx` (the links' `?panel=` addresses, the
   action's `search`, the bug-018 tests now waiting for `panel=` to go), `today/summary.test.tsx`,
   `shell/notification-bell.test.tsx`; e2e — `today.spec.ts` (T-02.2, T-11.1: the panel's address
