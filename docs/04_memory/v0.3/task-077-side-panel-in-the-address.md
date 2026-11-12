@@ -386,3 +386,15 @@ its entry list already held 1.18. Locally after `npm ci`: typecheck, lint and fo
 `npx vitest run --maxWorkers=2` on `test/web/element/{side-panel,address,page}`,
 `test/web/today/{today,summary,cards}`, `test/web/shell/notification-bell`, `test/web/i18n/*` and
 `test/docs/public-text.test.ts`: 11 files, 208 passed.
+
+Run `43215888917` on `0d50a422` (the merge with task-076): attempt 1 every job green but the WebKit
+own specs — 1 failed / the rest passed, `gate-footer.spec.ts` › X-06.2 "Decide a gate with the
+keyboard only": after the approve, with the footer at "Final state: no action is possible", the
+focus was on `<body>` instead of inside the panel (the report's page snapshot has no active
+element). The same test passed on WebKit in runs `43207595221` and `43210245345` (both attempts) and
+on Chromium in every run. A web test of the same path in the side panel —
+`test/web/element/gate-footer.test.tsx` › "task-077 — in the side panel, the focus stays inside it
+after a decision reaches a final state" — passes. Attempt 2, the failed job re-run: **success** —
+every job of the task scope green. Recorded for the review as a possible WebKit timing of the
+footer's focus after a decision in the side panel (`ElementFooter`'s focus on `.drawer-title` in
+`onSuccess`), not reproduced.

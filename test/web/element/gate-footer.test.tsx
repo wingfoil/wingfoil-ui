@@ -742,3 +742,31 @@ it('state-limit — outcomes disabled by different reasons: one line per reason,
   expect(describedBy('Reject → s1')).toEqual(['Blocked: your copy has diverged from the remote']);
   expect(describedBy('Reject → s0')).toEqual(['Blocked: your copy has diverged from the remote']);
 });
+
+// task-077 (X-06.2 in the side panel): a decision taken in the side panel over Today keeps the
+// focus inside the panel once the refetched element is in its final state (D37-9).
+it('task-077 — in the side panel, the focus stays inside it after a decision reaches a final state', async () => {
+  stub(
+    GATE,
+    MO,
+    { [`${BASE}/approve`]: { status: 200, body: OK } },
+    {
+      ...GATE,
+      status: 's3',
+      kind: 'last',
+      tone: 'done',
+      verbs: [],
+      actor: { kind: 'none' },
+    },
+  );
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/today?panel=${EID}`);
+  const panel = await screen.findByRole('dialog', { name: 'A gated element' });
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+  expect(await within(panel).findByText('Final state: no action is possible')).toBeTruthy();
+  await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+  expect(panel.contains(document.activeElement)).toBe(true);
+});
