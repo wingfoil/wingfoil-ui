@@ -52,7 +52,7 @@ const navLink = (page: Page, name: string) =>
 /** Wait until the element panel (the dialog) holds the focus, itself or one of its controls. */
 async function expectFocusInPanel(page: Page): Promise<void> {
   await page.waitForFunction(
-    () => document.querySelector('[role="dialog"]')?.contains(document.activeElement) === true,
+    () => document.querySelector('[data-element-view]')?.contains(document.activeElement) === true,
   );
 }
 
@@ -80,7 +80,7 @@ test.describe('US-X-06 — keyboard', () => {
       // An element panel, from its row; Escape gives the focus back to the row (X-06.3).
       await tabUntil(page, row(page, 'task-001-login-form'), seen);
       await page.keyboard.press('Enter');
-      const panel = page.getByRole('dialog', { name: 'Login form' });
+      const panel = page.getByRole('region', { name: 'Login form', exact: true });
       await expectFirstLoad(panel.locator('.type-tag'));
       await expectFocusInPanel(page);
       // The dialog itself takes the focus on open (programmatic, not a control): the rings are
@@ -146,7 +146,7 @@ test.describe('US-X-06 — keyboard', () => {
     await expectFirstLoad(login);
     await login.focus();
     await page.keyboard.press('Enter');
-    const panel = page.getByRole('dialog', { name: 'Login form' });
+    const panel = page.getByRole('region', { name: 'Login form', exact: true });
     await expectFirstLoad(panel.locator('.type-tag'));
     // The panel has the focus.
     await expectFocusInPanel(page);
@@ -230,7 +230,7 @@ test.describe('US-X-09 — externalised strings', () => {
     );
     await openConsole(page, c, { path: `/p/${c.pids[0]}/e/task-001-login-form`, build: 'keys' });
     const detail = (await (await read).json()) as ElementDetail;
-    const panel = page.getByRole('dialog');
+    const panel = page.locator('[data-element-view]');
     await expectFirstLoad(panel.locator('.type-tag'));
     await expectSettled(page);
     // The element's title, id and state names as written in the project, in a key-only page.
@@ -257,7 +257,7 @@ test.describe('US-X-10 — page title', () => {
     await openConsole(page, c, { path: `/p/${c.pids[0]}/memory` });
     await expectFirstLoad(row(page, 'task-001-login-form'));
     await row(page, 'task-001-login-form').click();
-    await expectFirstLoad(page.getByRole('dialog', { name: 'Login form' }).locator('.type-tag'));
+    await expectFirstLoad(page.getByRole('region', { name: 'Login form', exact: true }).locator('.type-tag'));
     await expect(page).toHaveTitle('kanban · task-001-login-form — WingFoil UI', { timeout: COLD_READ_MS });
   });
 

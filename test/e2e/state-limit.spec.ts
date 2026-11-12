@@ -9,6 +9,7 @@ import { fillSprints, PLANNED_SPRINT } from '../harness/fixtures/index.js';
 import { scanThemes } from './support/axe.js';
 import { COLD_READ_MS } from './support/cold-read.js';
 import { openConsole } from './support/console.js';
+import { elementView } from './support/element.js';
 import { lastCommitSubject } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
@@ -18,7 +19,8 @@ test.use({ prebuild: ['custom'] });
 
 const LIMITED = 'Blocked: only 1 active at a time';
 
-const drawer = (page: Page): Locator => page.locator('.drawer');
+/** The element page (task-062: the address opens it in the main region, `support/element.ts`). */
+const drawer = (page: Page): Locator => elementView(page);
 const submitButton = (page: Page): Locator => drawer(page).getByRole('button', { name: 'Submit → active' });
 
 test.describe('US-S-24 — a state at its limit (v0.3)', () => {

@@ -59,11 +59,11 @@ test.describe('task-025 AC-4 — Scrum fixture', () => {
     await openConsole(page, c, { path: `/p/${c.pids[0]}/memory` });
     await expect(rows(page).first()).toBeVisible({ timeout: COLD_READ_MS });
     await row(page, 'task-001-search-story').click();
-    const panel = page.getByRole('dialog');
+    const panel = page.locator('[data-element-view]');
     await expectFirstLoad(panel.locator('.type-tag'));
     await expectLoaded(panel);
     await expect(panel).toHaveAccessibleName('Search story');
-    await expect(panel.getByRole('heading', { level: 2, name: 'Search story' })).toBeVisible();
+    await expect(panel.getByRole('heading', { level: 1, name: 'Search story' })).toBeVisible();
     await expect(panel.getByText('task-001-search-story', { exact: true })).toBeVisible();
     const current = panel.getByRole('list', { name: 'State machine' }).locator('[aria-current="step"]');
     await expect(current.locator('.visually-hidden')).toHaveText('pending, current state');

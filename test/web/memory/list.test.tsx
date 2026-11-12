@@ -253,7 +253,7 @@ it('opens the panel from a row and focuses that row again after Close (W3-23)', 
   const { router } = renderApp(`/p/${PID}/memory?type=kind-a`);
   await screen.findByText('Title of k-003-gamma');
   await user.click(screen.getByRole('link', { name: /k-003-gamma/ }));
-  await screen.findByRole('dialog');
+  await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
   expect(router.state.location.pathname).toBe(`/p/${PID}/e/k-003-gamma`);
   await user.click(screen.getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
@@ -290,7 +290,7 @@ it('focuses an archived originating row once the archived read is back (review F
   const { router, queryClient } = renderApp(`/p/${PID}/memory?type=kind-a`);
   await screen.findByText('Title of k-009-gone');
   await user.click(screen.getByRole('link', { name: /k-009-gone/ }));
-  await screen.findByRole('dialog');
+  await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
   // The archived list left the cache while the panel was open: the list reads it again.
   queryClient.removeQueries({ queryKey: queryKeys.project(PID, 'elements', { archived: true }) });
   await user.click(screen.getByRole('button', { name: 'Close' }));
@@ -350,7 +350,7 @@ it('drops the return row when the user moved the focus before the rows were comp
   const { router, queryClient } = renderApp(`/p/${PID}/memory?type=kind-a`);
   await screen.findByText('Title of k-009-gone');
   await user.click(screen.getByRole('link', { name: /k-009-gone/ }));
-  await screen.findByRole('dialog');
+  await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
   queryClient.removeQueries({ queryKey: queryKeys.project(PID, 'elements', { archived: true }) });
   net.hold();
   await user.click(screen.getByRole('button', { name: 'Close' }));
@@ -364,12 +364,12 @@ it('drops the return row when the user moved the focus before the rows were comp
   expect(document.activeElement).toBe(allTypes);
 });
 
-it('closes a panel opened by URL to the project, which lands on Today (W3-22 fallback, D36-1)', async () => {
+it('closes an element page opened by URL to the Memory list (spec-011 §2; was the project, W3-22)', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/k-001-alpha`);
-  await screen.findByRole('dialog');
+  await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
   await userEvent.keyboard('{Escape}');
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
 });
 
 it('degrades without the type definitions: types from the elements, no buckets, a notice', async () => {

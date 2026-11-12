@@ -117,7 +117,7 @@ test.describe('US-R-08 — documentation index and documents', () => {
 });
 
 test.describe('US-R-09 — safe links', () => {
-  test('R-09.1 — Open a linked Memory file in the element panel', async ({ page, fixtures, consoles }) => {
+  test('R-09.1 — Open a linked Memory file as its element', async ({ page, fixtures, consoles }) => {
     const c = await withLinks(fixtures, consoles);
     await openConsole(page, c, { path: docPath(c, LINKS_DOC) });
     const link = article(page, LINKS_DOC).getByRole('link', { name: 'Decision' });
@@ -126,7 +126,7 @@ test.describe('US-R-09 — safe links', () => {
       timeout: CLASSIFIED_WITHIN,
     });
     await link.click();
-    const panel = page.getByRole('dialog');
+    const panel = page.locator('[data-element-view]');
     await expectFirstLoad(panel.locator('.type-tag'));
     await expect(panel.getByText('dl-001-initialise-wingfoil-before-inception', { exact: true })).toBeVisible();
     await expect(panel).toHaveAccessibleName('Initialise WingFoil before inception');
