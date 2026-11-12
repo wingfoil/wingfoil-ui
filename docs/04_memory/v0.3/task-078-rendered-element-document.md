@@ -375,3 +375,24 @@ spec-011 and adr-002 hold as written, so no Process Note is added.
   `['Close']` and now also found *Open document*. The own specs on Firefox and WebKit passed,
   including `decision-log.spec.ts`, bug-043's test and the two screens. S-24.1 and S-24.2 now leave
   *Open document* out of the footer's buttons, as their web tests do.
+- **`gates.yml` run `43265905928` on `34131a5c`: success.** Every job of the task scope passed on
+  the first attempt: checks, contract, coverage, smoke, publish-smoke, both e2e-chromium shards and
+  the own specs on Firefox and WebKit. `e2e-wave` was skipped (task scope).
+- **Refactor:** none beyond the fixes above.
+
+e2e closure — every scenario and criterion this task closes, at the tip:
+
+| Scenario / AC | Spec file › test |
+|---------------|------------------|
+| G-03.1 (AC-1) | `test/e2e/decision-log.spec.ts` › `G-03.1 — Read a decision-log as a rendered document` |
+| G-03.2 (AC-1) | same › `G-03.2 — Open the decision-log from Documentation links` |
+| G-03.3 (AC-1) | same › `G-03.3 — Read a decision-log with an empty body` |
+| G-03.4 (AC-1) | same › `G-03.4 — Open a linked element from a summary in the main region` |
+| G-08.1 (AC-2) | same › `G-08.1 — Approve a decision-log as a product owner holding approver` |
+| G-08.2 (AC-2) | same › `G-08.2 — Send a decision-log back to draft` |
+| G-08.3 (AC-2) | same › `G-08.3 — Keep the decision informational for a product owner without approver` |
+| AC-3 | same › `AC-3 — No image is requested when the document opens`; `test/web/element/document.test.tsx` (the summary, the dialog, links, anchors, raw HTML, images, comments, no extra read); `test/web/element/summary.test.ts`; `test/web/docs/render.test.ts` › *HTML comments left out of an element document (D78-3)*, *link groups (D78-1)* |
+| AC-4 | `decision-log.spec.ts` › `AC-4 — The document dialog is keyboard operable and accessible`; `test/e2e/accessibility.spec.ts` › X-06.4 and X-09.1 for *element document — rendered* and *element document — source* |
+| AC-6 (bug-043) | `test/web/docs/classification-in-place.test.tsx` › "bug-043 — a link keeps its element while a lookup answers, and a click on it opens"; `test/e2e/documentation.spec.ts` › `bug-043 — A link clicked while a link check is pending opens`; R-09.4 unchanged and green on WebKit in runs `43257871356`, `43262058499` and `43265905928` |
+| AC-7 | `test/web/element/page.test.tsx` › "AC-7 — isolates the address value on the element page (topline and a refusal’s heading)", "AC-7 — names the candidates’ list by its heading (one text, the value isolated)" |
+| AC-5 | this section's checks and runs; `CHANGELOG.md`, `docs/user-guide.md` 0.39, `ux-reference.md` 1.19, `test/README.md` 0.87 |
