@@ -441,7 +441,8 @@ the bug file came with the phase branch at `fc36238d`, merged as `85a4c680`).
 - **Green:** `ElementFooter.tsx` follows the focus in and out of its slot (`onFocus` / `onBlur`);
   after every render that removed the focused control (a layout effect: the slot held the focus and
   no longer does) the element's heading takes it when it is on `<body>`; a blur toward nothing is
-  checked after the current task and moves the focus only when the blurred control left the document
+  checked in a microtask (once the event's handlers and the render have run; corrected at round 2,
+  R2-4) and moves the focus only when the blurred control left the document
   (engines that fire a blur on removal). The reason's *Update* keeps its own next step (D40-2: the
   check is skipped while `focusAfterUpdate` is set — G-12.2 failed without it). One fix for both
   presentations: the element page and the side panel share the footer. `npx vitest run
@@ -462,3 +463,20 @@ this task's entries renumbered 0.85 (the side panel) and 0.86 (bug-046).
 
 Run `43231463745` on `f86ce0cf` (the task-074 merge over bug-046's fix): **success**, every job of
 the task scope green on the first attempt.
+
+### security review round 2 (2026-11-12)
+
+Independent, adversarial, on `f86ce0cf`: PASS, two low findings and three info, all fixed here. Red
+first: `c0bb5c7e`.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| R2-1 (low, test gap) — the guards of `ElementFooter`'s focus fallback (`onFocusOut`, the `<body>` check, `!left.isConnected`) had no test | none needed: the guards are right | `gate-footer.test.tsx` › "a focus the user let go of (blurred to nothing) is not taken back…" — fails with `onBlur={onFocusOut}` removed and fails with the `isConnected` check removed; "a focus the user moved to Close before the refetch stays on Close" — `onFocusOut` and the `<body>` check each suffice for it, so it fails only with both removed (with either one removed it passes, recorded as two independent guards); scratch edits restored with a file copy |
+| R2-2 (low, behaviour) — the *Update* request was made in the update's per-call `onSuccess`, which TanStack Query drops when the link (its observer) unmounts: a `repo` refresh that removed the link before the reply left the focus on the heading, not on the reason (G-12.2); and while the flag was set the fallback did nothing | the request is made by the press (`UpdateLink`'s `onStarted`), dropped by a refusal while the link is shown (`onFailed`), and used once the link is gone; the fallback always runs and remembers the heading it focused, from which D40-2 moves the focus on to the reason | "G-12.2 — the focus goes to the reason field also when the refetch removes the Update link before the reply (R2-2)" (the update's POST held) — red at `c0bb5c7e` (the focus on the `h1`); task-040's R3 tests (no move after a refusal, from outside the footer) stay green |
+| R2-3 (info) — the bug-046 tests covered approve only | — | the bug-046 test over approve and reject (a typed reason), on the page and on the side panel: 4 cases, passing |
+| R2-4 (info) — "after the current task" for a `queueMicrotask` | the comment of `ElementFooter.tsx` and the bug-046 *Green* note say "in a microtask" | — |
+| R2-5 (info) — the candidates' heading showed the address value without isolation | the heading's `{id}` is a `<bdi>` (the list's `aria-label` stays plain text), on the page and on the side panel | `side-panel.test.tsx` › "isolates the address value in the candidates' heading (review R2-5)" — red at `c0bb5c7e` |
+
+Checks: `npx vitest run --maxWorkers=2` on `test/web/element/{gate-footer,side-panel,page,submit-footer,panel}`,
+`test/web/repository/update-push`, `test/web/i18n/{key-rendering,catalogue}`: 181 passed.
+

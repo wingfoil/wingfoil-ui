@@ -65,9 +65,12 @@ export interface CandidatesProps {
 export function Candidates({ pid, eid, detail, linkTo = 'page' }: CandidatesProps): ReactNode {
   const intl = useIntl();
   const label = intl.formatMessage({ id: 'element.candidates.title' }, { id: eid });
+  const heading = <FormattedMessage id="element.candidates.title" values={{ id: <bdi>{eid}</bdi> }} />;
   return (
     <section className="element-section element-candidates">
-      {linkTo === 'panel' ? <h3 className="section-title">{label}</h3> : <h2 className="section-title">{label}</h2>}
+      {/* The address's value isolated from the text around it (bidi; task-077 F-5, R2-5); the list's
+          name stays the plain text. */}
+      {linkTo === 'panel' ? <h3 className="section-title">{heading}</h3> : <h2 className="section-title">{heading}</h2>}
       <ul className="candidate-list" aria-label={label}>
         {detail.candidates.map((c) => (
           <li key={c.id}>
