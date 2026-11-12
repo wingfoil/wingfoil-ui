@@ -17,6 +17,20 @@ type MarkdownIt = typeof plainMarkdown;
 type Token = ReturnType<MarkdownIt['parse']>[number];
 const MarkdownItClass = plainMarkdown.constructor as new (preset: 'default', options: object) => MarkdownIt;
 const reference = new MarkdownItClass('default', { html: true, linkify: true, typographer: false });
+
+/**
+ * CommonMark 0.31's inline HTML comment — `<!-->`, `<!--->`, or `<!--` through the first `-->` —
+ * before markdown-it's own `html_inline`, whose regular expression keeps CommonMark 0.30's rule and
+ * rejects a comment whose text ends in `-` (`<!-- a --->`; review round 5, R5-1).
+ */
+const COMMENT_031 = /^(?:<!-->|<!--->|<!--[\s\S]*?-->)/;
+reference.inline.ruler.before('html_inline', 'comment_031', (state, silent) => {
+  const match = COMMENT_031.exec(state.src.slice(state.pos, state.posMax));
+  if (!match) return false;
+  if (!silent) state.push('html_inline', '', 0).content = match[0];
+  state.pos += match[0].length;
+  return true;
+});
 const TokenClass = (reference.parse('x', {})[0] as Token).constructor as new (
   type: string,
   tag: string,
@@ -68,9 +82,9 @@ function asText(children: Token[]): Token[] {
 }
 
 /** The oracle's tokens of `source`. */
-function oracleTokens(source: string): Token[] {
+function oracleTokens(source: string, env: Record<string, unknown>): Token[] {
   const out: Token[] = [];
-  for (const token of reference.parse(source, {})) {
+  for (const token of reference.parse(source, env)) {
     if (token.type === 'html_block') {
       out.push(separator(token.level));
       const visible = stripHtmlComments(token.content).trim();
@@ -80,7 +94,9 @@ function oracleTokens(source: string): Token[] {
         const inline = new TokenClass('inline', '', 0);
         inline.level = token.level + 1;
         inline.content = visible;
-        inline.children = asText(reference.parseInline(visible, {})[0]?.children ?? []);
+        // With the document's env: a reference defined anywhere resolves as in the element's
+        // document, which parses the text after `-->` inline with it (review round 5, R5-2).
+        inline.children = asText(reference.parseInline(visible, env)[0]?.children ?? []);
         const close = new TokenClass('paragraph_close', 'p', -1);
         close.level = token.level;
         out.push(open, inline, close, separator(token.level));
@@ -95,7 +111,8 @@ function oracleTokens(source: string): Token[] {
 
 /** The oracle's HTML of `source`. */
 export function oracleHtml(source: string): string {
-  return reference.renderer.render(oracleTokens(source), reference.options, {});
+  const env: Record<string, unknown> = {};
+  return reference.renderer.render(oracleTokens(source, env), reference.options, env);
 }
 
 const ENTITIES: Record<string, string> = { '&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"', '&#39;': "'" };
@@ -125,20 +142,4 @@ export function agrees(source: string): { text: [string, string]; structure: [st
   const got = commentFreeMarkdown.render(source);
   const want = oracleHtml(source);
   return { text: [visibleText(got), visibleText(want)], structure: [structure(got), structure(want)] };
-}
-
-/**
- * Whether `source` holds a comment that markdown-it 15.0.2's inline HTML rule rejects although
- * CommonMark 0.31 and the HTML tokenizer read it as one: a `--` inside it, or a `-` just before its
- * `-->` (its regular expression keeps CommonMark 0.30's rule). Such a body is no evidence either
- * way: the oracle's inline reading is the outdated one there.
- */
-export function inlineCommentQuirk(source: string): boolean {
-  for (let open = source.indexOf('<!--'); open >= 0; open = source.indexOf('<!--', open + 1)) {
-    const close = source.indexOf('-->', open + 2);
-    if (close < open + 4) continue;
-    const inner = source.slice(open + 4, close);
-    if (inner.includes('--') || inner.endsWith('-')) return true;
-  }
-  return false;
 }

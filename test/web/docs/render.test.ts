@@ -11,7 +11,7 @@ import {
   markdownToSafeHtml,
   type FinishOptions,
 } from '../../../web/src/docs/render.js';
-import { agrees, inlineCommentQuirk } from './commonmark-oracle.js';
+import { agrees } from './commonmark-oracle.js';
 
 const DOC = 'docs/guide/a.md';
 const LOOKUP: LinkLookup = {
@@ -371,6 +371,22 @@ describe('the comment rules agree with CommonMark on generated bodies (review ro
     '<!-->',
     '<!--->',
     '--!>',
+    // Review round 5, R5-2: line endings, tabs, other list markers, fences, a table, a reference
+    // definition and its use, NUL, lazy quotes and a tight list.
+    '\r\n',
+    '\t',
+    '10. ',
+    '* ',
+    '+ ',
+    '```',
+    '~~~',
+    '\n| a | b |\n|---|---|\n| c | d |\n',
+    '\n[r]: http://e.x\n',
+    '[r]',
+    '\0',
+    '> a\nlazy',
+    '\n- a\n- b\n',
+    '\n- a\n  <!-- c -->\n  b\n- d\n',
     'text',
     'word',
     ' ',
@@ -407,11 +423,9 @@ describe('the comment rules agree with CommonMark on generated bodies (review ro
 
   it('400 bodies: the same text and structure, and no html_* token', () => {
     const differ: string[] = [];
-    // markdown-it 15.0.2 rejects some comments CommonMark 0.31 accepts (`inlineCommentQuirk`): those
-    // bodies are left out, and they stay few.
-    const compared = bodies.filter((body) => !inlineCommentQuirk(body));
-    expect(compared.length).toBeGreaterThan(300);
-    for (const body of compared) {
+    // Every body is compared: the oracle reads inline comments by CommonMark 0.31 (review round 5,
+    // R5-1).
+    for (const body of bodies) {
       const tokens = commentFreeMarkdown.parse(body, {});
       if (tokens.flatMap((t) => [t, ...(t.children ?? [])]).some((t) => t.type.startsWith('html_'))) differ.push(body);
       const { text, structure } = agrees(body);
