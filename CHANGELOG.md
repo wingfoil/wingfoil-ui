@@ -182,6 +182,17 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Memory element (id, title, type, status missing or not text)`), archived elements included.
   WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
   defect shipped in v0.1.0 and v0.2.0.
+- **Every name the repository supplies is shown as safe text** (bug-035, task-072): the project's
+  name (the header, the project switcher, the page title, *Already in the list*) and its remote,
+  the DNA's texts (the project, modules, technologies, methodologies, role descriptions, agents,
+  paths), the members' names and emails (the header, Team, Today, the element panel's footer), your
+  own git email, the directives' names and titles (the list, the page's heading and title), the
+  workflow descriptions, the states an element's history names, the documentation's file names
+  and paths (the index, a document's toolbar and page title) and a file named in an error passed on
+  a bidi override or a control character as written. They now show it as a visible escape
+  (`\u202e`), as the titles do; the links of the documentation still open the file as named. Ids,
+  types, states, roles and tags are still shown as WingFoil returns them (bug-041). The defect
+  shipped in v0.1.0 and v0.2.0.
 
 ### Security
 
@@ -192,9 +203,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   (`Fix \\n handling`), so that every escape on the page is one the console wrote. Ids, types and
   states stay as WingFoil returns them (they are what a page sends back), and a document — an
   element's or a directive's body and fields (but the reject's reason, a commit text), a file — is
-  shown as written. The other names the repository supplies (the DNA's names and descriptions, the
-  directives' titles, the workflow texts, file names and paths of the documentation, the states
-  named in an element's history, the project's name) are not escaped yet (bug-035).
+  shown as written. The other names the repository supplies follow the same rule (bug-035,
+  *Fixed*).
 
 ### Known limitations
 

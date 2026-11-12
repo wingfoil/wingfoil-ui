@@ -267,8 +267,11 @@ export interface DirectiveDetail {
 export interface DocumentationIndex {
   /** `paths.docs`. */
   roots: string[];
-  /** Markdown files under the roots, without Memory and plan files, sorted by path. */
-  documents: { path: string }[];
+  /**
+   * Markdown files under the roots, without Memory and plan files, sorted by path: `path` the
+   * address (as the working tree names it), `label` the text shown (the path escaped, task-072).
+   */
+  documents: { path: string; label: string }[];
 }
 
 /** `GET /api/p/:pid/files/tree?path=` (`contracts/api/file-tree.schema.json`). */
@@ -280,7 +283,10 @@ export interface FileTree {
 
 /** `GET /api/p/:pid/files/content?path=` (`contracts/api/file-content.schema.json`). */
 export interface FileContent {
+  /** The address, as asked. */
   path: string;
+  /** The text shown: the path escaped (task-072 D72-6). */
+  label: string;
   /** Bytes. */
   size: number;
   /** UTF-8 text. */

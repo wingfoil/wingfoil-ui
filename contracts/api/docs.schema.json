@@ -16,10 +16,15 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["path"],
+        "required": ["path", "label"],
         "properties": {
           "path": {
-            "type": "string"
+            "type": "string",
+            "description": "The address: the path as the working tree names it (a link target, the /files/content query)."
+          },
+          "label": {
+            "type": "string",
+            "description": "The text the page shows: the path with every unsafe character as a visible escape (spec-004 §5, task-072)."
           }
         },
         "additionalProperties": false
