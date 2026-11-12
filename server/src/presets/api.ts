@@ -12,3 +12,17 @@ export const ARCHIVED_QUERY = 'archived';
  * `iterated.done`, spec-012 §3; task-059 D59-8): `done` is also a fixture state name.
  */
 export const DONE_FIELD = 'done' as const;
+
+/**
+ * The `status` of a Traceability reference row (spec-012 §4, the four filters of R-01.3; task-074
+ * D74-2): `in-progress` is also a fixture state name.
+ */
+export const REFERENCE_STATUS = Object.freeze({
+  completed: 'completed',
+  inProgress: 'in-progress',
+  notStarted: 'not-started',
+  noElements: 'no-elements',
+} as const);
+
+/** The `scope` values of `GET /api/p/:pid/traceability` (spec-012 §4), the default first. */
+export const TRACEABILITY_SCOPES = Object.freeze(['current', 'project'] as const);
