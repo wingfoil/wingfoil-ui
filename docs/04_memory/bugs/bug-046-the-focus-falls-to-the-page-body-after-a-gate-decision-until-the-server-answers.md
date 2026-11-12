@@ -3,13 +3,13 @@ id: bug-046-the-focus-falls-to-the-page-body-after-a-gate-decision-until-the-ser
 type: bug
 title: "The focus falls to the page body after a gate decision until the server answers"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
+severity: "low"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
+release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
-browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
+module: "web"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+browser: "WebKit (Playwright)"            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -17,32 +17,48 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+After an approve or a reject from the gate footer, the keyboard focus falls to the page's `<body>`
+until the decision's HTTP reply arrives: the server publishes the `repo` event before it answers,
+the page's refetch replaces the footer and removes the focused button, and the footer moves the
+focus to the element's heading only in the request's `onSuccess`.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. In a project on WingFoil 0.3.1, open an element with a gate the current user decides (the
+   element page, or the side panel over Today).
+2. Decide the gate with the keyboard only: *Approve*, a reason, Enter.
+3. Let the event stream's `repo` refetch arrive before the POST reply (a slow reply, or WebKit's
+   timing).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The focus moves to the element's heading when the footer reaches its final state, whichever of the
+refetch and the reply comes first, and never rests on `<body>` (ux-reference §4.2, X-06.2).
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+Between "Final state: no action is possible" and the POST reply, `document.activeElement` is
+`<body>`; once the reply arrives it is on the heading. A keyboard or screen-reader user loses their
+place for that interval.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+task-077's security review round 1 (2026-11-12, `task/task-077-side-panel-in-the-address` at
+`0d50a422`), finding F-1: gates.yml run `43215888917` attempt 1, own-specs (webkit),
+`gate-footer.spec.ts` › X-06.2 found the focus on `<body>` (it passed on the job's re-run and in
+earlier runs). The code path: `server/src/writes/governed.ts:352-362` (the snapshot's `onChange`
+publishes `repo` before the reply), `web/src/api/events.ts:146` (the `repo` handler invalidates the
+project's queries), `web/src/element/ElementFooter.tsx:151-154` (the heading focused in
+`onSuccess`). Reproduced in jsdom with the POST held: the focus on `<body>` until it is released.
+The defect came with task-037's gate footer (v0.2); the element page has it too.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Low: the decision succeeds; only the focus is lost for a moment. Fix direction: move the focus to
+the heading when the focused footer control is removed (the footer's kind changes, or the gate
+controls unmount while holding the focus), not only on the reply; in X-06.2, wait for the focus
+with a retrying assertion. The approver chose to absorb it into task-077 (2026-11-12, "ok per a in
+F-1 di task 77").
 
 ## Triage & Execution Notes
 
