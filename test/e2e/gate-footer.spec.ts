@@ -153,7 +153,7 @@ test.describe('US-G-04 — two clicks from Today', () => {
     const c = await consoles.start({ projects: [await copyAs(fixtures, 'kanban', 'Morgan')] });
     await openToday(page, c);
     await todayAction(page, 'task-001-login-form').click();
-    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/task-001-login-form`);
+    await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/today?panel=task-001-login-form`);
     await expect(gate(page)).toBeVisible({ timeout: COLD_READ_MS });
     await expect(reasonField(page)).toBeFocused();
     expect(await scanThemes(page)).toEqual([]);
@@ -437,9 +437,12 @@ test.describe('US-X-06 — keyboard (TT-PERF-10)', () => {
     await expect(reasonField(page)).toHaveValue(DEFAULT_REASON);
     await page.keyboard.press('Enter');
     await expectLastCommit(kanban, 'wf(task): approve task-001-login-form [pending → approved]');
-    // The focus stays in the panel once the outcome is gone (D37-9).
+    // The focus stays in the panel once the outcome is gone (D37-9): retried, as the `repo` refetch and
+    // the reply arrive in either order (bug-046).
     await expect(footer(page)).toHaveText('Final state: no action is possible', { timeout: COLD_READ_MS });
-    expect(await page.evaluate(() => document.activeElement?.closest('[data-element-view]') !== null)).toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.closest('[data-element-view]') !== null))
+      .toBe(true);
   });
   // task-043 AC-3 (gap G4): Reject of the gate footer by keyboard only, from Today.
   test('X-06.2 — Reject a gate with the keyboard only (G4)', async ({ page, fixtures, consoles }) => {

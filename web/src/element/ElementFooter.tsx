@@ -24,15 +24,27 @@
  * F4), and the focus moves to the panel's heading (review F5).
  */
 import type { ElementDetail, ProjectHeader } from '@wingfoil-ui/contracts';
-import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type ReactNode,
+} from 'react';
 import { FormattedMessage, defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from 'react-aria-components';
 import type { DisabledReason } from '@wingfoil-ui/contracts';
+import { hashKey, useQueryClient } from '@tanstack/react-query';
 import { useElementWrite, type ElementWriteVerb } from '../api/writes.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { UpdateLink } from '../repository/UpdateLink.js';
 import { footerView, isBlank, type FooterView, type GateOutcome } from './footer.js';
 import { HoldText } from './HoldText.js';
+import { elementKeys } from './queries.js';
 
 /** The catalogue texts of the disabled reasons (spec-003 §6, spec-008 §4 `<area>.reason.<code>`). */
 const REASONS = defineMessages({
@@ -46,14 +58,16 @@ const REASONS = defineMessages({
 });
 
 /** The project and the footer's callback for the *Update* link of the copy-behind reason (D40-2). */
-const ReasonLink = createContext<{ pid: string; onUpdated(): void } | null>(null);
+const ReasonLink = createContext<{ pid: string; onStarted(): void; onSucceeded(): void; onFailed(): void } | null>(
+  null,
+);
 
 /** *Update* in the copy-behind reason (G-12.1, G-12.2): the sidebar's update, from the footer. */
 function ReasonUpdateLink({ children }: { children: ReactNode }): ReactNode {
   const link = useContext(ReasonLink);
   if (!link) return children;
   return (
-    <UpdateLink pid={link.pid} onUpdated={link.onUpdated}>
+    <UpdateLink pid={link.pid} onStarted={link.onStarted} onSucceeded={link.onSucceeded} onFailed={link.onFailed}>
       {children}
     </UpdateLink>
   );
@@ -120,22 +134,93 @@ export function ElementFooter({
   // The focus request is used once per panel: a refetch remounting the footer must not move it.
   const focusPendingRef = useRef(focusReason);
   const view: FooterView | undefined = detail.descriptor && header ? footerView(detail.descriptor, header) : undefined;
-  // After the reason's *Update* succeeded: once the new descriptor no longer blocks (the link is
+  // After the reason's *Update* was pressed: once the new descriptor no longer blocks (the link is
   // gone) the request is used, and the focus goes to the footer's next step — the gate's reason, else
-  // its first enabled action, else the panel's heading — only when it is still in the footer or
-  // nowhere (D40-2, review R3).
+  // its first enabled action, else the panel's heading — only when it is still in the footer, nowhere,
+  // or on the heading the bug-046 fallback gave it when the refetch removed the link before the
+  // update's reply (D40-2, review R3; task-077 security review round 2, R2-2). The request is made by
+  // the press (the link's per-call callbacks go with it when a refresh removes it before the reply),
+  // dropped by a refusal while the link is shown, and used once the link is gone. It lives for one
+  // update (review round 3, R3-3): after a success with the link still shown, the next read of the
+  // element that still says copy-behind drops it. `fallbackFocus` is the heading the bug-046 fallback
+  // focused *during* this update (R3-2): cleared when an update starts and when the heading loses the
+  // focus, so a heading the user focused on purpose is never taken for it.
   const focusAfterUpdate = useRef(false);
+  const fallbackFocus = useRef<HTMLElement | null>(null);
+  const updateSucceededAt = useRef<number | undefined>(undefined);
+  const queryClient = useQueryClient();
+  const elementHash = hashKey(elementKeys.detail(pid, detail.element.id));
+  useEffect(
+    () =>
+      queryClient.getQueryCache().subscribe((event) => {
+        const since = updateSucceededAt.current;
+        if (since === undefined || event.type !== 'updated' || event.action.type !== 'success') return;
+        if (event.query.queryHash !== elementHash || event.query.state.dataUpdatedAt < since) return;
+        updateSucceededAt.current = undefined;
+        const read = event.query.state.data as ElementDetail | undefined;
+        if (read?.descriptor?.verbs.some((v) => v.reason?.code === 'copy-behind')) focusAfterUpdate.current = false;
+      }),
+    [queryClient, elementHash],
+  );
   useEffect(() => {
     const slot = root.current;
     if (!focusAfterUpdate.current || slot === null || slot.querySelector('.update-link') !== null) return;
     focusAfterUpdate.current = false;
     const active = document.activeElement;
-    if (active !== null && active !== document.body && !slot.contains(active)) return;
+    const fromFallback = active !== null && active === fallbackFocus.current;
+    fallbackFocus.current = null;
+    if (active !== null && active !== document.body && !slot.contains(active) && !fromFallback) return;
     const next =
       slot.querySelector<HTMLElement>('.gate-reason-field, .gate-outcome:not([aria-disabled="true"])') ??
       (slot.closest('[data-element-view]')?.querySelector('.drawer-title') as HTMLElement | null);
     next?.focus();
   });
+
+  // bug-046: the server publishes `repo` before it answers a decision, so the refetch may replace the
+  // footer — and remove the control that holds the focus — before `onSuccess` runs. Whenever a render
+  // removes the focused footer control (the footer's kind changes, the gate's controls unmount), the
+  // focus goes to the element's heading at once, not to `<body>`. `holdsFocus` follows the focus in
+  // and out of the footer; a blur toward nothing (a removal in some engines, or a click on no control)
+  // is checked in a microtask, once the event's handlers and the render that caused it have run: only
+  // a control that left the document moves the focus, and only from `<body>`. The heading it focuses
+  // is remembered, so that D40-2 (above) can still move the focus on to the reason after an *Update*.
+  const holdsFocus = useRef(false);
+  const focusHeadingIfLost = (): void => {
+    const active = document.activeElement;
+    if (active !== null && active !== document.body) return;
+    const heading = root.current?.closest('[data-element-view]')?.querySelector<HTMLElement>('.drawer-title');
+    if (!heading) return;
+    heading.focus();
+    // Remembered only while an *Update* request is pending, until the heading loses the focus (R3-2).
+    if (!focusAfterUpdate.current) return;
+    fallbackFocus.current = heading;
+    heading.addEventListener(
+      'blur',
+      () => {
+        if (fallbackFocus.current === heading) fallbackFocus.current = null;
+      },
+      { once: true },
+    );
+  };
+  useLayoutEffect(() => {
+    if (!holdsFocus.current) return;
+    if (root.current?.contains(document.activeElement)) return;
+    holdsFocus.current = false;
+    focusHeadingIfLost();
+  });
+  const onFocusIn = (): void => {
+    holdsFocus.current = true;
+  };
+  const onFocusOut = (event: FocusEvent<HTMLDivElement>): void => {
+    const next = event.relatedTarget;
+    if (next instanceof Node && root.current?.contains(next)) return;
+    const left = event.target;
+    queueMicrotask(() => {
+      if (root.current?.contains(document.activeElement)) return;
+      holdsFocus.current = false;
+      if (!left.isConnected) focusHeadingIfLost();
+    });
+  };
 
   // The result and a refusal are toasts (`useElementWrite`); here only what follows a success.
   const run = (verb: ElementWriteVerb, reason: string | undefined, onDone: () => void) => {
@@ -160,7 +245,7 @@ export function ElementFooter({
   const submit = (onSubmitted: () => void) => run('submit', undefined, onSubmitted);
 
   return (
-    <div ref={root} className="element-footer-slot">
+    <div ref={root} className="element-footer-slot" onFocus={onFocusIn} onBlur={onFocusOut}>
       <p className="visually-hidden" role="status">
         {write.isPending &&
           (write.variables.verb === 'submit' ? (
@@ -173,8 +258,17 @@ export function ElementFooter({
         <ReasonLink.Provider
           value={{
             pid,
-            onUpdated: () => {
+            onStarted: () => {
               focusAfterUpdate.current = true;
+              fallbackFocus.current = null;
+              updateSucceededAt.current = undefined;
+            },
+            onSucceeded: () => {
+              updateSucceededAt.current = Date.now();
+            },
+            onFailed: () => {
+              focusAfterUpdate.current = false;
+              fallbackFocus.current = null;
             },
           }}
         >

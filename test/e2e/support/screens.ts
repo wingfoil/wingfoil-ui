@@ -349,4 +349,56 @@ export const SCREENS: readonly Screen[] = [
       await expectSettled(page);
     },
   },
+  {
+    // task-077 (D77-9): Today as Morgan with the side panel of `task-001-login-form` opened from its
+    // Requires you title (`?panel=`, the view under it).
+    name: 'element side panel (Today)',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-row'));
+      await page.locator('.today-row[data-eid="task-001-login-form"] .today-title').click();
+      await expect(page.locator('[role="dialog"][data-element-view] .type-tag')).toBeVisible({ timeout: COLD_READ_MS });
+      await expectSettled(page);
+    },
+  },
+  {
+    // task-077 (D77-3, D77-9): the side panel of an ambiguous short value over Today — its candidates,
+    // `?panel=` links on the view; the element read answers the 409 of "element page — candidates".
+    name: 'element side panel — candidates',
+    open: async (page, c) => {
+      await page.route(`**/api/p/${c.pids[0]}/elements/task-001`, (route) =>
+        route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: {
+              code: 'ambiguous-id',
+              message: 'Ambiguous id',
+              detail: {
+                candidates: [
+                  {
+                    id: 'task-001-login-form',
+                    shortId: 'task-001',
+                    title: 'Login form',
+                    type: 'task',
+                    status: 'pending',
+                  },
+                  {
+                    id: 'task-001-login-form-copy',
+                    shortId: 'task-001',
+                    title: 'Login form copy',
+                    type: 'task',
+                    status: 'pending',
+                  },
+                ],
+                more: 0,
+              },
+            },
+          }),
+        }),
+      );
+      await project(page, c, `/p/${c.pids[0]}/today?panel=task-001`, (p) =>
+        p.locator('[role="dialog"][data-element-view] .candidate-link'),
+      );
+    },
+  },
 ];

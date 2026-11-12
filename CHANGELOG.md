@@ -9,6 +9,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **The side panel in the address** (task-077, US-G-01 G-01.8, US-S-21 S-21.4; spec-011 §2, §6):
+  Today's rows and the notification bell's items open the element in a side
+  panel over the current view, which stays as it was (Today keeps its filters); the address carries
+  it as `?panel=<id>`, so a reload keeps it, and *Close* or Escape remove it and keep every other
+  parameter, the focus back on the control that opened it. Opening another element while the panel
+  is open replaces it, so one *Close* returns to the view. On the element page a bell item opens
+  that item's page. A short id in `panel=` is rewritten to the full id; an ambiguous one lists its
+  candidates in the panel; any other value is looked up only as an element of the current project
+  (*not found* otherwise).
 - **The element page** (task-062, US-G-01 G-01.4 … G-01.7; spec-011 §2, §3): an element opens as a
   page of the main region, with the sidebar — from its address, the Memory list and a link inside
   a document, a directive or another element — with the same content and footer as the v0.2 panel,
@@ -154,6 +163,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Fixed
 
+- **The focus stays on the element after a gate decision** (bug-046, shipped in v0.2.0; task-077):
+  when the console's refresh shows the new state before the decision's reply arrives, the element's
+  heading takes the keyboard focus at once instead of leaving it on the page body until the reply —
+  on the element page and on the side panel.
 - **The identity is the author WingFoil authorises** (bug-029): the console reads who you are as
   the WingFoil CLI does — `GIT_AUTHOR_EMAIL` of its environment, else `author.email`, else
   `user.email` — so a console started with another author identity no longer offers *Approve* or

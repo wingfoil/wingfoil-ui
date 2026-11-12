@@ -742,3 +742,273 @@ it('state-limit — outcomes disabled by different reasons: one line per reason,
   expect(describedBy('Reject → s1')).toEqual(['Blocked: your copy has diverged from the remote']);
   expect(describedBy('Reject → s0')).toEqual(['Blocked: your copy has diverged from the remote']);
 });
+
+// task-077 (X-06.2 in the side panel): a decision taken in the side panel over Today keeps the
+// focus inside the panel once the refetched element is in its final state (D37-9).
+it('task-077 — in the side panel, the focus stays inside it after a decision reaches a final state', async () => {
+  stub(
+    GATE,
+    MO,
+    { [`${BASE}/approve`]: { status: 200, body: OK } },
+    {
+      ...GATE,
+      status: 's3',
+      kind: 'last',
+      tone: 'done',
+      verbs: [],
+      actor: { kind: 'none' },
+    },
+  );
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/today?panel=${EID}`);
+  const panel = await screen.findByRole('dialog', { name: 'A gated element' });
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+  expect(await within(panel).findByText('Final state: no action is possible')).toBeTruthy();
+  await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+  expect(panel.contains(document.activeElement)).toBe(true);
+});
+
+// bug-046 (absorbed by task-077): the server publishes `repo` before it answers a decision, so the
+// refetch can show the final state while the POST is still pending; the focused outcome is removed
+// then, and the focus must go to the element's heading at once — not rest on `<body>` until the reply.
+const FINAL_STATE: ActionDescriptor = {
+  ...GATE,
+  status: 's3',
+  kind: 'last',
+  tone: 'done',
+  verbs: [],
+  actor: { kind: 'none' },
+};
+
+/** Stub the API with the decision's POST held until `release()`; the refetch after it reads `after`. */
+function holdPost(posts: FakeApi, after: ActionDescriptor, before: ActionDescriptor = GATE): () => void {
+  const inner = stub(before, MO, posts, after);
+  let release: () => void = () => {};
+  const held = new Promise<void>((r) => (release = r));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const answer = (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+      if (init?.method === 'POST') await held;
+      return answer;
+    }),
+  );
+  return () => release();
+}
+
+const nextFrame = () => act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+
+for (const where of ['page', 'side panel'] as const) {
+  for (const verb of ['approve', 'reject'] as const) {
+    it(`bug-046 — on the ${where}, after ${verb === 'approve' ? 'an approve' : 'a reject'}, the heading takes the focus when the refetch removes the focused outcome before the reply`, async () => {
+      const release = holdPost(
+        { [`${BASE}/${verb}`]: { status: 200, body: OK } },
+        verb === 'approve' ? FINAL_STATE : { ...FINAL_STATE, status: 's1' },
+      );
+      const user = userEvent.setup();
+      const { queryClient } = renderApp(where === 'page' ? `/p/${PID}/e/${EID}` : `/p/${PID}/today?panel=${EID}`);
+      const f = await footer();
+      if (verb === 'reject') {
+        reasonField(f).focus();
+        await user.clear(reasonField(f));
+        await user.type(reasonField(f), 'Not yet');
+      }
+      outcome(f, verb === 'approve' ? 'Approve → s3' : 'Reject → s1').focus();
+      await user.keyboard('{Enter}');
+      // The `repo` event's refetch, before the reply.
+      await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+      expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+      await nextFrame();
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+      release();
+      expect(
+        await within(politeToasts()).findByText(`${verb === 'approve' ? 'Approved' : 'Rejected'} ${EID}`),
+      ).toBeTruthy();
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+    });
+  }
+}
+
+// task-077 security review round 2, R2-1: the footer takes the focus back only from a control it
+// removed — never from a focus the user moved away or let go of.
+it('bug-046 — a focus the user let go of (blurred to nothing) is not taken back when the refetch removes the outcome', async () => {
+  const release = holdPost({ [`${BASE}/approve`]: { status: 200, body: OK } }, FINAL_STATE);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  act(() => (document.activeElement as HTMLElement).blur());
+  await act(async () => Promise.resolve());
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+  await nextFrame();
+  expect(document.activeElement).toBe(document.body);
+  release();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+});
+
+it('bug-046 — a focus the user moved to Close before the refetch stays on Close', async () => {
+  const release = holdPost({ [`${BASE}/approve`]: { status: 200, body: OK } }, FINAL_STATE);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  const close = screen.getByRole('button', { name: 'Close' });
+  act(() => close.focus());
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+  await nextFrame();
+  expect(document.activeElement).toBe(close);
+  release();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+});
+
+// R2-2: G-12.2 with the update's reply after the `repo` refetch: the link is gone before the reply,
+// and the focus still ends on the reason field (D40-2), not on the heading.
+it('G-12.2 — the focus goes to the reason field also when the refetch removes the Update link before the reply (R2-2)', async () => {
+  const behind: ActionDescriptor = {
+    ...GATE,
+    verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason: { code: 'copy-behind', commits: 1 } as const })),
+  };
+  const release = holdPost(
+    { [`/api/p/${PID}/git/update`]: { status: 200, body: { repository: header(MO, ROLE).repository } } },
+    GATE,
+    behind,
+  );
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = within(f.querySelector('.gate-blocked') as HTMLElement).getByRole('button', { name: 'Update' });
+  link.focus();
+  await user.keyboard('{Enter}');
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  release();
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
+});
+
+// task-077 review round 3: the *Update* focus request (D40-2) lives for one update only.
+/** The API with a descriptor that can change and the POSTs held while `hold` is set. */
+function liveApi(posts: FakeApi): { set(d: ActionDescriptor): void; hold(): () => void } {
+  let inner = stub(GATE, MO, posts);
+  let held: Promise<void> | undefined;
+  const wrapper = vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST' && held) await held;
+    return (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+  });
+  vi.stubGlobal('fetch', wrapper);
+  return {
+    set(d) {
+      inner = stub(d, MO, posts);
+      vi.stubGlobal('fetch', wrapper);
+    },
+    hold() {
+      let release: () => void = () => {};
+      held = new Promise<void>((r) => (release = r));
+      return () => {
+        held = undefined;
+        release();
+      };
+    },
+  };
+}
+const heading = () => screen.getByRole('heading', { name: 'A gated element' });
+const UPDATED = { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } };
+
+it('R3-1 — a refused update drops the request: when the copy becomes current later, the focus is not moved to the reason', async () => {
+  const api = liveApi({
+    [UPDATE]: {
+      status: 409,
+      body: { error: { code: 'local-changes-in-the-way', message: 'x', detail: { files: ['a.md'] } } },
+    },
+  });
+  api.set(BEHIND);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await user.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  // The copy becomes current by other means (a fetch and update from the sidebar, a terminal).
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(heading());
+});
+
+it('R3-2 (S2) — a heading the user focused on purpose during an update keeps the focus after it', async () => {
+  const api = liveApi(UPDATED);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  outcome(await footer(), 'Approve → s3').focus();
+  // A decision taken outside: the fallback moves the focus to the heading.
+  api.set(FINAL_STATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(document.activeElement).toBe(heading()));
+  // Back at the gate, behind the remote: Update, its reply held.
+  api.set(BEHIND);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  const f = await footer();
+  const release = api.hold();
+  updateLink(f).focus();
+  await user.keyboard('{Enter}');
+  act(() => heading().focus());
+  release();
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(heading());
+});
+
+it('R3-2 (S3) — the control: the heading the fallback focused during the update gives the focus on to the reason', async () => {
+  const api = liveApi(UPDATED);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  outcome(await footer(), 'Approve → s3').focus();
+  api.set(FINAL_STATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(document.activeElement).toBe(heading()));
+  api.set(BEHIND);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  const f = await footer();
+  const release = api.hold();
+  updateLink(f).focus();
+  await user.keyboard('{Enter}');
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  release();
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
+});
+
+it('R3-3 — an update the copy stays behind after spends the request: a later catch-up leaves the focus on Cancel', async () => {
+  const api = liveApi(UPDATED);
+  api.set(BEHIND);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await user.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  // The update's refresh: still behind (another commit arrived meanwhile), the link stays.
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(updateLink(f)).toBeTruthy();
+  const cancel = within(f).getByRole('button', { name: 'Cancel' });
+  act(() => cancel.focus());
+  // Much later the copy catches up.
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(within(f).getByRole('button', { name: 'Cancel' }));
+});

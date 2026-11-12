@@ -52,6 +52,7 @@
   "docs.link.outside": "outside the repository",
   "docs.link.unsupported": "link not supported",
   "docs.table.label": "Table {number}",
+  "element.body.label": "Element details",
   "element.candidates.more": "and {count, plural, one {# more element} other {# more elements}}",
   "element.candidates.title": "{id} names several elements",
   "element.directives.loading": "Loading the directives…",

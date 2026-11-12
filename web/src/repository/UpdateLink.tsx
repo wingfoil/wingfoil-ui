@@ -4,7 +4,10 @@
  * update cannot be cancelled, RP-37). While any transport of the project runs — from here or from
  * the sidebar — it is aria-disabled and a press is ignored (D40-4). A refusal shows in the sidebar:
  * the last update error, or its alert when the server does not record it (D40-5, review R2);
- * `onUpdated` lets the footer move the focus once the new descriptor arrives.
+ * `onStarted` (when the press starts an update), `onSucceeded` and `onFailed` (the reply, while the
+ * link is still shown) let the footer move the focus once the new descriptor arrives — whichever of the update's
+ * reply and the `repo` refresh comes first: a refresh can remove the link, and with it this
+ * component and its per-call callbacks, before the reply (task-077 security review round 2, R2-2).
  */
 import type { ReactNode } from 'react';
 import { startGitOperation, useGitOperation, useRunningGitOperation } from '../api/git.js';
@@ -14,12 +17,16 @@ import './git-status.css';
 export interface UpdateLinkProps {
   pid: string;
   children: ReactNode;
-  /** Called after a successful update. */
-  onUpdated?(): void;
+  /** Called when a press starts the update. */
+  onStarted?(): void;
+  /** Called when the update succeeded while the link is still shown. */
+  onSucceeded?(): void;
+  /** Called when the update failed while the link is still shown. */
+  onFailed?(): void;
 }
 
 /** The link. */
-export function UpdateLink({ pid, children, onUpdated }: UpdateLinkProps): ReactNode {
+export function UpdateLink({ pid, children, onStarted, onSucceeded, onFailed }: UpdateLinkProps): ReactNode {
   const operation = useGitOperation();
   const busy = useRunningGitOperation(pid) !== undefined;
   return (
@@ -29,11 +36,15 @@ export function UpdateLink({ pid, children, onUpdated }: UpdateLinkProps): React
       aria-disabled={busy ? true : undefined}
       onClick={() => {
         if (busy) return;
-        startGitOperation(
+        const started = startGitOperation(
           operation.mutate,
           { pid, op: 'update' },
-          onUpdated ? { onSuccess: () => onUpdated() } : undefined,
+          {
+            ...(onSucceeded ? { onSuccess: () => onSucceeded() } : {}),
+            ...(onFailed ? { onError: () => onFailed() } : {}),
+          },
         );
+        if (started) onStarted?.();
       }}
     >
       {children}
