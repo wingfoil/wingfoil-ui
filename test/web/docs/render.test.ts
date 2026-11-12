@@ -4,7 +4,13 @@
 // active reaches the page (raw HTML shown as text, no script, no handler, no javascript:/data: URL).
 import { describe, expect, it } from 'vitest';
 import { classifyLink, resolveLink, type LinkLookup } from '../../../web/src/docs/links.js';
-import { documentLinks, finishDocument, markdownToSafeHtml, type FinishOptions } from '../../../web/src/docs/render.js';
+import {
+  commentFreeMarkdown,
+  documentLinks,
+  finishDocument,
+  markdownToSafeHtml,
+  type FinishOptions,
+} from '../../../web/src/docs/render.js';
 
 const DOC = 'docs/guide/a.md';
 const LOOKUP: LinkLookup = {
@@ -261,5 +267,49 @@ describe('link groups (D78-1)', () => {
     });
     expect(host.querySelector('h1')?.id).toBe('eldoc-context');
     expect(host.querySelector('a')?.getAttribute('href')).toBe('#context');
+  });
+});
+
+// task-078 security review round 1: F-1 (only the comment is dropped, the text around it stays) and
+// F-4 (the rules are checked before DOMPurify, on markdown-it's own tokens and output).
+describe('the comment rules drop only the comment (review round 1, F-1, F-4)', () => {
+  const drop = (markdown: string): string =>
+    finishDocument(markdownToSafeHtml(markdown, { comments: 'drop' }), OPTIONS).replace(/\s+/g, ' ');
+  const text = (markdown: string): string => {
+    const host = document.createElement('div');
+    host.innerHTML = drop(markdown);
+    return (host.textContent ?? '').replace(/\s+/g, ' ').trim();
+  };
+
+  it('F-1 — the text after a comment on its line is kept', () => {
+    expect(text('<!-- hint --> Decision: we do NOT approve.')).toBe('Decision: we do NOT approve.');
+  });
+
+  it('F-1 — the text after an indented comment, and the next line, are kept', () => {
+    expect(text('   <!-- hint -->Second line kept?\nmore text')).toBe('Second line kept? more text');
+  });
+
+  it('F-1 — an unclosed inline comment opener is text, as CommonMark reads it', () => {
+    expect(text('Write <!-- to open a comment.')).toBe('Write <!-- to open a comment.');
+  });
+
+  const CASES: [string, string][] = [
+    ['<!-- a -->\n\nText.\n', '\n\nText.\n'],
+    ['Text <!-- a --> after.\n', 'Text  after.\n'],
+    ['<!-- one\n two -->\n\n## Heading\n', '\n\n## Heading\n'],
+    ['<!-- hint --> Decision.\n', ' Decision.\n'],
+    ['Line\n<!-- a -->\nNext\n', 'Line\n\nNext\n'],
+    ['- item <!-- a --> b\n', '- item  b\n'],
+    ['<!-- a --><script>x</script>\n', '<script>x</script>\n'],
+    // `<!-->` is a whole (empty) comment (CommonMark 0.31, HTML): what follows it is text.
+    ['<!--> <img src=x onerror=alert(1)> -->\n', ' <img src=x onerror=alert(1)> -->\n'],
+  ];
+
+  it.each(CASES)('F-4 — %j renders as the same Markdown without its comment', (source, without) => {
+    const tokens = commentFreeMarkdown.parse(source, {});
+    const all = tokens.flatMap((t) => [t, ...(t.children ?? [])]);
+    expect(all.filter((t) => t.type.startsWith('html_'))).toEqual([]);
+    // The same instance on the source without its comment (no rule fires there): only text went.
+    expect(commentFreeMarkdown.render(source)).toBe(commentFreeMarkdown.render(without));
   });
 });

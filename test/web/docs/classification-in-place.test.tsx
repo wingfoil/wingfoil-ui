@@ -112,3 +112,57 @@ it('a refetched document replaces the content (another frame)', async () => {
   expect(await within(article).findByText('A new paragraph.')).toBeTruthy();
   expect(within(article).getByRole('link', { name: 'vision' })).toBeTruthy();
 });
+
+// task-078 security review round 1, F-3: a full replace (another frame) still gives the focus back
+// to the link by its key (`replaceContent`'s `restoreFocus`).
+it('a focused link keeps the focus by its key when a refetched body replaces the content (F-3)', async () => {
+  const api = answers();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      const a = api[url] ?? { status: 404, body: { error: { code: 'not-found', message: 'Not found' } } };
+      return new Response(JSON.stringify(a.body), { status: a.status, headers: { 'content-type': 'application/json' } });
+    }),
+  );
+  const { queryClient } = renderApp(`/p/${PID}/docs/${DOC}`);
+  const article = await screen.findByRole('article', { name: DOC });
+  await waitFor(() => expect(within(article).getByText('nowhere').className).toBe('doc-link-refused'));
+  const vision = within(article).getByRole('link', { name: 'vision' });
+  vision.focus();
+  api[content(DOC)] = doc(DOC, `${LINKS}\nA new paragraph.\n`);
+  await queryClient.invalidateQueries();
+  await within(article).findByText('A new paragraph.');
+  // A new element (the whole content was set again), focused by its key.
+  expect(vision.isConnected).toBe(false);
+  expect(document.activeElement).toBe(within(article).getByRole('link', { name: 'vision' }));
+});
+
+// task-078 design test plan (review round 1, F-6): a focused link whose own group changes keeps the
+// focus by its key in the new group (`patchLinks`' `restoreFocus`).
+it('a focused link whose group changes keeps the focus by its key', async () => {
+  const api = answers(`${LINKS}\n[served](served.md)\n`);
+  api[content('docs/01_vision/served.md')] = doc('docs/01_vision/served.md', '# Served');
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url === content('docs/01_vision/served.md')) await gate;
+      const a = api[url] ?? { status: 404, body: { error: { code: 'not-found', message: 'Not found' } } };
+      return new Response(JSON.stringify(a.body), { status: a.status, headers: { 'content-type': 'application/json' } });
+    }),
+  );
+  renderApp(`/p/${PID}/docs/${DOC}`);
+  const article = await screen.findByRole('article', { name: DOC });
+  await waitFor(() => expect(within(article).getByText('served').className).toBe('doc-link-unresolved'));
+  // A waiting link is text: its key element is made focusable as a stand-in (as review F1's test).
+  const waiting = within(article).getByText('served');
+  waiting.setAttribute('tabindex', '0');
+  waiting.focus();
+  release();
+  const link = await within(article).findByRole('link', { name: 'served' });
+  expect(link.dataset.docLink).toBe(waiting.dataset.docLink);
+  expect(document.activeElement).toBe(link);
+  // The other links are the same elements (D78-1).
+  expect(within(article).getByRole('link', { name: 'vision' }).isConnected).toBe(true);
+});

@@ -49,3 +49,22 @@ describe('summaryHtml', () => {
     },
   );
 });
+
+// task-078 security review round 1, F-1: a comment drops only itself, never the text after it.
+describe('summaryHtml keeps the text around a comment (review round 1, F-1)', () => {
+  it('a comment before the text on its line', () => {
+    expect(host(summaryHtml('<!-- hint --> Decision: we do NOT approve.')).textContent).toBe(
+      'Decision: we do NOT approve.',
+    );
+  });
+
+  it('an indented comment, then the next line', () => {
+    expect(host(summaryHtml('   <!-- hint -->Second line kept?\nmore text')).textContent).toBe(
+      'Second line kept?\nmore text',
+    );
+  });
+
+  it('an unclosed inline opener', () => {
+    expect(host(summaryHtml('Write <!-- to open a comment.')).textContent).toBe('Write <!-- to open a comment.');
+  });
+});

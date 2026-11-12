@@ -341,3 +341,16 @@ describe('the document dialog (D78-4, D78-5)', () => {
     expect(within(dialog).getByRole('button', { name: 'common.action.close' })).toBeTruthy();
   });
 });
+
+// task-078 security review round 1, F-5: a link selected in the dialog closes it, also when the
+// page stays (a link to the element's own file: the same address).
+it('a link to the element’s own file closes the dialog, the page kept (F-5)', async () => {
+  stubApi(api(`${BODY}\n[this decision](dl-002-x.md)\n`));
+  const { router } = renderApp(`/p/${PID}/e/${EID}`);
+  const section = await summary();
+  const dialog = await openDocument(section);
+  await userEvent.click(await within(dialog).findByRole('link', { name: 'this decision' }));
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: TITLE })).toBeNull());
+  expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
+  expect(screen.getByRole('region', { name: TITLE })).toBeTruthy();
+});
