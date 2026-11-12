@@ -347,3 +347,26 @@ renumbered after the merged ones. No merged file uses the openers this task chan
 typecheck, lint, format:check clean; `npx vitest run --maxWorkers=2` on `test/web/element/{side-panel,
 address,page}`, `test/web/today/{today,summary}`, `test/web/shell/{notification-bell,repository-text}`,
 `test/web/i18n/*`, `test/docs/public-text.test.ts`: 11 files, 199 passed.
+
+e2e closure — every scenario and criterion this task closes, at the tip:
+
+| Scenario / AC | Spec file › test |
+|---------------|------------------|
+| G-01.8 (AC-1) | `test/e2e/side-panel.spec.ts` › `G-01.8 — Open an element from Requires you in the side panel and keep it on reload` |
+| S-21.4 (AC-2) | same › `S-21.4 — Open an item of the bell in the side panel of the current view` |
+| AC-2 Q1 (a) | same › `AC-2 — On the element page a bell item opens that item’s element page`; `test/web/element/side-panel.test.tsx` › "opens a bell item on the element page as that item’s element page (Q1 (a), AC-2)" |
+| S-21.1 … S-21.3 (AC-2) | `test/e2e/notification-bell.spec.ts` › `S-21.1 — Count the items to unblock` (the address now `?panel=`), `S-21.2 — Show no count when nothing requires me`, `S-21.3 — Update the count after an action` |
+| AC-3 | `side-panel.spec.ts` › `AC-3 — Opening pushes, a reload keeps, closing removes panel= and keeps the other parameters`; `side-panel.test.tsx` › the push, Close back / Forward, fresh load replaced on close, other parameters kept, ignored on the element page, a short value replaced in place, the `?panel=` candidates, a second opening replaces (Q2 (a)), the browser's Back, the double Escape, Today kept mounted, the scroll kept |
+| X-06.3 on the side panel (AC-3) | `side-panel.spec.ts` › `X-06.3 — Escape on the side panel returns the focus to its opener` |
+| AC-4 | `side-panel.test.tsx` › "shows not found for panel=%j and navigates nowhere (AC-4)" (`../x`, `https://example.test/x`, `%2e%2e`, `.`, `..`, `''`, `123`, a repeated `panel=`, another project's id); `test/web/element/address.test.ts` › `panelSearch`; `side-panel.spec.ts` › AC-3's hostile address |
+| AC-5 | `test/e2e/accessibility.spec.ts` — the `SCREENS` entries *element side panel (Today)*, *element side panel — candidates* (X-06.4, X-09.1, both themes); `side-panel.spec.ts` › `AC-5 — The toasts never cover the side panel’s actions` at 1280×720, 600×720, 400×600; `scanThemes` in X-06.3 |
+
+Run `43210245345` on `32d6604a` (the merge, with the AC-5 test fix `3ff8b4bc` and the refactor
+`46927f10`; the run of `3ff8b4bc` was cancelled by the push of the merge, `cancel-in-progress`):
+attempt 1 every job green but the WebKit own specs — 1 failed / 66 passed, task-063's
+`session-recovery.spec.ts` › X-02.3 "an exchange on another port leaves the page lost" (an ordering
+of its recorded requests, `same 204` at index 2 instead of 1; the spec was selected because the
+merge brought it in, it opens the element page by its address and uses nothing this task changed;
+`side-panel.spec.ts` and every spec changed here passed on WebKit); attempt 2, the failed job
+re-run: **success** — checks, contract, coverage, smoke, publish-smoke, e2e-chromium (both shards),
+the own specs on Firefox and WebKit; `e2e-wave` skipped (task scope).
