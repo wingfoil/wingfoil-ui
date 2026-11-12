@@ -303,6 +303,18 @@ describe('the comment rules drop only the comment (review round 1, F-1, F-4)', (
     ['<!-- a --><script>x</script>\n', '<script>x</script>\n'],
     // `<!-->` is a whole (empty) comment (CommonMark 0.31, HTML): what follows it is text.
     ['<!--> <img src=x onerror=alert(1)> -->\n', ' <img src=x onerror=alert(1)> -->\n'],
+    // Review round 2, R2-3: a comment line with text inside a paragraph, a quote and a lazy line.
+    ['Line\n<!-- a --> tail', 'Line\ntail'],
+    ['> q\n> <!-- a --> tail', '> q\n> tail'],
+    ['- a\n<!-- c --> lazy', '- a\nlazy'],
+    // Review round 2, R2-2: a comment over several lines, text after its close — only that text.
+    ['<!--\n# hidden heading\n--> tail', 'tail'],
+    ['<!--\n[hidden](http://evil.example)\n\nstill hidden\n--> tail', 'tail'],
+    ['Intro\n\n<!--\nGuidance: one paragraph.\n\nExample: [ex](http://example.com)\n--> Real text.', 'Intro\n\nReal text.'],
+    // Review round 2, R2-4: a comment line before `===` is no setext heading's text; a comment line
+    // inside a paragraph keeps one line break between its neighbours.
+    ['<!-- c -->\n===', '==='],
+    ['- item\n  <!-- c -->\n  more', '- item\n  more'],
   ];
 
   it.each(CASES)('F-4 — %j renders as the same Markdown without its comment', (source, without) => {

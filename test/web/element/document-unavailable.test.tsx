@@ -4,9 +4,11 @@
 // reload; the rest of the element — its heading, references, history, footer — and the shell stay.
 import type { ElementDetail, MemoryHistory } from '@wingfoil-ui/contracts';
 import { cleanup, screen, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';
+import { pageReload } from '../../../web/src/element/ElementView.js';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { resetSession } from '../../../web/src/session/session.js';
 import { header } from '../dna/data.js';
@@ -100,4 +102,17 @@ it('F-2 — its texts come from the catalogue (key build)', async () => {
   renderApp(`/p/${PID}/e/${EID}`, keyCatalogue(en));
   expect(await screen.findByText('element.document.unavailable')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'element.document.reload' })).toBeTruthy();
+});
+
+// Review round 2, R2-5: *Reload the page* loads the page's own address without its fragment, as the
+// session recovery does (task-063 D63-6), not `location.reload()` (which keeps a `#…`).
+it('R2-5 — Reload the page replaces the address without its fragment', async () => {
+  stubApi(api());
+  const replace = vi.spyOn(pageReload, 'replace').mockImplementation(() => undefined);
+  window.history.replaceState(null, '', `/p/${PID}/e/${EID}#eldoc-context`);
+  renderApp(`/p/${PID}/e/${EID}`);
+  const button = await screen.findByRole('button', { name: 'Reload the page' });
+  await userEvent.click(button);
+  expect(replace).toHaveBeenCalledWith(`${window.location.origin}/p/${PID}/e/${EID}`);
+  window.history.replaceState(null, '', '/');
 });

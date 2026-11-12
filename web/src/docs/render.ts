@@ -21,6 +21,9 @@ import type { LinkClass, RefusalMark } from './links.js';
 const OPTIONS = { html: false, linkify: true, typographer: false } as const;
 const markdown = new MarkdownIt('default', OPTIONS);
 
+/** markdown-it as the Documentation view renders (comments shown as text): the tests' reference. */
+export const plainMarkdown = markdown;
+
 const COMMENT_OPEN = '<!--';
 const COMMENT_CLOSE = '-->';
 
