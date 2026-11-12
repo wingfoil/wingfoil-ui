@@ -10,7 +10,7 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 ### Added
 
 - **The side panel in the address** (task-077, US-G-01 G-01.8, US-S-21 S-21.4; spec-011 §2, §6):
-  Today's rows, its roles summary and the notification bell's items open the element in a side
+  Today's rows and the notification bell's items open the element in a side
   panel over the current view, which stays as it was (Today keeps its filters); the address carries
   it as `?panel=<id>`, so a reload keeps it, and *Close* or Escape remove it and keep every other
   parameter, the focus back on the control that opened it. Opening another element while the panel
@@ -146,6 +146,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   Every process the console's process runner starts (the CLI, git and what they start) gets the
   absolute `PATH` entries only, so a program a repository ships is never found through an empty or
   relative entry.
+
+- **Your roles on one line** (task-076, US-S-23 S-23.4, S-23.5; REQ-PERF-11; spec-003 §5): on
+  *Today*, *Your roles* is one line of role tags, each with its count (*approver · 2*): pressing a
+  tag switches the role view and moves the focus to *Requires you*, the tag of the current view is
+  marked *current view*. The v0.2 items and *N more* under each role are gone, and so are `items`
+  and `more` from the `summary` of `GET /api/p/:pid/today` (`{ role, count }` only).
 
 ### Fixed
 

@@ -389,12 +389,10 @@ const REACHED_ELSEWHERE: Readonly<Record<string, string>> = {
   'project .repository.sync.update.lastError.detail.files[]': 'a failed update: server/http/repository-status',
   'project .identity.members[]': 'an ambiguous identity: server/http/repository-text',
   // Today places each row by its descriptor (spec-003 §5): a member actor is never a gate of
-  // *Requires you* or the summary, and the identified user holds every role, so no gate waits on
+  // *Requires you*, and the identified user holds every role, so no gate waits on
   // others. Every row of every list is written by `descriptorBody` (project-routes `todayOf`).
   'today .requiresYou[].descriptor.actor.member.name': TODAY_ACTOR,
   'today .requiresYou[].descriptor.actor.member.email': TODAY_ACTOR,
-  'today .summary[].items[].descriptor.actor.member.name': TODAY_ACTOR,
-  'today .summary[].items[].descriptor.actor.member.email': TODAY_ACTOR,
   'today .waitingOnOthers[].descriptor.actor.members[]': TODAY_ACTOR,
   'config .workflows.data.workflows[].phases[].description':
     'WingFoil 0.2.x only: server/http/serialise (workflowsBody)',
@@ -731,11 +729,9 @@ describe('the sweep of AC-4 (one hostile fixture, every GET route of the project
     expect(list.elements.find((e: any) => e.id === hostile.id).title).toBe(escaped);
     expect((await get(`/elements/${hostile.id}`)).element.title).toBe(escaped);
     const today = await get('/today');
-    const rows = [
-      ...(today.requiresYou ?? []),
-      ...today.waitingOnOthers,
-      ...(today.summary ?? []).flatMap((l: any) => l.items),
-    ].filter((r: any) => r.element.id === hostile.id);
+    const rows = [...(today.requiresYou ?? []), ...today.waitingOnOthers].filter(
+      (r: any) => r.element.id === hostile.id,
+    );
     expect(rows.length).toBeGreaterThan(0);
     for (const r of rows) expect(r.element.title).toBe(escaped);
   });

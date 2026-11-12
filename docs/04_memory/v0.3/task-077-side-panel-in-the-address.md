@@ -370,3 +370,19 @@ merge brought it in, it opens the element page by its address and uses nothing t
 `side-panel.spec.ts` and every spec changed here passed on WebKit); attempt 2, the failed job
 re-run: **success** — checks, contract, coverage, smoke, publish-smoke, e2e-chromium (both shards),
 the own specs on Firefox and WebKit; `e2e-wave` skipped (task scope).
+
+### the phase branch merged in again (2026-11-12)
+
+`design/dev-loop_v0.3` at `e7430c84` (task-076, merge `d48c9224`) merged into the task branch, as
+the coordinator asked. task-076 makes *Your roles* one line of role tags with a count only (D76-2):
+the summary has no item any more, so this task's change to the item link in `RoleSummary.tsx`, and
+the summary-item case in `test/web/today/summary.test.tsx`, are dropped in favour of task-076's
+versions. *Your roles* is no longer an opener of the side panel; the user guide and the CHANGELOG
+entry say so. `TodayView.tsx` keeps this task's opener handling (`side-panel.ts`) without
+task-076's module-level `returnOpener` (no summary opener left). The version lines keep the phase
+side's entries, this task's renumbered after them: `docs/user-guide.md` 0.38, `test/README.md`
+0.84; `ux-reference.md`'s header corrected to 1.18, which the first merge had left at 1.17 while
+its entry list already held 1.18. Locally after `npm ci`: typecheck, lint and format:check clean;
+`npx vitest run --maxWorkers=2` on `test/web/element/{side-panel,address,page}`,
+`test/web/today/{today,summary,cards}`, `test/web/shell/notification-bell`, `test/web/i18n/*` and
+`test/docs/public-text.test.ts`: 11 files, 208 passed.

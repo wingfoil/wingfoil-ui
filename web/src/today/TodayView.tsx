@@ -379,7 +379,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
       ) : (
         <>
           <IdentitySentence header={header.data} />
-          {data.summary && <RoleSummary pid={pid} lines={data.summary} view={data.view} onSwitch={switchTo} />}
+          {data.summary && <RoleSummary lines={data.summary} view={data.view} onSwitch={switchTo} />}
           {rows !== null && (
             <section className="today-card" aria-labelledby={requiresId}>
               <h2 className="today-card-title" id={requiresId} ref={requiresHeading} tabIndex={-1}>

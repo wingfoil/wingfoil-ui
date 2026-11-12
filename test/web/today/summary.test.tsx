@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// task-042 — the all-roles summary on Today (US-S-23; spec-003 §5 `summary`; D42-5…D42-7): one
-// line per role as the server sends it, at most 3 items and "N more", the current view marked,
-// switching the role view from a line or from "N more" with the focus moved to Requires you, a
-// refused switch, and no card without a summary.
+// task-042, task-076 — the all-roles summary on Today (US-S-23; spec-003 §5 `summary`; D42-5,
+// D42-6, D76-2): one line of role tags as the server sends them, each with its count and no item
+// or "N more" (S-23.4), the current view marked, switching the role view from a tag with the focus
+// moved to Requires you (S-23.2, S-23.5), a refused switch, and no card without a summary.
 import type { ProjectHeader, Today, TodayActionRow } from '@wingfoil-ui/contracts';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
@@ -43,9 +43,9 @@ function row(id: string): TodayActionRow {
 
 const APPROVER_ROWS = ['task-001', 'task-002', 'task-003', 'task-004', 'task-005'].map(row);
 const SUMMARY: NonNullable<Today['summary']> = [
-  { role: 'approver', count: 5, items: APPROVER_ROWS.slice(0, 3), more: 2 },
-  { role: 'developer', count: 0, items: [], more: 0 },
-  { role: 'tech-lead', count: 1, items: [row('note-001')], more: 0 },
+  { role: 'approver', count: 5 },
+  { role: 'developer', count: 0 },
+  { role: 'tech-lead', count: 1 },
 ];
 
 function today(view: string): Today {
@@ -73,7 +73,7 @@ function api(over: FakeApi = {}): FakeApi {
 }
 
 const card = () => screen.findByRole('region', { name: 'Your roles' });
-const lines = (region: HTMLElement) => Array.from(region.querySelectorAll<HTMLElement>('.today-summary-line'));
+const tags = (region: HTMLElement) => Array.from(region.querySelectorAll<HTMLElement>('.today-summary-tag'));
 
 beforeEach(() => {
   resetSession();
@@ -91,25 +91,22 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('summarises each role in the order received, with its count and first items (S-23.1, S-23.4)', async () => {
+it('shows one tag per role with its count, no item and no more (S-23.1, S-23.4)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/today`);
   const region = await card();
-  const all = lines(region);
+  const all = tags(region);
   expect(all.map((l) => l.querySelector('.today-summary-role')?.textContent)).toEqual([
     'approver · 5',
     'developer · 0',
     'tech-lead · 1',
   ]);
-  const approver = all[0]!;
-  const links = within(approver).getAllByRole('link');
-  expect(links.map((l) => l.textContent)).toEqual(['Title of task-001', 'Title of task-002', 'Title of task-003']);
-  // task-077: an item opens the side panel over Today.
-  expect(links[0]!.getAttribute('href')).toBe(`/p/${PID}/today?panel=task-001`);
-  expect(within(approver).getByRole('button', { name: '2 more for approver' }).textContent).toBe('2 more');
-  // A role with nothing: only its count.
-  expect(within(all[1]!).queryAllByRole('link')).toEqual([]);
-  expect(within(all[2]!).queryByRole('button', { name: /more/ })).toBeNull();
+  // One list: the tags are its items, in the server's order (D76-2).
+  expect(region.querySelectorAll('ul')).toHaveLength(1);
+  expect(within(region).getAllByRole('listitem')).toEqual(all);
+  expect(within(region).queryAllByRole('link')).toEqual([]);
+  expect(within(region).queryByText(/more/)).toBeNull();
+  expect(region.querySelector('[data-eid]')).toBeNull();
 });
 
 it('places the summary between the greeting and Requires you (D42-5)', async () => {
@@ -122,16 +119,16 @@ it('places the summary between the greeting and Requires you (D42-5)', async () 
   expect(region.compareDocumentPosition(requires) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
-it('marks the current role view, which is not a switch', async () => {
+it('marks the current tag, which is not a switch', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/today`);
-  const current = lines(await card())[1]!;
+  const current = tags(await card())[1]!;
   expect(current.getAttribute('aria-current')).toBe('true');
   expect(within(current).queryByRole('button')).toBeNull();
   expect(within(current).getByText('current view')).toBeTruthy();
 });
 
-it('switches the role view from a line and moves the focus to Requires you (S-23.2, D42-6)', async () => {
+it('switches the role view from a tag and moves the focus to Requires you (S-23.2, S-23.5, D42-6)', async () => {
   const fake = api();
   const fetch = stubApi(fake);
   const user = userEvent.setup();
@@ -147,19 +144,6 @@ it('switches the role view from a line and moves the focus to Requires you (S-23
     expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'Requires you' })),
   );
   expect(within(screen.getByRole('region', { name: 'Requires you' })).getAllByRole('listitem')).toHaveLength(5);
-});
-
-it('switches the role view from "N more" (D42-7)', async () => {
-  const fake = api();
-  const fetch = stubApi(fake);
-  const user = userEvent.setup();
-  renderApp(`/p/${PID}/today`);
-  const region = await card();
-  fake[HEADER] = { status: 200, body: alex('approver') };
-  await user.click(within(region).getByRole('button', { name: '2 more for approver' }));
-  const put = fetch.mock.calls.find((c) => (c[1] as RequestInit | undefined)?.method === 'PUT');
-  expect(JSON.parse(String((put?.[1] as RequestInit).body))).toEqual({ role: 'approver' });
-  await screen.findByText('Role view: approver');
 });
 
 it('shows a refused switch on Today, outside the summary card (review R2)', async () => {
@@ -227,7 +211,7 @@ it('forgets the focus request of a refused switch (review R1)', async () => {
   await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
 });
 
-it('describes what a role line does (review R7)', async () => {
+it('describes what a role tag does (review R7)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/today`);
   const region = await card();
@@ -238,10 +222,10 @@ it('describes what a role line does (review R7)', async () => {
       .map((id) => (id ? document.getElementById(id)?.textContent : undefined))
       .join(' ')
       .trim();
-  expect(description(within(region).getByRole('button', { name: 'approver · 5' }))).toBe('Switches the role view');
-  expect(description(within(region).getByRole('button', { name: '2 more for approver' }))).toBe(
-    'Switches the role view',
-  );
+  for (const button of within(region).getAllByRole('button')) {
+    expect(description(button)).toBe('Switches the role view');
+  }
+  expect(within(region).getAllByRole('button')).toHaveLength(2);
 });
 
 it('shows no summary when the server sends none (S-23.3)', async () => {
@@ -254,20 +238,4 @@ it('shows no summary when the server sends none (S-23.3)', async () => {
   renderApp(`/p/${PID}/today`);
   await screen.findByRole('heading', { level: 1, name: 'Jordan, nothing requires you' });
   expect(screen.queryByRole('region', { name: 'Your roles' })).toBeNull();
-});
-
-// task-043 review round 2, R2-1 (bug-018): a summary item opens the element panel from Today; its
-// link is the opener that takes the focus back when the panel closes.
-it('returns the focus to the summary item that opened the panel (bug-018, R2-1)', async () => {
-  stubApi(api());
-  const user = userEvent.setup();
-  const { router } = renderApp(`/p/${PID}/today`);
-  const item = (): HTMLElement =>
-    within(lines(screen.getByRole('region', { name: 'Your roles' }))[2]!).getByRole('link');
-  await card();
-  await user.click(item());
-  await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
-  await user.click(screen.getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
-  await waitFor(() => expect(document.activeElement).toBe(item()));
 });

@@ -86,11 +86,7 @@ function expectSanitised(text: unknown, label: string): void {
 
 /** Every row of a Today body. */
 function todayRows(today: any): any[] {
-  return [
-    ...(today.requiresYou ?? []),
-    ...today.waitingOnOthers,
-    ...(today.summary ?? []).flatMap((l: any) => l.items),
-  ];
+  return [...(today.requiresYou ?? []), ...today.waitingOnOthers];
 }
 
 describe('commit texts in the API (bug-027)', () => {
