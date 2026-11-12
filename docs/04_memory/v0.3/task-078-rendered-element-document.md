@@ -445,3 +445,6 @@ generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on:
 - `test/web/element/{summary,document,document-unavailable,page,panel}`
 - `test/web/directives/directives`
 - `test/web/i18n/{catalogue,key-rendering}`
+
+Run `43280997677` on `e632664b` (round 2's red `cbd3006f` and its fixes): **success**. Every job
+of the task scope passed on the first attempt.
