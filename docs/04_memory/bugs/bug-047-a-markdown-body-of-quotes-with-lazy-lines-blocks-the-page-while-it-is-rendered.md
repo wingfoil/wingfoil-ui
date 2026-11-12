@@ -49,6 +49,10 @@ class; markdown-it 14.3.2 also quadratic. v0.1.0's `web/package.json` already pi
 `markdown-it ^15.0.2`. task-078's comment rules give the same worst case another spelling
 (`'> <!--\nlazy\n'`) at plain markdown-it's own cost; `test/web/docs/comment-linear.test.ts` leaves
 that input out and says why.
+task-078's security review round 5 (`633c82e1`): the closed spelling `'> <!-- c -->\nlazy\n'` is
+the same class, about 3.0 s per 100 KB against 2.1 s for markdown-it with `html: true` on the same
+input; not new with task-078's CommonMark alignment (1 341 ms before, 1 339 ms after, at 5 000
+pairs).
 
 ## Notes
 
