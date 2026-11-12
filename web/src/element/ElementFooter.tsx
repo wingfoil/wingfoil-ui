@@ -38,11 +38,13 @@ import {
 import { FormattedMessage, defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 import { Button } from 'react-aria-components';
 import type { DisabledReason } from '@wingfoil-ui/contracts';
+import { hashKey, useQueryClient } from '@tanstack/react-query';
 import { useElementWrite, type ElementWriteVerb } from '../api/writes.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { UpdateLink } from '../repository/UpdateLink.js';
 import { footerView, isBlank, type FooterView, type GateOutcome } from './footer.js';
 import { HoldText } from './HoldText.js';
+import { elementKeys } from './queries.js';
 
 /** The catalogue texts of the disabled reasons (spec-003 §6, spec-008 §4 `<area>.reason.<code>`). */
 const REASONS = defineMessages({
@@ -56,14 +58,16 @@ const REASONS = defineMessages({
 });
 
 /** The project and the footer's callback for the *Update* link of the copy-behind reason (D40-2). */
-const ReasonLink = createContext<{ pid: string; onStarted(): void; onFailed(): void } | null>(null);
+const ReasonLink = createContext<{ pid: string; onStarted(): void; onSucceeded(): void; onFailed(): void } | null>(
+  null,
+);
 
 /** *Update* in the copy-behind reason (G-12.1, G-12.2): the sidebar's update, from the footer. */
 function ReasonUpdateLink({ children }: { children: ReactNode }): ReactNode {
   const link = useContext(ReasonLink);
   if (!link) return children;
   return (
-    <UpdateLink pid={link.pid} onStarted={link.onStarted} onFailed={link.onFailed}>
+    <UpdateLink pid={link.pid} onStarted={link.onStarted} onSucceeded={link.onSucceeded} onFailed={link.onFailed}>
       {children}
     </UpdateLink>
   );
@@ -136,9 +140,28 @@ export function ElementFooter({
   // or on the heading the bug-046 fallback gave it when the refetch removed the link before the
   // update's reply (D40-2, review R3; task-077 security review round 2, R2-2). The request is made by
   // the press (the link's per-call callbacks go with it when a refresh removes it before the reply),
-  // dropped by a refusal while the link is shown, and used once the link is gone.
+  // dropped by a refusal while the link is shown, and used once the link is gone. It lives for one
+  // update (review round 3, R3-3): after a success with the link still shown, the next read of the
+  // element that still says copy-behind drops it. `fallbackFocus` is the heading the bug-046 fallback
+  // focused *during* this update (R3-2): cleared when an update starts and when the heading loses the
+  // focus, so a heading the user focused on purpose is never taken for it.
   const focusAfterUpdate = useRef(false);
   const fallbackFocus = useRef<HTMLElement | null>(null);
+  const updateSucceededAt = useRef<number | undefined>(undefined);
+  const queryClient = useQueryClient();
+  const elementHash = hashKey(elementKeys.detail(pid, detail.element.id));
+  useEffect(
+    () =>
+      queryClient.getQueryCache().subscribe((event) => {
+        const since = updateSucceededAt.current;
+        if (since === undefined || event.type !== 'updated' || event.action.type !== 'success') return;
+        if (event.query.queryHash !== elementHash || event.query.state.dataUpdatedAt < since) return;
+        updateSucceededAt.current = undefined;
+        const read = event.query.state.data as ElementDetail | undefined;
+        if (read?.descriptor?.verbs.some((v) => v.reason?.code === 'copy-behind')) focusAfterUpdate.current = false;
+      }),
+    [queryClient, elementHash],
+  );
   useEffect(() => {
     const slot = root.current;
     if (!focusAfterUpdate.current || slot === null || slot.querySelector('.update-link') !== null) return;
@@ -168,7 +191,16 @@ export function ElementFooter({
     const heading = root.current?.closest('[data-element-view]')?.querySelector<HTMLElement>('.drawer-title');
     if (!heading) return;
     heading.focus();
+    // Remembered only while an *Update* request is pending, until the heading loses the focus (R3-2).
+    if (!focusAfterUpdate.current) return;
     fallbackFocus.current = heading;
+    heading.addEventListener(
+      'blur',
+      () => {
+        if (fallbackFocus.current === heading) fallbackFocus.current = null;
+      },
+      { once: true },
+    );
   };
   useLayoutEffect(() => {
     if (!holdsFocus.current) return;
@@ -228,9 +260,15 @@ export function ElementFooter({
             pid,
             onStarted: () => {
               focusAfterUpdate.current = true;
+              fallbackFocus.current = null;
+              updateSucceededAt.current = undefined;
+            },
+            onSucceeded: () => {
+              updateSucceededAt.current = Date.now();
             },
             onFailed: () => {
               focusAfterUpdate.current = false;
+              fallbackFocus.current = null;
             },
           }}
         >
