@@ -283,3 +283,55 @@ Relayed by the coordinator, the approver: "confermo le decisioni raccomandate" �
 **Q2 (a)** `coverage` with `total` 0 is `{ carrying: 0, total: 0, percent: null }`; **Q3 (a)**
 D59-8's row key kept, the category of the first value met, `completion` as `/progress` has it.
 The three and D74-3 go into a spec-012 Process Note with the green commit.
+
+### red / green / refactor (2026-11-12)
+
+- **Red** (`721fd8c6`): the contracts first — `traceability.schema.json`, `elements.schema.json`
+  `definitions.row`, `progress.schema.json` `definitions.completion`, `contracts/src/
+  traceability.ts` —, the module's stubs that throw (`traceabilityRows`, `coverageFigure`,
+  `traceabilityParts`), the status words and scopes in `presets/api.ts`, and the tests:
+  `server/project-state/traceability` 17 failed of 17; `contracts/traceability-api-schema` 2
+  failed, 3 passed (the schema parts committed with the red: strict compile, the item's keys, the
+  factored definitions — characterization of the shapes); `server/http/traceability-routes` 23
+  failed, 1 passed ("unknown :pid → 404, also with a bad scope": Fastify's own 404 before the route
+  existed, as the design said); `server/http/text-sweep` 1 failed (the sweep of `/traceability`,
+  404), the enumeration green with the new rules.
+- **Green** (`1fcb06f9`): `traceability.ts`, `coverageFigure`, `traceabilityParts`, the route
+  `traceabilityOf` and `listedRow` (`/elements` now builds its rows with it), `phaseReasonOf`
+  shared with `/progress`. Deviations from the design, none of behaviour:
+  - D74-7: the item cannot be `allOf: [row]` — `definitions.row`'s own `additionalProperties:
+    false` refuses `done` and `inScope` —, so it names each row property by `$ref`
+    (`elements.schema.json#/definitions/row/properties/<key>`), `required` the row's plus the two;
+    the contract test "the element item names every /elements row key but missingCategories"
+    fails when a row key is added and not named (spec-012 Process Note of 2026-11-12);
+  - `NamedElement.finished` in `bodies.ts` (`done` is a fixture state name, REQ-ARC-05), written
+    as `done` through `DONE_FIELD` in the route;
+  - Q3's second case cannot occur: `neutralise` doubles a backslash, so two raw values never share
+    an escaped text (a line break makes no reference); the planned unit test was dropped and the
+    Process Note says so;
+  - three test expectations corrected at green, not the code: `dl-001` is `ready`, the last state
+    of its sequence (done: R-01.5's `US-S-09` row is `completed`); a capped `task-003` (its
+    `US-M-01` past its first 200 values) is in `missing`; a cold Traceability runs two `git log`
+    (the events' `memoryLog` and `memoryLogShas`), so the audit counts `ls-tree` and asserts no
+    process names an element file instead;
+  - the events-failure stand-in is a `git log` killed on its **timeout** (transient), not an
+    `overflow`: an overflow is kept per HEAD by the snapshot (`sameForHead`), so the "not kept"
+    test would have measured the snapshot, not this route.
+- Guard removals (recorded): with the body memoised also under `eventsError`, "an events failure
+  is not kept …" fails (task-004's actor stays the role fallback after the events recover; 1
+  failed); with `scope` checked by a Fastify query schema, "unknown :pid → 404, also with a bad
+  scope" fails (400 for 404); code restored both times.
+- **Refactor**: nothing beyond green's `listedRow` and `phaseReasonOf`; the route test file keeps
+  its own console helper (one console per test, bug-023), as the design said.
+- Local checks (load about 7–8): `npm run typecheck`, `lint`, `format:check` clean; `npm run
+  docs:api` generated; `check_tasks.py v0.3` OK; `npx vitest run --maxWorkers=2` on
+  `server/project-state`, `contracts/traceability-api-schema`, `progress-api-schema`,
+  `api-element-schema`, `api-descriptor-schema`, `server/http/traceability-routes`, `text-sweep`,
+  `progress-routes`, `project-routes`, `held-gates-routes`, `state-limit-routes`,
+  `ui-config-route`, `test/lint`, `test/docs` all passed (24 + 104 + 119 + 189 tests in the
+  runs); `traceability-routes` under the strict-identity `git` wrapper of *Git identity* (outside
+  the repository) 24 passed. No local Playwright: `performance.spec.ts`'s new test runs on
+  `gates.yml` (unasserted in `test:e2e:chromium`; asserted in the coordinator's `test:timing`).
+- Merged `design/dev-loop_v0.3` (`d0e3ca93`, W0-7, before review): task-062's web and docs
+  changes; one conflict, `test/README.md`'s version line — 0.78 is task-062's, this task's suites
+  0.79.
