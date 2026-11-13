@@ -7,8 +7,8 @@
  */
 import type { AmbiguousCandidate, AmbiguousIdDetail } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { useId, type ReactNode } from 'react';
+import { FormattedMessage } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { isPathSyntaxId } from './queries.js';
 import { panelLinkOptions } from './side-panel.js';
@@ -63,15 +63,22 @@ export interface CandidatesProps {
 
 /** The list of candidates, each a link to its element page. */
 export function Candidates({ pid, eid, detail, linkTo = 'page' }: CandidatesProps): ReactNode {
-  const intl = useIntl();
-  const label = intl.formatMessage({ id: 'element.candidates.title' }, { id: eid });
+  const headingId = useId();
   const heading = <FormattedMessage id="element.candidates.title" values={{ id: <bdi>{eid}</bdi> }} />;
   return (
     <section className="element-section element-candidates">
-      {/* The address's value isolated from the text around it (bidi; task-077 F-5, R2-5); the list's
-          name stays the plain text. */}
-      {linkTo === 'panel' ? <h3 className="section-title">{heading}</h3> : <h2 className="section-title">{heading}</h2>}
-      <ul className="candidate-list" aria-label={label}>
+      {/* The address's value isolated from the text around it (bidi; task-077 F-5, R2-5); the list is
+          named by this heading, so the value has one text, isolated (task-078 AC-7, Q3 (a)). */}
+      {linkTo === 'panel' ? (
+        <h3 id={headingId} className="section-title">
+          {heading}
+        </h3>
+      ) : (
+        <h2 id={headingId} className="section-title">
+          {heading}
+        </h2>
+      )}
+      <ul className="candidate-list" aria-labelledby={headingId}>
         {detail.candidates.map((c) => (
           <li key={c.id}>
             {linkTo === 'panel' ? (

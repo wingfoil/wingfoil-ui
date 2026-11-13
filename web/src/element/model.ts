@@ -38,23 +38,6 @@ export function stateChips(sequence: readonly string[] | undefined, current: str
   return sequence.map((name, i) => ({ name, position: i < at ? 'past' : i === at ? 'current' : 'future' }));
 }
 
-/**
- * The summary of a Markdown body in v0.1: its first paragraph as plain text — HTML comments (the
- * scaffold's placeholders) and headings skipped, lines joined —, `undefined` when there is none.
- * The rendered document is US-G-03 (v0.3).
- */
-export function summaryOf(body: string): string | undefined {
-  const text = body.replace(/<!--[\s\S]*?(?:-->|$)/g, '');
-  for (const block of text.split(/\n\s*\n/)) {
-    const lines = block
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l !== '' && !l.startsWith('#'));
-    if (lines.length > 0) return lines.join(' ').replace(/\s+/g, ' ');
-  }
-  return undefined;
-}
-
 /** The frontmatter keys every element has (shown in the panel's header, not as fields). */
 const CORE_FIELDS: ReadonlySet<string> = new Set(['id', 'type', 'title', 'status']);
 

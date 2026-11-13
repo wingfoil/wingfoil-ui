@@ -71,3 +71,491 @@ here; a console-wide one goes through `bug-ingest`) apply.
   (dl-011).
 
 ## Execution Notes
+
+### design (2026-11-12)
+
+Read (dl-015): this task; task-062's file whole (D62-13 … D62-18, the approver's Q2 (b) and Q3 (a),
+its red/green and review notes); task-077's file whole (D77-1 … D77-9, the bug-046 focus logic of
+`ElementFooter`, F-5 and R2-5's `<bdi>`); task-072's decisions (D72-1, D72-6, D72-12, Q5:
+repository display text escaped by the server, keys shown raw, bug-041); bug-043; spec-011 whole
+with its Process Notes; `adr-002`; `ux-reference.md` 1.18 §4.2 (v0.1 … v0.3), §4.9, §5 *Modal
+dismissal* and *Feedback*; the features `g/decision-log.feature` (G-03.x, G-08.x) and
+`r/documentation.feature` (R-09.x). Code at `4ebb40cb`: `web/src/element/{ElementView,ElementPage,
+ElementSidePanel,SidePanel,Candidates,ElementFooter,model,queries}.ts(x)`, `web/src/routes/element.tsx`,
+`web/src/docs/{render,links,RenderedArticle,DocumentView,pages}.ts(x)`, `web/src/directives/pages.tsx`,
+`web/src/routes/{docs,directives}.tsx` (the lazy chunks), `contracts/src/{api,cli}.ts`
+(`ElementDetail.body`, `element.path`); tests `test/web/docs/{docs,render}.test.ts(x)`,
+`test/web/element/{page,panel,side-panel,model}.test.ts(x)`, `test/e2e/documentation.spec.ts`
+(R-09.4), `test/e2e/support/{element,screens}.ts`; the custom fixture (`builder.ts`: `dl-001` by
+Alex, approved; `dl-002-use-fastify` added and submitted by Casey, `in-discussion`; its body the
+decision-log template, every section an HTML comment) and `team.ts` (Casey `product-owner`).
+
+#### Probes
+
+- **P1 — markdown-it 14.3.2's inline `text` rule** (`lib/rules_inline/text.mjs`) stops at `<`
+  (0x3C), so an inline rule at `<` sees every `<!--` of an inline run that is not inside a code span
+  (the backtick rule consumes the span first); fenced and indented code are block rules that run
+  before a paragraph. A block rule placed before `paragraph` sees a line that starts with `<!--`
+  (up to three spaces) → D78-3.
+- **P2 — React Aria's Escape** (`react-aria` 1.x `useOverlay`, `react-aria-components` 1.21.1):
+  Escape is a `useKeyboard` shortcut, which stops the event's propagation when handled, so it does
+  not bubble through the portal to the element page's `<section onKeyDown>` or the side panel's
+  `.drawer` handler. Read from the source; the red test "Escape closes the document dialog only"
+  (page and side panel) decides it — a guard (`event.isPropagationStopped`/a `data-` check) only
+  if it fails.
+- **P3 — where `RenderedArticle` loses the anchor (bug-043).** `replaceContent` sets
+  `article.innerHTML` on every new `html`; `DocumentView` recomputes `html` whenever the lookup
+  changes (index, elements, each probe), so every anchor is a new node after each answer, also the
+  ones whose classification did not change (an external link never waits). The same code serves the
+  Directives view (one change of `byPath`) and, with this task, the element document.
+- **P4 — the merged element views.** `ElementContent` (shared by the page and the side panel) shows
+  the v0.1 `summaryOf` as text; markdown-it is only in the lazy chunks of `docs/pages` and
+  `directives/pages` (`lazyRouteComponent`), not in the entry chunk. `ElementPage` shows the
+  address value raw in the topline (`{shown ? shown.element.id : eid}`) and in a refusal's heading
+  (`element.error ? eid`); `Candidates` has the `<bdi>` in its heading (R2-5) and a plain-text
+  `aria-label` on its list; `ElementSidePanel` has the `<bdi>` in both places (F-5).
+- To run at red: **R1** — WingFoil 0.3.1 lets Casey, holding `approver` on the copy's DNA, approve
+  `dl-002-use-fastify` that Casey submitted (no self-approval rule in `.wingfoil/memory.yaml` for
+  `decision-log`; G-08.1 and G-08.2 as written need it — if the CLI refuses, I stop and report);
+  **R2** — P2's Escape.
+
+#### Decisions
+
+Task-062's D62-13 … D62-17 re-checked against the merged page and panel: they hold, with the
+changes below (the summary and the dialog live in `ElementContent`, so the page and the side panel
+get them at once; the side panel can sit over the Documentation view, which makes D62-15's
+`eldoc-` prefix needed; anchors in the summary, D78-5).
+
+- **D78-1 — bug-043: the anchors are kept, the marks updated in place (AC-6).** `finishDocument`
+  keeps its output and DOMPurify stays last. `RenderedArticle` remembers the last `html` it set;
+  for a new one it compares the two *frames* — each one's inert copy with every link group replaced
+  by an empty placeholder carrying its `data-doc-link` index. Equal frames (only classifications
+  changed): each group whose HTML differs is replaced **by that group from the new, sanitised
+  output** (imported nodes, never an attribute written by hand), every other node — the clicked
+  anchor included — stays the same element; the focus rule of today applies to a replaced group
+  (the same key, else the article). Different frames (a new document, a refetched body): the whole
+  content is set as today. A *group* is the `[data-doc-link="<i>"]` element and, for a refused
+  link, its mark: the mark span gets `data-doc-mark="<i>"` (added to the final pass's allow-list,
+  with the space before it as a text node of the group), so groups are found by attribute, not by
+  sibling order. Comparing with the last `html` string, not the live DOM, keeps a heading's
+  `tabindex="-1"` set by the fragment focus from forcing a full replace. The Documentation,
+  Directives and element views all get it (one component).
+- **D78-2 — The summary (D62-13).** `element/summary.ts` (in the lazy chunk): `summarySource(body)`
+  parses with the element instance of D78-3 and renders the first top-level `paragraph` alone
+  (tokens `paragraph_open` … `paragraph_close` at level 0, with the document's `env`, so
+  `[x][ref]` resolves); then `DOMPurify` with the allow-list of step 1, and `finishDocument`.
+  "No summary in the document." when there is none; the missing required fields stay below it.
+  `summaryOf` (v0.1) and its tests go (`model.ts`, `model.test.ts`). Shown through
+  `RenderedArticle` as a `div` (no landmark, no name, no focus on load).
+- **D78-3 — HTML comments (the approver's Q2 (b)).** `markdownToSafeHtml(source, { comments: 'drop'
+  })`: a second markdown-it instance with the same options (`html: false`) and two rules — a block
+  rule before `paragraph` that drops a comment block (a line starting with `<!--`, through the line
+  holding `-->`, as CommonMark's HTML block type 2; an unclosed one to the end, as v0.1's summary)
+  and an inline rule that drops `<!--` … `-->` in a run of text (P1). Code (fenced, indented, code
+  spans) keeps them. The default stays the Documentation and Directives behaviour (comments shown as
+  text). *Source* shows the body as written, comments included.
+- **D78-4 — The document dialog (D62-14).** *Open document*, a button under the summary, opens a
+  React Aria `DialogTrigger` › `Modal` (`isDismissable={false}`, ux §5) › `Dialog` named by the
+  element's title (the server-escaped title, K1, as React text) with *Close*; a `ToggleButtonGroup`
+  *Rendered / Source* (single selection, never empty, Rendered by default, not in the URL); Rendered
+  — the whole body through D78-3 and `finishDocument` in a labelled `RenderedArticle`; Source — the
+  body as written in a focusable `<pre>` (React text, monospace, no wrap, scrolls, named "Source").
+  An empty or whitespace-only body: "No content yet" in both modes
+  (G-03.3). Escape and *Close* close it and give the focus back to *Open document*
+  (the trigger). Opened from the element page and from the side panel alike.
+- **D78-5 — Links and images (D62-15, adr-002, AC-3).** Relative links resolve against
+  `element.path` (`resolveLink`), classified by `classifyLink` against the lookup of D78-6: an
+  indexed document opens in the Documentation view, a Memory file its element page, `http(s)` in a
+  new tab (`noopener noreferrer`), every other scheme, `//host`, a path above the root marked as
+  today; images become their marked alternative text (no `img` in the page allow-list: nothing is
+  fetched). A link selected in the dialog closes it and navigates (`router.navigate({ href })`; from
+  the side panel the address loses `panel=`: G-03.4 lands on the element page). Anchors
+  (`#section`): `FinishOptions.headingPrefix` (default `doc-`, the element document `eldoc-`) and
+  a `RenderedArticle` prop `onAnchor(fragment)` — in the dialog the heading of the same article
+  takes the focus, no navigation; in the summary the dialog opens on Rendered with that heading
+  focused. The anchor's `href` is `#<fragment>`, never a route.
+- **D78-6 — The lookup moves (D62-15).** `useLinkLookup` moves from `docs/pages.tsx` to
+  `docs/link-lookup.ts` unchanged (the index, `GET /elements`, at most `MAX_LINK_CHECKS` = 100
+  `/files/content` checks), with one option `{ onlyWithRepositoryLinks }` that the element document
+  sets: a body with no repository-path link reads nothing beyond the element. One lookup per
+  element, over the whole body, shared by the summary and the dialog. The Documentation view calls
+  it as today.
+- **D78-7 — Lazy module.** `element/document.tsx` (`React.lazy` from `ElementContent`, `Suspense`
+  with the polite line "Loading the summary…"): the summary, the button and the dialog, so
+  markdown-it stays out of the entry chunk as for the Documentation and Directives views.
+- **D78-8 — Text from the body is document content (D62-16, D56-2).** The body is rendered and
+  shown in *Source* as written (no character escape; a Markdown backslash stays one), as the
+  Documentation view does; titles and texts the server escapes (K1, task-072) are React text. No
+  script, no raw HTML (`html: false`, DOMPurify last), no image request: the security review's
+  checks (Q3 (a): no Content-Security-Policy here, bug-039).
+- **D78-9 — The address value isolated on the element page (AC-7).** `ElementPage`'s topline and a
+  refusal's heading wrap the address value in `<bdi>` as `ElementSidePanel` does (the server's
+  `element.id` once shown stays a key shown raw, bug-041). The candidates' list is named by its
+  heading (`aria-labelledby`, the heading holds the `<bdi>`), not by a second plain-text copy:
+  Q3. The page title (`document.title`) keeps the value as text: Q2.
+- **D78-10 — Strings and screens (D62-17).** Catalogue keys (sorted in place):
+  `element.document.open` "Open document", `element.document.view` (the switch's label "View"),
+  `element.document.rendered` "Rendered", `element.document.source` "Source",
+  `element.document.empty` "No content yet", `element.summary.loading` "Loading the summary…".
+  `SCREENS` (append-only): "element document — rendered" and "element document — source"
+  (`dl-002-use-fastify` with a scenario-local body: headings, a table, a link of each class, an
+  image), both themes, both builds.
+- **D78-11 — e2e support.** `expectNoImageRequest(page, action)` in `test/e2e/support/element.ts`
+  (a `request` listener on `resourceType() === 'image'` and any URL ending in an image name of the
+  body, around the action); `documentDialog(page)` → `getByRole('dialog', { name: <title> })`.
+  `sidePanel(page)` keeps `[role="dialog"][data-element-view]` (the document dialog has no
+  `data-element-view`).
+
+#### Files
+
+New: `web/src/element/{document.tsx,summary.ts}`, `web/src/docs/link-lookup.ts`,
+`test/web/element/{document.test.tsx,summary.test.ts}`, `test/web/docs/classification-in-place.test.tsx`,
+`test/e2e/decision-log.spec.ts`. Changed: `web/src/element/{ElementView,ElementPage,Candidates,model,
+element.css}`, `web/src/docs/{render.ts,RenderedArticle.tsx,pages.tsx,docs.css}`, `web/src/i18n/en.json`,
+`test/web/element/{page,panel,model}.test.ts(x)` (the summary is lazy: `findBy`), `test/web/docs/render.test.ts`
+(the `data-doc-mark` attribute), `test/e2e/documentation.spec.ts` (bug-043's test appended),
+`test/e2e/support/{element,screens}.ts`. Docs: `ux-reference.md` 1.19 (§4.2 v0.3: comments left out
+of the rendered document, anchors, the dialog's links), `CHANGELOG.md` *Unreleased* (*Added* the
+rendered summary and document; *Fixed* bug-043), `docs/user-guide.md` (reading an element's
+document), `test/README.md` (version line, the new suites); adr-002 and spec-011 hold as written.
+No server, contract or `.wingfoil/` change.
+
+#### Acceptance criteria — class and test plan
+
+| AC / scenario | Class | Test (file › title) |
+|---|---|---|
+| AC-6 bug-043 | red-first | `test/web/docs/classification-in-place.test.tsx` › "bug-043 — a link keeps its element while a lookup answers, and a click on it opens" (the probe of a missing file held; the external and the document link taken; the probe answered; the same nodes `isConnected`, the *broken link* mark shown, a click on the held document link navigates) — red today (`isConnected` false); › "a refetched document replaces the content (another frame)" (characterization); › "a focused link whose group changes keeps the focus by its key" (characterization of review F1's rule) |
+| AC-6 bug-043 e2e | red-first | `test/e2e/documentation.spec.ts` › `bug-043 — A link clicked while a link check is pending opens` (`page.route` holds `/files/content?path=…missing-file.md` until after the click on *Guide*; the new tab opens; then the route is released and *broken link* shows); R-09.4 unchanged |
+| AC-7 | red-first | `test/web/element/page.test.tsx` › "AC-7 — isolates the address value on the element page (topline and a refusal’s heading)" (an `eid` holding U+202E: the topline's and a 404 heading's value inside a `bdi`); › "AC-7 — names the candidates’ list by its heading (one text, the value isolated)" (`aria-labelledby`, the name unchanged) — red today |
+| AC-3 summary | red-first | `test/web/element/summary.test.ts`: the first top-level paragraph after comments, headings and a list; a reference link; emphasis and code; a comment inside a code span kept; none → `undefined` |
+| AC-3 dialog | red-first | `test/web/element/document.test.tsx`: the summary rendered on the page and in the side panel; *Open document*; Rendered by default; Source as written (comments kept); "No content yet"; Escape and *Close* back to the button; Escape closes the dialog only (page and side panel, R2); raw HTML (`<img src=x onerror=…>`, `<script>`) as text; `javascript:`, `data:`, `//host` marked; a relative link to an element file → `/p/<pid>/e/<id>`, selected → the dialog closes and the page navigates; an anchor focuses its heading in place, from the summary opens the dialog on it; images as marked text, no `img` in the DOM; heading ids `eldoc-`; comments left out of Rendered (Q2 (b)); a body with no repository link reads only the element (the stub API's requests) |
+| AC-3 renderer | characterization + red | `test/web/docs/render.test.ts` (`comments: 'drop'` cases; the default unchanged); `test/web/docs/docs.test.tsx` unchanged (the lookup moved) |
+| AC-1 G-03.1 … G-03.4 | red-first | `test/e2e/decision-log.spec.ts` (new, `prebuild: ['custom']`, copies with scenario-local commits, `identity.ts` for Casey): `G-03.1 — Read a decision-log as a rendered document` (the body with Context, Options, Decision; the dialog's headings; the history line "submitted by Casey" with its commit); `G-03.2 — Open the decision-log from Documentation links` (`docs/01_vision/00_index.md` links to `dl-002`'s file; the page in `main`, no side panel, the summary's emphasis rendered); `G-03.3 — Read a decision-log with an empty body` (`dl-003-empty` added and its body emptied on the copy); `G-03.4 — Open a linked element from a summary in the main region` (Casey's *Waiting on others* side panel of `dl-002`, its summary's link to `dl-001`'s file → `dl-001`'s page); `AC-3 — No image is requested when the document opens` (`expectNoImageRequest` around opening the dialog of a body with a remote and a relative image) |
+| AC-2 G-08.1 … G-08.3 | red-first (G-08.1, G-08.2: the copy's DNA gives Casey `approver`, R1) · characterization (G-08.3, the v0.2 reserved line) | same spec: `G-08.1 — Approve a decision-log as a product owner holding approver`, `G-08.2 — Send a decision-log back to draft` (the commits' subjects; Today's row "Rejected by Casey: Needs a cost estimate"), `G-08.3 — Keep the decision informational for a product owner without approver` |
+| AC-4 | red-first | `test/e2e/accessibility.spec.ts` — the two `SCREENS` entries of D78-10 (X-06.4, X-09.1, both themes, both builds); keyboard in `decision-log.spec.ts` (`expectFocusVisible` on *Open document*, the switch, the Source block, the dialog's *Close*; Tab stays in the dialog) |
+| AC-4 three engines | gate | `gates.yml` own specs: `decision-log`, `documentation`, `accessibility` and every spec changed |
+| AC-5 | docs, gates | the docs above; local typecheck, lint, format:check, `docs:api`, targeted `npx vitest run --maxWorkers=2`, `check_tasks.py v0.3`, `public-text`; heavy gates on `gates.yml` (run id, commit, result); the G-08.x suites commit through the console: on the CI runner (a fresh account, task-071) and, for any local git-touching suite, the strict-identity recipe (dl-011) |
+
+Red first for bug-043 and AC-7: the failing tests are committed before the fix; a test that passes
+on its first run gets a guard removal (Wave 3 lesson). The e2e of the red commit runs on `gates.yml`
+with the green commit (no local Playwright).
+
+#### Security review (for the adversarial reviewer)
+
+No script (markdown-it `html: false`, DOMPurify last on every path, D78-1's patch moving only nodes
+of a sanitised output), raw HTML only as text, links confined (`resolveLink`, `classifyLink`, the
+final pass's `ALLOWED_URI_REGEXP`), no image request (no `img` in the page allow-list; the e2e),
+the comment rule (D78-3) unable to turn text into markup (it only drops input), the address value
+isolated (D78-9), the Documentation view's behaviour unchanged but for D78-1.
+
+#### Open questions
+
+- **Q1 — Size (RP3-20 G2): about 1.25 active days.** Options: (a) no split — bug-043 changes the
+  `RenderedArticle` the element document is built on, AC-7 is a few lines; (b) bug-043 in a task of
+  its own before this one. **Recommendation: (a)** — one renderer change, one security review.
+- **Q2 — The page title holds the address value** (`title.projectElement`, `document.title` is
+  plain text: no `<bdi>` there). Options: (a) as it is, recorded with bug-041's keys shown raw (AC-7
+  lists the page's visible places only); (b) the value between U+2068 and U+2069 in the title (every
+  `toHaveTitle` of an element page changes). **Recommendation: (a).**
+- **Q3 — The candidates' list name** (AC-7 names it; an `aria-label` is a string, no `<bdi>`).
+  Options: (a) the list named by its heading (`aria-labelledby`): the one visible text holds the
+  `<bdi>`, the accessible name is unchanged; (b) U+2068/U+2069 around the value in the `aria-label`
+  (the name changes for the tests of task-062 and task-077). **Recommendation: (a).**
+
+#### Size
+
+About 1.25 active days: bug-043's patch and its tests 0.25 d; the summary, the comment rule, the
+dialog, the lookup move, the renderer options and their web tests 0.45 d; AC-7 0.05 d; the
+decision-log spec with its scenario-local fixtures, the two screens and the characterization moves
+0.3 d; docs, `gates.yml` runs, review rounds 0.2 d. Above one day: Q1.
+
+**Decisions of the approver** (2026-11-12, relayed by the coordinator: "q1-q3 come consigli"): Q1
+(a) — no split; Q2 (a) — the page title keeps the address value as text, recorded with
+bug-041-repository-keys-shown-on-the-page-are-not-escaped (keys shown raw); Q3 (a) — the
+candidates' list is named by its heading (`aria-labelledby`). The design names no spec change:
+spec-011 and adr-002 hold as written, so no Process Note is added.
+
+### red / green / refactor (2026-11-12)
+
+- **R1 (red):** WingFoil 0.3.1 lets Casey approve the decision-log Casey submitted once the DNA
+  gives Casey `approver`. A scratch vitest file run once and then deleted (`buildFixture('custom')`,
+  `dna update team.members --value Casey --entry-roles 'product-owner, approver'` as Casey, then
+  `memory approve dl-002-use-fastify --reason …` as Casey) gave exit 0 and the last commit
+  `wf(decision-log): approve dl-002-use-fastify [in-discussion → ready]` by casey@example.test.
+  `wingfoil/dist/core/approval-authority.js` checks only the `approver` role at `HEAD`; it has no
+  self-approval rule. G-08.1 and G-08.2 hold as written.
+- **R2 (red):** Escape in the document dialog closes the dialog only, on the element page and on
+  the side panel. React Aria's overlay stops the key (P2). Tests: `document.test.tsx` › "closes with
+  Escape and with Close, …" and "opens from the side panel too, and Escape closes the dialog only
+  (R2)". No guard was needed.
+- **Probe P1, correction:** the web bundles markdown-it **15.0.2** (`web/node_modules`); the copy
+  in the root `node_modules`, read at design, is 14.3.2. 15.0.2's `isTerminatorChar` also stops the text rule at `<`
+  (`dist/markdown-it.mjs`), so D78-3 holds.
+- **Red** (`9e0d5c8f`; `npx vitest run --maxWorkers=2 test/web/docs/classification-in-place.test.tsx
+  test/web/element/page.test.tsx`, then `test/web/element/summary.test.ts test/web/docs/render.test.ts
+  test/web/element/document.test.tsx`). Every new test failed on its behaviour except
+  `summary.test.ts`, which failed on the missing module (`summaryHtml`); `document.test.tsx` covers
+  the same summary on behaviour.
+  - **bug-043:** `isConnected` was false after the link check answered.
+  - **AC-7:** no `bdi` in the topline or the 404 heading; the list was named by `aria-label`.
+  - **D78-3:** the comments were shown as text.
+  - **D78-1:** the mark had no `data-doc-mark`.
+  - **D78-5:** heading ids stayed `doc-`.
+  - **Dialog:** no *Open document* and no rendered summary (12 tests).
+  - **Passed at red (characterization):** "a refetched document replaces the content" and two of
+    the comment cases ("keeps a comment inside code", "dropping a comment never makes markup") pass
+    because the `comments` option is ignored. Guard removals below.
+
+  The e2e (`decision-log.spec.ts`, bug-043 in `documentation.spec.ts`, the two `SCREENS` entries)
+  was committed with the red tests and runs on `gates.yml` with the green commit.
+- **Green:**
+  - **`docs/render.ts`:** `commentFreeMarkdown` with a block rule and an inline rule that drop
+    comments; `markdownToSafeHtml(source, { comments })`; `sanitiseMarkdownHtml`;
+    `FinishOptions.headingPrefix`; the refused mark carries `data-doc-mark`, added to the final
+    pass's allow-list.
+  - **`docs/RenderedArticle.tsx`:** `patchLinks`. It compares the frames of the last and the new
+    HTML and replaces only the changed groups with nodes imported from the new sanitised output;
+    otherwise the content is replaced as before. New props: `as`, `className`, `focusOnShow`,
+    `headingPrefix`, `onAnchor`.
+  - **`docs/link-lookup.ts`:** the lookup moved from `pages.tsx`, with `onlyWithRepositoryLinks`.
+    `pages.tsx` re-exports `MAX_LINK_CHECKS`.
+  - **`element/summary.ts`, `element/document.tsx`:** new; `document.tsx` is lazy, loaded from
+    `ElementView.tsx`. `ElementContent` takes `pid`.
+  - **`ElementPage.tsx`:** the `<bdi>`.
+  - **`Candidates.tsx`:** the list is named by its heading (`aria-labelledby`).
+  - **Removed:** `model.ts`'s `summaryOf` and its tests.
+  - **`element.css`, `en.json`:** the styles of the summary and the dialog; six catalogue keys.
+  - **Chunks** (`npm run -s build -w web`): markdown-it is only in the lazy `docs-*.js` chunk; the
+    entry and project chunks hold none of its code (`isTerminatorChar` absent).
+- **Characterization changed** (the lazy summary and the new button):
+  - `docs.test.tsx` › "a focused link keeps the focus …": the focused link is now the same element
+    (`toBe(vision)`, before `not.toBe`). This is bug-043's fix, seen from F1's test.
+  - `page.test.tsx`: the summary read with `findByText`; the loading test finds the id inside its
+    `bdi`.
+  - `panel.test.tsx`: the buttons now include *Open document*; the summary read with `findByText`.
+  - `gate-footer.test.tsx` S-24.1 and S-24.2: the footer's buttons exclude *Open document*.
+- **Guard removals** (scratch edits, restored with a file copy):
+  - The inline comment rule given precedence over code spans (`backticks` disabled) → "keeps a
+    comment inside code": 1 failed.
+  - `patchLinks`' frame check removed → "a refetched document replaces the content": 1 failed.
+- **Local checks:** `npm run typecheck`, `npm run lint`, `npm run format:check` clean;
+  `npm run docs:api` generated; `check_tasks.py v0.3` OK.
+- **Targeted vitest runs** (`--maxWorkers=2`):
+  - `test/web/element/{document,page,panel,side-panel,gate-footer,submit-footer,directives,history-text,summary,model,address,footer}`
+  - `test/web/docs/{docs,render,links,labels,classification-in-place}`
+  - `test/web/directives/directives`
+  - `test/web/today/{today,summary,cards}`
+  - `test/web/shell/{notification-bell,toasts}`
+  - `test/web/memory/list`
+  - `test/web/i18n/*`
+
+  All passed. `test/web/docs` was once run as a folder by mistake (5 files) — noted, not repeated.
+- **Docs:** `CHANGELOG.md` *Unreleased* (*Added* the element's document; *Fixed* bug-043 and AC-7);
+  `docs/user-guide.md` 0.39; `ux-reference.md` 1.19 (§4.2 v0.3 *The rendered document*);
+  `test/README.md` 0.87.
+- **`gates.yml` run `43257871356` on `4b844e37`:** checks, contract, coverage, smoke,
+  publish-smoke and e2e-chromium shard 2 green. e2e-chromium shard 1 failed 6 tests, the Firefox
+  and WebKit own specs 3 each. bug-043's new e2e, R-09.4, G-03.1 … G-03.3, G-08.1, G-08.3 and AC-3
+  passed on all three engines. The causes, all fixed in the next commit:
+  - **Contrast in dark theme (axe `color-contrast`, serious)** on the switch's options in X-06.4
+    and in AC-4. The options are React Aria `ToggleButton`s, so `<button>`s that kept the browser's
+    button fill under `.segmented-option`, a style written for other markup. Fix: no frame or fill
+    on the switch's options, and their focus ring (`element.css`).
+  - **X-09.1 *element document — rendered*:** the image's alternative text ("Architecture
+    diagram") is a word of a long body, which the catalogue check does not count as data. The
+    image is removed from the screen's body; images stay covered by AC-3's e2e and the web tests.
+  - **G-03.4:** `dl-002` was not among Casey's 10 *Waiting on others* rows (the custom fixture's
+    gates fill them first). The scenario's Given ("the side panel of dl-002 is open on Today") now
+    opens `/p/<pid>/today?panel=dl-002-use-fastify` by its address.
+  - **G-08.2:** the row read "Rejected by Alex": `actAs` sets only `user.email` on the copy, and its
+    `user.name` was still Alex, the builder's last identity. The spec's copy now sets
+    `user.name Casey` too, as the harness's `as()` does.
+- **`gates.yml` run `43262058499` on `0874c6d5`:** every job green except e2e-chromium shard 1,
+  which failed 1 test (187 passed): `gate-footer.spec.ts` › S-24.1 listed the element's buttons as
+  `['Close']` and now also found *Open document*. The own specs on Firefox and WebKit passed,
+  including `decision-log.spec.ts` and bug-043's test (the two screens' `accessibility.spec.ts` was
+  not among them: corrected at the checker, G-2). S-24.1 and S-24.2 now leave
+  *Open document* out of the footer's buttons, as their web tests do.
+- **`gates.yml` run `43265905928` on `34131a5c`: success.** Every job of the task scope passed on
+  the first attempt: checks, contract, coverage, smoke, publish-smoke, both e2e-chromium shards and
+  the own specs on Firefox and WebKit. `e2e-wave` was skipped (task scope).
+- **Refactor:** none beyond the fixes above.
+
+e2e closure — every scenario and criterion this task closes, at the tip:
+
+| Scenario / AC | Spec file › test |
+|---------------|------------------|
+| G-03.1 (AC-1) | `test/e2e/decision-log.spec.ts` › `G-03.1 — Read a decision-log as a rendered document` |
+| G-03.2 (AC-1) | same › `G-03.2 — Open the decision-log from Documentation links` |
+| G-03.3 (AC-1) | same › `G-03.3 — Read a decision-log with an empty body` |
+| G-03.4 (AC-1) | same › `G-03.4 — Open a linked element from a summary in the main region` |
+| G-08.1 (AC-2) | same › `G-08.1 — Approve a decision-log as a product owner holding approver` |
+| G-08.2 (AC-2) | same › `G-08.2 — Send a decision-log back to draft` |
+| G-08.3 (AC-2) | same › `G-08.3 — Keep the decision informational for a product owner without approver` |
+| AC-3 | same › `AC-3 — No image is requested when the document opens`; `test/web/element/document.test.tsx` (the summary, the dialog, links, anchors, raw HTML, images, comments, no extra read); `test/web/element/summary.test.ts`; `test/web/docs/render.test.ts` › *HTML comments left out of an element document (D78-3)*, *link groups (D78-1)* |
+| AC-4 | `decision-log.spec.ts` › `AC-4 — The document dialog is keyboard operable and accessible`; `test/e2e/accessibility.spec.ts` › X-06.4 and X-09.1 for *element document — rendered* and *element document — source* |
+| AC-6 (bug-043) | `test/web/docs/classification-in-place.test.tsx` › "bug-043 — a link keeps its element while a lookup answers, and a click on it opens"; `test/e2e/documentation.spec.ts` › `bug-043 — A link clicked while a link check is pending opens`; R-09.4 unchanged and green on WebKit in runs `43257871356`, `43262058499` and `43265905928` |
+| AC-7 | `test/web/element/page.test.tsx` › "AC-7 — isolates the address value on the element page (topline and a refusal’s heading)", "AC-7 — names the candidates’ list by its heading (one text, the value isolated)" |
+| AC-5 | this section's checks and runs; `CHANGELOG.md`, `docs/user-guide.md` 0.40, `ux-reference.md` 1.21, `test/README.md` 0.90 |
+
+### security review round 1 (2026-11-12)
+
+The review was independent and adversarial, on `99857c0f`. **FAIL**: no security defect, no major
+finding. F-1 and F-2 are behaviour defects (minor); F-3 … F-6 are about test strength. All six are
+fixed here. Red first: `bc919ac8`. Every check below that deletes code was a scratch edit, restored
+with a file copy; `git status` showed only the fix's own files afterwards.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| F-1 (minor) — the comment rules dropped real text. `<!-- hint --> Decision: …` rendered empty and the summary read "No summary"; `   <!-- hint -->Second line kept?\nmore text` kept only "more text"; an unclosed inline `Write <!-- to open a comment.` rendered "Write" | `web/src/docs/render.ts`: the block rule applies only when blanks alone follow the `-->` of its closing line, giving the same answer in silent mode; otherwise the paragraph keeps the line and the inline rule drops the comment alone. An inline `<!--` with no `-->` in its run is text, as CommonMark reads it. A comment that opens its line takes the blanks after it along. An unclosed comment *block* still runs to the end of its container (CommonMark's type 2; GitHub hides it the same way) | `render.test.ts` › the three "F-1 — …" tests and `summary.test.ts` › *summaryHtml keeps the text around a comment* (3 tests): all six failed at `bc919ac8` (`''`, `'more text'`, `'Write'`) |
+| F-2 (minor) — a failed load of the lazy document module had no error boundary: TanStack's "Something went wrong!" replaced the whole app | `web/src/element/ElementView.tsx`: `DocumentBoundary` around the `Suspense`, keyed by element. It shows "The summary and the document could not be loaded. Reload the page to try again." and *Reload the page*: a rejected `React.lazy` import stays cached, so only a reload fetches the module again. The rest of the element and the shell stay. Two catalogue keys | `test/web/element/document-unavailable.test.tsx` (`vi.mock` of `element/document.js` throwing on import): the page, the side panel over Directives and the key build — 3 failed at `bc919ac8` (the text not found; the app's error screen instead) |
+| F-3 (minor) — once review F1's test was inverted, nothing tested the focus restore on a full replace | none needed: the restore is right | `classification-in-place.test.tsx` › "a focused link keeps the focus by its key when a refetched body replaces the content (F-3)". It is written against correct code, so it passed at once. With `restoreFocus` removed from `replaceContent`: 1 failed |
+| F-4 (nit) — the "never makes markup" tests could not fail, because DOMPurify hid any `html_*` token | none needed beyond F-1 | `render.test.ts` › "F-4 — %j renders as the same Markdown without its comment" (8 cases; since round 4 "F-4 — %j agrees with CommonMark with its comments left out"). On `commentFreeMarkdown.parse` it asserts no `html_*` token; on its render, before DOMPurify, it asserts the same HTML as the source without its comment. 3 cases failed at `bc919ac8` (F-1's). With the inline rule pushing an `html_inline` token: 5 failed |
+| F-5 (nit) — nothing tested that the dialog closes on navigate | none needed | `document.test.tsx` › "a link to the element’s own file closes the dialog, the page kept (F-5)". The page stays, so only `setOpen(false)` closes the dialog. Passed at once; with `setOpen(false)` removed: 1 failed |
+| F-6 (nit) — the design's planned test "a focused link whose group changes keeps the focus by its key" was missing | none needed | `classification-in-place.test.tsx` › "a focused link whose group changes keeps the focus by its key": a waiting link, focused, becomes a document link when its check answers; the focus is on the new anchor with the same key, and the other links keep their elements. Passed at once; with `restoreFocus` removed from `patchLinks`: 1 failed |
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on:
+- `test/web/docs/{docs,render,classification-in-place}`
+- `test/web/element/{document,document-unavailable,summary,page,panel,side-panel,gate-footer}`
+- `test/web/directives/directives`
+- `test/web/i18n/{catalogue,key-catalogue,key-rendering}`
+
+Run `43273562501` on `bd46e453` (round 1's red `bc919ac8` and its fixes): **success**. Every job
+of the task scope passed on the first attempt.
+
+### security review round 2 (2026-11-12)
+
+The review was independent and adversarial, on `07d87c2e`. **FAIL**: F-2 … F-6 verified fixed; no
+markup can be created (about 50 probes, zero `html_*` tokens). Round 1's F-1 fix brought two
+regressions (R2-1, R2-2). All six findings are fixed here. Red first: `cbd3006f`. Every check below
+that deletes code was a scratch edit, restored with a file copy.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| R2-1 (major, availability) — the comment rules scanned in quadratic time: the block rule's silent scan ran on every line, the inline `indexOf` ran to the end for every unclosed opener, and `lastIndexOf` searched back to the line start for every comment. A 100 KB body took 2.6–6.7 s | `web/src/docs/render.ts` › `nextClose`: one forward search for `-->`, whose answer each parse state keeps; a later search starting between that search's start and its answer reuses the answer, so the scans of a parse stay linear. The block rule searches once per call. The inline rule bounds the close to `posMax` and finds the line start by looking back over blanks only. Measured with a throwaway probe file (`plainMarkdown` vs `commentFreeMarkdown`): 100 KB lines 88 / 6 ms, link label 35 / 31 ms, unclosed openers 10 / 12 ms, closed comments 22 / 4 ms; 1 MB 158 / 50 ms | `test/web/docs/comment-linear.test.ts`: each body within 5 × plain markdown-it on the same input + 250 ms, with one retry. The four 100 KB cases failed at `cbd3006f` (7143, 5770, 2642, 458 ms over budget). The 1 MB case was not run on the old code, to spare the machine. With `nextClose`'s cache disabled: "unclosed inline openers" failed |
+| R2-2 (minor) — a multi-line comment whose closing line carried text showed its hidden content (a heading, a live link) | a comment over several lines is a block wherever it starts, interrupting a paragraph as CommonMark's type 2 does. Its lines are dropped, and the text after its `-->` becomes a paragraph of its own (`paragraph_open` / `inline` / `paragraph_close`, the text parsed inline); nothing inside the comment is parsed | `render.test.ts` › the F-4 table's three cases of the reviewer: failed at `cbd3006f` |
+| R2-3 (minor, test strength) — the silent-mode answer was untested | a single-line comment never interrupts a paragraph (silent mode answers no); a multi-line one does | the F-4 table gained `'Line\n<!-- a --> tail'`, `'> q\n> <!-- a --> tail'` and `'- a\n<!-- c --> lazy'`. They passed at red: the old code answered the same. With `if (silent) return true;` moved before the scan: 2 failed |
+| R2-4 (nit) — `'<!-- c -->\n==='` rendered an empty heading; `'- item\n  <!-- c -->\n  more'` gave `itemmore` | the block rule is registered before `lheading`. A comment line inside a paragraph keeps the paragraph, and the inline rule drops a whole-line comment with its line break, so its neighbours stay one line apart. The F-4 case `'Line\n<!-- a -->\nNext'` is now one paragraph, "Line\nNext" (it was two) | both cases in the F-4 table failed at `cbd3006f`. With the rule before `paragraph` again: the `===` case failed; without the line-break removal: the list case failed |
+| R2-5 (nit) — *Reload the page* kept a `#…` fragment | `ElementView.tsx` › `pageReload.replace(ownAddress(window.location.href))`, as the session recovery does (task-063 D63-6) | `document-unavailable.test.tsx` › "R2-5 — Reload the page replaces the address without its fragment" failed at `cbd3006f` on the missing `pageReload` seam (the test needs it to spy). With the button back on `window.location.reload()`: 1 failed |
+| R2-6 (nit, docs) | `docs/user-guide.md` 0.40 and the `CHANGELOG.md` entry: only the comments are left out, and the "could not be loaded / Reload the page" state; `ux-reference.md` 1.20; `test/README.md` 0.88 lists `document-unavailable` and `comment-linear` | — |
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on:
+- `test/web/docs/{render,comment-linear,docs,classification-in-place}`
+- `test/web/element/{summary,document,document-unavailable,page,panel}`
+- `test/web/directives/directives`
+- `test/web/i18n/{catalogue,key-rendering}`
+
+Run `43280997677` on `e632664b` (round 2's red `cbd3006f` and its fixes): **success**. Every job
+of the task scope passed on the first attempt.
+
+### security review round 3 (2026-11-12)
+
+The review was independent and adversarial, on `8fc87035`. **FAIL**: R2-1 … R2-6 verified, each
+failing with its guard removed; linear on 33 adversarial inputs (every ratio ≤ 1.51 against plain
+markdown-it); no markup can be created (about 70 probes). Two findings, both handled here. Red
+first: `63e29719`.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| R3-1 (major, content integrity) — a comment over several lines escaped its container (a list item, a quote's lazy lines) and hid content CommonMark and GitHub show: an unclosed `<!--` in a list item hid the rest of the document | `web/src/docs/render.ts` › `commentBlock`: the comment ends at the first non-blank line indented less than the container's content (`sCount < blkIndent`, as markdown-it's own `html_block` breaks), with `state.line` at that line; it is closed only when its `-->` lies on a line before that | the six repros in the F-4 table (each matches the same Markdown with only the comment removed): 6 failed at `63e29719`, i.e. on the previous rule. With the container check removed (scratch edit, restored): 6 failed |
+| R3-2 (nit, test strength) — the inline rule's `posMax` bound had no test | kept as **defensive**, with a code comment: markdown-it lowers `posMax` only to tokenize a link's text, whose label `skipToken` has already scanned with this rule, so no input reaches past the label's end (the reviewer found none, nor did I) | — (replacing it with `if (close < 0) return false;` keeps every test green, as the reviewer found) |
+
+`comment-linear.test.ts` passed again after R3-1, with a new case: an unclosed opener in each of
+20 000 list items. A probe found one cost that is not the rule's. A quote whose comment is followed
+by a lazy line (`'> <!--\nlazy\n'` repeated) ends the quote's content at the lazy line, as markdown-it
+does after any non-paragraph block. markdown-it 15.0.2 is then quadratic on it: 2 500 / 5 000 pairs
+took 1 542 / 5 700 ms with the comment rules, and plain markdown-it took 1 457 / 4 924 ms on
+`'> # h\nlazy\n'` and 5 565 ms on `'> ```\nlazy\n'` (5 000). That cost is the Documentation and
+Directives views' too. It is reported to the coordinator, not tested against the budget here.
+
+The CHANGELOG, `docs/user-guide.md` and `ux-reference.md` line "only the comments … text after
+one is kept" stays true: an unclosed comment still hides only itself, now up to the end of its
+container.
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
+`test/web/docs/{render,comment-linear,docs}`, `test/web/element/{summary,document}`.
+
+Run `43289177462` on `4cad26df` (round 3's red `63e29719` and its fix): **success**. Every job
+of the task scope passed on the first attempt.
+
+### security review round 4 (2026-11-12)
+
+The review was independent and adversarial, on `d75b847d`. **PASS**: R3-1 and R3-2 hold (26
+targeted cases match a CommonMark oracle; about 90 000 fuzz cases show no structural difference);
+complexity stays linear and there are no regressions. Three findings: R4-1 and R4-3 are fixed here,
+red first (`80a66bdc`); R4-2 waits for the approver.
+
+| Finding | Fix | Red evidence |
+|---------|-----|--------------|
+| R4-1 (minor, test strength) — the `&& !state.isEmpty(line)` term of the container check had no test | none needed: the term is right (a blank line inside a comment does not end it) | the F-4 table gained `'- x\n  <!--\n\n  secret [link](http://e)\n  -->\n'` and `'- <!-- a\n\n  hidden\n  b -->\n- c'`. They pass on the rule; with markdown-it's literal `if (state.sCount[line]! < state.blkIndent) break;` in its place (a scratch edit, restored with a file copy) both fail: the "secret" link and "hidden" are shown |
+| R4-3 (nit) — in a tight list the tail paragraph glued to the next line (`<li>tailnext</li>`) | `web/src/docs/render.ts`: the closing line now starts after `-->` (`bMarks`, `tShift`, `sCount` of that line) and goes to markdown-it's own paragraph rule. The text after the comment is the first line of a paragraph that its continuation lines join ("tail\nnext"), and it is always a paragraph — never read as a heading, a list or code | `'- a\n- <!-- x\n  y --> tail\n  next\n'` in the F-4 table failed at `80a66bdc` |
+| R4-2 (minor; the approver, 2026-11-12, "gate 1 e 2 come consigliato": align) — a single-line comment did not end its block as CommonMark's type 2 HTML block does, so an indented code block after it became paragraph text | `web/src/docs/render.ts`. (1) A line starting with `<!--` is a block, single-line comments included, and it interrupts a paragraph: silent mode answers yes. (2) The block's visible text — what a browser shows of the raw block CommonMark keeps (`visibleHtmlText`: the HTML tokenizer's `<!-->`, `<!--->` and `--!>`; an unclosed comment hides the rest) — becomes a paragraph of its own: the text after `-->`, a paragraph of exactly its lines. (3) A dropped block leaves a line break (an `inline` token holding a soft break) before and after, so nothing glues in a tight list. (4) The inline rule stays for comments inside a line; it now pushes an empty `text` token where the comment was, so blanks before it make no hard break, as CommonMark's inline HTML. **R4-3's fix is replaced:** no more paragraph rule taken from `block.ruler.__rules__`, so no undocumented markdown-it internals are used. **Expectations changed on purpose** (they matched the old behaviour): R2-3's `'Line\n<!-- a --> tail'` and R2-4's `'Line\n<!-- a -->\nNext'` are now two paragraphs, not one; `summary.test.ts` › "an indented comment: the text after it, alone" — the summary of `'   <!-- hint -->Second line kept?\nmore text'` is "Second line kept?" | `test/web/docs/commonmark-oracle.ts` (new) is the reviewer's oracle as a test module: the web's markdown-it 15.0.2 with `html: true`; each HTML block replaced by its visible text as a paragraph, between line breaks; inline comments removed and other inline raw HTML kept as text. `render.test.ts`: the F-4 table now asserts agreement with it (text, and structure without paragraph tags) and no `html_*` token, over the earlier cases plus every repro of rounds 1–4. A seeded fuzz of 400 bodies uses 24 pieces of Markdown structure, openers, closers and text. Red at `d8c118ef`: 4 table cases (`'- a\n<!-- c --> lazy'`, the two R4-2 repros, `'<!-- a --> tail <!-- b\nnext line'`) and the fuzz failed. Guard removals (scratch edits, restored with a file copy): silent mode answering no → 5 failed; no line break → 2 failed (the two tight-list cases); the visible text cut after the first `-->` only → 10 failed; no empty `text` token → `'Text  <!-- c -->\nmore'` failed; R4-1's container check without `!state.isEmpty(line)` → R4-1's 2 cases failed. Throwaway fuzz probe, 5 seeds × 3 000 bodies: 0 differences, 0 `html_*` tokens. At first the fuzz left out the bodies holding a comment that markdown-it 15.0.2's inline HTML rule rejects (`inlineCommentQuirk`). The predicate wrongly named a `--` inside as a cause: that regular expression accepts it and rejects only a `-` just before `-->`. The skip also covered block comments. It was removed at review round 5 (R5-1): the oracle now reads inline comments by CommonMark 0.31 |
+
+R4-4 (the approver): the quadratic cost of markdown-it on quotes with lazy lines (round 3) is
+bug-047-a-markdown-body-of-quotes-with-lazy-lines-blocks-the-page-while-it-is-rendered, for v0.4
+(filed by the coordinator at `7268be72`, submitted at `07cf5d13`). `CHANGELOG.md` *Unreleased* ›
+*Known limitations* has its line, and `comment-linear.test.ts`' comment names it.
+
+Docs: `ux-reference.md` 1.21 (§4.2 v0.3, R4-2). The CHANGELOG and user-guide lines "only the
+comments … text after one is kept" stay true.
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
+`test/web/docs/{render,comment-linear,docs,classification-in-place}` and
+`test/web/element/{summary,document}`.
+
+Run `43314148095` on `1a89a805` (round 4: `80a66bdc`, `09ae6a08`, `d8c118ef`, `1a89a805`):
+**success**. Every job of the task scope passed on the first attempt.
+
+### security review round 5 (2026-11-12)
+
+The review was independent and adversarial, on `633c82e1`. **PASS**: R4-1 … R4-3 hold, and the
+reviewer's six guard removals were caught. The visible-text rules match a WHATWG tokenizer (parse5)
+on 186 000 fuzzed strings, and an independent structural oracle agrees on the 400 bodies and on
+45 000 richer ones. Complexity stays linear. Three findings, on tests and docs only, all handled
+here.
+
+| Finding | Change | Evidence |
+|---------|--------|----------|
+| R5-1 (low, test strength) — the fuzz skip (`inlineCommentQuirk`) was broader than its reason. markdown-it 15.0.2 accepts a `--` inside a comment and rejects only a `-` just before `-->`; the predicate also skipped block comments: 54 of the 400 bodies, 29 of them for `--` alone | `test/web/docs/commonmark-oracle.ts`: a CommonMark 0.31 inline comment rule (`<!-->`, `<!--->`, `<!--` through the first `-->`) runs before markdown-it's `html_inline` on the oracle; the skip and its predicate are removed, and every body is compared. The R4-2 row above is corrected | the 400 bodies all agree. A throwaway probe of 5 seeds × 3 000 bodies on the new pieces gives 0 differences and 0 `html_*` tokens |
+| R5-2 (low, coverage) — pieces missing from the fuzz, and the oracle parsed the visible text without the document's env | `render.test.ts`'s PIECES gained `\r\n`, `\t`, `10. `, `* `, `+ `, the two fences, a table, a reference definition and `[r]`, NUL, a lazy quote, a tight list, and a tight list with a comment line between continuations. The oracle passes the parse env to `parseInline`, so a reference after `-->` resolves as in the element's document (its documented choice) | with the line breaks of `pushBreak` removed (a scratch edit, restored with a file copy), the fuzz test now fails on its own. Before the tight-list piece with a comment line it passed: only the F-4 table caught it |
+| R5-3 (nit, docs) — `test/README.md` still at 0.88 | 0.89: `test/web/docs/commonmark-oracle.ts`, the seeded fuzz of `render.test.ts`, the F-4 table checked against the oracle | — |
+
+The closed spelling `'> <!-- c -->\nlazy\n'` is the same quadratic class as bug-047 (the reviewer
+adds it to the bug).
+
+Checks: `npm run typecheck`, `npm run lint`, `npm run format:check` clean; `npm run docs:api`
+generated. `npx vitest run --maxWorkers=2`, one file at a time, passed on
+`test/web/docs/{render,comment-linear}` and `test/web/element/summary`.
+
+Run `43320363502` on `dee9f1d8` (round 5): **success**. Every job of the task scope passed on the
+first attempt.
+
+### checker (2026-11-12)
+
+The pre-gate checker on `9424c394`: **NOT READY**, four gaps (G-1 … G-4) and six notes
+(N-1 … N-6), all handled in this round.
+
+| Item | Change | Evidence |
+|------|--------|----------|
+| G-1 — two titles of the test plan did not match the files | the plan's rows now give "a refetched document replaces the content (another frame)" and the two AC-7 titles with their `’` | a script matched every quoted and backticked title of the plan and closure tables against `test/**`: none missing |
+| G-2 — AC-4 on three engines for the two *element document* screens: `accessibility.spec.ts` never ran on Firefox or WebKit (`scripts/e2e-own-specs.mjs` selects no spec for a change under `test/e2e/support/`), and run `43262058499`'s note claimed "the two screens" | the run note corrected; `gates.yml` dispatched on the tip with `specs` = `test/e2e/accessibility.spec.ts test/e2e/no-commit.spec.ts` (the run is recorded below) | — |
+| G-3 — the bug-043 *Fixed* entry did not name the releases the defect shipped in | `CHANGELOG.md`: "The defect shipped in v0.1.0 and v0.2.0." | — |
+| G-4 — `test/README.md`'s body did not name what 0.87–0.89 announce | the body names `documentDialog` and `expectNoImageRequest` in `support/element.ts`; a task-078 line in the per-task e2e list (`decision-log.spec.ts`, bug-043's test in `documentation.spec.ts`, the two *element document* screens); the web suites `classification-in-place`, `comment-linear`, `document`, `summary`, `document-unavailable`, the oracle `commonmark-oracle.ts` and the seeded fuzz; version 0.90 (the first edit after `dee9f1d8`, doc-versioning) | — |
+| N-1 — the round-1 F-4 row named the test's old title | the row adds its title since round 4, "F-4 — %j agrees with CommonMark with its comments left out" | — |
+| N-2 — the AC-5 closure row gave old versions | user guide 0.40, `ux-reference.md` 1.21, `test/README.md` 0.90 | — |
+| N-3 — "dropping a comment never makes markup: %s" had no guard removal | none needed. The test renders through both DOMPurify passes, so it fails only when the rules let raw HTML through *and* a sanitiser is gone; the F-4 table checks the rules alone, before DOMPurify | scratch edit, restored with a file copy: the block rule emitting its visible text as an `html_block` and both DOMPurify passes returning their input → `<!-- a --><script>…` failed; with the `html_block` emission alone (DOMPurify kept) both cases still passed |
+| N-4 — `comment-linear.test.ts`: the list-item case's red, and no guard removal for the 1 MB case | a new case, "a 1 MB body of unclosed openers in list items" (`'- <!--\n'` × 150 000): every block searches for a `-->` that never comes. The 1 MB case of single-line comments stays | at `63e29719` (`render.ts` of that commit) both list-item cases passed: that rule ran an unclosed comment to the document's end in one block, which is linear. With `nextClose`'s kept answer disabled (a scratch edit, restored): the 100 KB case failed (5 655 ms over budget), and the 1 MB one did not end within the 100 s bound of the run (killed by `timeout`; with the rule as it is, the whole file passes) |
+| N-5 — the public-text runs before each push | every push of this task ran `npx vitest run test/docs/public-text.test.ts --maxWorkers=2` first: 67 passed each time, from the design (`c51b0aa4`) to `9424c394` and this round | — |
+| N-6 — R5-1 had no guard removal showing the formerly skipped bodies catch a fault | none needed | the product's inline rule given markdown-it 15.0.2's old reading (a comment whose text ends in `-` rejected), a scratch edit restored with a file copy: the fuzz test failed on 4 of the 400 bodies |
+
+Runs on `6bf74870`: the push run `43326044702` was cancelled by the dispatch that followed it
+(`gates.yml`'s `concurrency`, `cancel-in-progress` per ref). The dispatched run `43326055015`
+(`workflow_dispatch`, scope `task`, `specs` = `test/e2e/accessibility.spec.ts
+test/e2e/no-commit.spec.ts`) succeeded: checks, contract, coverage, smoke, publish-smoke, both
+e2e-chromium shards, and the own specs on Firefox and WebKit — `accessibility.spec.ts` (X-06.4,
+X-09.1, the two *element document* screens among them) and `no-commit.spec.ts` (walking `SCREENS`)
+— all green on the first attempt (G-2).

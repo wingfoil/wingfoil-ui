@@ -110,7 +110,8 @@ it('shows the element as a page of the main region, named by its level-1 title, 
   expect(screen.getByRole('main').contains(page)).toBe(true);
   expect(within(page).getByRole('heading', { level: 1, name: 'Password reset' })).toBeTruthy();
   expect(within(page).getByText(EID)).toBeTruthy();
-  expect(within(page).getByText('Users forget passwords.')).toBeTruthy();
+  // The summary renders once the document module is loaded (task-078, D78-7).
+  expect(await within(page).findByText('Users forget passwords.')).toBeTruthy();
   expect(screen.queryByRole('dialog')).toBeNull();
   // The sidebar stays: the page is a view of the project layout.
   expect(screen.getByRole('navigation', { name: 'Project views' })).toBeTruthy();
@@ -243,7 +244,8 @@ it('names the page "Loading the element…" until the element is read, not by th
   const heading = await screen.findByRole('heading', { level: 1, name: 'Loading the element…' });
   const page = screen.getByRole('region', { name: 'Loading the element…' });
   expect(page.contains(heading)).toBe(true);
-  expect(within(page).getByText(EID).classList.contains('element-id')).toBe(true);
+  // The address's value in the topline, inside its `<bdi>` since task-078 AC-7.
+  expect(within(page).getByText(EID).closest('.element-id')).not.toBeNull();
   expect(screen.queryByRole('heading', { level: 1, name: EID })).toBeNull();
 });
 
@@ -310,4 +312,29 @@ it('isolates the address value in the candidates’ heading on the element page 
   await screen.findByRole('list', { name: 'el-001 names several elements' });
   const heading = screen.getByRole('heading', { level: 2, name: 'el-001 names several elements' });
   expect([...heading.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual(['el-001']);
+});
+
+// task-078 AC-7 (task-077 security review F-5 (a)): the address value is isolated from the text
+// around it wherever the element page shows it, as the side panel does.
+it('AC-7 — isolates the address value on the element page (topline and a refusal’s heading)', async () => {
+  const hostile = 'task-‮46';
+  stubApi(api());
+  renderApp(`/p/${PID}/e/${encodeURIComponent(hostile)}`);
+  const page = await screen.findByRole('region', { name: hostile });
+  await within(page).findByRole('alert');
+  const topline = page.querySelector('.drawer-topline .element-id')!;
+  expect([...topline.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([hostile]);
+  const heading = within(page).getByRole('heading', { level: 1 });
+  expect([...heading.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([hostile]);
+});
+
+// task-078 AC-7, Q3 (a): the candidates' list is named by its heading, which holds the `<bdi>`.
+it('AC-7 — names the candidates’ list by its heading (one text, the value isolated)', async () => {
+  stubApi(api({ [`${API}/el-001`]: { status: 409, body: AMBIGUOUS } }));
+  renderApp(`/p/${PID}/e/el-001`);
+  const list = await screen.findByRole('list', { name: 'el-001 names several elements' });
+  const heading = screen.getByRole('heading', { level: 2, name: 'el-001 names several elements' });
+  expect(list.getAttribute('aria-label')).toBeNull();
+  expect(list.getAttribute('aria-labelledby')).toBe(heading.id);
+  expect(heading.id).not.toBe('');
 });

@@ -10,12 +10,152 @@
  *    alternative text (never loaded), tables wrapped in a focusable labelled region, cell alignment
  *    as a class; then a final DOMPurify pass — nothing reaches the page that DOMPurify did not see
  *    last.
+ *
+ * An element's document (task-078, D78-3; the approver's Q2 (b)) leaves its HTML comments out of
+ * step 1 (`comments: 'drop'`): the template's placeholders are not shown as text; code keeps them.
  */
 import DOMPurify from 'dompurify';
-import MarkdownIt from 'markdown-it';
+import MarkdownIt, { type StateBlock, type StateInline } from 'markdown-it';
 import type { LinkClass, RefusalMark } from './links.js';
 
-const markdown = new MarkdownIt('default', { html: false, linkify: true, typographer: false });
+const OPTIONS = { html: false, linkify: true, typographer: false } as const;
+const markdown = new MarkdownIt('default', OPTIONS);
+
+/** markdown-it as the Documentation view renders (comments shown as text): the tests' reference. */
+export const plainMarkdown = markdown;
+
+const COMMENT_OPEN = '<!--';
+const COMMENT_CLOSE = '-->';
+
+/**
+ * The first `-->` of `src` at or after `from`, or -1 (task-078 review round 2, R2-1). The answer of
+ * the last search of each parse state is kept: a later search from a position between that search's
+ * start and its answer has the same answer, so the forward scans of a parse stay linear in the source
+ * (the rules ask again for every line, every opener and every link label they are tried on).
+ */
+const closeScans = new WeakMap<object, { from: number; found: number }>();
+function nextClose(owner: object, src: string, from: number): number {
+  const last = closeScans.get(owner);
+  if (last && from >= last.from && (last.found < 0 || from <= last.found)) return last.found;
+  const found = src.indexOf(COMMENT_CLOSE, from);
+  closeScans.set(owner, { from, found });
+  return found;
+}
+
+/**
+ * `text` as a browser shows it with its HTML comments removed, by the HTML tokenizer's rules —
+ * `<!-->` and `<!--->` are empty comments, `--!>` also closes one, an unclosed one hides the rest
+ * (review round 4, R4-2): the text after a comment block's `-->`, which CommonMark keeps in the raw
+ * HTML block. Linear: each search goes on from where the previous one stopped.
+ */
+function visibleHtmlText(text: string): string {
+  let out = '';
+  let i = 0;
+  let close = -2;
+  let bang = -2;
+  while (i < text.length) {
+    const open = text.indexOf(COMMENT_OPEN, i);
+    if (open < 0) return out + text.slice(i);
+    out += text.slice(i, open);
+    const j = open + COMMENT_OPEN.length;
+    if (text.startsWith('>', j)) {
+      i = j + 1;
+      continue;
+    }
+    if (text.startsWith('->', j)) {
+      i = j + 2;
+      continue;
+    }
+    if (close !== -1 && close < j) close = text.indexOf(COMMENT_CLOSE, j);
+    if (bang !== -1 && bang < j) bang = text.indexOf('--!>', j);
+    if (close < 0 && bang < 0) return out;
+    i = close >= 0 && (bang < 0 || close < bang) ? close + COMMENT_CLOSE.length : bang + 4;
+  }
+  return out;
+}
+
+/** A line break between blocks: where a dropped comment's raw text was, so nothing glues (R4-2). */
+function pushBreak(state: StateBlock): void {
+  const token = state.push('inline', '', 0);
+  token.content = '';
+  token.children = [new state.Token('softbreak', 'br', 0)];
+}
+
+/**
+ * A comment block (task-078, D78-3; review rounds 1–4): a line that starts with `<!--` (up to three
+ * spaces in) is a block as CommonMark's HTML block type 2 is, single-line comments included, and it
+ * interrupts a paragraph (silent mode answers yes; R4-2). It runs through the line holding the first
+ * `-->`, or — unclosed — to the end of its container: the first non-blank line indented less than
+ * the container's content (a list item's next item or outdented text, a quote's lazy line: `sCount`
+ * -1; R3-1, R4-1) or the end of the parse range. Its lines are dropped and leave a line break, so
+ * the blocks around it never glue in a tight list (R4-3). What a browser shows of the raw block
+ * CommonMark keeps — its text outside the comments ({@link visibleHtmlText}): the text after the
+ * `-->` on the closing line, or after a `--!>` — becomes a paragraph of its own (R2-2, R4-2), parsed
+ * inline like any text: the comment is never turned into markup. Each call scans forward once through {@link nextClose}.
+ */
+function commentBlock(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
+  if (state.sCount[startLine]! - state.blkIndent >= 4) return false;
+  const start = state.bMarks[startLine]! + state.tShift[startLine]!;
+  if (!state.src.startsWith(COMMENT_OPEN, start)) return false;
+  if (silent) return true;
+  const close = nextClose(state, state.src, start + 2);
+  let line = startLine;
+  let closed = false;
+  for (; line < endLine; line++) {
+    if (line > startLine && state.sCount[line]! < state.blkIndent && !state.isEmpty(line)) break;
+    if (close >= 0 && close + COMMENT_CLOSE.length <= state.eMarks[line]!) {
+      closed = close >= state.bMarks[line]!;
+      break;
+    }
+  }
+  // The block's lines as markdown-it's HTML block takes them (container indent removed), and what a
+  // browser shows of them: text after a `--!>` or a closed comment (R4-2).
+  const end = closed ? line + 1 : line;
+  const visible = visibleHtmlText(state.getLines(startLine, end, state.blkIndent, true)).trim();
+  pushBreak(state);
+  if (visible !== '') {
+    const open = state.push('paragraph_open', 'p', 1);
+    open.map = [startLine, end];
+    const inline = state.push('inline', '', 0);
+    inline.content = visible;
+    inline.map = [startLine, end];
+    inline.children = [];
+    state.push('paragraph_close', 'p', -1);
+    pushBreak(state);
+  }
+  state.line = end;
+  return true;
+}
+
+/**
+ * An inline comment `<!--` … `-->` in a run of text (code spans are consumed before, D78-3): only
+ * the comment is dropped, as CommonMark's inline HTML is (R4-2: a comment that starts a line is the
+ * block rule's). An opener with no `-->` in the run is text, as CommonMark reads it (F-1). The
+ * search is bounded and kept per run ({@link nextClose}; R2-1).
+ */
+function commentInline(state: StateInline, silent: boolean): boolean {
+  if (!state.src.startsWith(COMMENT_OPEN, state.pos)) return false;
+  const close = nextClose(state, state.src, state.pos + 2);
+  // The `posMax` bound is defensive (review round 3, R3-2): markdown-it lowers `posMax` only to
+  // tokenize a link's text, whose label `skipToken` has already scanned with this rule, so a comment
+  // there never reaches past the label's end; no input found reaches it. It keeps the rule inside its
+  // run whatever a later markdown-it does.
+  if (close < 0 || close + COMMENT_CLOSE.length > state.posMax) return false;
+  // An empty text token where the comment was: the text before it is flushed, so blanks before it
+  // stay text and never make a hard line break with the next line, as CommonMark's inline HTML
+  // (review round 4, R4-2).
+  if (!silent) state.push('text', '', 0);
+  state.pos = close + COMMENT_CLOSE.length;
+  return true;
+}
+
+/** markdown-it as {@link markdown}, with the HTML comments left out (an element's document). */
+export const commentFreeMarkdown = new MarkdownIt('default', OPTIONS);
+// Before `lheading`: a comment line followed by `===` is no setext heading's text (R2-4).
+commentFreeMarkdown.block.ruler.before('lheading', 'comment_drop', commentBlock, {
+  alt: ['paragraph', 'reference', 'blockquote'],
+});
+commentFreeMarkdown.inline.ruler.before('text', 'comment_drop', commentInline);
 
 /** Tags markdown-it emits (`default` preset, no raw HTML). */
 const MARKDOWN_TAGS = [
@@ -50,14 +190,25 @@ const MARKDOWN_TAGS = [
 /** The page's tags: markdown-it's minus `img`, plus the wrappers {@link finishDocument} adds. */
 const PAGE_TAGS = [...MARKDOWN_TAGS.filter((t) => t !== 'img'), 'div', 'span'];
 
-/** Markdown → sanitised HTML (step 1). */
-export function markdownToSafeHtml(source: string): string {
-  return DOMPurify.sanitize(markdown.render(source), {
+/** What {@link markdownToSafeHtml} does with HTML comments: shown as text (default) or left out. */
+export interface MarkdownOptions {
+  comments?: 'keep' | 'drop';
+}
+
+/** The output of markdown-it sanitised by DOMPurify with the allow-list of step 1. */
+export function sanitiseMarkdownHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: MARKDOWN_TAGS,
     // `style` only for the cell alignment markdown-it writes; turned into a class in step 2.
     ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'start', 'style'],
     ALLOW_DATA_ATTR: false,
   });
+}
+
+/** Markdown → sanitised HTML (step 1). */
+export function markdownToSafeHtml(source: string, options: MarkdownOptions = {}): string {
+  const md = options.comments === 'drop' ? commentFreeMarkdown : markdown;
+  return sanitiseMarkdownHtml(md.render(source));
 }
 
 /** An inert copy of `html` to work on. */
@@ -90,7 +241,15 @@ export interface FinishOptions {
    * Documentation view's ({@link documentHref}). The Directives view gives its own (task-019).
    */
   hrefOf?: (path: string, fragment: string) => string;
+  /**
+   * The prefix of the heading ids (default `doc-`); an element's document uses `eldoc-`, so a dialog
+   * over the Documentation view repeats no id (task-078, D78-5).
+   */
+  headingPrefix?: string;
 }
+
+/** The default prefix of the heading ids. */
+export const HEADING_PREFIX = 'doc-';
 
 /** The in-UI URL of a document of project `pid` (each path segment encoded). */
 export function documentHref(pid: string, path: string, fragment = ''): string {
@@ -99,8 +258,8 @@ export function documentHref(pid: string, path: string, fragment = ''): string {
 }
 
 /** The id of the heading `fragment` points at. */
-export function headingId(fragment: string): string {
-  return `doc-${slug(fragment)}`;
+export function headingId(fragment: string, prefix = HEADING_PREFIX): string {
+  return `${prefix}${slug(fragment)}`;
 }
 
 /** A GitHub-like slug: lower case, punctuation dropped, spaces as `-`. */
@@ -121,14 +280,14 @@ function span(className: string, text: string): HTMLSpanElement {
 }
 
 /** Unique heading ids: a repeated slug takes the first free `-1`, `-2`, … suffix. */
-function rewriteHeadings(root: DocumentFragment): void {
+function rewriteHeadings(root: DocumentFragment, prefix: string): void {
   const used = new Set<string>();
   for (const h of root.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
     const base = slug(h.textContent ?? '');
     let id = base;
     for (let n = 1; used.has(id); n++) id = `${base}-${n}`;
     used.add(id);
-    h.id = `doc-${id}`;
+    h.id = `${prefix}${id}`;
   }
 }
 
@@ -167,7 +326,12 @@ function rewriteLink(a: HTMLAnchorElement, link: LinkClass, options: FinishOptio
       text.dataset.docLink = a.dataset.docLink;
       text.append(...a.childNodes);
       const parts: Node[] = [text];
-      if (link.kind === 'refused') parts.push(document.createTextNode(' '), span('doc-link-mark', options.marks[link.mark]));
+      if (link.kind === 'refused') {
+        // The mark carries its link's key: the article finds the group by it (D78-1).
+        const mark = span('doc-link-mark', options.marks[link.mark]);
+        if (a.dataset.docLink !== undefined) mark.dataset.docMark = a.dataset.docLink;
+        parts.push(document.createTextNode(' '), mark);
+      }
       a.replaceWith(...parts);
       return;
     }
@@ -177,7 +341,7 @@ function rewriteLink(a: HTMLAnchorElement, link: LinkClass, options: FinishOptio
 /** Rewrite and finally sanitise the output of {@link markdownToSafeHtml} (step 2). */
 export function finishDocument(safeHtml: string, options: FinishOptions): string {
   const root = inert(safeHtml).content;
-  rewriteHeadings(root);
+  rewriteHeadings(root, options.headingPrefix ?? HEADING_PREFIX);
   [...root.querySelectorAll('a')].forEach((a, i) => {
     const href = a.getAttribute('href');
     a.removeAttribute('title');
@@ -219,6 +383,7 @@ export function finishDocument(safeHtml: string, options: FinishOptions): string
       'aria-label',
       'data-doc-nav',
       'data-doc-link',
+      'data-doc-mark',
       'data-doc-table',
     ],
     // Labels are text, not URLs: not checked against ALLOWED_URI_REGEXP.

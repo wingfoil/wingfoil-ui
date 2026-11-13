@@ -401,4 +401,59 @@ export const SCREENS: readonly Screen[] = [
       );
     },
   },
+  {
+    // task-078 (D78-10): the document dialog of a decision-log, rendered — its body answered with
+    // headings, a table, a link of each class and a code block (the screens console holds the
+    // template's body), through `page.route` on the element read. No image: its alternative text is
+    // a word of a long body, which X-09.1 does not count as data (the images are AC-3's e2e).
+    name: 'element document — rendered',
+    open: (page, c) => openDocumentScreen(page, c, 'rendered'),
+  },
+  {
+    name: 'element document — source',
+    open: (page, c) => openDocumentScreen(page, c, 'source'),
+  },
 ];
+
+/** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
+const DOCUMENT_SCREEN_BODY = [
+  '## Context',
+  '',
+  '<!-- The situation. -->',
+  '',
+  'We need a *fast* server: see [the first decision](dl-001-initialise-wingfoil-before-inception.md),',
+  '[the index](../../../01_vision/00_index.md), [the guide](https://example.test/guide),',
+  '[a missing file](missing.md) and [the decision](#decision).',
+  '',
+  '## Decision',
+  '',
+  '| Option | Kept |',
+  '|---|:---:|',
+  '| Fastify | yes |',
+  '',
+  '```',
+  'npm install fastify',
+  '```',
+  '',
+].join('\n');
+
+/** Open the document dialog of `dl-002-use-fastify` of the custom project, in `mode`. */
+async function openDocumentScreen(page: Page, c: RunningConsole, mode: 'rendered' | 'source'): Promise<void> {
+  const pid = c.pids[1]!;
+  await page.route(`**/api/p/${pid}/elements/dl-002-use-fastify`, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as { body: string };
+    await route.fulfill({ response, json: { ...body, body: DOCUMENT_SCREEN_BODY } });
+  });
+  await project(page, c, `/p/${pid}/e/dl-002-use-fastify`, (p) =>
+    p.locator('[data-element-view] .element-document-open'),
+  );
+  await page.locator('[data-element-view] .element-document-open').click();
+  const dialog = page.locator('[role="dialog"].element-document');
+  await expect(dialog.locator('.doc-article')).toBeVisible({ timeout: COLD_READ_MS });
+  if (mode === 'source') {
+    await dialog.locator('.element-document-mode [role="radio"]').nth(1).click();
+    await expect(dialog.locator('pre.element-document-source')).toBeVisible();
+  }
+  await expectSettled(page);
+}

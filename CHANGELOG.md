@@ -9,6 +9,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **The element's document** (task-078, US-G-03, US-G-08): the summary of an element is its body's
+  first paragraph rendered as Markdown, and *Open document* opens the whole body in a dialog,
+  rendered or as its source, on the element page and in the side panel alike. The rendering is the
+  Documentation view's — raw HTML shown as text, no image loaded, relative links read from the
+  element file's folder (another element's file opens its page) — and leaves the body's HTML
+  comments out, only the comments: the text after one is kept, and the source keeps them. When the
+  summary and the document cannot be loaded (a tab left open across an upgrade), their place says
+  so and offers *Reload the page*; the rest of the element stays. A decision-log is read and
+  decided from its element by a product owner holding `approver`.
 - **The side panel in the address** (task-077, US-G-01 G-01.8, US-S-21 S-21.4; spec-011 §2, §6):
   Today's rows and the notification bell's items open the element in a side
   panel over the current view, which stays as it was (Today keeps its filters); the address carries
@@ -163,6 +172,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Fixed
 
+- **A link clicked while the documentation view checks its links opens** (bug-043; task-078): a
+  link check answering while a link is clicked no longer replaces the link the click lands on (seen
+  on WebKit as an external link whose new tab never opened); only the links whose mark changes are
+  updated. The same holds in the Directives view and an element's document. The defect shipped in
+  v0.1.0 and v0.2.0.
+- **The address value on the element page is isolated from the text around it** (task-078; task-077
+  security review F-5): an address holding right-to-left or other directional characters can no
+  longer reorder the text next to it in the element page's top line or its *Not found* heading, as
+  on the side panel.
 - **The focus stays on the element after a gate decision** (bug-046, shipped in v0.2.0; task-077):
   when the console's refresh shows the new state before the decision's reply arrives, the element's
   heading takes the keyboard focus at once instead of leaving it on the page body until the reply —
@@ -298,6 +316,9 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   another branch moved into the state, or another element's `status:` edited by hand and not
   committed, can make the console offer a move WingFoil refuses (shown as a toast) or, for an
   uncommitted edit into the state, disable one WingFoil would accept (design probes P3, P4, P6, P7).
+- **A document of many quotes, each followed by a lazy line, renders in quadratic time**
+  (bug-047): such a Markdown body can freeze the Documentation view, the Directives view or an
+  element's document while it renders (markdown-it 15.0.2's own cost; planned for v0.4).
 
 ## [0.2.0] - 2026-10-20
 
