@@ -550,3 +550,65 @@ every object `additionalProperties: false`, as the other API schemas.
 - 2026-11-07 — task-055 review round 3 (nit 1): the slice clock starts before the element reads,
   so the first build of a process keeps the same bound (measured in fresh processes on the round-2
   workload: longest event-loop gap 22–25 ms). No rule changes.
+- 2026-11-11 — clarified in task-059 (design D59-2, D59-5, D59-6, D59-9; decided by the approver,
+  Q5, Q6, plan `backlog-item-rel-v0.3-plan` W2-6). No shape changes. §3 *Scope*: the current
+  element's rank is the index of its `status` in its type's `sequence`, a state off the sequence
+  (an undeclared state, a reject target outside it) below every state of it; "the lowest
+  `version`" is the natural order of §3 (`v0.10` after `v0.9`), an element without a string
+  `version` after those with one, then the id in natural order. §2 `/config`
+  `ui.progress.scope.current` is filled by the same derivation as `/progress`'s `scope.current`
+  (`null` when the reads it needs fail; the other sections report them). §3 the `type` of
+  `scope`, `iterated` and `openDefects` is the type name as `/config` `ui` echoes it (escaped,
+  §9); `pendingGates` applies the descriptor's own hold rule (spec-005 §4a), so the figure and the
+  descriptors' `approveHeld` never differ. §8 `/progress`'s body and the flag set are memoised per
+  content key, as the index (they read no copy against the remote).
+- 2026-11-11 — clarified in task-059 review round 1 (F-2, F-5; plan `backlog-item-rel-v0.3-plan`).
+  No shape changes. §1 *In scope* and spec-005 §4a's count: a `version` field that is the empty
+  string is no version — empty template fields carry `""`, so it would scope every element holding
+  one — and §3 *Scope*'s tie order puts it with the elements without a `version`. §1 *Cost*:
+  `/config` builds the index too when `progress.scope` names a type in `sequence` mode, to derive
+  `ui.progress.scope.current` (§2); the reuse of §8 keeps that to the changed files, and no CLI
+  process is added.
+
+- 2026-11-11 — amended in task-075 (bug-034; task-059 design D59-13, Q2 (a), and task-075's Q1 (a),
+  Q2 (a), decided by the approver; task-075 D75-1 … D75-7): §8 *Per state* — a read is kept for its
+  state only when it read what that state's check saw. A direct read (`memory.yaml`, `ui.yaml`, an
+  element file, a directive file, the index's element files) is compared with the check's marks: a
+  status entry's content hash, a clean file's blob at HEAD (one `git ls-tree -r HEAD` over
+  `.wingfoil/` and the Memory directories per new HEAD, shared with the reuse below: a git process
+  where no index is built, no CLI process), `ui.yaml`'s mark; a CLI read is kept only if no watcher
+  event arrived after its state's check began. Otherwise the value answers its callers, the state's
+  memo is dropped, a check runs and `repo {pid, state}` is published when it ends, also with the
+  same key. A mismatch a later check confirms (line-end conversion, a clean filter,
+  `assume-unchanged`, `skip-worktree`) is accepted. Declared residuals: a file with no comparable
+  mark (marked by its `lstat`, ignored by git, or an unreadable HEAD tree) is kept as before; an edit
+  and revert the watcher does not report (degraded watching, an ignored file outside the watched
+  folders) keeps a CLI read until the state moves; two edit-and-revert cycles of the same bytes
+  across one check keep the second read.
+- 2026-11-11 — task-075 review round 1 (F-2, F-3, F-4; the coordinator's decision, keeping Q2 (a)):
+  §8 the same-key `repo` after a drop is published at most once per state key, until the key
+  changes — a writer outside the console firing the watcher (a log file in the project folder, even
+  one git ignores) would otherwise drop every CLI read and force a refetch that is dropped again.
+  Declared residual (review round 2 F-8): the limit holds for any later drop on the same key, with
+  or without such a writer — until the key moves, a second untied read on that key is served once
+  and re-read on the next request, but no further `repo` tells an open page to refetch it. The confirmed mismatches are kept for every file of the newest state (no fixed number) and
+  recorded also by a read that settles after its memo was dropped, so a checkout with converted line
+  ends settles in one drop.
+- 2026-11-12 — clarified in task-074 (design D74-2 … D74-7, decided by the approver, Q1 (a),
+  Q2 (a), Q3 (a); plan `backlog-item-rel-v0.3-plan`). §4 `elements[].inScope` is the rule of §1
+  against the current element whenever one exists, also with `applied: project` (so *Whole
+  project* can still mark the current release's elements); `true` for every element only when
+  there is none. §4 `coverage` whose required types have no listed readable element is `{ carrying:
+  0, total: 0, percent: null }` (`percent` `integer | null`, as a row's; `no-requires` keeps
+  meaning that `taxonomy.requires` names no type). §4 a row is keyed by its kind and its id: an
+  element carrying its own id as a value a pattern matches (rule 1 excludes the own id, rule 2
+  applies) gives a pattern row beside the element row of that id, the element row first, while
+  `completion` keeps §3's one key per id, so its `references` may merge what the rows split; a
+  row's category is that of the first reference met (`memory search` order, then value order) —
+  two pattern values never share an escaped text (the escape doubles a backslash, and a value with
+  a line break is no reference), so only the first case occurs. §4 and §10: `scope` is checked
+  after the `:pid` lookup by the route itself (a query schema would answer 400 before the 404).
+  §7 the `/elements` item is `elements.schema.json` `definitions.row` and `/progress`'s completion
+  `progress.schema.json` `definitions.completion`; draft-07 has no `unevaluatedProperties`, so the
+  traceability item names each row property by `$ref` plus `done` and `inScope`, and carries no
+  `missingCategories` (the `missing` section holds them). No other shape changes.

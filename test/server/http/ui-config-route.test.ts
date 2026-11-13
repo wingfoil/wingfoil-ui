@@ -3,8 +3,9 @@
 // `config.schema.json` on the kanban, scrum, custom and unknown fixtures, no `ui` when
 // `memory.yaml` cannot be read, the failure of an ignored file redacted, every echoed string
 // escaped, and the scenarios at the API level, one test titled with each id (C-01.x, C-04.1,
-// C-04.2, T-12.1, T-12.4, T-12.5; their screens are task-064's and task-065's, the current element
-// of `scope` task-059's).
+// C-04.2, T-12.1, T-12.4, T-12.5; their screens are task-064's and task-065's). The current element
+// of `scope` is task-059's (D59-2): `server/http/progress-routes` asserts it on each scenario's
+// variant, equal to `/progress`'s.
 /* eslint-disable @typescript-eslint/no-explicit-any -- JSON bodies, each validated against its schema */
 import { Ajv } from 'ajv';
 import type { FastifyInstance } from 'fastify';
@@ -18,6 +19,7 @@ import { createTokenAuthentication } from '../../../server/src/auth/authenticati
 import { buildApp } from '../../../server/src/http/app.js';
 import { registerProjectRoutes } from '../../../server/src/http/project-routes.js';
 import { createLogger } from '../../../server/src/logging.js';
+import { renderPreset } from '../../../server/src/presets/ui-config.js';
 import { nodeReadFs, type ReadFs } from '../../../server/src/reads/confine.js';
 import { REPO_STATE_HEADER } from '../../../server/src/snapshot/state.js';
 import type { Snapshots } from '../../../server/src/snapshot/snapshots.js';
@@ -98,7 +100,9 @@ async function start(template: Fixture, options: { fs?: ReadFs; prepare?: (fx: F
     expectConfigSchema(body);
     return body;
   };
-  return { fx, config };
+  /** The project's snapshot, as the routes open it. */
+  const snapshot = () => audited.snapshots.open(entry.id, entry.path);
+  return { fx, config, snapshot };
 }
 
 /** Write `.wingfoil/ui.yaml` and commit it (the scenarios' "committed ui.yaml"). */
@@ -107,6 +111,9 @@ async function commitUiYaml(fx: Fixture, text: string): Promise<void> {
   await git(fx.dir, ['add', '.wingfoil/ui.yaml'], fx.env);
   await git(fx.dir, ['commit', '-qm', 'test: ui.yaml'], fx.env);
 }
+
+/** The derived current element of the custom fixture with the preset (task-059 D59-2). */
+const MINOR_V01 = { id: 'minor-v0.1', title: 'Minor v0.1', type: 'release', status: 'planning', tone: 'active' };
 
 /** Every origin of the `ui` section, but `scope.current`'s. */
 function origins(ui: any): string[] {
@@ -239,7 +246,7 @@ describe('the C and T scenarios at the API level', () => {
   it('C-01.2 — Show declared values from ui.yaml', async () => {
     const ui = (await (await start(templates['sw-life-cycle'])).config()).ui;
     expect(ui.status).toEqual({ source: 'file' });
-    expect(ui.progress.scope).toEqual({ value: { type: 'release' }, origin: 'declared', current: null });
+    expect(ui.progress.scope).toEqual({ value: { type: 'release' }, origin: 'declared', current: MINOR_V01 });
     expect(ui.progress.mode).toEqual({ value: 'sequence', origin: 'declared' });
   });
 
@@ -294,21 +301,35 @@ describe('the C and T scenarios at the API level', () => {
   });
 
   // The progress card's scope (T-12.x) at the API level: the scope type the sw-life-cycle preset
-  // declares, whatever state its releases are in. The current element of each scenario (minor-v0.1,
-  // minor-v0.2, none) is derived by task-059, which builds those Givens; `/config` sends `null`
-  // until then, so this task sets up no release state.
-  const declaredScope = { value: { type: 'release' }, origin: 'declared', current: null };
+  // declares, whatever state its releases are in, and on this fixture the derived `minor-v0.1`
+  // (task-059 D59-2). The current element of T-12.4 and T-12.5 (minor-v0.2, none) is asserted on
+  // their variants by `server/http/progress-routes` (`/config ui.progress.scope.current`).
+  const declared = { value: { type: 'release' }, origin: 'declared' };
   const scope = async () => (await (await start(templates['sw-life-cycle'])).config()).ui.progress.scope;
 
   it('T-12.1 — Show the figures of the current scope', async () => {
-    expect(await scope()).toEqual(declaredScope);
+    expect(await scope()).toEqual({ ...declared, current: MINOR_V01 });
   });
 
   it('T-12.4 — Move the scope to the most advanced release', async () => {
-    expect(await scope()).toEqual(declaredScope);
+    expect(await scope()).toMatchObject(declared);
   });
 
   it('T-12.5 — Say that no release is under way', async () => {
-    expect(await scope()).toEqual(declaredScope);
+    expect(await scope()).toMatchObject(declared);
+  });
+});
+
+describe('GET /api/p/:pid/config — tied to its state check (bug-034, task-075 AC-1)', () => {
+  it('AC-1 bug-034 `/config` after an edit and a revert between two checks serves the reverted `ui`', async () => {
+    const { fx, config, snapshot } = await start(templates.kanban);
+    const project = await snapshot();
+    const before = (await project.view()).state.key; // the state check, before ui.yaml exists
+    const file = path.join(fx.dir, '.wingfoil', 'ui.yaml');
+    await writeFile(file, renderPreset('kanban'));
+    expect((await config()).ui.status.source).toBe('file');
+    await rm(file);
+    expect((await project.check()).key).toBe(before);
+    expect((await config()).ui.status).toEqual({ source: 'none' });
   });
 });

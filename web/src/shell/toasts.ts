@@ -110,6 +110,13 @@ export interface ToastLayout {
    * rendered, its footer's top edge.
    */
   drawer?: { left: number; headerBottom?: number; footerTop?: number };
+  /**
+   * The element page's footer bar, when shown: its top edge (task-062 D62-12). The stack goes just
+   * above it while it is in view, never over its actions.
+   */
+  pageFooterTop?: number;
+  /** The bottom edge of the element page's header (its Close): the stack stays below it. */
+  pageHeaderBottom?: number;
 }
 
 /** The narrowest area between the main region's left edge and the drawer for the stack (px). */
@@ -120,7 +127,8 @@ const DEFAULT_BOTTOM = 24;
 const TOP_MARGIN = 16;
 
 /**
- * Where the stack goes (reviews R1, R2): without a drawer, or with a drawer that has no footer yet
+ * Where the stack goes (reviews R1, R2): on the element page, just above its footer bar while it is
+ * in view (task-062 D62-12); without a drawer, or with a drawer that has no footer yet
  * (loading, a read error), the stylesheet's bottom centre; with one, centred between the main
  * region's left edge and the drawer when that area is at least {@link TOAST_MIN_ROOM} wide (the
  * sidebar, with the Git status at its foot, stays clear), otherwise just above the drawer's footer
@@ -128,9 +136,17 @@ const TOP_MARGIN = 16;
  * over the drawer, the drawer's own header, so that its Close stays reachable — and its bottom.
  */
 export function toastPlacement(layout: ToastLayout): ToastPlacement {
-  const { viewport, headerBottom, mainLeft, drawer } = layout;
+  const { viewport, headerBottom, mainLeft, drawer, pageFooterTop, pageHeaderBottom } = layout;
   const maxHeight = (bottom: number, top = headerBottom) => viewport.height - bottom - top - TOP_MARGIN;
-  if (drawer === undefined) return { maxHeight: maxHeight(DEFAULT_BOTTOM) };
+  if (drawer === undefined) {
+    // The element page (D62-12): below its header while it is in view, above its footer bar.
+    const top = Math.max(headerBottom, pageHeaderBottom ?? headerBottom);
+    if (pageFooterTop === undefined || pageFooterTop >= viewport.height) {
+      return { maxHeight: maxHeight(DEFAULT_BOTTOM, top) };
+    }
+    const bottom = Math.max(DEFAULT_BOTTOM, viewport.height - pageFooterTop + 8);
+    return { bottom, maxHeight: maxHeight(bottom, top) };
+  }
   const room = drawer.left - mainLeft;
   if (room >= TOAST_MIN_ROOM) {
     return { left: (mainLeft + drawer.left) / 2, maxWidth: room - 32, maxHeight: maxHeight(DEFAULT_BOTTOM) };

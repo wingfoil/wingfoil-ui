@@ -1,14 +1,8 @@
-// task-018 — pure helpers of the element panel (web/src/element/model.ts).
+// task-018 — pure helpers of the element panel (web/src/element/model.ts). The v0.1 `summaryOf`
+// gave way to the rendered summary (task-078, `test/web/element/summary.test.ts`).
 import { describe, expect, it } from 'vitest';
 import type { HistoryEntry } from '@wingfoil-ui/contracts';
-import {
-  actorName,
-  fieldEntries,
-  historyLines,
-  memberName,
-  stateChips,
-  summaryOf,
-} from '../../../web/src/element/model.js';
+import { actorName, fieldEntries, historyLines, memberName, stateChips } from '../../../web/src/element/model.js';
 
 describe('memberName', () => {
   it('keeps the name of "Name <email>" and "Name <email> (role)"', () => {
@@ -40,20 +34,6 @@ describe('stateChips', () => {
   });
   it('shows only the current state without the type states', () => {
     expect(stateChips(undefined, 'x')).toEqual([{ name: 'x', position: 'current' }]);
-  });
-});
-
-describe('summaryOf', () => {
-  it('takes the first paragraph, skipping comments and headings', () => {
-    const body = '\n<!-- scaffold\n comment -->\n\n## Context\n\nFirst line\nsecond line.\n\nNext paragraph.\n';
-    expect(summaryOf(body)).toBe('First line second line.');
-  });
-  it('is undefined for a body of comments and headings only', () => {
-    expect(summaryOf('<!-- a -->\n\n# Title\n\n## Decision\n\n<!-- b -->\n')).toBeUndefined();
-    expect(summaryOf('')).toBeUndefined();
-  });
-  it('drops a comment inside a paragraph', () => {
-    expect(summaryOf('Text <!-- hidden --> kept.')).toBe('Text kept.');
   });
 });
 

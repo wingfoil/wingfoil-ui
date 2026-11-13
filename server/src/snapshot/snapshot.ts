@@ -27,16 +27,25 @@
  *   ls-tree -r`), the pattern results in its {@link PatternMemo}.
  * - **Version.** The detected CLI version comes from the registry's {@link VersionCache}: one
  *   `--version` per CLI resolution (adr-001 D3).
+ * - **Tie** (bug-034, task-075; spec-012 §8, spec-004 §5 amended 2026-11-11). A read is kept for its
+ *   state only when it read what that state's check saw: a direct read's files against the check's
+ *   marks and the HEAD blobs ({@link mismatches}), a CLI read when no watcher event arrived after the
+ *   check began ({@link ProjectSnapshot.touched}). Otherwise its value answers its callers, both memos
+ *   of the state are dropped, a check is asked and, when it ends, `repo` is published also with the
+ *   same key. The HEAD blobs of `.wingfoil/` and the Memory folders: one `git ls-tree -r` per HEAD,
+ *   shared with the reference index.
  */
 import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import type { DirectivesList, DnaPaths, DnaShow, MemoryMatch, MemoryYaml, WorkflowList } from '@wingfoil-ui/contracts';
 import { CliOutputError, CliRefusedError, type CliOutput, type WingfoilCli } from '../cli/adapter.js';
+import type { WarningParts } from '../cli/commands.js';
 import type { CliCommandOutputs } from '../cli/commands.js';
 import { CliNotFoundError, type ResolvedCli } from '../cli/discovery.js';
 import type { DetectedVersion } from '../cli/version.js';
 import { VersionCache } from '../cli/version.js';
 import { GitReadError, UNBORN_HEAD, type CommitSummary, type GitReads } from '../git/git.js';
+import type { ObjectFormat } from '../references/cache.js';
 import {
   eventsByElement,
   memoryDirectories,
@@ -45,13 +54,15 @@ import {
   type MemoryEvent,
 } from '../git/memory-log.js';
 import { ARCHIVED_STATES } from '../presets/wingfoil.js';
-import { DirectReadError, type ReadFs } from '../reads/confine.js';
+import { DirectReadError, nodeReadFs, type ReadFs } from '../reads/confine.js';
 import {
   directiveInForce,
   ProjectReads,
+  witnessedFs,
   type ArchivedStatus,
   type DirectiveRead,
   type ElementRead,
+  type ReadWitness,
 } from '../reads/project-reads.js';
 import type { LocalRoots } from '../git/redact.js';
 import { buildReferenceIndex, PatternMemo } from '../references/build.js';
@@ -63,6 +74,7 @@ import type { EffectiveUiConfig } from '../ui-config/types.js';
 import { combinedHash, Fingerprinter } from './fingerprint.js';
 import { uiYamlMark } from '../reads/ui-yaml.js';
 import { repoState, sameState, type RepoState } from './state.js';
+import { mismatches, Suspects, type ReadReport, type StateMarks } from './tie.js';
 
 /** git's markers of an operation in progress, in the worktree's git directory (task-034 D34-3). */
 export const OPERATION_MARKERS: readonly string[] = [
@@ -124,8 +136,10 @@ export interface MarkedElement {
 /** A `memory search` result with the markers. */
 export interface ElementList {
   matches: MarkedElement[];
-  /** The CLI's warnings (stderr lines). */
+  /** The CLI's warnings (stderr lines) and the dropped matches, as the API passes them on. */
   warnings: string[];
+  /** The same in their parts, to merge several searches (task-070 review round 2 R2-F1). */
+  warningParts: WarningParts;
   /** The CLI's message when nothing matched. */
   message?: string;
 }
@@ -156,6 +170,39 @@ function sameForHead(error: unknown): boolean {
   return error instanceof MemoryLogFormatError || (error instanceof GitReadError && error.ended === 'overflow');
 }
 
+/**
+ * How a memoised read is tied to its state (D75-4, D75-6): `direct` by the files it read, `cli` by
+ * the watcher's events, `none` for what reads no working-tree file (git's log, derived values).
+ */
+type TieKind = 'direct' | 'cli' | 'none';
+
+/** One memo of a state: dead once dropped, then it stores nothing (D75-7). */
+interface MemoHolder {
+  key: string;
+  values: Map<string, Promise<unknown>>;
+  dead: boolean;
+}
+
+/** What a memoised read gets: the CLI, the reads and the read port, reporting to its tie. */
+export interface ReadTools {
+  cli: WingfoilCli;
+  reads: ProjectReads;
+  fs: ReadFs;
+}
+
+/** The working-tree folder of the governance files, listed with the Memory folders at HEAD. */
+const WINGFOIL_DIR = '.wingfoil';
+
+/**
+ * The folders whose HEAD blobs the ties and the index read (D75-2): `.wingfoil` and the Memory
+ * folders of `memoryYaml`, sorted, a folder inside another left out.
+ */
+export function blobDirectories(memoryYaml: MemoryYaml | undefined): string[] {
+  const dirs = [...new Set([WINGFOIL_DIR, ...(memoryYaml ? memoryDirectories(memoryYaml) : [])])].sort();
+  if (dirs.includes('.')) return ['.'];
+  return dirs.filter((dir) => !dirs.some((other) => other !== dir && dir.startsWith(`${other}/`)));
+}
+
 /** The snapshot of one project. */
 export class ProjectSnapshot {
   /** Opaque project id. */
@@ -167,8 +214,22 @@ export class ProjectSnapshot {
   private queued: Promise<RepoState> | undefined;
   private generationId = 0;
   private generation: Generation | undefined;
-  private memo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
-  private derivedMemo: { key: string; values: Map<string, Promise<unknown>> } | undefined;
+  private memo: MemoHolder | undefined;
+  private derivedMemo: MemoHolder | undefined;
+  /** What each state's check saw (D75-1). */
+  private readonly marksOf = new WeakMap<RepoState, StateMarks>();
+  /** Checks started so far (D75-5). */
+  private checksStarted = 0;
+  /** The watcher's `repo` events so far (D75-6). */
+  private repoEvents = 0;
+  /** A check starting after this many have started publishes `repo` even with the same key (D75-7). */
+  private republishAfter: number | undefined;
+  /** The mismatches a later check may confirm (D75-5). */
+  private readonly suspects = new Suspects();
+  /** The check sequence whose files last pruned the suspects (review round 1 F-3). */
+  private suspectsPrunedAt = 0;
+  /** The key a same-key `repo` was last forced for: at most one per key (review round 1 F-2). */
+  private republishedKey: string | undefined;
 
   private readonly fingerprints: Fingerprinter;
   /** The last `ui.yaml` content's parse and schema check (task-054 D54-7). */
@@ -319,6 +380,14 @@ export class ProjectSnapshot {
     return (await this.tools(this.generationId)).cli;
   }
 
+  /**
+   * The watcher reported a possible change (called on every event, before its debounce; D75-6): a
+   * CLI read completing after it is not kept for the state of a check that began before it.
+   */
+  touched(): void {
+    this.repoEvents += 1;
+  }
+
   /** The project's CLI may have changed: the next view resolves it again and reads afresh. */
   cliChanged(): void {
     this.generationId += 1;
@@ -331,24 +400,108 @@ export class ProjectSnapshot {
     const generation = this.generationId;
     // The CLI reads on what the CLI can see (D33-6); derived values (descriptors) on the full key.
     const key = `${generation}:${state.contentKey}:${state.email ?? ''}`;
-    if (this.memo?.key !== key) this.memo = { key, values: new Map() };
+    if (this.memo?.key !== key) this.memo = { key, values: new Map(), dead: false };
     const fullKey = `${generation}:${state.key}:${state.email ?? ''}`;
-    if (this.derivedMemo?.key !== fullKey) this.derivedMemo = { key: fullKey, values: new Map() };
-    const readValues = this.memo.values;
-    const derivedValues = this.derivedMemo.values;
-    const memo = <T>(name: string, read: (tools: Awaited<Generation['tools']>) => Promise<T>): Promise<T> => {
-      const values = name.startsWith('derived\0') ? derivedValues : readValues;
-      let value = values.get(name) as Promise<T> | undefined;
-      if (!value) {
-        value = this.tools(generation).then(read);
-        values.set(name, value);
+    if (this.derivedMemo?.key !== fullKey) this.derivedMemo = { key: fullKey, values: new Map(), dead: false };
+    const reads = this.memo;
+    const derived = this.derivedMemo;
+    const marks = this.marksOf.get(state);
+    const format: ObjectFormat = state.head.length === 64 ? 'sha256' : 'sha1';
+    const fs = this.options.fs ?? nodeReadFs;
+    // The view the memo serves, set below: a tie reads its `memory.yaml` for the HEAD listing.
+    const bound: { view?: SnapshotView } = {};
+
+    /** Drop both memos of the state, ask a check, republish when it ends (D75-7). */
+    const drop = (): void => {
+      if (reads.dead && derived.dead) return;
+      for (const holder of [reads, derived]) {
+        holder.dead = true;
+        holder.values.clear();
+      }
+      if (this.memo === reads) this.memo = undefined;
+      if (this.derivedMemo === derived) this.derivedMemo = undefined;
+      this.republishAfter = this.checksStarted;
+      this.check().catch((error: unknown) => {
+        this.options.logger?.warn({ pid: this.pid, kind: (error as Error).name }, 'repository check failed');
+      });
+    };
+
+    /** Whether a read of `kind` that reported `files` and `uiMarks` is tied to `state` (D75-4 … D75-6). */
+    const tied = async (
+      kind: TieKind,
+      files: readonly ReadReport[],
+      uiMarks: readonly string[],
+      dirs: () => Promise<string[]>,
+    ): Promise<boolean> => {
+      if (!marks || kind === 'none') return true;
+      if (kind === 'cli') return this.repoEvents === marks.events;
+      if (files.length === 0 && uiMarks.length === 0) return true;
+      const needsBlobs = files.some((f) => !marks.files.has(f.path));
+      const blobs = needsBlobs ? await this.headBlobs(state.head, await dirs()) : undefined;
+      // The suspects of files the newest state no longer lists go (review round 1 F-3).
+      if (blobs && marks.seq > this.suspectsPrunedAt) {
+        this.suspectsPrunedAt = marks.seq;
+        this.suspects.prune((path) => marks.files.has(path) || blobs.has(path));
+      }
+      const fresh = mismatches(files, uiMarks, marks, blobs, format).filter(
+        (m) => !this.suspects.accepts(m, marks.seq),
+      );
+      for (const m of fresh) this.suspects.record(m, this.checksStarted);
+      return fresh.length === 0;
+    };
+
+    const memo = <T>(name: string, read: (tools: ReadTools) => Promise<T>, kind: TieKind = 'none'): Promise<T> => {
+      const holder = name.startsWith('derived\0') ? derived : reads;
+      const cached = holder.dead ? undefined : (holder.values.get(name) as Promise<T> | undefined);
+      if (cached) return cached;
+      const files: ReadReport[] = [];
+      const uiMarks: string[] = [];
+      const witness: ReadWitness = {
+        file: (path, text) => files.push({ path, text }),
+        uiYaml: (mark) => uiMarks.push(mark),
+      };
+      const run = this.tools(generation).then(({ cli, reads: shared }) =>
+        read(
+          kind === 'direct'
+            ? {
+                cli,
+                reads: new ProjectReads({ root: this.options.root, cli, fs, witness }),
+                fs: witnessedFs(fs, this.options.root, witness),
+              }
+            : { cli, reads: shared, fs },
+        ),
+      );
+      // The folders of the HEAD listing: from this state's `memory.yaml` — for its own read, the
+      // value it just read (`.wingfoil` alone when it failed), never a wait on itself.
+      const own = name === MEMORY_YAML_MEMO;
+      // A read settling after its memo was dropped still records its mismatches as suspects, so a
+      // later check confirms them all at once (review round 1 F-4); it drops nothing again.
+      const settle = async (result?: unknown): Promise<void> => {
+        const dirs = async (): Promise<string[]> =>
+          blobDirectories(
+            own ? (result as MemoryYaml | undefined) : await bound.view!.memoryTypes().catch(() => undefined),
+          );
+        if (!(await tied(kind, files, uiMarks, dirs)) && !holder.dead) drop();
+      };
+      const value = run.then(
+        async (result) => {
+          await settle(result);
+          return result;
+        },
+        async (error: unknown) => {
+          await settle();
+          throw error;
+        },
+      );
+      if (!holder.dead) {
+        holder.values.set(name, value);
         value.catch((error: unknown) => {
-          if (!deterministic(error) && values.get(name) === value) values.delete(name);
+          if (!deterministic(error) && holder.values.get(name) === value) holder.values.delete(name);
         });
       }
       return value;
     };
-    return new SnapshotView(state, memo, {
+    const view = new SnapshotView(state, memo, {
       events: (dirs) => this.memoryEvents(state.head, dirs),
       origin: () => this.origin(state.key),
       versions: this.versions,
@@ -357,15 +510,17 @@ export class ProjectSnapshot {
       references: {
         cache: this.referenceValues,
         memo: this.patternMemo,
-        blobs: (dirs) => this.headBlobs(state.head, dirs),
+        blobs: (memoryYaml) => this.headBlobs(state.head, blobDirectories(memoryYaml)),
         root: this.options.root,
-        ...(this.options.fs ? { fs: this.options.fs } : {}),
       },
     });
+    bound.view = view;
+    return view;
   }
 
   /**
-   * The blobs of the Memory files at `head` (one `git ls-tree -r` per HEAD and set of directories);
+   * The blobs of the files at `head` under `dirs` ({@link blobDirectories}: `.wingfoil` and the
+   * Memory folders; one `git ls-tree -r` per HEAD and set of directories);
    * `undefined` for an unborn HEAD or when the read fails (a partial clone's missing tree, a
    * timeout): then nothing is reused or stored for that state (spec-012 §8). Logged by kind only.
    */
@@ -429,6 +584,9 @@ export class ProjectSnapshot {
 
   private runCheck(): Promise<RepoState> {
     const run = (async () => {
+      this.checksStarted += 1;
+      const seq = this.checksStarted;
+      const events = this.repoEvents;
       const git = this.options.git;
       const [status, email, remotes] = await Promise.all([git.status(), git.email(), git.remotes()]);
       // spec-010 §1: a remote upstream is one whose `branch.<b>.remote` is a listed remote.
@@ -453,10 +611,23 @@ export class ProjectSnapshot {
           ...(branchRemote !== undefined ? { branchRemote } : {}),
         },
       );
+      // What this check saw, for the reads of its state (D75-1): the marks by project-relative path.
+      const files = new Map<string, string>();
+      for (const [file, mark] of this.fingerprints.lastMarks) files.set(file.slice(this.options.prefix.length), mark);
+      this.marksOf.set(next, { files, ui: uiMark, seq, events });
       const previous = this.last;
       this.last = next;
       const cliFound = await this.cliFoundAgain();
-      if (previous && (!sameState(previous, next) || cliFound)) this.options.onChange?.(next);
+      // A check started after a drop publishes the state even when it did not move (D75-7).
+      // At most once per key (review round 1 F-2): an outside writer firing the watcher would else
+      // drop every CLI read and force a same-key `repo`, whose refetch is dropped again.
+      const republish = this.republishAfter !== undefined && seq > this.republishAfter;
+      if (republish) this.republishAfter = undefined;
+      const moved = previous !== undefined && (!sameState(previous, next) || cliFound);
+      const forced = republish && !moved && this.republishedKey !== next.key;
+      if (moved) this.republishedKey = undefined;
+      if (forced) this.republishedKey = next.key;
+      if (previous && (moved || forced)) this.options.onChange?.(next);
       return next;
     })();
     this.running = run;
@@ -510,7 +681,10 @@ export class ProjectSnapshot {
   }
 }
 
-type Memo = <T>(name: string, read: (tools: { cli: WingfoilCli; reads: ProjectReads }) => Promise<T>) => Promise<T>;
+type Memo = <T>(name: string, read: (tools: ReadTools) => Promise<T>, kind?: TieKind) => Promise<T>;
+
+/** The memo name of the `memory.yaml` read (its own value gives the folders of its tie). */
+const MEMORY_YAML_MEMO = 'memory.yaml';
 
 /** What a view reads beyond its memo: the snapshot's event cache and the version cache. */
 interface ViewSources {
@@ -525,9 +699,9 @@ interface ViewSources {
   references: {
     cache: ReferenceValueCache;
     memo: PatternMemo;
-    blobs(dirs: readonly string[]): Promise<ReadonlyMap<string, string> | undefined>;
+    /** The HEAD blobs of {@link blobDirectories} for `memoryYaml`. */
+    blobs(memoryYaml: MemoryYaml): Promise<ReadonlyMap<string, string> | undefined>;
     root: string;
-    fs?: ReadFs;
   };
 }
 
@@ -553,6 +727,16 @@ export class SnapshotView {
   }
 
   /**
+   * A value derived from this view's content reads only — never from the copy against the remote —
+   * computed once per **content key** like the reads themselves (spec-012 §8; task-059 D59-9): a
+   * fetch that moves only a tracking ref recomputes nothing. `compute` must not read the copy
+   * (`state.copy`, `ahead`/`behind`) nor anything that depends on it (the descriptors' rule 4).
+   */
+  contentDerived<T>(name: string, compute: () => Promise<T>): Promise<T> {
+    return this.memo(`content\0${name}`, () => compute());
+  }
+
+  /**
    * The URL of `origin` (`""` without one), read once per state: a `git remote set-url` alone does
    * not move the state, so it is seen with the next state change.
    */
@@ -562,7 +746,7 @@ export class SnapshotView {
 
   /** The project's CLI version against the supported range (one `--version` per CLI resolution). */
   detected(): Promise<DetectedVersion> {
-    return this.memo('detected version', ({ cli }) => this.sources.versions.detect(cli));
+    return this.memo('detected version', ({ cli }) => this.sources.versions.detect(cli), 'cli');
   }
 
   /**
@@ -592,27 +776,27 @@ export class SnapshotView {
 
   /** `wingfoil --version`, as text. */
   version(): Promise<string> {
-    return this.memo('--version', ({ cli }) => cli.version());
+    return this.memo('--version', ({ cli }) => cli.version(), 'cli');
   }
 
   /** `dna show`. */
   dna(): Promise<CliOutput<DnaShow>> {
-    return this.memo('dna show', ({ reads }) => reads.dna());
+    return this.memo('dna show', ({ reads }) => reads.dna(), 'cli');
   }
 
   /** `paths`. */
   paths(): Promise<CliOutput<DnaPaths>> {
-    return this.memo('paths', ({ reads }) => reads.paths());
+    return this.memo('paths', ({ reads }) => reads.paths(), 'cli');
   }
 
   /** `workflow list`. */
   workflows(): Promise<CliOutput<WorkflowList>> {
-    return this.memo('workflow list', ({ reads }) => reads.workflows());
+    return this.memo('workflow list', ({ reads }) => reads.workflows(), 'cli');
   }
 
   /** `directives list`. */
   directives(): Promise<CliOutput<DirectivesList>> {
-    return this.memo('directives list', ({ reads }) => reads.directives());
+    return this.memo('directives list', ({ reads }) => reads.directives(), 'cli');
   }
 
   /** `memory search` (the elements that are not archived), each with its marker. */
@@ -627,12 +811,12 @@ export class SnapshotView {
 
   /** `memory history <id>`. */
   history(id: string): Promise<CliOutput<CliCommandOutputs['memory history']>> {
-    return this.memo(`memory history\0${id}`, ({ reads }) => reads.history(id));
+    return this.memo(`memory history\0${id}`, ({ reads }) => reads.history(id), 'cli');
   }
 
   /** The type definitions (`.wingfoil/memory.yaml`, direct read). */
   memoryTypes(): Promise<MemoryYaml> {
-    return this.memo('memory.yaml', ({ reads }) => reads.memoryTypes());
+    return this.memo(MEMORY_YAML_MEMO, ({ reads }) => reads.memoryTypes(), 'direct');
   }
 
   /**
@@ -642,10 +826,14 @@ export class SnapshotView {
    * semantic checks and the inferred values need it).
    */
   uiConfig(): Promise<EffectiveUiConfig> {
-    return this.memo('ui.yaml', async ({ reads }) => {
-      const [entry, types] = await Promise.all([reads.uiYaml(), this.memoryTypes()]);
-      return effectiveUiConfig(entry, types, this.sources.roots, this.sources.uiYaml);
-    });
+    return this.memo(
+      'ui.yaml',
+      async ({ reads }) => {
+        const [entry, types] = await Promise.all([reads.uiYaml(), this.memoryTypes()]);
+        return effectiveUiConfig(entry, types, this.sources.roots, this.sources.uiYaml);
+      },
+      'direct',
+    );
   }
 
   /**
@@ -655,26 +843,30 @@ export class SnapshotView {
    * beyond those reads. Rejects as {@link elements} and {@link uiConfig} do; never for one file.
    */
   referenceIndex(): Promise<ReferenceIndex> {
-    return this.memo('reference index', async () => {
-      const [list, memoryYaml, ui] = await Promise.all([this.search(), this.memoryTypes(), this.uiConfig()]);
-      const { cache, memo, blobs, root, fs } = this.sources.references;
-      const matches = list.data.matches;
-      cache.prune(new Set(matches.map((m) => m.path)));
-      const source = cache.source({
-        blobs: await blobs(memoryDirectories(memoryYaml)),
-        changed: this.state.changed,
-        format: this.state.head.length === 64 ? 'sha256' : 'sha1',
-        read: (match) => readIndexEntry(root, match, fs),
-      });
-      return buildReferenceIndex({
-        matches,
-        memoryYaml,
-        categories: ui.categories.value,
-        patterns: ui.patterns.value,
-        source,
-        memo,
-      });
-    });
+    return this.memo(
+      'reference index',
+      async ({ fs }) => {
+        const [list, memoryYaml, ui] = await Promise.all([this.search(), this.memoryTypes(), this.uiConfig()]);
+        const { cache, memo, blobs, root } = this.sources.references;
+        const matches = list.data.matches;
+        cache.prune(new Set(matches.map((m) => m.path)));
+        const source = cache.source({
+          blobs: await blobs(memoryYaml),
+          changed: this.state.changed,
+          format: this.state.head.length === 64 ? 'sha256' : 'sha1',
+          read: (match) => readIndexEntry(root, match, fs),
+        });
+        return buildReferenceIndex({
+          matches,
+          memoryYaml,
+          categories: ui.categories.value,
+          patterns: ui.patterns.value,
+          source,
+          memo,
+        });
+      },
+      'direct',
+    );
   }
 
   /**
@@ -689,7 +881,7 @@ export class SnapshotView {
     }
     if (!match) return undefined;
     const found = match;
-    const content = await this.memo(`element\0${found.path}`, ({ reads }) => reads.elementFromMatch(found));
+    const content = await this.memo(`element\0${found.path}`, ({ reads }) => reads.elementFromMatch(found), 'direct');
     return { match: found, content, localChanges: this.hasLocalChanges(found.path) };
   }
 
@@ -697,16 +889,20 @@ export class SnapshotView {
   async directive(id: string): Promise<DirectiveRead | undefined> {
     const entry = directiveInForce((await this.directives()).data, id);
     if (!entry) return undefined;
-    const content = await this.memo(`directive\0${entry.path}`, ({ reads }) => reads.directiveFromEntry(entry));
+    const content = await this.memo(
+      `directive\0${entry.path}`,
+      ({ reads }) => reads.directiveFromEntry(entry),
+      'direct',
+    );
     return { entry, content };
   }
 
   private search(): Promise<CliOutput<CliCommandOutputs['memory search']>> {
-    return this.memo('memory search', ({ reads }) => reads.elements());
+    return this.memo('memory search', ({ reads }) => reads.elements(), 'cli');
   }
 
   private archived(status: ArchivedStatus): Promise<CliOutput<CliCommandOutputs['memory search']>> {
-    return this.memo(`memory search --status ${status}`, ({ reads }) => reads.archivedElements(status));
+    return this.memo(`memory search --status ${status}`, ({ reads }) => reads.archivedElements(status), 'cli');
   }
 
   private mark(output: CliOutput<CliCommandOutputs['memory search']>): ElementList {
@@ -714,6 +910,7 @@ export class SnapshotView {
     return {
       matches: matches.map((match) => ({ match, localChanges: this.hasLocalChanges(match.path) })),
       warnings: output.warnings,
+      warningParts: output.warningParts,
       ...(message !== undefined ? { message } : {}),
     };
   }

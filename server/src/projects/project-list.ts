@@ -19,6 +19,7 @@
  * files only — no process (REQ-INT-09).
  */
 import { redactLocalPaths } from '../git/redact.js';
+import { repositoryText } from '../http/serialise.js';
 import { realpath, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -346,9 +347,11 @@ export class ProjectList {
   }
 
   private alreadyListed(entry: ProjectEntry, remote: boolean): ProjectRefusal {
-    return new ProjectRefusal('already-listed', `Already in the list: ${entry.name}`, {
+    // The stored name is shown (the catalogue's `name`, the message): class (b) (task-072 D72-4).
+    const name = repositoryText(entry.name);
+    return new ProjectRefusal('already-listed', `Already in the list: ${name}`, {
       pid: entry.id,
-      name: entry.name,
+      name,
       sameRemote: remote,
     });
   }

@@ -369,3 +369,8 @@ directory after the start), so D1 creates it.
   this host only when its pid is dead (the age rule is for readers and other hosts' files), and
   the heartbeat rewrites its file in full when it finds it gone or not its own (D2, D3; spec-006
   §6's test list), so a suspend or a stall over 30 s no longer loses discovery silently.
+- 2026-11-11 — implemented by task-063 (decided by the approver, "tutto come consigliato", Q2): the
+  notice of D6 adds D7's condition — "Open the URL printed in the terminal in any tab of this
+  browser: if the console runs on the same port again, this page reconnects by itself." — since a
+  page of a console restarted on another port cannot reconnect (another origin). A message heard
+  by a page just before it is lost also makes it probe once at the loss (Q1).

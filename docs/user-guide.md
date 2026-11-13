@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.2
 
-**Version:** 0.28 · **Date:** 2026-11-07 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1)
+**Version:** 0.40 · **Date:** 2026-11-12 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1; 0.29: held gates and the actor after an approve, unreleased v0.3 — task-069; 0.30: the files that are not elements named in the Memory list, WingFoil's reasons in a refusal toast, unreleased v0.3, and the WingFoil 0.2.2 limitation of a frontmatter that does not parse — task-070 / bug-024, bug-036; 0.31: a move into a state at its limit, unreleased v0.3 — task-073; 0.32: the Today cards' filters, 10 rows, short ids and entry dates, unreleased v0.3 — task-061; 0.33: the full time as the description of the date and of the row's link — its review round 1; 0.34: the element page, short ids in its address and the candidates of an ambiguous one, unreleased v0.3 — task-062; 0.35: every name the repository supplies shown safely, unreleased v0.3 — task-072 / bug-035; 0.36: a page of a restarted console recovers in place, unreleased v0.3 — task-063; 0.37: *Your roles* as one line of role tags, unreleased v0.3 — task-076; 0.38: the side panel over Today and the view of the bell, unreleased v0.3 — task-077; 0.39: the summary rendered as Markdown and *Open document*, unreleased v0.3 — task-078; 0.40: text after a comment kept, the summary that could not be loaded — its security review rounds 1–2)
 
 WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
 project, see on **Today** what requires you, decide its gates and submit its work, and keep your
@@ -66,6 +66,11 @@ at every interval, for the projects opened since the console started.
   printed in its terminal — in a new tab or pasted into this one (the page then reads the new token
   without a reload of its own). A page whose session the console still knows ignores a `#token=…`
   it did not need and keeps its session.
+- From v0.3 (unreleased): when the console was started again **on the same port** (`--port`), a
+  page showing that notice reconnects by itself as soon as the new URL is opened in any tab of the
+  same browser — usually the tab `--open` opens at start — or when you come back to it: it opens
+  again at the same address (the element it showed, for example). Without `--port` the console
+  gets another port at each start and old pages cannot reconnect: open the new URL instead.
 - The console keeps up to 64 browser sessions; opening one more evicts the oldest, whose page then
   shows the same **This page is no longer recognised by the console**.
 - When the console cannot be reached for 10 s, a banner says so (**Cannot reach the console…**);
@@ -207,14 +212,26 @@ require you* — and names the role view (*Role view: approver*).
 - **Waiting on others** lists the elements blocked on someone else, with who must act: a member
   (*Jordan (submitter) must act*), a role you do not hold with the members holding it (*Reserved to
   approver — Morgan, Alex*), or *Waiting for the workflow engine* for a state WingFoil 0.2.2 leaves
-  only by a hand-edited commit.
+  only by a hand-edited commit. Unreleased (v0.3): a gate the project holds in `.wingfoil/ui.yaml`
+  (`holds`) is listed here for everyone, approvers included, with the hold in place of who can act
+  — *Approved outside the console (ui.yaml)* or *Waits for 2 referencing elements to be done* — and
+  never under Requires you; an element an approval moved into a working state (a task approved into
+  `backlog`) waits on the member who submitted it.
+- Unreleased (v0.3): each card has a **Type** and a **State** filter listing the types and the
+  states of its rows with their counts (*All (2)*, *bug (1)*); a filter applies to its own card, and
+  the greeting and the bell still count every row. Each card shows its first **10 rows**, then
+  *Show all (<n>)* and *Show fewer*. Each row names its element by its **short id** (*task-046*;
+  the full id when the type's id has no number) and says when it entered its state (*since Sep 29,
+  2026*; the full time is the accessible description of the date and of the row's link).
 - Changing the **Role view** changes the list; a change in the repository updates it by itself and
   screen readers hear the new count.
 - **Your roles** — when you hold several roles, a card between the greeting and Requires you gives
   one line per role, in the order of the DNA: the role with how many items require it (*approver ·
   2*), its first three items (links to the element panel) and *N more* when there are others.
   Pressing a role, or its *N more*, switches the role view to it; the focus moves to Requires you
-  once it is read. The line of your current view is marked *current view*.
+  once it is read. The line of your current view is marked *current view*. Unreleased (v0.3): the
+  card is **one line of role tags**, each with its count (*approver · 2*) and no items or *N more*;
+  pressing a tag switches the role view, the tag of your current view is marked *current view*.
 - **The notification bell** — in the header of every project view, between the role view and your
   name, the bell shows how many items Requires you lists in your role view (no number when there
   is none). It opens a panel (Escape closes it) with **To unblock** — the same items as Requires
@@ -244,23 +261,65 @@ The **Memory** list (`/p/<id>/memory`) shows every element of every type of
 If `memory.yaml` cannot be read, the list still shows, with a notice that some filters, buckets or
 tones may be missing.
 
+**Files that are not elements** (unreleased, v0.3; bug-024): a Markdown file under a Memory folder
+that has no frontmatter, or whose frontmatter lacks the id, title, type or status, is not an
+element. On WingFoil 0.2.2 the list leaves it out and its notice names it — `memory search left out
+docs/…/notes.md: not a Memory element (id, title, type, status missing or not text)` — while the
+other elements are listed as usual (with archived elements, once you select a type). WingFoil 0.3.1
+leaves such a file out by itself and says nothing; a file whose frontmatter does not parse is named
+by WingFoil 0.3.1's own warning (`W_MEMORY_UNREADABLE`). On WingFoil 0.2.2 such a file stops the
+whole list: see [Known limitations](#known-limitations).
+
 ## The element panel
 
 Selecting an element opens its panel on the right (`/p/<id>/e/<element id>`, which you can also
 open directly from its address). The panel is **non-modal**: the header and the sidebar stay
 usable. **Close** or Escape (and the gate footer's *Cancel*) close it and give the focus back to
 the control that opened it when that is the Memory list's row, or on Today a *Requires you* action
-or title, a *Waiting on others* row or an item of the roles summary, and it is still listed.
+or title, a *Waiting on others* row or an item of the roles summary (v0.2; unreleased v0.3 has
+no items there), and it is still listed.
 Otherwise the focus goes to the main region: for example after a gate you have just decided (it
 leaves *Requires you*), or when you opened the panel from the notification bell or from its
 address.
+
+**Unreleased, v0.3 — the element page** (task-062): the element opens as a **page** in the main
+region, with the sidebar, instead of a panel over the view — the same content and footer, the
+title as the page's heading, the footer in a bar at the bottom of the window. *Close* and Escape go
+back to where you opened it, or to the Memory list when you opened its address directly. The
+address also takes an element's **short id** — `/p/<id>/e/task-046` opens
+`task-046-wingfoil-0.3-support-read-wingfoil-0.3.x-and-pin-0.3.1` and the address bar then shows
+the full id; a short id that names several elements lists them, each a link to its page, instead
+of *Not found*; a short id is matched exactly (`task-46` is not `task-046`).
+
+**Unreleased, v0.3 — the side panel** (task-077): from Today (*Requires you*, *Waiting on others*)
+and from the notification bell the element opens in a **side panel** over the view
+you are on, which stays as it was — Today keeps its filters and expanded lists. The address shows
+it as `?panel=<element id>` after the view's own address, so a reload or a copied address keeps
+it; *Close* and Escape (and the gate footer's *Cancel*) close it, keep the view's other parameters
+(a Memory list filter, for example) and give the focus back as described above. Opening another
+element while the panel is open replaces it, so one *Close* returns to the view. On an element
+page a bell item opens that item's element page. A short id in `panel=` shows its element and the
+address then shows the full id; a short id that names several elements lists them in the panel;
+any other value shows *Not found* — it is only looked up as an element of the project you are in.
 
 The panel shows:
 
 - the type, id and title, and the **state machine** of the type as chips (past, current, future
   states; a state off the sequence is shown too);
 - a **rejection banner** when the last transition was a reject (*Rejected by <name>: <reason>*);
-- a **summary** — the first paragraph of the element's body;
+- a **summary** — the first paragraph of the element's body; unreleased, v0.3 (task-078): rendered
+  as Markdown (emphasis, code, links), with **Open document** under it, which opens the whole body
+  in a dialog — **Rendered** by default, or its **Source** as written; an empty body reads *No
+  content yet*. *Close* or Escape close the dialog and give the focus back to *Open document*. The
+  rendering is the Documentation view's: raw HTML is shown as text, images are never loaded (their
+  text is shown, marked), a relative link is read from the element file's folder — a link to
+  another element's file opens that element's page, a documentation file the Documentation view,
+  an `http`/`https` link a new tab, anything else is marked and opens nothing; a link to a heading
+  of the same document moves to that heading. The HTML comments of the body (a template's
+  placeholders) are left out of the summary and the rendered document, and only the comments: text
+  after a comment is kept; *Source* shows them. When the summary and the document cannot be loaded
+  (for example in a tab left open while the console was upgraded), their place reads *The summary
+  and the document could not be loaded* with **Reload the page**; the rest of the element stays;
 - **References** — the other frontmatter fields with their values; a required field that is
   missing reads *<field> — required field, missing*;
 - the **directives** that apply to the current role view, plus the global ones, each linking to
@@ -289,11 +348,18 @@ At the bottom of the panel of an element waiting on a gate, a member holding the
   shows the new state and a toast says the result (see *After an action*). On a refusal the
   reason is kept;
 - an outcome is also disabled, with the reason, when the element has local changes, the WingFoil
-  version is not supported or your copy is behind, diverged or detached.
+  version is not supported or your copy is behind, diverged or detached;
+- unreleased (v0.3), on WingFoil 0.3: *Approve* is disabled with *Blocked: only 1 active at a time*
+  when its target state already holds as many elements of the type as its `limits` in
+  `.wingfoil/memory.yaml` allow; each *Reject* stays available (WingFoil sets no limit on a reject).
 
 Instead of the gate footer the panel says:
 
 - *Reserved to approver — Morgan, Alex can act* when you do not hold the gate's role;
+- unreleased (v0.3), for a gate the project holds in `.wingfoil/ui.yaml` (`holds`): the hold's
+  line — *Approved outside the console (ui.yaml)*, or *Waits for 1 referencing element to be done*
+  while elements referencing it are not done — and no *Approve*; a member holding the gate's role
+  keeps the reason and each *Reject → <state>* below the line;
 - *Read-only: <email> is not in the team —* **How to join**, or *Read-only: see the notice above
   the view* (no git identity, an ambiguous one), when you are not identified as one member;
 - *Waiting for the workflow engine (state: <state>)* for a state WingFoil advances by itself or
@@ -308,7 +374,11 @@ member of the team sees *Submit → <next state>* and *Cancel* at the bottom of 
 runs `wingfoil memory submit`. *Submit* is disabled, with the reason, when the element has local
 changes (*Blocked: this element has local changes — commit or discard them first*: `memory submit`
 would commit them), when the WingFoil version is not supported or when your copy is behind, diverged
-or detached. An element waiting on a gate offers no *Submit*.
+or detached. Unreleased (v0.3), on WingFoil 0.3, it is also disabled when the next state is at its
+limit (`limits` in `.wingfoil/memory.yaml`, e.g. one active Sprint at a time): *Blocked: only 1
+active at a time*. The console counts the elements your copy lists; WingFoil also counts the ones
+another branch moved there, so it may still refuse a *Submit* the console offers — its refusal is
+shown as a toast. An element waiting on a gate offers no *Submit*.
 
 ### After an action
 
@@ -323,7 +393,8 @@ narrow, so a toast covers neither those buttons nor the sidebar:
 - a refusal is a **red toast** that stays until you close it: *Submit of <id> not done* with
   WingFoil's own message (e.g. a required field left empty), *This element changed since you
   opened it* when someone moved it meanwhile (the panel then shows its new state), or *This element
-  has local changes …*.
+  has local changes …*. When WingFoil 0.3.x gives its reasons for a refusal, they follow its
+  message, one line each, as WingFoil wrote them (unreleased, v0.3); WingFoil 0.2.2 gives none.
 
 A result toast goes after 8 s, not while the pointer is over it or the focus is inside it; each
 toast has a *Close notification* button, and a new result for the same element replaces its toast.
@@ -464,8 +535,13 @@ repository changes:
   cut around one line. An element's title shows such characters as visible escapes (`\u202e`) in
   the Memory list, the element panel and Today, and a backslash in a title is shown doubled
   (`Fix \\n handling`). An element's body and its other fields, a directive and a file are shown
-  as written; the DNA's names, the directives' titles, the workflow texts, file names and the states
-  named in the history are not escaped yet.
+  as written.
+- **Every other name the repository supplies is shown safely as well** (unreleased, v0.3): the
+  project's name and remote, the DNA's texts, the members' names and emails (and your own git
+  email), the directives' names and titles, the workflow descriptions, the states an element's
+  history names, and the documentation's file names and paths show control, format and separator
+  characters as visible escapes, as the titles do. A document's link still opens the file as it is
+  named. Ids, types, states, roles and tags are shown as WingFoil returns them.
 
 ## Automatic sync with the remote
 
@@ -658,6 +734,7 @@ log (the full hash and the time of each commit made by a decision or submit in t
 | *Blocked: your copy is N commits behind the remote — Update* | press **Update** (in the footer or the sidebar), then decide |
 | *Blocked: your copy has diverged from the remote* / *Cannot fast-forward: your copy and the remote have diverged …* | reconcile in a terminal (`git pull --rebase` or `git merge`); the console never merges or rebases |
 | *Blocked: no branch checked out* | check out a branch with git |
+| *Blocked: only 1 active at a time* (unreleased, v0.3) | the next state is at its limit: move one of the elements there on first (the Memory list shows them), then retry |
 | *This element changed since you opened it* | someone moved the element meanwhile: the panel shows its new state; decide again if still needed |
 | *WingFoil did not finish the action: check <file> with git before trying again* | WingFoil stopped half-way (e.g. a stale `index.lock` or a failing pre-commit hook): inspect the file and the last commit with git |
 | *Not pushed — the commit stays local* | read git's message in the toast; when the remote moved, **Update**, then **Push** |
@@ -691,6 +768,15 @@ Accepted for v0.2 and recorded in the implementation plans
 (`docs/05_plans/rl-v1/rel-v0.1/dev-loop-rel-v0.1-plan.md`,
 `docs/05_plans/rl-v1/rel-v0.2/dev-loop-rel-v0.2-plan.md`), the task notes and the bug records
 (`docs/04_memory/bugs/`).
+
+In the unreleased v0.3:
+
+- **WingFoil 0.2.2 and a frontmatter that does not parse** (bug-036). On a project on WingFoil
+  0.2.2, one Memory file whose frontmatter is not valid YAML (`id: [unclosed`) makes WingFoil's
+  `memory search` fail with no list and without naming the file: the Memory list, the element panel,
+  Today and the notification bell answer an internal error. Run `wingfoil memory search` in the
+  project — WingFoil prints the YAML error and the lines around it —, fix that frontmatter, or move
+  the project to WingFoil 0.3.1, which lists the other elements and names the file.
 
 Git sync and actions (new in v0.2):
 

@@ -1,0 +1,276 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/progress.schema.json",
+  "title": "GET /api/p/:pid/progress",
+  "description": "The progress card's figures (spec-012 §3): the ui.yaml status, the mode, the derived scope, completion, the read-only phase figures, iterated, open defects and pending gates, with the elements not read or indexed incompletely (§1). Ids are full ids; titles and pattern reference ids are escaped (§9).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ui", "mode", "scope", "figures", "unreadable", "capped"],
+  "properties": {
+    "ui": {
+      "$ref": "ui-config.schema.json#/definitions/status"
+    },
+    "mode": {
+      "enum": ["sequence", "flow"]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "current", "basis"],
+      "properties": {
+        "type": {
+          "type": ["string", "null"]
+        },
+        "current": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "ui-config.schema.json#/definitions/elementRef"
+            }
+          ]
+        },
+        "basis": {
+          "enum": ["derived", null]
+        }
+      }
+    },
+    "figures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completion", "phase", "phaseCompletion", "iterated", "openDefects", "pendingGates"],
+      "properties": {
+        "completion": {
+          "$ref": "#/definitions/completion"
+        },
+        "phase": {
+          "$ref": "#/definitions/readOnly"
+        },
+        "phaseCompletion": {
+          "$ref": "#/definitions/readOnly"
+        },
+        "iterated": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "type", "done", "total", "ids", "doneIds"],
+              "properties": {
+                "state": {
+                  "const": "shown"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "done": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ids": {
+                  "$ref": "#/definitions/ids"
+                },
+                "doneIds": {
+                  "$ref": "#/definitions/ids"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "reason"],
+              "properties": {
+                "state": {
+                  "const": "unavailable"
+                },
+                "reason": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["code"],
+                  "properties": {
+                    "code": {
+                      "enum": ["no-iterates-type"]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "openDefects": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "type", "count", "ids"],
+              "properties": {
+                "state": {
+                  "const": "shown"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ids": {
+                  "$ref": "#/definitions/ids"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "reason"],
+              "properties": {
+                "state": {
+                  "const": "unavailable"
+                },
+                "reason": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["code"],
+                  "properties": {
+                    "code": {
+                      "enum": ["no-defects-type"]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "pendingGates": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "count", "ids"],
+          "properties": {
+            "state": {
+              "const": "shown"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ids": {
+              "$ref": "#/definitions/ids"
+            }
+          }
+        }
+      }
+    },
+    "unreadable": {
+      "$ref": "#/definitions/ids"
+    },
+    "capped": {
+      "$ref": "#/definitions/ids"
+    }
+  },
+  "definitions": {
+    "ids": {
+      "description": "Full element ids, in natural id order (digit runs compared as numbers).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "readOnly": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "reason"],
+      "properties": {
+        "state": {
+          "const": "read-only"
+        },
+        "reason": {
+          "$ref": "project.schema.json#/definitions/capabilityReason"
+        }
+      },
+      "description": "A figure that needs workflow status (v0.4): the reason the project header gives the capability workflow-position."
+    },
+    "completion": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "value", "percent", "references", "referencesCount", "ids"],
+          "properties": {
+            "state": {
+              "const": "shown"
+            },
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "percent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "references": {
+              "type": "array",
+              "maxItems": 10,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "done", "total", "percent"],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "done": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "percent": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                }
+              }
+            },
+            "referencesCount": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "ids": {
+              "$ref": "#/definitions/ids"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "reason"],
+          "properties": {
+            "state": {
+              "const": "unavailable"
+            },
+            "reason": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code"],
+              "properties": {
+                "code": {
+                  "enum": ["no-reference-categories", "no-linked-elements"]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "The completion figure (spec-012 §3): the unweighted mean over the requirement and feature references with a linked element in scope; Traceability's figures.completion too (§4)."
+    }
+  }
+}

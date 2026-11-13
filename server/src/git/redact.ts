@@ -191,6 +191,11 @@ function safeCut(text: string, at: number, back: boolean): number {
   return cut;
 }
 
+/** `text` at most {@link MAX_MESSAGE} characters, cut as the sanitiser cuts (task-070 R2-F2). */
+export function capMessage(text: string): string {
+  return cap(text);
+}
+
 /** `text`, or its head and tail around {@link ELLIPSIS}, at most {@link MAX_MESSAGE} characters. */
 function cap(text: string): string {
   if (text.length <= MAX_MESSAGE) return text;

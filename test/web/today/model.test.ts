@@ -1,8 +1,20 @@
 // task-036 — the pure part of Today (D36-6…D36-8): the reason of a Requires you row, who must act on
-// a Waiting on others row, the greeting's name and the identity sentence.
+// a Waiting on others row, the greeting's name and the identity sentence. task-061 (D61-4): the
+// card's facets, its filters and its 10-row limit.
 import type { ActionDescriptor, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { expect, it } from 'vitest';
-import { durationOf, greetingName, identityNote, rowReason, waitingWho } from '../../../web/src/today/model.js';
+import {
+  durationOf,
+  effectiveFilter,
+  facetsOf,
+  filterCard,
+  greetingName,
+  identityNote,
+  limited,
+  ROW_LIMIT,
+  rowReason,
+  waitingWho,
+} from '../../../web/src/today/model.js';
 import { header, morgan, riley } from '../project/header-data.js';
 
 const NOW = Date.parse('2026-10-14T12:00:00Z');
@@ -96,6 +108,19 @@ it('names who must act from the actor', () => {
   expect(waitingWho(waiting({ kind: 'none' }))).toEqual({ kind: 'none' });
 });
 
+it('task-069 — a held gate names its hold, in place of the role (spec-003 §5)', () => {
+  const reason = { code: 'held-until-references-done', count: 1 } as const;
+  const row: TodayRow = {
+    element: { id: 'x-001', type: 'kind-a', title: 'X', status: 's1', localChanges: false },
+    descriptor: descriptor({
+      kind: 'gate',
+      actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+      approveHeld: { condition: 'when-references-done', reason },
+    }),
+  };
+  expect(waitingWho(row)).toEqual({ kind: 'held', reason });
+});
+
 it('greets a member by name and has no name for anyone else', () => {
   expect(greetingName(morgan())).toBe('Morgan Reyes');
   expect(greetingName(riley())).toBeUndefined();
@@ -117,4 +142,57 @@ it('says How to join only to a user not in the team with a readable DNA (D36-8, 
       }),
     ),
   ).toBe('unidentified');
+});
+
+/** A card row of type `type` in state `status`, numbered `n` (D61-4). */
+function cardRow(n: number, type: string, status: string): TodayRow {
+  const id = `${type}-${String(n).padStart(3, '0')}`;
+  return {
+    element: { id, type, title: id, status, localChanges: false },
+    descriptor: descriptor({ id, type, status }),
+  };
+}
+
+const CARD = [
+  cardRow(1, 'kind-b', 's2'),
+  cardRow(2, 'kind-a', 's2'),
+  cardRow(3, 'kind-b', 's1'),
+  cardRow(4, 'kind-c', 's2'),
+];
+const idsOf = (rows: readonly TodayRow[]) => rows.map((r) => r.element.id);
+
+it('task-061 — the facets count the card’s unfiltered rows, sorted by value (D61-4, T-02.4)', () => {
+  expect(facetsOf(CARD, 'type')).toEqual([
+    { value: 'kind-a', count: 1 },
+    { value: 'kind-b', count: 2 },
+    { value: 'kind-c', count: 1 },
+  ]);
+  expect(facetsOf(CARD, 'state')).toEqual([
+    { value: 's1', count: 1 },
+    { value: 's2', count: 3 },
+  ]);
+  expect(facetsOf([], 'type')).toEqual([]);
+});
+
+it('task-061 — the type and the state filter combine, the server’s order kept (D61-4)', () => {
+  expect(idsOf(filterCard(CARD, {}))).toEqual(idsOf(CARD));
+  expect(idsOf(filterCard(CARD, { type: 'kind-b' }))).toEqual(['kind-b-001', 'kind-b-003']);
+  expect(idsOf(filterCard(CARD, { state: 's2' }))).toEqual(['kind-b-001', 'kind-a-002', 'kind-c-004']);
+  expect(idsOf(filterCard(CARD, { type: 'kind-b', state: 's2' }))).toEqual(['kind-b-001']);
+  expect(filterCard(CARD, { type: 'kind-a', state: 's1' })).toEqual([]);
+});
+
+it('task-061 — a chosen value no longer among the card’s rows falls back to All (D61-6)', () => {
+  expect(effectiveFilter(CARD, { type: 'kind-b', state: 's1' })).toEqual({ type: 'kind-b', state: 's1' });
+  expect(effectiveFilter(CARD, { type: 'kind-z', state: 's1' })).toEqual({ state: 's1' });
+  expect(effectiveFilter(CARD, { type: 'kind-a', state: 's9' })).toEqual({ type: 'kind-a' });
+  expect(effectiveFilter([], { type: 'kind-a' })).toEqual({});
+});
+
+it('task-061 — a card shows its first 10 rows unless expanded (D61-7, REQ-PERF-11)', () => {
+  expect(ROW_LIMIT).toBe(10);
+  const many = Array.from({ length: 13 }, (_, i) => cardRow(i + 1, 'kind-a', 's1'));
+  expect(idsOf(limited(many, false))).toEqual(idsOf(many.slice(0, 10)));
+  expect(limited(many, true)).toHaveLength(13);
+  expect(limited(many.slice(0, 10), false)).toHaveLength(10);
 });

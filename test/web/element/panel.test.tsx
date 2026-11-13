@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-// task-018 — the element panel (US-G-01; ux-reference §4.2) at component level, on the whole
-// application with a stubbed API: the route `/p/$pid/e/$eid`, the two reads, the sections, the
+// task-018 — the element's content (US-G-01; ux-reference §4.2) at component level, on the whole
+// application with a stubbed API: the route `/p/$pid/e/$eid` — the element page since task-062
+// (`page.test.tsx`: its presentation, short ids, candidates) —, the two reads, the sections, the
 // degraded answers, Close/Escape, the page title and the catalogue (every text a key).
 import type { ElementDetail, MemoryHistory } from '@wingfoil-ui/contracts';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
@@ -145,7 +146,7 @@ afterEach(() => {
 it('shows the element: type, id, title, chips, banner, summary, missing field, references, history', async () => {
   const fetch = stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
+  const dialog = await screen.findByRole('region', { name: 'Password reset' });
   const d = within(dialog);
   expect(d.getByText('kind-a')).toBeTruthy();
   expect(d.getByText(EID)).toBeTruthy();
@@ -160,7 +161,8 @@ it('shows the element: type, id, title, chips, banner, summary, missing field, r
   expect(chips[0]?.getAttribute('aria-current')).toBe('step');
   expect(chips[0]?.className).toContain('tone-neutral');
   expect(d.getByText('Rejected by Morgan: Missing acceptance criteria')).toBeTruthy();
-  expect(d.getByText('Users forget passwords.')).toBeTruthy();
+  // The summary renders once the document module is loaded (task-078, D78-7).
+  expect(await d.findByText('Users forget passwords.')).toBeTruthy();
   expect(d.getByText('link_ref — required field, missing')).toBeTruthy();
   expect(d.queryByText('id — required field, missing')).toBeNull();
   expect(d.getByText('US-1')).toBeTruthy();
@@ -178,11 +180,13 @@ it('shows the element: type, id, title, chips, banner, summary, missing field, r
   expect(lines[2]).toContain('2222222');
   expect(lines[3]).toContain('created by Jordan');
   expect(d.getByText('2222222').getAttribute('title')).toBe(HISTORY.entries[1]?.sha);
-  // No Edit; no verb for a user who is not identified (task-037: the read-only line has no button).
-  expect(d.getAllByRole('button').map((b) => b.textContent)).toEqual(['Close']);
+  // No Edit; no verb for a user who is not identified (task-037: the read-only line has no button);
+  // *Open document* since task-078 (D78-4).
+  expect(d.getAllByRole('button').map((b) => b.textContent)).toEqual(['Close', 'Open document']);
   await waitFor(() => expect(document.title).toBe(`kanban · ${EID} — WingFoil UI`));
   // The element and its history, plus the project's directives and header (task-019, once per
-  // project), the notification bell's Today read (task-042, D42-1); nothing per reference.
+  // project), the notification bell's Today read (task-042, D42-1); nothing per reference, and no
+  // link lookup for a body with no repository link (task-078, D78-6).
   const paths = fetch.mock.calls.map((c) => String(c[0])).filter((p) => p.startsWith(`/api/p/`));
   expect(new Set(paths)).toEqual(
     new Set([BASE, `${BASE}/history`, `/api/p/${PID}/directives`, `/api/p/${PID}`, `/api/p/${PID}/today`]),
@@ -259,7 +263,7 @@ it('renders a read error of the element and of the history from the catalogue', 
   renderApp(`/p/${PID}/e/${EID}`);
   const alert = await screen.findByRole('alert');
   expect(alert.textContent).toContain('docs/el.md');
-  expect(screen.getByRole('dialog', { name: EID })).toBeTruthy();
+  expect(screen.getByRole('region', { name: EID })).toBeTruthy();
 });
 
 it('renders a failed history read inside the history section', async () => {
@@ -275,16 +279,19 @@ it('renders a failed history read inside the history section', async () => {
 it('says the element is loading while the read is pending', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);
-  expect(await screen.findByText('Loading the element…')).toBeTruthy();
+  // The status line of the body (the heading says it too, review F-3).
+  await waitFor(() =>
+    expect(screen.getAllByRole('status').map((s) => s.textContent)).toContain('Loading the element…'),
+  );
 });
 
-it('closes with Escape to the project (its landing view, Today since task-036; W3-22) when opened from its URL (no page to go back to), focus on main', async () => {
+it('closes with Escape to the Memory list when opened from its URL (no page to go back to; spec-011 §2), focus on main', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/${EID}`);
-  await screen.findByRole('dialog', { name: 'Password reset' });
+  await screen.findByRole('region', { name: 'Password reset' });
   await userEvent.keyboard('{Escape}');
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
-  expect(screen.queryByRole('dialog')).toBeNull();
+  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
+  expect(screen.queryByRole('region', { name: 'Password reset' })).toBeNull();
   await waitFor(() => expect(document.activeElement?.id).toBe('main'));
 });
 
@@ -294,9 +301,9 @@ it('closes with Close back to the page it was opened from (history back), focus 
   await screen.findByRole('heading', { level: 1, name: 'Projects' });
   await router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: EID } });
   await userEvent.click(await screen.findByRole('button', { name: 'Close' }));
-  // Back to `/` — not the `/p/$pid` fallback.
+  // Back to `/` — not the Memory list fallback.
   await waitFor(() => expect(router.state.location.pathname).toBe('/'));
-  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryByRole('region', { name: 'Password reset' })).toBeNull();
   await waitFor(() => expect(document.activeElement?.id).toBe('main'));
 });
 
@@ -305,7 +312,7 @@ it('leaves the focus where the destination put it', async () => {
   const { router } = renderApp('/');
   const add = await screen.findByRole('button', { name: 'Add project…' });
   await router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: EID } });
-  await screen.findByRole('dialog', { name: 'Password reset' });
+  await screen.findByRole('region', { name: 'Password reset' });
   // A destination that focuses its own element (task-017: the row of the element) keeps it.
   const unsubscribe = router.subscribe('onResolved', () =>
     document.querySelector<HTMLElement>('.button-primary')?.focus(),
@@ -365,56 +372,47 @@ it.each([
   expect(await screen.findByText(text)).toBeTruthy();
 });
 
-it('makes the scrollable body a focusable, named region (keyboard scrolling)', async () => {
+it('focuses inside the page on open and leaves the header operable (N5, W4-8)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
-  const body = within(dialog).getByRole('region', { name: 'Element details' });
-  expect(body.tabIndex).toBe(0);
-  expect(body.className).toContain('drawer-body');
-});
-
-it('focuses inside the panel on open and leaves the header operable (non-modal, W4-8)', async () => {
-  stubApi(api());
-  renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
-  await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
-  expect(dialog.getAttribute('aria-modal')).toBeNull();
+  const page = await screen.findByRole('region', { name: 'Password reset' });
+  await waitFor(() => expect(page.contains(document.activeElement)).toBe(true));
+  expect(page.closest('[aria-modal]')).toBeNull();
   // The header is not hidden from assistive technology: the project switcher stays reachable.
   expect(screen.getByRole('banner').closest('[aria-hidden="true"]')).toBeNull();
   expect(screen.getByRole('button', { name: /^Projects/ })).toBeTruthy();
 });
 
-it('closes with Escape only when pressed inside the panel', async () => {
+it('closes with Escape only when pressed inside the page', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/${EID}`);
-  await screen.findByRole('dialog', { name: 'Password reset' });
+  await screen.findByRole('region', { name: 'Password reset' });
   screen.getByRole('link', { name: 'Skip to content' }).focus();
   await userEvent.keyboard('{Escape}');
   expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
-  expect(screen.getByRole('dialog', { name: 'Password reset' })).toBeTruthy();
+  expect(screen.getByRole('region', { name: 'Password reset' })).toBeTruthy();
 });
 
 it('leaves an Escape that an inner control handled (preventDefault) to that control (R8)', async () => {
   stubApi(api());
   const { router } = renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'Password reset' });
-  const body = within(dialog).getByRole('region', { name: 'Element details' });
-  // An inner control that consumes Escape (e.g. a future combo box in the panel).
+  const page = await screen.findByRole('region', { name: 'Password reset' });
+  const body = within(page).getByRole('heading', { level: 1 });
+  // An inner control that consumes Escape (e.g. a future combo box in the page).
   body.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') e.preventDefault();
   });
   body.focus();
   await userEvent.keyboard('{Escape}');
   expect(router.state.location.pathname).toBe(`/p/${PID}/e/${EID}`);
-  expect(screen.getByRole('dialog', { name: 'Password reset' })).toBeTruthy();
+  expect(screen.getByRole('region', { name: 'Password reset' })).toBeTruthy();
 });
 
 it('shows only catalogue keys with the key catalogue (spec-008 §6)', async () => {
   stubApi(api());
   const keys = keyCatalogue(en);
   renderApp(`/p/${PID}/e/${EID}`, keys);
-  const dialog = await screen.findByRole('dialog');
+  const dialog = await screen.findByRole('region', { name: 'Password reset' });
   await within(dialog).findByText('element.history.entry submit Jordan');
   const d = within(dialog);
   expect(d.getByText('element.rejection.withReason Morgan Missing acceptance criteria')).toBeTruthy();

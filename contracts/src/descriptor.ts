@@ -30,7 +30,26 @@ export type DisabledReason =
   | { code: 'local-changes' }
   | { code: 'copy-behind'; commits: number }
   | { code: 'copy-diverged' }
-  | { code: 'copy-detached' };
+  | { code: 'copy-detached' }
+  /** v0.3 (rule 5, RP3-14 D11): the target `state` already holds the type's `limit` elements. */
+  | { code: 'state-limit'; state: string; limit: number };
+
+/** `holds.<type>.<state>.approve` of `.wingfoil/ui.yaml` (spec-005 §4a). */
+export type HoldCondition = 'never' | 'when-references-done';
+
+/**
+ * Why a gate's *Approve* is withheld (spec-005 §4a), rendered by the web: the approval is made
+ * outside the console, or `count` non-archived elements that reference the element are not done.
+ */
+export type HoldReason = { code: 'held-by-config' } | { code: 'held-until-references-done'; count: number };
+
+/**
+ * The hold of a held gate (spec-003 §3, §8; v0.3, RP3-14 D5): the `holds` value in force for the
+ * element's type and state, and its reason — the code follows the condition.
+ */
+export type ApproveHeld =
+  | { condition: 'never'; reason: { code: 'held-by-config' } }
+  | { condition: 'when-references-done'; reason: { code: 'held-until-references-done'; count: number } };
 
 /** One verb of spec-003 §3. */
 export interface DescriptorVerb {
@@ -39,7 +58,7 @@ export interface DescriptorVerb {
   to: string;
   /** The role WingFoil requires (`approver` for a gate on 0.2.2), `null` for none. */
   role: string | null;
-  /** Whether the four rules of spec-003 §6 hold (the role is not one of them). */
+  /** Whether the rules of spec-003 §6 hold (the role is not one of them). */
   enabled: boolean;
   /** The first failing rule, when disabled. */
   reason?: DisabledReason;
@@ -88,6 +107,11 @@ export interface ActionDescriptor {
   bucket?: Bucket;
   /** The verbs WingFoil accepts from this state, in the order submit, approve, reject. */
   verbs: DescriptorVerb[];
+  /**
+   * Set on a held gate (v0.3, spec-003 §3): `verbs` then holds no `approve`, the element is in
+   * nobody's *Requires you* and is not a pending gate.
+   */
+  approveHeld?: ApproveHeld;
   actor: DescriptorActor;
   rejection?: DescriptorRejection;
   /** ISO 8601 time of the last event into the current state; absent when none is known. */

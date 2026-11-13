@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/api/write.refusal.schema.json",
   "title": "Refusal of a governed write (POST /api/p/:pid/elements/:eid/submit, /approve, /reject)",
-  "description": "The error envelope of spec-004 §5 with the codes a governed write answers (spec-004 §4 rows 1–9, §5; stale-copy: row 8, task-033); detail holds the arguments of the web catalogue (spec-008 §4). write-incomplete: the write did not finish — the CLI failed leaving the element file changed without its commit (W2-1), wrote another path (W2-4) or failed after its commit (W2-5); the CLI's message is never sent. cli-not-found: detail.command only, never the project's absolute path (bug-012, task-033).",
+  "description": "The error envelope of spec-004 §5 with the codes a governed write answers (spec-004 §4 rows 1–9, §5; stale-copy: row 8, task-033); detail holds the arguments of the web catalogue (spec-008 §4). write-incomplete: the write did not finish — the CLI failed leaving the element file changed without its commit (W2-1), wrote another path (W2-4) or failed after its commit (W2-5); the CLI's message is never sent. cli-not-found: detail.command only, never the project's absolute path (bug-012, task-033). cli-refused: detail.reasons optional (cli.refusal.schema.json, task-070).",
   "type": "object",
   "required": ["error"],
   "additionalProperties": false,
@@ -30,14 +30,21 @@
                 "local-changes",
                 "stale-copy",
                 "element-changed",
-                "cli-refused",
                 "cli-output",
                 "cli-timeout",
-                "internal"
+                "internal",
+                "payload-too-large",
+                "unsupported-media-type"
               ]
             }
           },
           "not": { "required": ["detail"] }
+        },
+        {
+          "properties": {
+            "code": { "const": "cli-refused" },
+            "detail": { "$ref": "cli.refusal.schema.json#/definitions/detail" }
+          }
         },
         {
           "properties": {

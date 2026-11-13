@@ -1,6 +1,6 @@
 // spec-003 §5 — the Today output (task-031): Requires you of the role view with each row's action,
 // Waiting on others without the Requires you rows (T-11.3), the all-roles summary (S5,
-// REQ-PERF-11: ≤ 3 items per role and "N more", absent for a single-role member — S-23.3), the
+// REQ-PERF-11 v0.3: one count per role, no item — task-076; absent for a single-role member — S-23.3), the
 // unidentified user (RP-27, D31-5), a member with no role (D31-5) and the order of both lists
 // (D31-4). On the samples captured from WingFoil 0.2.2 for the three fixtures. The placement of one
 // element is `placement()`'s (its own hand-written oracle in `placement.test.ts`); here the rows of
@@ -163,24 +163,20 @@ describe('Today — the scenarios (rows written by hand)', () => {
     expect(t.waitingOnOthers.find((r) => r.element.id === 'minor-v0.1')?.descriptor.actor).toEqual({ kind: 'engine' });
   });
 
-  it('S-23.1: Alex — one line per role in the DNA order, with its count and first rows', () => {
+  it('S-23.1: Alex — one tag per role in the DNA order, with its count only', () => {
     const alex = memberByName('Alex');
     const t = today(rows('kanban'), member('Alex'), 'developer');
     expect(t.summary?.map((l) => l.role)).toEqual(alex.roles);
-    const approver = t.summary!.find((l) => l.role === 'approver')!;
-    expect({ count: approver.count, more: approver.more }).toEqual({ count: 2, more: 0 });
-    expect(ids(approver.items)?.sort()).toEqual(['bug-001-crash-on-save', 'task-001-login-form']);
-    expect(approver.items.map((r) => r.action)).toEqual(['approve', 'approve']);
-    expect(t.summary!.find((l) => l.role === 'developer')).toEqual({ role: 'developer', count: 0, items: [], more: 0 });
-    // Each line is the Requires you of that role view (its first ≤ 3 rows).
+    expect(t.summary!.find((l) => l.role === 'approver')).toEqual({ role: 'approver', count: 2 });
+    expect(t.summary!.find((l) => l.role === 'developer')).toEqual({ role: 'developer', count: 0 });
+    // Each tag counts the Requires you of that role view, and carries nothing else (task-076, D76-1).
     for (const line of t.summary!) {
       const own = today(rows('kanban'), member('Alex'), line.role).requiresYou!;
-      expect(line.count).toBe(own.length);
-      expect(line.items).toEqual(own.slice(0, 3));
+      expect(line).toEqual({ role: line.role, count: own.length });
     }
   });
 
-  it('S-23.4: at most 3 items per role, and "N more"', () => {
+  it('S-23.4: the count of a role, no items', () => {
     const base = rows('kanban');
     const gate = base.find((r) => r.element.id === 'task-001-login-form')!;
     const five = [1, 2, 3, 4, 5].map((n): TodayRow => ({
@@ -188,9 +184,7 @@ describe('Today — the scenarios (rows written by hand)', () => {
       descriptor: { ...gate.descriptor, id: `task-10${n}`, since: `2026-10-0${n}T10:00:00+00:00` },
     }));
     const line = today(five, member('Alex'), 'developer').summary!.find((l) => l.role === 'approver')!;
-    expect(line.count).toBe(5);
-    expect(ids(line.items)).toEqual(['task-101', 'task-102', 'task-103']);
-    expect(line.more).toBe(2);
+    expect(line).toEqual({ role: 'approver', count: 5 });
   });
 });
 

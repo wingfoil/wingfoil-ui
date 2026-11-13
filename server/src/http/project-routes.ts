@@ -15,6 +15,8 @@
  * | `GET /api/p/:pid/files/tree?path=`, `/files/content?path=` | `file-tree.schema.json`, `file-content.schema.json` |
  * | `GET /api/p/:pid/today?view=` | `today.schema.json` — Requires you, Waiting on others, all-roles summary (v0.2, task-031) |
  * | `GET /api/p/:pid/events/memory?before=&limit=` | `memory-events.schema.json` — Memory events, newest first (v0.2, task-031) |
+ * | `GET /api/p/:pid/progress` | `progress.schema.json` — the progress card's figures (v0.3, task-059: spec-012 §3) |
+ * | `GET /api/p/:pid/traceability?scope=` | `traceability.schema.json` — references, completion, coverage, missing references (v0.3, task-074: spec-012 §4) |
  *
  * Every read goes through the project's snapshot view — one CLI process per command and repository
  * state (REQ-PERF-05) — and answers `X-Repo-State`. An unknown `:pid` is 404 before anything is
@@ -33,6 +35,7 @@
 import type { FastifyBaseLogger, FastifyInstance, FastifyReply } from 'fastify';
 import type {
   ActionDescriptor,
+  ApiCapabilityReason,
   ApiError,
   DirectiveDetail,
   DirectiveList,
@@ -41,6 +44,7 @@ import type {
   DnaShow,
   ElementDetail,
   ElementList,
+  ElementRef,
   ListedElement,
   MemoryMatch,
   MemoryYaml,
@@ -53,20 +57,25 @@ import type {
   Today,
   TodayRow,
   MemoryEventsPage,
+  MissingReferences,
+  Progress,
+  Traceability,
+  TraceabilityScope,
 } from '@wingfoil-ui/contracts';
 import { CliError, cliErrorEnvelope, type CliOutput } from '../cli/adapter.js';
 import { evaluateCapabilities } from '../cli/capabilities.js';
+import { mergeToolLines, type WarningParts } from '../cli/commands.js';
 import { CliNotFoundError } from '../cli/discovery.js';
-import { supportedRange, type DetectedVersion } from '../cli/version.js';
-import { describeElement, type CopyState } from '../descriptor/descriptor.js';
+import { compareSemVer, parseSemVer, supportedRange, type DetectedVersion } from '../cli/version.js';
+import { describeElement, heldOf, type CopyState, type DescriptorHolds } from '../descriptor/descriptor.js';
 import { today } from '../descriptor/today.js';
 import { GitReadError } from '../git/git.js';
 import { repositoryStatus, type SyncStatus } from '../git/sync-status.js';
 import { MEMORY_EVENTS_MAX_LIMIT, memoryDirectories, memoryEventsPage } from '../git/memory-log.js';
 import { directivesForRoleView, identityView } from '../identity/identity.js';
 import { identityOf } from '../identity/snapshot-identity.js';
-import { ARCHIVED_QUERY } from '../presets/api.js';
-import { ARCHIVED_STATES } from '../presets/wingfoil.js';
+import { ARCHIVED_QUERY, DONE_FIELD, TRACEABILITY_SCOPES } from '../presets/api.js';
+import { ARCHIVED_STATES, LIMITS_SINCE } from '../presets/wingfoil.js';
 import { DirectReadError } from '../reads/confine.js';
 import { shortIdsOf, type ShortIds } from '../reads/short-id.js';
 import { resolveStates } from '../reads/memory-yaml.js';
@@ -86,13 +95,23 @@ import { stripUserinfo, type StateStore } from '../state/store.js';
 import { envelope } from './app.js';
 import { resolveElementId } from './element-address.js';
 import { uiConfigBody } from '../ui-config/body.js';
+import { elementRef, progressBody, traceabilityParts, type TraceabilityParts } from '../project-state/bodies.js';
+import { currentElement, scopeType } from '../project-state/current.js';
+import { missingCategories } from '../project-state/missing.js';
+import { naturalOrder } from '../project-state/order.js';
+import type { UiCategory } from '../ui-config/types.js';
 import {
   descriptorBody,
+  directiveBody,
+  directiveFrontmatterBody,
+  dnaBody,
   frontmatterBody,
   historyBody,
+  identityBody,
   matchBody,
   memoryEventBody,
   repositoryText,
+  workflowsBody,
   toolTextSanitiser,
   type TextSanitiser,
 } from './serialise.js';
@@ -132,9 +151,15 @@ function refusalOf(error: unknown, base: ReadBase, log: FastifyBaseLogger): Refu
     if (error.kind === 'outside') log.warn({ kind: error.kind, file }, 'direct read refused');
     else log.info({ kind: error.kind, file }, 'direct read failed');
     const reason = error.kind === 'outside' ? 'outside the project' : error.kind;
+    // The page shows the file through the catalogue: a repository path, class (b) (task-072 D72-9).
+    const shown = repositoryText(file);
     return {
       status: 502,
-      error: { code: 'read-error', message: `Cannot read ${file}: ${reason}`, detail: { file, kind: error.kind } },
+      error: {
+        code: 'read-error',
+        message: `Cannot read ${shown}: ${reason}`,
+        detail: { file: shown, kind: error.kind },
+      },
     };
   }
   if (error instanceof GitReadError) {
@@ -276,6 +301,8 @@ class ProjectRead {
         copy: descriptorCopy(this.view.state),
       };
       const none: ReadonlySet<string> = new Set();
+      const holds = await this.holds();
+      const occupancy = await this.occupancy(memoryYaml, detected);
       return {
         ok: true,
         memoryYaml,
@@ -285,9 +312,51 @@ class ProjectRead {
             memoryYaml,
             members,
             enablement: { ...enablement, localChanges: localChanges ? new Set([match.id]) : none },
+            ...(holds ? { holds } : {}),
+            ...(occupancy ? { occupancy } : {}),
           }),
       };
     });
+  }
+
+  /**
+   * Rule 5's count (spec-003 §6; task-073 D73-3): the non-archived elements of `memory search` by
+   * type and status — the search every route already reads, cached for the state, so no process is
+   * added — only for a WingFoil version that enforces `limits` ({@link LIMITS_SINCE}) and a
+   * `memory.yaml` where some machine declares one; otherwise `undefined` (no limit applies).
+   */
+  private async occupancy(
+    memoryYaml: MemoryYaml,
+    detected: DetectedVersion,
+  ): Promise<((type: string, state: string) => number) | undefined> {
+    const version = detected.version === null ? undefined : parseSemVer(detected.version);
+    if (!version || compareSemVer(version, parseSemVer(LIMITS_SINCE)!) < 0) return undefined;
+    const machines = [memoryYaml.defaults?.states, ...Object.values(memoryYaml.types).map((t) => t.states)];
+    if (!machines.some((m) => m?.limits !== undefined)) return undefined;
+    const counts = new Map<string, number>();
+    for (const { match } of (await this.view.elements()).matches) {
+      const key = `${match.type}\0${match.status}`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return (type, state) => counts.get(`${type}\0${state}`) ?? 0;
+  }
+
+  /**
+   * The held gates of this state (spec-005 §4a, spec-003 §3; task-069 D69-4): the `holds` of the
+   * effective `ui.yaml` (an ignored or absent file holds nothing → `undefined`), and the reference
+   * index (spec-012 §1) built only when one of them is `when-references-done`. Called once per state
+   * from {@link descriptorInputs}, after `memory.yaml` was read, and by `/progress`'s pending gates
+   * (task-059 D59-6).
+   */
+  async holds(): Promise<DescriptorHolds | undefined> {
+    const table = (await this.view.uiConfig()).holds.value;
+    if (table.size === 0) return undefined;
+    const counted = [...table.values()].some((states) => [...states.values()].includes('when-references-done'));
+    const index = counted ? await this.view.referenceIndex() : undefined;
+    return {
+      condition: (type, state) => table.get(type)?.get(state),
+      referencingNotDone: (id) => index?.referencingNotDone(id) ?? 0,
+    };
   }
 
   /**
@@ -326,6 +395,27 @@ class ProjectRead {
       // header; the kind only (the message may quote paths).
       this.log.warn({ kind: (error as Error).name }, 'project entry not refreshed: state not written');
     }
+  }
+
+  /**
+   * The current element of `progress.scope` as an `ElementRef` (spec-012 §2, §3; task-059 D59-2), once
+   * per content key; `null` when no scope applies or no element is current. Rejects as
+   * {@link SnapshotView.referenceIndex} does (a failed `memory search`, an unreadable `memory.yaml`).
+   */
+  currentRef(): Promise<ElementRef | null> {
+    return this.view.contentDerived('current element', async () => {
+      const ui = await this.view.uiConfig();
+      if (scopeType(ui) === null) return null;
+      const [index, memoryYaml, list, shortIds] = await Promise.all([
+        this.view.referenceIndex(),
+        this.view.memoryTypes(),
+        this.view.elements(),
+        this.shortIds(),
+      ]);
+      const current = currentElement(index, memoryYaml, ui);
+      const match = current && list.matches.find((m) => m.match.id === current.id)?.match;
+      return current && match ? elementRef(current, match, shortIds) : null;
+    });
   }
 
   /** The short ids of this state's elements (spec-011 §1): none when `memory.yaml` is unreadable. */
@@ -400,6 +490,26 @@ function shortIdField(shortIds: ShortIds, element: { id: string; type: string })
   return shortId === undefined ? {} : { shortId };
 }
 
+/**
+ * The `/elements` row of a match (`elements.schema.json` `definitions.row`; task-074 D74-6): its
+ * title escaped, its short id, marker and descriptor (commit texts through `sanitise`); also the
+ * element rows of `/traceability`.
+ */
+function listedRow(
+  match: MemoryMatch,
+  localChanges: boolean,
+  shortIds: ShortIds,
+  descriptor: ActionDescriptor | undefined,
+  sanitise: TextSanitiser,
+): ListedElement {
+  return {
+    ...matchBody(match),
+    ...shortIdField(shortIds, match),
+    localChanges,
+    ...(descriptor ? { descriptor: descriptorBody(descriptor, sanitise) } : {}),
+  };
+}
+
 /** The descriptor input of rule 4 (spec-003 §6) from a state's copy (spec-010 §1). */
 function descriptorCopy(state: RepoState): CopyState {
   switch (state.copy) {
@@ -428,10 +538,13 @@ async function header(read: ProjectRead): Promise<ProjectHeader> {
   await read.refreshEntry(name);
   return {
     id: entry.id,
-    name,
+    // The project's name and the identity's names and email: class (b) (task-072 D72-3, D72-4),
+    // after the identity was matched and the stored name refreshed on the raw values.
+    name: repositoryText(name),
     wingfoil: wingfoilOf(detected),
     capabilities: evaluateCapabilities(detected, range),
     ...ids,
+    identity: identityBody(ids.identity),
     readOnly,
     repository: repositoryStatus(view.state, read.sync.of(entry.id, view.state.copy)),
     // spec-001 §6, spec-010 §7 (RP-25).
@@ -450,12 +563,14 @@ function wingfoilOf(detected: DetectedVersion): ProjectHeader['wingfoil'] {
   return { text, version, state, inRange, source };
 }
 
-/** One `/config` section. */
+/** One `/config` section, its data through `body` (task-072 D72-2: the DNA and the workflows). */
 function section<T>(
   settled: { ok: true; value: CliOutput<T> } | { ok: false; refusal: Refusal },
+  body: (data: T) => T = (data) => data,
 ): { data: T; warnings?: string[] } | { error: ApiError } {
   if (!settled.ok) return { error: settled.refusal.error };
-  const { data, warnings } = settled.value;
+  const { warnings } = settled.value;
+  const data = body(settled.value.data);
   return warnings.length > 0 ? { data, warnings } : { data };
 }
 
@@ -478,12 +593,40 @@ async function config(read: ProjectRead): Promise<ProjectConfig> {
     ),
   });
   return {
-    dna: section(dna),
+    dna: section(dna, dnaBody),
     paths: section(paths),
-    workflows: section(workflows),
+    workflows: section(workflows, workflowsBody),
     types: types.ok ? { data: resolved(types.value) } : { error: types.refusal.error },
-    ...(ui.ok ? { ui: uiConfigBody(ui.value) } : {}),
+    ...(ui.ok ? { ui: uiConfigBody(ui.value, await currentOrNull(read)) } : {}),
   };
+}
+
+/**
+ * `/config`'s `scope.current` (task-059 D59-2, Q6): the derived element, `null` when the reads it
+ * needs fail — the other sections report those failures; `/progress` answers them.
+ */
+async function currentOrNull(read: ProjectRead): Promise<ElementRef | null> {
+  const settled = await read.settle(read.currentRef(), '.wingfoil/');
+  return settled.ok ? settled.value : null;
+}
+
+/**
+ * The missing-reference flag of a state (spec-012 §5, task-059 D59-7): `requires` from the
+ * effective `ui.yaml`; the reference index built only when it names a type (`shown`). Once per
+ * content key.
+ */
+function missingOf(
+  read: ProjectRead,
+): Promise<{ references: MissingReferences; categories: ReadonlyMap<string, readonly UiCategory[]> }> {
+  return read.view.contentDerived('missing references', async () => {
+    const requires = (await read.view.uiConfig()).requires.value;
+    if (requires.size === 0) return { references: { shown: false, unreadable: [], capped: [] }, categories: new Map() };
+    const index = await read.view.referenceIndex();
+    return {
+      references: { shown: true, unreadable: naturalOrder(index.unreadable), capped: naturalOrder(index.capped) },
+      categories: missingCategories(index, requires),
+    };
+  });
 }
 
 /** `GET /api/p/:pid/elements[?archived=true]`. */
@@ -491,26 +634,41 @@ async function elements(read: ProjectRead, archived: boolean): Promise<ElementLi
   const { view } = read;
   const list = await view.elements();
   const matches = [...list.matches];
+  const lists: WarningParts[] = [list.warningParts];
   if (archived) {
-    for (const status of ARCHIVED_STATES) matches.push(...(await view.archivedElements(status)).matches);
+    for (const status of ARCHIVED_STATES) {
+      const more = await view.archivedElements(status);
+      matches.push(...more.matches);
+      // The archived searches' warnings too — a dropped archived match included (task-070 D70-4).
+      lists.push(more.warningParts);
+    }
   }
+  // Each text once (every search repeats the CLI's own warnings; the page keys the notice's rows by
+  // text, review round 1 F4), under one cap and one count line (F2), the repeated stderr's cut counted
+  // once (round 2 R2-F1).
+  const warnings = mergeToolLines(lists);
   const inputs = await read.descriptorInputs();
   const events = inputs.ok ? await read.events() : undefined;
   const shortIds = await read.shortIds();
   const sanitise = await read.toolText();
-  const listed: ListedElement[] = matches.map(({ match, localChanges }) => ({
-    ...matchBody(match),
-    ...shortIdField(shortIds, match),
-    localChanges,
-    ...(inputs.ok && events
-      ? { descriptor: descriptorBody(inputs.describe(match, localChanges, events.events), sanitise) }
-      : {}),
-  }));
+  // spec-012 §5: only with a readable memory.yaml (the effective ui.yaml needs it); the listed
+  // elements only — the archived ones are not indexed (TQ-3).
+  const missing = inputs.ok ? await missingOf(read) : undefined;
+  const live = new Set(list.matches.map((m) => m.match.path));
+  const listed: ListedElement[] = matches.map(({ match, localChanges }) => {
+    const categories = live.has(match.path) ? missing?.categories.get(match.id) : undefined;
+    const descriptor = inputs.ok && events ? inputs.describe(match, localChanges, events.events) : undefined;
+    return {
+      ...listedRow(match, localChanges, shortIds, descriptor, sanitise),
+      ...(categories ? { missingCategories: [...categories] } : {}),
+    };
+  });
   return {
     elements: listed,
-    warnings: list.warnings,
+    warnings,
     ...(list.message !== undefined ? { message: list.message } : {}),
     ...(inputs.ok ? {} : { typesError: inputs.refusal.error }),
+    ...(missing ? { missingReferences: missing.references } : {}),
     ...(events?.error ? { eventsError: events.error } : {}),
   };
 }
@@ -552,7 +710,8 @@ async function directives(read: ProjectRead): Promise<DirectiveList> {
   const inForce = directivesInForce(list.data);
   const mine = new Set(directivesForRoleView(inForce, roleView));
   return {
-    entries: inForce.map((e) => ({ ...e, mine: mine.has(e) })),
+    // `mine` on the raw entries; their name and title written as class (b) (task-072 D72-5).
+    entries: inForce.map((e) => ({ ...directiveBody(e), mine: mine.has(e) })),
     warnings: list.data.warnings,
   };
 }
@@ -561,7 +720,12 @@ async function directives(read: ProjectRead): Promise<DirectiveList> {
 async function directive(read: ProjectRead, id: string): Promise<DirectiveDetail> {
   const found = valueOf(await read.settle(read.view.directive(id), '.wingfoil/'));
   if (!found) throw notFound();
-  return { entry: found.entry, frontmatter: found.content.frontmatter, body: found.content.body };
+  // The name and title (the page's heading) as class (b); the rest as written (task-072 D72-5).
+  return {
+    entry: directiveBody(found.entry),
+    frontmatter: directiveFrontmatterBody(found.content.frontmatter),
+    body: found.content.body,
+  };
 }
 
 /** `GET /api/p/:pid/docs`. */
@@ -569,7 +733,12 @@ async function docs(read: ProjectRead): Promise<DocumentationIndex> {
   // Walked per request, not kept for the state: a git-ignored document does not move the state.
   const scope = await read.documentationScope();
   const paths = await read.view.paths();
-  return { roots: paths.data.docs ?? [], documents: await documentationIndex(read.root, scope) };
+  // A document's path is the address the page links to; what it shows is its label (task-072 D72-6).
+  const documents = await documentationIndex(read.root, scope);
+  return {
+    roots: paths.data.docs ?? [],
+    documents: documents.map(({ path }) => ({ path, label: repositoryText(path) })),
+  };
 }
 
 const invalidRequest = (): Refused =>
@@ -630,6 +799,131 @@ async function todayOf(read: ProjectRead, query: Record<string, unknown>): Promi
     descriptor: descriptorBody(descriptor, sanitise),
   }));
   return today(rows, ids.identity, requested ?? ids.roleView);
+}
+
+/**
+ * `GET /api/p/:pid/progress` (spec-012 §3, task-059): no query parameter (any → 400
+ * `invalid-request`, after the project lookup); an unreadable `memory.yaml` → 502 `read-error`, a
+ * failed `memory search` → its CLI envelope, never partial figures. Neither the DNA nor the Memory
+ * events are read: their failure does not fail it. The body once per content key (D59-9).
+ */
+async function progressOf(read: ProjectRead, query: Record<string, unknown>): Promise<Progress> {
+  if (Object.keys(query).length > 0) throw invalidRequest();
+  const { view } = read;
+  // The refusals in spec-012 §10's order: `memory.yaml` (502), then `memory search` (its envelope).
+  valueOf(await read.settle(view.memoryTypes(), '.wingfoil/'));
+  valueOf(await read.settle(view.uiConfig(), '.wingfoil/'));
+  valueOf(await read.settle(view.elements()));
+  return valueOf(
+    await read.settle(
+      view.contentDerived('progress body', async () => {
+        const [index, memoryYaml, ui, list, holds, detected, shortIds] = await Promise.all([
+          view.referenceIndex(),
+          view.memoryTypes(),
+          view.uiConfig(),
+          view.elements(),
+          read.holds(),
+          view.detected(),
+          read.shortIds(),
+        ]);
+        const matches = new Map(list.matches.map((m) => [m.match.id, m.match]));
+        return progressBody({
+          index,
+          ui,
+          current: currentElement(index, memoryYaml, ui),
+          held: (e) => heldOf(e.id, e.type, e.status, e.kind, holds) !== undefined,
+          match: (id) => matches.get(id)!,
+          shortIds,
+          phaseReason: phaseReasonOf(detected),
+        });
+      }),
+      '.wingfoil/',
+    ),
+  );
+}
+
+/** The capability whose reason the phase figures carry (spec-012 §3, `contracts/capabilities.json`). */
+const WORKFLOW_POSITION = 'workflow-position';
+
+/** The reason of the capability `workflow-position`, as the project header gives it (spec-012 §3, §4). */
+function phaseReasonOf(detected: DetectedVersion): ApiCapabilityReason {
+  const capability = evaluateCapabilities(detected, supportedRange()).capabilities.find(
+    (c) => c.id === WORKFLOW_POSITION,
+  );
+  // `via: null` in v0.3: the capability is always read-only, with a reason (spec-001 §6).
+  return capability?.reason ?? { code: 'not-in-release' };
+}
+
+/** The structural part of a `/traceability` answer (task-074 D74-5), with the raw descriptors of its elements. */
+interface TraceabilityBuilt {
+  parts: TraceabilityParts;
+  rows: ReadonlyMap<string, { match: MemoryMatch; localChanges: boolean; descriptor: ActionDescriptor }>;
+}
+
+/**
+ * `GET /api/p/:pid/traceability?scope=` (spec-012 §4, task-074): `scope` `current` (default) or
+ * `project`, any other value or parameter → 400 `invalid-request`, checked here after the project
+ * lookup (a Fastify query schema would answer before the 404, D74-3); then the refusals of
+ * `/progress` in spec-012 §10's order, never a partial body. The structural part — rows, figures,
+ * missing, the named elements and their raw descriptors — once per full key and scope (the
+ * descriptors read the copy, rule 4), and only when the Memory events were read: with
+ * `eventsError` it is computed for this request alone (D74-5). The descriptor texts and the titles
+ * are written per request.
+ */
+async function traceabilityOf(read: ProjectRead, query: Record<string, unknown>): Promise<Traceability> {
+  const scope = query['scope'];
+  const scopes: readonly unknown[] = TRACEABILITY_SCOPES;
+  if (Object.keys(query).some((k) => k !== 'scope') || (scope !== undefined && !scopes.includes(scope)))
+    throw invalidRequest();
+  const asked = (scope ?? TRACEABILITY_SCOPES[0]) as TraceabilityScope;
+  const { view } = read;
+  valueOf(await read.settle(view.memoryTypes(), '.wingfoil/'));
+  valueOf(await read.settle(view.uiConfig(), '.wingfoil/'));
+  valueOf(await read.settle(view.elements()));
+  const inputs = await read.descriptorInputs();
+  if (!inputs.ok) throw new Refused(inputs.refusal);
+  const events = await read.events();
+  const compute = async (): Promise<TraceabilityBuilt> => {
+    const [index, memoryYaml, ui, list, detected, shortIds, missing] = await Promise.all([
+      view.referenceIndex(),
+      view.memoryTypes(),
+      view.uiConfig(),
+      view.elements(),
+      view.detected(),
+      read.shortIds(),
+      missingOf(read),
+    ]);
+    const matches = new Map(list.matches.map((m) => [m.match.id, m]));
+    const parts = traceabilityParts({
+      index,
+      ui,
+      current: currentElement(index, memoryYaml, ui),
+      asked,
+      missing: missing.categories,
+      match: (id) => matches.get(id)!.match,
+      shortIds,
+      phaseReason: phaseReasonOf(detected),
+    });
+    const rows = new Map(
+      parts.elements.map(({ id }) => {
+        const { match, localChanges } = matches.get(id)!;
+        return [id, { match, localChanges, descriptor: inputs.describe(match, localChanges, events.events) }];
+      }),
+    );
+    return { parts, rows };
+  };
+  const built = valueOf(
+    await read.settle(events.error ? compute() : view.derived(`traceability\0${asked}`, compute), '.wingfoil/'),
+  );
+  const [shortIds, sanitise] = await Promise.all([read.shortIds(), read.toolText()]);
+  return {
+    ...built.parts.body,
+    elements: built.parts.elements.map(({ id, finished, inScope }) => {
+      const { match, localChanges, descriptor } = built.rows.get(id)!;
+      return { ...listedRow(match, localChanges, shortIds, descriptor, sanitise), [DONE_FIELD]: finished, inScope };
+    }),
+    ...(events.error ? { eventsError: events.error } : {}),
+  };
 }
 
 /** A `limit` of spec-004 §3: an integer from 1 to {@link MEMORY_EVENTS_MAX_LIMIT} (D31-2). */
@@ -718,17 +1012,31 @@ export function registerProjectRoutes(app: FastifyInstance, options: ProjectRout
   route(`${PROJECT_PATH}/docs`, docs);
   route<object, { path?: string }>(
     `${PROJECT_PATH}/files/tree`,
-    async (read, _p, query) => listDirectory(read.root, query.path ?? '', await read.documentationScope()),
+    async (read, _p, query) => {
+      const tree = await listDirectory(read.root, query.path ?? '', await read.documentationScope());
+      // An entry's name is shown, its path is the address (task-072 D72-7).
+      return { ...tree, entries: tree.entries.map((e) => ({ ...e, name: repositoryText(e.name) })) };
+    },
     pathQuery(false),
   );
   route<object, { path: string }>(
     `${PROJECT_PATH}/files/content`,
-    async (read, _p, query) => readWorkingTreeFile(read.root, query.path, await read.documentationScope()),
+    async (read, _p, query) => {
+      const file = await readWorkingTreeFile(read.root, query.path, await read.documentationScope());
+      // The path is the address; the label is what the page shows (task-072 D72-6).
+      return { ...file, label: repositoryText(file.path) };
+    },
     pathQuery(true),
   );
   // task-031 (v0.2): query parameters checked in the handlers, after the project lookup (404 first).
   route<object, Record<string, unknown>>(`${PROJECT_PATH}/today`, (read, _p, query) => todayOf(read, query));
   route<object, Record<string, unknown>>(`${PROJECT_PATH}/events/memory`, (read, _p, query) =>
     memoryEventsOf(read, query),
+  );
+  // task-059 (v0.3): no query parameter, checked in the handler after the project lookup.
+  route<object, Record<string, unknown>>(`${PROJECT_PATH}/progress`, (read, _p, query) => progressOf(read, query));
+  // task-074 (v0.3): `scope` checked in the handler after the project lookup (D74-3).
+  route<object, Record<string, unknown>>(`${PROJECT_PATH}/traceability`, (read, _p, query) =>
+    traceabilityOf(read, query),
   );
 }

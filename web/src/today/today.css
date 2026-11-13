@@ -152,34 +152,70 @@
   }
 }
 
-/* The all-roles summary (task-042, D42-5): one line per role — the switch, its first items, "N more". */
+/* The all-roles summary (task-042, D42-5; task-076, D76-3): its heading and one line of role tags. */
 .today-switch-error {
   color: var(--color-danger);
 }
 
-.today-summary-lines {
+.today-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: 10px 16px;
+}
+
+.today-summary-bar .today-card-title {
+  flex: none;
+  padding: 0;
+}
+
+.today-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.today-summary-line {
-  display: flex;
+.today-summary-tag {
+  display: inline-flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-3);
-  padding: 10px 16px;
-  border-top: 1px solid var(--color-divider);
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.today-summary-head {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  flex: none;
+/* A long role name from the DNA wraps inside its tag (task-076 review round 1, F-1). */
+.today-summary-tag .today-summary-role {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.today-summary-tag .button.today-summary-role {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
 }
 
 span.today-summary-role {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-text);
+  border-radius: var(--radius-md);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -188,27 +224,65 @@ span.today-summary-role {
   color: var(--color-text-muted);
 }
 
-.today-summary-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  min-width: 0;
-  font-size: 13px;
-}
-
-.today-summary-item {
-  overflow-wrap: anywhere;
-}
-
-span.today-summary-more {
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
 .today-card-title[tabindex='-1']:focus-visible {
   outline: var(--focus-ring);
   outline-offset: -2px;
+}
+
+/* v0.3 (task-061, D61-5 … D61-9): each card's filters, its "Show all" toggle, and in each row the
+   short id and the date its element entered its state. */
+.today-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: 0 16px 12px;
+}
+
+.today-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.today-filter-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.today-filter-button {
+  font-size: 12px;
+}
+
+.today-filter-button[data-focus-visible],
+.today-toggle[data-focus-visible] {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.today-filter-popover .menu-item[data-selected] {
+  font-weight: 600;
+}
+
+.today-more {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.today-id {
+  flex: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.today-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+}
+
+.today-since {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
 }

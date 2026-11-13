@@ -4,66 +4,46 @@
  * - the greeting — "Morgan, 2 things require you" — and the role view line (D36-5); "Today" for a
  *   user who is not identified, with the identity sentence (D36-8: *How to join* for a user not in
  *   the team, else a pointer to the read-only notice of the header);
- * - *Requires you* — rows in the server's order: type tag, title (a link to the element panel),
- *   reason (D36-7), state pill with the descriptor's tone, and one primary action, a button that
- *   opens the element panel (D36-3: no write here; the gate and submit footers are task-037's and
- *   task-038's); "Nothing requires you" when empty (D36-4);
- * - *Waiting on others* — rows linking to the panel, with who must act (D36-6); hidden when empty;
+ * - *Requires you* — rows in the server's order: type tag, title (a link that opens the element's
+ *   side panel), reason (D36-7), state pill with the descriptor's tone, and one primary action, a
+ *   button that opens the side panel (D36-3: no write here; the gate and submit footers are
+ *   task-037's and task-038's); "Nothing requires you" when empty (D36-4);
+ * - *Waiting on others* — rows opening the side panel, with who must act (D36-6); hidden when empty;
  * - the all-roles summary of a member holding several roles, between the greeting and Requires you
  *   (task-042, D42-5; `RoleSummary.tsx`): a switch from it moves the focus to the Requires you
- *   heading once the new view is read (D42-6).
+ *   heading once the new view is read (D42-6);
+ * - v0.3 (task-061, D61-4 … D61-10): each card's type and state filters and its 10-row limit
+ *   (`CardRows.tsx`, keyed by the role view), and in each row the short id and the date its element
+ *   entered its state (`RowParts.tsx`).
  *
  * A refusal of `GET /today` (no partial Today, D31-3) is an error, never an empty list. A refetch
  * that changed the rows is announced in a polite status region (D36-11). Rows, order, actor, tone
  * and action are data of the server (spec-003 §8), never re-derived.
+ *
+ * v0.3 (task-077, spec-011 §2): the side panel opens over Today (`?panel=<id>`, `panelLinkOptions`),
+ * so Today stays mounted — its filters and expansion too (task-061 Q3); when the panel closes, the
+ * opener takes the focus back once Today is read again (`onPanelClosed`, D77-7).
  */
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
+import { HoldText } from '../element/HoldText.js';
+import { onPanelClosed, panelLinkOptions, rememberOpener, usePanelOpen } from '../element/side-panel.js';
 import { useSetRoleView } from '../api/projects.js';
 import { projectHeaderQuery } from '../api/queries.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { greetingName, identityNote, rowReason, waitingWho } from './model.js';
 import { RoleSummary } from './RoleSummary.js';
+import { CardRows } from './CardRows.js';
+import { RowId, RowSince } from './RowParts.js';
 import './today.css';
 
 type Read<T> = Pick<UseQueryResult<T>, 'data' | 'error'>;
-
-/**
- * The control to focus when Today mounts again — the opener: set when a Requires you action, a
- * Requires you title link, a Waiting on others link or an item of the all-roles summary (review
- * round 2, R2-1) opens the element panel, used once by Today of
- * the same project after the panel is closed — *Cancel*, Escape or its Close (bug-018, task-043 AC-7,
- * review R1 / D43-10; the Memory list's opener handling, X-06.3, W3-23). `opener` is the class of
- * the control inside the element's row.
- */
-let returnOpener: { pid: string; eid: string; opener: string } | undefined;
-
-/** Whether a click on a link is followed in this page (primary button, no modifier key). */
-function navigatesHere(event: MouseEvent<HTMLAnchorElement>): boolean {
-  return (
-    !event.defaultPrevented &&
-    event.button === 0 &&
-    !event.metaKey &&
-    !event.ctrlKey &&
-    !event.shiftKey &&
-    !event.altKey
-  );
-}
-
-/**
- * Record the control of class `opener` in the row of `eid` as the opener of the element panel
- * (bug-018). Given the click of a link, only a click followed in this page counts (a modified or
- * middle click opens the panel elsewhere).
- */
-export function rememberOpener(pid: string, eid: string, opener: string, event?: MouseEvent<HTMLAnchorElement>): void {
-  if (event === undefined || navigatesHere(event)) returnOpener = { pid, eid, opener };
-}
 
 /** Props of {@link TodayView}. */
 export interface TodayViewProps {
@@ -125,22 +105,28 @@ function Reason({ row, now }: { row: TodayActionRow; now: number }): ReactNode {
 function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; now: number }): ReactNode {
   const intl = useIntl();
   const navigate = useNavigate();
+  const panelOpen = usePanelOpen();
   const { element, descriptor, action } = row;
+  const sinceId = useId();
   return (
     <li className="today-row" data-eid={element.id}>
       <span className="type-tag today-tag">{element.type}</span>
+      <RowId element={element} />
       <span className="today-names">
         <Link
           className="today-title"
-          to="/p/$pid/e/$eid"
-          params={{ pid, eid: element.id }}
+          {...panelLinkOptions(element.id, panelOpen)}
+          {...(descriptor.since === undefined ? {} : { 'aria-describedby': sinceId })}
           onClick={(event) => {
             rememberOpener(pid, element.id, 'today-title', event);
           }}
         >
           {element.title}
         </Link>
-        <Reason row={row} now={now} />
+        <span className="today-meta">
+          <Reason row={row} now={now} />
+          <RowSince since={descriptor.since} descriptionId={sinceId} />
+        </span>
       </span>
       <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
       <Button
@@ -150,11 +136,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
           // The focus comes back here when the panel closes (bug-018).
           rememberOpener(pid, element.id, 'today-action');
           // A gate opens with its reason focused (task-037, G-04.3, D37-1): the second click decides.
-          void navigate({
-            to: '/p/$pid/e/$eid',
-            params: { pid, eid: element.id },
-            state: { gateFocus: action === 'approve' || action === 'review' },
-          });
+          void navigate(panelLinkOptions(element.id, panelOpen, action === 'approve' || action === 'review'));
         }}
       >
         <FormattedMessage id="today.action" values={{ action }} />
@@ -191,6 +173,8 @@ function Who({ row }: { row: TodayRow }): ReactNode {
       );
     case 'engine':
       return <FormattedMessage id="today.waiting.engine" />;
+    case 'held':
+      return <HoldText reason={who.reason} />;
     case 'none':
       return null;
   }
@@ -198,20 +182,24 @@ function Who({ row }: { row: TodayRow }): ReactNode {
 
 /** One Waiting on others row: a link to the element panel. */
 function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
+  const panelOpen = usePanelOpen();
   const { element, descriptor } = row;
+  const sinceId = useId();
   return (
     <li data-eid={element.id}>
       <Link
         className="today-waiting-row"
-        to="/p/$pid/e/$eid"
-        params={{ pid, eid: element.id }}
+        {...panelLinkOptions(element.id, panelOpen)}
+        {...(descriptor.since === undefined ? {} : { 'aria-describedby': sinceId })}
         onClick={(event) => {
           rememberOpener(pid, element.id, 'today-waiting-row', event);
         }}
       >
         <span className="type-tag today-tag">{element.type}</span>
+        <RowId element={element} />
         <span className="today-waiting-title">{element.title}</span>
         <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
+        <RowSince since={descriptor.since} descriptionId={sinceId} />
         <span className="today-who">
           <Who row={row} />
         </span>
@@ -318,17 +306,24 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
     }
   }, [data]);
 
-  // Back from the element panel (bug-018): its opener — the action or the link that opened it — is
-  // taken when Today mounts, and focused once Today is read again — not from a cached answer that the
-  // refetch may change (a decided gate leaves Requires you). When the opener is no longer listed, the
-  // main region has the focus. Only while nothing else holds it (the page, or `<main>` after the panel closed): a
-  // focus the user moved meanwhile is kept, and the request dropped (the Memory list's rule).
+  // The side panel closed (bug-018, task-077 D77-7): its opener — the action or the link that opened
+  // it — is taken from the close, and focused once Today is read (settled) — not from a cached answer
+  // that a refetch in flight may change (a decided gate leaves Requires you). When the opener is no
+  // longer listed, the main region has the focus. Only while nothing else holds it (`<body>` after the
+  // panel left, or `<main>`): a focus the user moved meanwhile is kept, and the request dropped.
   const pageRef = useRef<HTMLDivElement>(null);
   const pendingOpener = useRef<{ eid: string; opener: string } | undefined>(undefined);
-  useEffect(() => {
-    if (returnOpener?.pid === pid) pendingOpener.current = { eid: returnOpener.eid, opener: returnOpener.opener };
-    returnOpener = undefined;
-  }, [pid]);
+  const [restore, setRestore] = useState(0);
+  useEffect(
+    () =>
+      onPanelClosed((closed, opener) => {
+        if (closed !== pid || opener === undefined) return false;
+        pendingOpener.current = { eid: opener.eid, opener: opener.className };
+        setRestore((n) => n + 1);
+        return true;
+      }),
+    [pid],
+  );
   const settled = (data !== undefined && !today.isFetching) || today.error !== null;
   useEffect(() => {
     const pending = pendingOpener.current;
@@ -342,7 +337,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
         .map((li) => li.querySelector<HTMLElement>(`.${pending.opener}`))
         .find((el) => el !== null) ?? document.getElementById('main');
     target?.focus();
-  }, [settled]);
+  }, [settled, restore]);
 
   const error = header.error ?? today.error;
   return (
@@ -384,7 +379,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
       ) : (
         <>
           <IdentitySentence header={header.data} />
-          {data.summary && <RoleSummary pid={pid} lines={data.summary} view={data.view} onSwitch={switchTo} />}
+          {data.summary && <RoleSummary lines={data.summary} view={data.view} onSwitch={switchTo} />}
           {rows !== null && (
             <section className="today-card" aria-labelledby={requiresId}>
               <h2 className="today-card-title" id={requiresId} ref={requiresHeading} tabIndex={-1}>
@@ -395,24 +390,24 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
                   <FormattedMessage id="today.requiresYou.empty" />
                 </p>
               ) : (
-                <ul className="today-rows">
-                  {rows.map((row) => (
-                    <RequiresYouRow key={row.element.id} pid={pid} row={row} now={now} />
-                  ))}
-                </ul>
+                <CardRows
+                  key={data.view ?? ''}
+                  rows={rows}
+                  renderRow={(row) => <RequiresYouRow key={row.element.id} pid={pid} row={row} now={now} />}
+                />
               )}
             </section>
           )}
           {data.waitingOnOthers.length > 0 && (
             <section className="today-card" aria-labelledby={waitingId}>
-              <h2 className="today-card-title" id={waitingId}>
+              <h2 className="today-card-title" id={waitingId} tabIndex={-1}>
                 <FormattedMessage id="today.waiting.title" />
               </h2>
-              <ul className="today-rows">
-                {data.waitingOnOthers.map((row) => (
-                  <WaitingRow key={row.element.id} pid={pid} row={row} />
-                ))}
-              </ul>
+              <CardRows
+                key={data.view ?? ''}
+                rows={data.waitingOnOthers}
+                renderRow={(row) => <WaitingRow key={row.element.id} pid={pid} row={row} />}
+              />
             </section>
           )}
         </>

@@ -62,6 +62,8 @@ describe.each(FIXTURE_KINDS)('spec-002 §5 on the %s fixture', (kind) => {
     registries.push(audited.snapshots);
     const snapshot = await audited.snapshots.open(`p_${kind}`, fx.dir);
     const view = await snapshot.view();
+    // `memory.yaml` first: its read ties to the HEAD listing (one `git ls-tree`, task-075 D75-2).
+    await view.memoryTypes();
     const gitBefore = audited.runner.count('git');
     const events = await view.events();
     // The patch read and its header-only sha list (review round 2, finding A).

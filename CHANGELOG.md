@@ -9,6 +9,79 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **The element's document** (task-078, US-G-03, US-G-08): the summary of an element is its body's
+  first paragraph rendered as Markdown, and *Open document* opens the whole body in a dialog,
+  rendered or as its source, on the element page and in the side panel alike. The rendering is the
+  Documentation view's — raw HTML shown as text, no image loaded, relative links read from the
+  element file's folder (another element's file opens its page) — and leaves the body's HTML
+  comments out, only the comments: the text after one is kept, and the source keeps them. When the
+  summary and the document cannot be loaded (a tab left open across an upgrade), their place says
+  so and offers *Reload the page*; the rest of the element stays. A decision-log is read and
+  decided from its element by a product owner holding `approver`.
+- **The side panel in the address** (task-077, US-G-01 G-01.8, US-S-21 S-21.4; spec-011 §2, §6):
+  Today's rows and the notification bell's items open the element in a side
+  panel over the current view, which stays as it was (Today keeps its filters); the address carries
+  it as `?panel=<id>`, so a reload keeps it, and *Close* or Escape remove it and keep every other
+  parameter, the focus back on the control that opened it. Opening another element while the panel
+  is open replaces it, so one *Close* returns to the view. On the element page a bell item opens
+  that item's page. A short id in `panel=` is rewritten to the full id; an ambiguous one lists its
+  candidates in the panel; any other value is looked up only as an element of the current project
+  (*not found* otherwise).
+- **The element page** (task-062, US-G-01 G-01.4 … G-01.7; spec-011 §2, §3): an element opens as a
+  page of the main region, with the sidebar — from its address, the Memory list and a link inside
+  a document, a directive or another element — with the same content and footer as the v0.2 panel,
+  the footer in a bar at the bottom of the window (the toasts stay above it). An address with a
+  short id (`/p/<project>/e/task-046`) opens its element and is rewritten to the full id; a short
+  id that names several elements lists them, each a link to its page, instead of *not found*; an
+  element whose id is longer than 100 characters is opened and decided like any other.
+- **Progress figures and missing references in the API** (task-059, TT-STATE-08; spec-012 §2,
+  §3, §5): `GET /api/p/:pid/progress` serves the progress card's figures of a repository state —
+  the current element of the `ui.yaml` scope (the most advanced release, derived on every WingFoil
+  version), the completion of the `requirement` and `feature` references linked in that scope,
+  the iterated elements done, the open defects and the pending gates (held gates excluded), each
+  with the ids a Memory list filter will use, the phase figures read-only until WingFoil's
+  `workflow status` is consumed. `GET /api/p/:pid/elements` names, per element, the categories
+  `taxonomy.requires` asks of its type that it carries no reference of, and whether that filter
+  is offered; `/config` fills `ui.progress.scope.current`. Computed once per state from the
+  reference index, no CLI process added; titles and reference ids escaped. The screens are later
+  tasks'.
+- **Traceability in the API** (task-074, US-R-01; spec-012 §4): `GET
+  /api/p/:pid/traceability?scope=current|project` serves every reference with a category — a
+  `taxonomy.patterns` value or another Memory element's id — with its linked elements in the
+  current release (default) or the whole project, their done count, percent and status
+  (completed, in progress, not started, no elements), the project completion, the reference
+  coverage, the elements missing required references and every element named, as the Memory
+  list's rows. Computed once per state from the reference index, no CLI process added; titles and
+  reference ids escaped. The page is a later task's.
+- **Today's cards** (task-061, US-T-02 T-02.4 … T-02.7; `ux-reference.md` §4.1 v0.3): *Requires
+  you* and *Waiting on others* each have a type and a state filter, listing the types and states of
+  that card's rows with their counts (a filter applies to its own card; the greeting and the bell
+  count every row); each card shows its first 10 rows, then *Show all (<n>)* / *Show fewer*; each
+  row names its element by the short id the API serves (else the full id) and shows the date it
+  entered its current state, the full time as the accessible description of the date and of the
+  row's link.
+- **Held gates** (task-069, US-S-24 S-24.5, S-24.6; spec-003 §3, §5, §8; spec-005 §4a): a gate the
+  project's `.wingfoil/ui.yaml` (or its preset) holds in `holds` offers no *Approve* — `never`
+  ("Approved outside the console (ui.yaml)") or `when-references-done` while elements referencing
+  it are not done ("Waits for N referencing elements to be done", counted from the reference
+  index). Its *Reject* stays offered to `approver` holders, with the hold's line in the gate footer;
+  any other member sees the line only. A held gate is in nobody's *Requires you* (nor in the
+  greeting's or the bell's count, nor in the Team view's pending gates) and is in *Waiting on
+  others* for everyone, approvers included, with the hold in place of "Reserved to approver". The
+  descriptor carries it as `approveHeld`; an ignored `ui.yaml` holds nothing; the `approve` itself
+  is still accepted by the CLI.
+- **A move into a state at its limit** (task-073, US-S-24 S-24.7; spec-003 §6 rule 5): on WingFoil
+  0.3, a *Submit* or *Approve* whose next state already holds as many elements of the type as its
+  `limits` in `.wingfoil/memory.yaml` allow is disabled with "Blocked: only 1 active at a time"
+  (the descriptor's `state-limit {state, limit}`); a *Reject* is never limited. The console counts
+  the non-archived elements `memory search` lists; WingFoil also counts the elements other branches
+  moved there, so a move the console offers can still be refused (422 `cli-refused`, its toast).
+  `limits` is read leniently — only positive integers are kept — and is served with the resolved
+  states of `/config` and of an element.
+- **The actor after an approve** (task-069, spec-003 §4, RP3-14 D6): an element in a working state
+  that an `approve` entered — a task approved into `backlog` — is the work of the member who made
+  the last submit before that approve, no longer of the approver ("Jordan (submitter) must act"); a
+  submitter who is not in the team gives the tech-lead fallback, as every other rule does.
 - **A draft GitHub Release for every tagged version** (task-052): the publish workflow's `release`
   job creates it after `promote`, with the version's CHANGELOG section as notes and, as assets, the
   tarball staged on npm, the coverage totals (`coverage-totals.json`) and the test counts per suite
@@ -47,9 +120,34 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   other requests (measured: never more than about 26 ms without an answer, on 500 elements of 200
   values with costly patterns); an element it
   could not read or index fully is named, never failing the whole. Nothing shows it yet.
+- **Why WingFoil refused, in the refusal toast** (task-070; spec-004 §5): when WingFoil 0.3.x
+  refuses an action with its reasons — a submit from a state that waits for an approval, for
+  example — the refusal toast shows them under WingFoil's message, one line each, as WingFoil
+  wrote them (the local folders shown as `<project>`, `<repository>`, `<wingfoil>`, `~`, the
+  credentials of a URL removed, control and bidi characters as visible escapes); the API's `cli-refused` answer carries them as
+  `detail.reasons`. A refusal of WingFoil 0.2.2, which gives no reasons, is shown as before.
+- **Applying a UI preset, in the API** (task-060; spec-005 §5, spec-004 §3): `POST
+  /api/p/:pid/ui-config/preset` with `kanban`, `scrum` or `sw-life-cycle` writes that preset as
+  `.wingfoil/ui.yaml` and commits it alone as `chore(ui): apply the <Preset> preset` — other staged
+  changes stay staged, the repository's hooks run as for a WingFoil write, no git transport can
+  start from them, and the commit is recorded in the action log, auto-pushed when *Auto-push* is
+  on and announced to the other pages. It refuses when `ui.yaml` already exists anywhere (the
+  working tree, the index or HEAD), when the user is not in the team, when the copy is behind,
+  diverged or detached, and when the preset does not fit the project (`ui.yaml not written: type
+  service is not declared in memory.yaml`); it never overwrites a file. Nothing shows it yet.
+
+- **A page of a restarted console recovers in place** (task-063, US-X-02 X-02.3; adr-003 D6, D7;
+  spec-004 §2): when the console was stopped and started again on the same port (`--port`), a page
+  that shows *This page is no longer recognised by the console* reconnects by itself once the new
+  console URL is opened in any tab of the same browser, or when you return to it, and opens again
+  at its own address — the element it showed, for example. No token or session crosses tabs and
+  nothing is added to the address; a page of a console started without `--port` cannot reconnect
+  (another port is another origin), as the notice says.
 
 ### Changed
 
+- **Close and Escape on an element opened from its address** (task-062, spec-011 §2) go to the
+  project's Memory list, no longer to its landing view.
 - **WingFoil 0.3 support** (task-046): a project on WingFoil 0.2.2 to 0.3.x is supported
   (contract-tested: 0.2.2 and 0.3.1); this repository pins `wingfoil@0.3.1`. The `--version` text
   of WingFoil 0.3, which carries its build (`0.3.1 (870bd44…)`), is read as its version; the
@@ -66,8 +164,27 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   absolute `PATH` entries only, so a program a repository ships is never found through an empty or
   relative entry.
 
+- **Your roles on one line** (task-076, US-S-23 S-23.4, S-23.5; REQ-PERF-11; spec-003 §5): on
+  *Today*, *Your roles* is one line of role tags, each with its count (*approver · 2*): pressing a
+  tag switches the role view and moves the focus to *Requires you*, the tag of the current view is
+  marked *current view*. The v0.2 items and *N more* under each role are gone, and so are `items`
+  and `more` from the `summary` of `GET /api/p/:pid/today` (`{ role, count }` only).
+
 ### Fixed
 
+- **A link clicked while the documentation view checks its links opens** (bug-043; task-078): a
+  link check answering while a link is clicked no longer replaces the link the click lands on (seen
+  on WebKit as an external link whose new tab never opened); only the links whose mark changes are
+  updated. The same holds in the Directives view and an element's document. The defect shipped in
+  v0.1.0 and v0.2.0.
+- **The address value on the element page is isolated from the text around it** (task-078; task-077
+  security review F-5): an address holding right-to-left or other directional characters can no
+  longer reorder the text next to it in the element page's top line or its *Not found* heading, as
+  on the side panel.
+- **The focus stays on the element after a gate decision** (bug-046, shipped in v0.2.0; task-077):
+  when the console's refresh shows the new state before the decision's reply arrives, the element's
+  heading takes the keyboard focus at once instead of leaving it on the page body until the reply —
+  on the element page and on the side panel.
 - **The identity is the author WingFoil authorises** (bug-029): the console reads who you are as
   the WingFoil CLI does — `GIT_AUTHOR_EMAIL` of its environment, else `author.email`, else
   `user.email` — so a console started with another author identity no longer offers *Approve* or
@@ -109,8 +226,64 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   `<wingfoil>` and `~`, at most 4 000 characters. Who must act is still found by the author's
   email. The defect shipped in v0.1.0 and v0.2.0.
 
+- **One Memory file that is not an element no longer hides the project** (bug-024, task-070): on
+  WingFoil 0.2.2, a Markdown file without frontmatter under a Memory folder (or one whose
+  frontmatter lacks the id, title, type or status) was returned among the elements, and the
+  console refused the whole list — the Memory list, the element panel, Today and the bell showed
+  no element (*Unexpected output of memory search*). The console now lists the valid elements and
+  names each such file in the Memory list's notice (`memory search left out docs/…/notes.md: not a
+  Memory element (id, title, type, status missing or not text)`), archived elements included.
+  WingFoil 0.3.1 leaves such a file out by itself, without a word (`wingfoil-cli` W-47). The
+  defect shipped in v0.1.0 and v0.2.0.
+- **Every name the repository supplies is shown as safe text** (bug-035, task-072): the project's
+  name (the header, the project switcher, the page title, *Already in the list*) and its remote,
+  the DNA's texts (the project, modules, technologies, methodologies, role descriptions, agents,
+  paths), the members' names and emails (the header, Team, Today, the element panel's footer), your
+  own git email, the directives' names and titles (the list, the page's heading and title), the
+  workflow descriptions, the states an element's history names, the documentation's file names
+  and paths (the index, a document's toolbar and page title) and a file named in an error passed on
+  a bidi override or a control character as written. They now show it as a visible escape
+  (`\u202e`), as the titles do; the links of the documentation still open the file as named. Ids,
+  types, states, roles and tags are still shown as WingFoil returns them (bug-041). The defect
+  shipped in v0.1.0 and v0.2.0.
+- **An edit undone before the console looked again is no longer shown** (bug-034, task-075): a file
+  edited, read by a page and put back before the console's next look at the repository gave the
+  same repository state again, and the console kept serving what it had read from the edited file
+  (an element, `ui.yaml`, `memory.yaml`, a directive) until the next change. Each read is now tied
+  to what the console's check saw: a read of other content, or a `wingfoil` read that finished after
+  a file event, answers once, then the console checks again and the page refetches. The defect
+  shipped in v0.1.0 and v0.2.0.
+- **The console and WingFoil agree on which frontmatters have a duplicate key** (bug-037, task-075):
+  keys that are one key for WingFoil's YAML loader — `1` and `"1"`, `true` and `"true"`, `~` and
+  `"null"`, two spellings of one date, an alias repeating a key, a repeated complex key — were read
+  as two by the console, which showed as an element a file every `wingfoil` command leaves out
+  (`duplicated mapping key`); and `2026-01-01` with `"2026-01-01"`, two keys for WingFoil, was
+  refused. Keys are now compared as WingFoil stores them (also in `.wingfoil/memory.yaml`). A key
+  with a tag the console does not emulate (`!!binary`, `!!set`, a local tag) or a nested list is
+  refused. The defect shipped in v0.1.0 and v0.2.0.
+
+- **A build asset whose name is too long answers 404** (bug-031, task-063; spec-004 §5): a path
+  the file system refuses as too long answered 403 `invalid-request`; it is now missing — 404
+  `not-found` under `/assets/`, the application for any other path — and every client error gets
+  a code that matches its status (`forbidden`, `payload-too-large`, `unsupported-media-type`, …)
+  instead of `invalid-request`.
+
 ### Security
 
+- **An empty key no longer makes an element of a file WingFoil leaves out** (bug-040, task-075): a
+  frontmatter with a line `: value` (a key with nothing before the colon) was read by the console,
+  while every `wingfoil` command leaves the file out. Such a key is now refused as WingFoil refuses
+  it; an empty key WingFoil accepts (written `? ` alone, with a tag or an anchor, or inside `{…}`)
+  is still read. The defect shipped in v0.1.0 and v0.2.0.
+- **A file with many YAML aliases no longer blocks the console** (bug-042, task-075): reading a
+  Memory file or `.wingfoil/memory.yaml` holding thousands of aliases (`*name`) took time growing
+  with the square of their number — minutes for a large file — while every other request waited.
+  Such a file is now refused as unreadable at once (`too many aliases to resolve`); a file with the
+  aliases a project writes by hand is read as before. The defect shipped in v0.1.0 and v0.2.0.
+- **The token fragment is removed on this origin only** (task-063 AC-8): the page builds the
+  address it keeps after removing `#token=…` from its whole URL, so a path starting with `//` can
+  no longer make that step fail and leave the token in the address bar (unreachable today: the
+  console refuses such a path).
 - **Repository text escaped in the API** (task-056, RP3-18 K1; spec-004 §5): an element's title in
   the Memory list, the element panel and Today comes back with control, bidi and invisible
   characters as visible escapes, as the `ui.yaml` strings of the configuration do (task-068), so a
@@ -118,9 +291,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   (`Fix \\n handling`), so that every escape on the page is one the console wrote. Ids, types and
   states stay as WingFoil returns them (they are what a page sends back), and a document — an
   element's or a directive's body and fields (but the reject's reason, a commit text), a file — is
-  shown as written. The other names the repository supplies (the DNA's names and descriptions, the
-  directives' titles, the workflow texts, file names and paths of the documentation, the states
-  named in an element's history, the project's name) are not escaped yet (bug-035).
+  shown as written. The other names the repository supplies follow the same rule (bug-035,
+  *Fixed*).
 
 ### Known limitations
 
@@ -131,6 +303,22 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   --refetch --no-filter <remote>` (a plain `git fetch --refetch` applies the filter again), then `git
   config --unset remote.<remote>.partialclonefilter` so that later fetches stay full (checked by
   hand, git 2.43); or use a full clone (spec-010 §6).
+- **WingFoil 0.2.2 and a frontmatter that is not valid YAML** (bug-036, task-070): on a project on
+  WingFoil 0.2.2, one Memory file whose frontmatter does not parse (`id: [unclosed`) makes WingFoil's
+  `memory search` fail with no list and without naming the file, so the Memory list, the element
+  panel, Today and the notification bell answer an internal error. The console has no list to
+  show. Find the file by running `wingfoil memory search` in the project (WingFoil prints the YAML
+  error and the lines around it), fix its frontmatter, or move the project to WingFoil 0.3.1,
+  which lists the other elements and names the file (`W_MEMORY_UNREADABLE`), shown in the Memory
+  list's notice.
+- **The state limit is the console's estimate** (task-073, design Q2 (a)): it counts what your copy
+  lists, WingFoil counts at the last commit and on every branch that moved an element. An element
+  another branch moved into the state, or another element's `status:` edited by hand and not
+  committed, can make the console offer a move WingFoil refuses (shown as a toast) or, for an
+  uncommitted edit into the state, disable one WingFoil would accept (design probes P3, P4, P6, P7).
+- **A document of many quotes, each followed by a lazy line, renders in quadratic time**
+  (bug-047): such a Markdown body can freeze the Documentation view, the Directives view or an
+  element's document while it renders (markdown-it 15.0.2's own cost; planned for v0.4).
 
 ## [0.2.0] - 2026-10-20
 

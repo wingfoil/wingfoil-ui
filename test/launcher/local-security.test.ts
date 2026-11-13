@@ -640,3 +640,32 @@ describe('a route parameter over 255 code units on the bin (spec-011 §4, bug-01
     expect(JSON.parse(res.body)).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
   });
 });
+
+// task-060: the preset write route (spec-004 §3, §4 rows 1–3, spec-005 §5) — refused by the
+// guards; past them, an unknown project answers 404 before its body is read.
+describe('the preset write route on the bin (spec-004 §1–4; task-060)', () => {
+  let l: Launcher;
+  beforeAll(async () => {
+    l = await launch();
+  });
+
+  const urlPath = `${PROJECT_API}/ui-config/preset`;
+
+  it('POST ui-config/preset → 401 without a session, 403 from another origin or site, else 404 not-found', async () => {
+    expect((await request(l, 'POST', urlPath)).status).toBe(401);
+    const auth = { authorization: `Bearer ${l.token}` };
+    for (const headers of [
+      { ...auth, origin: 'https://evil.test' },
+      { ...auth, host: `evil.test:${l.port}` },
+      { ...auth, 'sec-fetch-site': 'cross-site' },
+      { ...auth, 'sec-fetch-site': 'same-site' },
+    ]) {
+      const res = await request(l, 'POST', urlPath, headers);
+      expect(res.status, JSON.stringify(headers)).toBe(403);
+      expect(JSON.parse(res.body)).toEqual({ error: { code: 'forbidden-origin', message: expect.any(String) } });
+    }
+    const res = await request(l, 'POST', urlPath, auth);
+    expect(res.status).toBe(404);
+    expect(JSON.parse(res.body)).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+  });
+});

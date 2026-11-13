@@ -11,6 +11,7 @@
 import type {
   ActionDescriptor,
   ActorBasis,
+  ApproveHeld,
   Bucket,
   DescriptorActor,
   DescriptorRejection,
@@ -18,6 +19,7 @@ import type {
   DisabledReason,
   DnaMember,
   HistoryOperation,
+  HoldCondition,
   MemoryYaml,
   StateKind,
   StateMachine,
@@ -59,7 +61,7 @@ export interface DescribedElement {
 export type CopyState =
   { state: 'ok' } | { state: 'behind'; commits: number } | { state: 'diverged' } | { state: 'detached' };
 
-/** The inputs of the four enablement rules of spec-003 §6. */
+/** The inputs of enablement rules 1–4 of spec-003 §6 (rule 5 is {@link DescriptorProject.occupancy}). */
 export interface Enablement {
   /** The current user is identified in the team (REQ-SEC-08). */
   identified: boolean;
@@ -71,12 +73,31 @@ export interface Enablement {
   copy?: CopyState;
 }
 
+/**
+ * The held gates of the project (spec-005 §4a, spec-003 §3): the `holds` of the effective
+ * `.wingfoil/ui.yaml` (an ignored or absent file holds nothing) and, for `when-references-done`, the
+ * count of the reference index (spec-012 §1).
+ */
+export interface DescriptorHolds {
+  /** The hold declared for `type` in `state`, if any (whatever the state's kind). */
+  condition(type: string, state: string): HoldCondition | undefined;
+  /** The non-archived elements referencing `id` that are not done (`ReferenceIndex.referencingNotDone`). */
+  referencingNotDone(id: string): number;
+}
+
 /** The project-wide inputs of the descriptor. */
 export interface DescriptorProject {
   memoryYaml: MemoryYaml;
   /** `dna.team.members`. */
   members: readonly DnaMember[];
   enablement: Enablement;
+  /** The held gates (v0.3); none when absent. */
+  holds?: DescriptorHolds;
+  /**
+   * The non-archived elements of `type` in `state` (v0.3, spec-003 §6 rule 5): given only for a
+   * WingFoil version that enforces the machines' `limits`; absent, no limit applies (task-073 D73-2).
+   */
+  occupancy?: (type: string, state: string) => number;
 }
 
 const isArchived = (state: string): boolean => (ARCHIVED_STATES as readonly string[]).includes(state);
@@ -143,7 +164,49 @@ function verbsOf(
   return out;
 }
 
-/** The first failing rule of spec-003 §6 for element `id`, or `undefined`. */
+/**
+ * The hold of element `id` of `type` in `status` (spec-005 §4a): only a `gate` is held — a hold on
+ * another kind has no effect; `when-references-done` holds while its count is above 0. Also the
+ * pending-gates figure's rule (spec-012 §3, task-059 D59-6), so the two never differ.
+ */
+export function heldOf(
+  id: string,
+  type: string,
+  status: string,
+  kind: StateKind,
+  holds: DescriptorHolds | undefined,
+): ApproveHeld | undefined {
+  if (kind !== 'gate' || !holds) return undefined;
+  const condition = holds.condition(type, status);
+  if (condition === 'never') return { condition, reason: { code: 'held-by-config' } };
+  if (condition !== 'when-references-done') return undefined;
+  const count = holds.referencingNotDone(id);
+  return count > 0 ? { condition, reason: { code: 'held-until-references-done', count } } : undefined;
+}
+
+/**
+ * Rule 5 of spec-003 §6 (v0.3, RP3-14 D11, RP3-15 F4; task-073 D73-5): a `submit` or `approve` whose
+ * target declares `limits: {<to>: N}` with N elements of the type already there. A `reject` is
+ * never limited — WingFoil exempts it, as it does `park`, never offered. An approximation of
+ * WingFoil's count (the working tree's `memory search` against HEAD and every changed ref): the
+ * CLI's refusal stays the authority.
+ */
+function limitReason(
+  verb: Omit<DescriptorVerb, 'enabled'>,
+  type: string,
+  machine: StateMachine | undefined,
+  occupancy: DescriptorProject['occupancy'],
+): DisabledReason | undefined {
+  if (!occupancy || verb.verb === 'reject') return undefined;
+  // An own entry only: a state may be named after an Object built-in (`constructor`, review F-1).
+  const limits = machine?.limits;
+  if (!limits || !Object.hasOwn(limits, verb.to)) return undefined;
+  const limit = limits[verb.to]!;
+  if (occupancy(type, verb.to) < limit) return undefined;
+  return { code: 'state-limit', state: verb.to, limit };
+}
+
+/** The first failing rule among rules 1–4 of spec-003 §6 for element `id`, or `undefined`. */
 function disabledReason(id: string, enablement: Enablement): DisabledReason | undefined {
   if (!enablement.identified) return { code: 'not-in-team' };
   if (!enablement.version.supported) return { code: 'version-unsupported', range: enablement.version.range };
@@ -210,7 +273,14 @@ function actorOf(kind: StateKind, status: string, moves: readonly DescriptorEven
       if (kind === 'first') {
         return team.memberOrFallback(moves.find((e) => e.operation === 'add')?.author, 'creator');
       }
-      return team.memberOrFallback(moves.findLast((e) => e.to === status)?.author, 'last-transition');
+      const into = moves.findLastIndex((e) => e.to === status);
+      if (moves[into]?.operation === 'approve') {
+        // RP3-14 D6 (AC-3): the author of the last submit before that approve (a task approved
+        // into `backlog` is its submitter's); with no submit before it, the approve's author.
+        const submit = moves.slice(0, into).findLast((e) => e.operation === 'submit');
+        if (submit) return team.memberOrFallback(submit.author, 'submitter');
+      }
+      return team.memberOrFallback(moves[into]?.author, 'last-transition');
     }
     case 'gate':
       return team.role(APPROVER_ROLE);
@@ -242,9 +312,14 @@ export function describeElement(
   const machine = resolveStates(project.memoryYaml, type);
   const kind = stateKind(machine, status);
   const reason = disabledReason(id, project.enablement);
-  const verbs = verbsOf(machine, status, kind).map((v): DescriptorVerb =>
-    reason ? { ...v, enabled: false, reason } : { ...v, enabled: true },
-  );
+  const approveHeld = heldOf(id, type, status, kind, project.holds);
+  const verbs = verbsOf(machine, status, kind)
+    .filter((v) => !(approveHeld && v.verb === 'approve'))
+    .map((v): DescriptorVerb => {
+      // Rules 1–4 hold for every verb of the state; rule 5 is per verb (its target).
+      const failed = reason ?? limitReason(v, type, machine, project.occupancy);
+      return failed ? { ...v, enabled: false, reason: failed } : { ...v, enabled: true };
+    });
   const moves = transitions(events);
   const rejection = rejectionOf(status, moves);
   const since = moves.findLast((e) => e.to === status)?.timestamp;
@@ -257,6 +332,7 @@ export function describeElement(
     tone: toneOf(kind),
     ...(bucket !== undefined ? { bucket } : {}),
     verbs,
+    ...(approveHeld ? { approveHeld } : {}),
     actor: actorOf(kind, status, moves, new Team(project.members)),
     ...(rejection ? { rejection } : {}),
     ...(since !== undefined ? { since } : {}),

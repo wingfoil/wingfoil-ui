@@ -6,6 +6,7 @@
  * element or a directive is looked up by id in the CLI's list, and only its listed path is read.
  * Nothing here writes. Caching and batching are the caller's: `snapshot/snapshot.ts` (task-010).
  */
+import path from 'node:path';
 import { neutralise } from '../git/redact.js';
 import type { DirectiveEntry, DirectivesList, MemoryMatch, MemoryYaml } from '@wingfoil-ui/contracts';
 import type { CliArgs, CliOutput, WingfoilCli } from '../cli/adapter.js';
@@ -15,7 +16,7 @@ import { nodeReadFs, type ReadFs } from './confine.js';
 import { readDirective, type DirectiveContent } from './directive.js';
 import { readElement, type ElementContent } from './element.js';
 import { readMemoryYaml } from './memory-yaml.js';
-import { readUiYaml, type UiYamlEntry } from './ui-yaml.js';
+import { readMarkedUiYaml, type UiYamlEntry } from './ui-yaml.js';
 
 // WingFoil's archived set lives in `presets/` (REQ-ARC-05).
 export type { ArchivedStatus } from '../presets/wingfoil.js';
@@ -28,6 +29,42 @@ export interface ProjectReadsOptions {
   cli: WingfoilCli;
   /** Read port of the direct reads (default: the local file system). */
   fs?: ReadFs;
+  /** Told what each direct read consumed (bug-034, task-075 D75-3). */
+  witness?: ReadWitness;
+}
+
+/**
+ * What the direct reads consumed, reported to the snapshot that ties a read to its state check
+ * (bug-034): each file by its path relative to the project root, with the text read or `undefined`
+ * when it could not be read, and the mark of each `ui.yaml` read.
+ */
+export interface ReadWitness {
+  file(path: string, text: string | undefined): void;
+  uiYaml(mark: string): void;
+}
+
+/** `fs` reporting each file read (and each path that does not resolve) to `witness`. */
+export function witnessedFs(fs: ReadFs, root: string, witness: ReadWitness): ReadFs {
+  const rel = (file: string): string => path.relative(root, file).split(path.sep).join('/');
+  return {
+    readFile: (file) =>
+      fs.readFile(file).then(
+        (text) => {
+          witness.file(rel(file), text);
+          return text;
+        },
+        (error: unknown) => {
+          witness.file(rel(file), undefined);
+          throw error;
+        },
+      ),
+    realpath: (file) =>
+      fs.realpath(file).catch((error: unknown) => {
+        witness.file(rel(file), undefined);
+        throw error;
+      }),
+    size: (file) => fs.size(file),
+  };
 }
 
 /** An element: its `memory search` match and its file. */
@@ -47,7 +84,8 @@ export class ProjectReads {
   private readonly fs: ReadFs;
 
   constructor(private readonly options: ProjectReadsOptions) {
-    this.fs = options.fs ?? nodeReadFs;
+    const fs = options.fs ?? nodeReadFs;
+    this.fs = options.witness ? witnessedFs(fs, options.root, options.witness) : fs;
   }
 
   /** `dna show`. */
@@ -94,8 +132,10 @@ export class ProjectReads {
   }
 
   /** The UI's own file, `.wingfoil/ui.yaml`, from the working tree (spec-001 §4.5, task-054). */
-  uiYaml(): Promise<UiYamlEntry> {
-    return readUiYaml(this.options.root);
+  async uiYaml(): Promise<UiYamlEntry> {
+    const { entry, mark } = await readMarkedUiYaml(this.options.root);
+    this.options.witness?.uiYaml(mark);
+    return entry;
   }
 
   /** The file of a `memory search` match, cross-checked with it (spec-001 §4.2). */

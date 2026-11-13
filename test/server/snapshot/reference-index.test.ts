@@ -65,10 +65,13 @@ describe('SnapshotView.referenceIndex()', () => {
     const index = await view.referenceIndex();
     expect(index.elements.map((e) => e.id)).toEqual(listed);
     expect(index.unreadable).toEqual([]);
-    const started = runner.spawned.slice(before);
+    // The index starts no process: the HEAD listing it reuses was read once for the state, by the
+    // tie of the first direct read (bug-034, task-075 D75-2).
+    expect(runner.spawned.slice(before)).toEqual([]);
     expect(runner.wingfoilCommands().filter((c) => c.startsWith('memory search')).length).toBe(1);
-    expect(started.map((r) => gitSubcommand(r.args))).toEqual(['ls-tree']);
-    expect(started[0]!.args).toContain('-r');
+    const lsTrees = runner.spawned.filter((r) => gitSubcommand(r.args) === 'ls-tree');
+    expect(lsTrees).toHaveLength(1);
+    expect(lsTrees[0]!.args).toContain('-r');
     expect(await view.referenceIndex()).toBe(index);
   });
 

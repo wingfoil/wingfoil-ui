@@ -107,7 +107,7 @@ test('X-09.1 check: a References field name only when an element read holds that
       : route.fulfill({
           contentType: 'text/html',
           body: `<!doctype html><title>title.projects</title>
-            <div class="drawer"><dl><dt class="field-name">depends_on</dt><dt class="field-name">module</dt>
+            <div data-element-view=""><dl><dt class="field-name">depends_on</dt><dt class="field-name">module</dt>
             <dt class="field-name">Hard-coded</dt><dt class="field-name">id</dt></dl></div>
             <dl><dt class="field-name">priority</dt></dl>`,
         }),
@@ -115,8 +115,8 @@ test('X-09.1 check: a References field name only when an element read holds that
   await page.goto('http://wfui.test/');
   const recorder = recordApiData(page);
   await page.evaluate(() => fetch('/api/p/p_1/elements/e-1').then((r) => r.text()));
-  // A key read passes inside the drawer; a key not read, English text, a key the panel never lists
-  // under References (`id`, review F11) and a field name outside the drawer are flagged.
+  // A key read passes inside the element view; a key not read, English text, a key the panel never lists
+  // under References (`id`, review F11) and a field name outside the element view are flagged.
   expect((await textsOutsideCatalogue(page, recorder)).sort()).toEqual(
     ['dt.field-name: module', 'dt.field-name: Hard-coded', 'dt.field-name: id', 'dt.field-name: priority'].sort(),
   );

@@ -49,6 +49,55 @@
         "additionalProperties": false
       }
     },
+    "approveHeld": {
+      "description": "Set on a held gate (v0.3, spec-003 §3, §8; spec-005 §4a): verbs then holds no approve. The reason code follows the condition.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["condition", "reason"],
+          "properties": {
+            "condition": {
+              "const": "never"
+            },
+            "reason": {
+              "type": "object",
+              "required": ["code"],
+              "properties": {
+                "code": {
+                  "const": "held-by-config"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["condition", "reason"],
+          "properties": {
+            "condition": {
+              "const": "when-references-done"
+            },
+            "reason": {
+              "type": "object",
+              "required": ["code", "count"],
+              "properties": {
+                "code": {
+                  "const": "held-until-references-done"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "actor": {
       "type": "object",
       "required": ["kind"],
@@ -175,6 +224,24 @@
           "properties": {
             "code": {
               "const": "copy-detached"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "v0.3 (spec-003 §6 rule 5, RP3-14 D11): the target state already holds the type's limit of elements; submit and approve only.",
+          "type": "object",
+          "required": ["code", "state", "limit"],
+          "properties": {
+            "code": {
+              "const": "state-limit"
+            },
+            "state": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1
             }
           },
           "additionalProperties": false

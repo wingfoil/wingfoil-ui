@@ -98,6 +98,7 @@ export type { ElementFrontmatter, MemoryTypeDef, MemoryYaml, StateMachine } from
 export type { ProjectEntry, StateFile, StateWarning } from './state.js';
 export type { ActionLogEntry, UiSettings, UiTheme } from './state.js';
 export type { ActorBasis } from './descriptor.js';
+export type { ApproveHeld, HoldCondition, HoldReason } from './descriptor.js';
 export type {
   MemoryEventEntry,
   MemoryEventsPage,
@@ -131,3 +132,24 @@ export type {
 } from './git.js';
 export type { ConsoleAddressFile } from './state.js';
 export type { ElementRef, UiCategory, UiConfig, UiConfigStatus, UiOrigin, UiValued } from './ui-config.js';
+export type {
+  CompletionFigure,
+  CompletionReference,
+  IteratedFigure,
+  MissingReferences,
+  OpenDefectsFigure,
+  PendingGatesFigure,
+  Progress,
+  ReadOnlyFigure,
+  Shown,
+  Unavailable,
+} from './progress.js';
+export type { UiConfigPresetRefusalCode, UiConfigPresetRequest, UiConfigPresetResult, UiPresetId } from './writes.js';
+export type {
+  CoverageFigure,
+  ReferenceStatus,
+  Traceability,
+  TraceabilityElement,
+  TraceabilityReference,
+  TraceabilityScope,
+} from './traceability.js';

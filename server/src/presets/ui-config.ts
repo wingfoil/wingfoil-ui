@@ -22,6 +22,9 @@ export const UI_CATEGORIES = [
 /** A UI category. */
 export type UiCategory = (typeof UI_CATEGORIES)[number];
 
+/** The categories the completion figures count (spec-005 §4, spec-012 §3; task-059 D59-5). */
+export const COMPLETION_CATEGORIES: readonly UiCategory[] = Object.freeze(['requirement', 'feature']);
+
 /** The category inferred from a type's name (spec-005 §3); any other type has none. */
 export const INFERRED_CATEGORIES: Readonly<Record<string, UiCategory>> = Object.freeze({
   task: 'work',
@@ -152,13 +155,25 @@ export const UI_PRESETS: Readonly<Record<UiPresetName, UiPreset>> = deepFreeze({
 
 /**
  * The preset as the text of `.wingfoil/ui.yaml`: no alias (`aliasDuplicateObjects: false` — the
- * reader refuses aliases, design probe P6), no tag.
+ * reader refuses aliases, design probe P6), no tag. `presets` is the table to read (the shipped one;
+ * only the preset write's API test passes another, task-060 D60-12).
  */
-export function renderPreset(name: UiPresetName): string {
-  return stringify(UI_PRESETS[name].content, { aliasDuplicateObjects: false });
+export function renderPreset(
+  name: UiPresetName,
+  presets: Readonly<Record<UiPresetName, UiPreset>> = UI_PRESETS,
+): string {
+  return stringify(presets[name].content, { aliasDuplicateObjects: false });
 }
 
 /** The subject of the commit that writes the preset (spec-005 §5): `chore(ui): apply the <label> preset`. */
-export function presetCommitSubject(name: UiPresetName): string {
-  return `chore(ui): apply the ${UI_PRESETS[name].label} preset`;
+export function presetCommitSubject(
+  name: UiPresetName,
+  presets: Readonly<Record<UiPresetName, UiPreset>> = UI_PRESETS,
+): string {
+  return `chore(ui): apply the ${presets[name].label} preset`;
 }
+
+/** The subjects of the three shipped presets' commits, in {@link UI_PRESET_NAMES} order (task-060 D60-13). */
+export const PRESET_COMMIT_SUBJECTS: readonly string[] = Object.freeze(
+  UI_PRESET_NAMES.map((name) => presetCommitSubject(name)),
+);

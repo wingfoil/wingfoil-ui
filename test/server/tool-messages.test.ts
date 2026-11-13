@@ -47,9 +47,12 @@ const PRODUCERS: Record<string, readonly RegExp[]> = {
   'server/src/sync/auto-sync.ts': [/transport\.message\(/],
   'server/src/writes/auto-push.ts': [/transport\.message\(/],
   'server/src/writes/governed.ts': [/redactLocalPaths\(/],
+  // task-060: the preset write's `git-refused`, git's message of a failed `git add`.
+  'server/src/writes/preset.ts': [/redactLocalPaths\(/],
   'server/src/cli/adapter.ts': [
     /redactLocalPaths\(/,
-    /warnings: stderrWarnings\(result\.stderr, \(w\) => this\.redact\(/,
+    // task-070 review round 2: the warnings in their parts, merged by `mergeToolLines`.
+    /const parts = stderrWarnings\(result\.stderr, \(w\) => this\.redact\(/,
     /toolText\(name, data/,
   ],
   'server/src/projects/project-list.ts': [/redactLocalPaths\(/],

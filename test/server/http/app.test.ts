@@ -2,6 +2,8 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { request as httpRequest } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { Writable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTokenAuthentication } from '../../../server/src/auth/authentication.js';
@@ -111,7 +113,8 @@ describe('buildApp', () => {
       payload: JSON.stringify({ x: 'a'.repeat(1_100_000) }),
     });
     expect(big.statusCode).toBe(413);
-    expect(big.json()).toEqual({ error: { code: 'invalid-request', message: expect.any(String) } });
+    // task-063 D63-10 (Q3 a): a 4xx other than 400 and 404 gets a code matching its status.
+    expect(big.json()).toEqual({ error: { code: 'payload-too-large', message: expect.any(String) } });
     const missing = await app.inject({ method: 'GET', url: '/api/gone', headers: AUTH });
     expect(missing.statusCode).toBe(404);
     expect(missing.json().error.code).toBe('not-found');
@@ -243,5 +246,182 @@ describe('the route parameter length (spec-011 §4)', () => {
       }
       await app.close();
     });
+  });
+});
+
+// bug-031 (task-063 AC-7, D63-9, D63-10; the approver's Q3 a, Q4 a): a static path the file system
+// refuses as too long is missing — 404 `not-found` under `/assets/`, the application for any other
+// path — and every 4xx the error handler does not name gets a code that matches its status.
+describe('bug-031 — names too long and the codes of the other client errors', () => {
+  const NAME_MAX_PLUS_ONE = 'x'.repeat(256);
+  const OVER_PATH_MAX = `${'x'.repeat(200)}/`.repeat(25) + 'app.js';
+
+  it('bug-031 — an asset name the file system refuses answers 404 not-found', async () => {
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
+    // Review round 2 R2-1: a path over PATH_MAX made of short segments only (33 × 127 bytes), and a
+    // name under 128 characters but over 255 bytes (86 × €, 258 bytes): measured in bytes, both.
+    const shortSegments = Array.from({ length: 33 }, () => 'x'.repeat(127)).join('/');
+    const multiByte = encodeURIComponent('€'.repeat(86));
+    for (const url of [
+      `/assets/${NAME_MAX_PLUS_ONE}`,
+      `/assets/${OVER_PATH_MAX}`,
+      `/assets/${shortSegments}`,
+      `/assets/${multiByte}`,
+    ]) {
+      for (const method of ['GET', 'HEAD'] as const) {
+        const res = await app.inject({ method, url });
+        expect(res.statusCode, `${method} ${url.length}`).toBe(404);
+        if (method === 'GET') expect(res.json()).toEqual({ error: { code: 'not-found', message: expect.any(String) } });
+      }
+    }
+    await app.close();
+  });
+
+  it('a client-side path with a name too long serves the application', async () => {
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
+    for (const url of [`/${NAME_MAX_PLUS_ONE}`, `/${OVER_PATH_MAX}`]) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode, `${url.length}`).toBe(200);
+      expect(res.body).toContain('<title>WingFoil UI</title>');
+    }
+    await app.close();
+  });
+
+  it('a non-canonical static path stays a 403, with the code forbidden', async () => {
+    const app = await buildApp({ staticDir, logger: createLogger(sink), security });
+    for (const url of ['/assets//app.js', `/assets//${NAME_MAX_PLUS_ONE}`]) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode, url.slice(0, 30)).toBe(403);
+      expect(res.json(), url.slice(0, 30)).toEqual({ error: { code: 'forbidden', message: expect.any(String) } });
+    }
+    await app.close();
+  });
+
+  // Review round 1 F-1: the request line as a client sends it (light-my-request resolves `.`, `..`
+  // and `%2e%2e` before routing, so these go through a listening socket).
+  async function rawGets(urls: readonly string[]): Promise<{ status: number; body: string }[]> {
+    let port = 0;
+    const app = await buildApp({
+      staticDir,
+      logger: createLogger(sink),
+      security: { authentication: security.authentication, port: () => port },
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    port = (app.server.address() as AddressInfo).port;
+    try {
+      const answers: { status: number; body: string }[] = [];
+      for (const url of urls) {
+        answers.push(
+          await new Promise((resolve, reject) => {
+            const req = httpRequest(
+              { host: '127.0.0.1', port, path: url, headers: { host: `127.0.0.1:${port}` } },
+              (res) => {
+                let body = '';
+                res.setEncoding('utf8');
+                res.on('data', (chunk: string) => (body += chunk));
+                res.on('end', () => resolve({ status: res.statusCode ?? 0, body }));
+              },
+            );
+            req.on('error', reject);
+            req.end();
+          }),
+        );
+      }
+      return answers;
+    } finally {
+      await app.close();
+    }
+  }
+
+  it('F-1 — a non-canonical path with a name too long is never judged missing: 403 forbidden', async () => {
+    const urls = [
+      `/assets/./${NAME_MAX_PLUS_ONE}`,
+      `/assets/../assets/${NAME_MAX_PLUS_ONE}`,
+      `/assets/%2e%2e/assets/${NAME_MAX_PLUS_ONE}`,
+      `/assets/a%00${NAME_MAX_PLUS_ONE}`,
+      `/assets/a%5c${NAME_MAX_PLUS_ONE}`,
+    ];
+    const answers = await rawGets(urls);
+    answers.forEach((answer, i) => {
+      expect(answer.status, urls[i]!.slice(0, 24)).toBe(403);
+      expect(JSON.parse(answer.body), urls[i]!.slice(0, 24)).toEqual({
+        error: { code: 'forbidden', message: expect.any(String) },
+      });
+    });
+  });
+
+  it('F-3 — a name too long adds no listener warning, however often it is asked', async () => {
+    const warnings: string[] = [];
+    const onWarning = (warning: Error) => warnings.push(warning.name);
+    process.on('warning', onWarning);
+    try {
+      const app = await buildApp({ staticDir, logger: createLogger(sink), security });
+      for (let i = 0; i < 3; i++) {
+        for (const url of [`/${NAME_MAX_PLUS_ONE}`, `/assets/${NAME_MAX_PLUS_ONE}`]) {
+          expect((await app.inject({ method: 'GET', url })).statusCode).not.toBe(403);
+        }
+      }
+      await app.close();
+      // Warnings are emitted on the next tick.
+      await new Promise((r) => setTimeout(r, 20));
+    } finally {
+      process.off('warning', onWarning);
+    }
+    expect(warnings).toEqual([]);
+  });
+
+  it('F-2 — only the static route is judged: an API route with a path too long for a file still answers', async () => {
+    const app = await buildApp({
+      staticDir,
+      logger: createLogger(sink),
+      security,
+      register: (a) => {
+        a.get('/api/deep/*', async () => ({ reached: true }));
+      },
+    });
+    const res = await app.inject({ method: 'GET', url: `/api/deep/${OVER_PATH_MAX}`, headers: AUTH });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ reached: true });
+    await app.close();
+  });
+
+  it('every 4xx gets a code matching its status', async () => {
+    const app = await buildApp({
+      staticDir,
+      logger: createLogger(sink),
+      security,
+      register: (a) => {
+        a.post('/api/echo', async (req) => req.body);
+        for (const status of [403, 412, 418, 429]) {
+          a.get(`/api/status/${status}`, async () => {
+            throw Object.assign(new Error(`status ${status} /home/secret`), { statusCode: status });
+          });
+        }
+      },
+    });
+    const media = await app.inject({
+      method: 'POST',
+      url: '/api/echo',
+      headers: { ...AUTH, 'content-type': 'text/xml' },
+      payload: '<x/>',
+    });
+    expect(media.statusCode).toBe(415);
+    expect(media.json()).toEqual({ error: { code: 'unsupported-media-type', message: expect.any(String) } });
+    const range = await app.inject({ method: 'GET', url: '/assets/app.js', headers: { range: 'bytes=900-999' } });
+    expect(range.statusCode).toBe(416);
+    expect(range.json()).toEqual({ error: { code: 'range-not-satisfiable', message: expect.any(String) } });
+    const expected: Record<number, string> = {
+      403: 'forbidden',
+      412: 'precondition-failed',
+      418: 'client-error',
+      429: 'client-error',
+    };
+    for (const [status, code] of Object.entries(expected)) {
+      const res = await app.inject({ method: 'GET', url: `/api/status/${status}`, headers: AUTH });
+      expect(res.statusCode).toBe(Number(status));
+      expect(res.json()).toEqual({ error: { code, message: expect.any(String) } });
+      expect(res.body).not.toContain('secret');
+    }
+    await app.close();
   });
 });

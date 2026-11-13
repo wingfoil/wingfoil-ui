@@ -12,10 +12,10 @@ import type {
 } from '../../contracts/src/writes.js';
 import { REPO_ROOT } from '../harness/cli.js';
 
+const read = (file: string) => JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts/api', file), 'utf8')) as object;
+// `write.refusal` refers to the `cli-refused` detail of `cli.refusal` (task-070).
 const compile = (file: string) =>
-  new Ajv({ allErrors: true }).compile(
-    JSON.parse(readFileSync(path.join(REPO_ROOT, 'contracts/api', file), 'utf8')) as object,
-  );
+  new Ajv({ allErrors: true }).addSchema(read('cli.refusal.schema.json')).compile(read(file));
 const submit = compile('element.submit.request.schema.json');
 const decision = compile('element.decision.request.schema.json');
 const response = compile('write.response.schema.json');
@@ -117,10 +117,12 @@ describe('write.refusal.schema.json (W2-1)', () => {
     // Row 8 (task-033).
     'stale-copy',
     'element-changed',
-    'cli-refused',
     'cli-output',
     'cli-timeout',
     'internal',
+    // Body parsing before the handler (task-063 D63-10, review round 1 F-4).
+    'payload-too-large',
+    'unsupported-media-type',
   ])('accepts %s without detail', (code) => {
     expect(refusal(envelope(code))).toBe(true);
     expect(refusal(envelope(code, { file: 'x' }))).toBe(false);
@@ -137,6 +139,12 @@ describe('write.refusal.schema.json (W2-1)', () => {
     expect(refusal(envelope('read-error', { file: 'x.md', kind: 'other' }))).toBe(false);
     expect(refusal(envelope('cli-not-found', { command: 'npm i' }))).toBe(true);
     expect(refusal(envelope('cli-not-found', { path: 'p', command: 'npm i' }))).toBe(false);
+  });
+
+  it('cli-refused: without detail, or with its reasons only (task-070)', () => {
+    expect(refusal(envelope('cli-refused'))).toBe(true);
+    expect(refusal(envelope('cli-refused', { reasons: ['why'] }))).toBe(true);
+    expect(refusal(envelope('cli-refused', { file: 'x' }))).toBe(false);
   });
 
   it('refuses an unknown code', () => {

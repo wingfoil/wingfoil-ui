@@ -1,6 +1,6 @@
 # Tests
 
-**Version:** 0.64 · **Date:** 2026-11-07 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: *Temporary folders* (the run's temporary root `harness/temp-root.ts`, the clone hooks path, `launcher/clone-hooks.test.ts`), fresh-read preconditions, `test:smoke` as a wave gate — task-026 / bug-008; 0.26: the public-text check `test/docs/public-text.test.ts` — task-028; 0.27: the e2e suite on Chromium, Firefox and WebKit, `test:e2e:chromium`, *Browsers*, `support/clipboard.ts` — task-027 / bug-009; 0.28: the UI settings tests `server/state/settings`, `server/http/settings` (with its process audit), `launcher/settings`, `contracts/api-settings-schema` — task-030; 0.29: `test/server/http/today-routes.test.ts`, `test/server/descriptor/today.test.ts`, the Today process audit — task-031; 0.30: the How to join e2e `how-to-join.spec.ts`, a third `SCREENS` project (Riley), the X-09.1 rule for a CLI command shown as data, `test/web/project/join`, `how-to-join` — task-035; 0.31: the governed-write suites, `test/server/writes/`, `test/scripts/` — task-032; 0.32: the Today e2e `today.spec.ts` (with TT-PERF-09), TT-PERF-01 in `performance.spec.ts`, two `SCREENS` entries, `test/web/today/`; X-06.4 and X-09.1 one test per screen — task-036 / bug-011; 0.33: the git-route suites `server/http/git-routes`, `repository-status` and their console `git-console.ts`, `server/git/` copy, transport, redaction and local-remote tests, the transport characterization, `launcher/git-routes` — task-033 / bug-010, bug-012, bug-013; 0.34: the gate footer e2e `gate-footer.spec.ts`, `lastCommitSubject` in `support/events.ts`, three `SCREENS` entries, the X-09.1 rule for the References field names (D37-13), `test/web/element/footer`, `gate-footer`, `test/web/api/writes` — task-037; 0.35: the auto-sync suites `server/sync/` (scheduler, automatic fetch and update), `server/http/auto-push`, `launcher/auto-sync`, TT-PERF-07 in `timing/auto-sync.timing.test.ts`, the bug-014 and D34 characterization rows, `autoPush` of `git-console.ts`, the runner's drain after exit (`server/process/runner.test.ts`) — task-034 / bug-014; 0.36: the notification bell e2e `notification-bell.spec.ts` (S-21.x, S-23.x, T-07.x), the *notification panel* `SCREENS` entry, `test/web/shell/notification-bell`, `notifications`, `test/web/today/summary`; the X-09.1 recorder of bug-015 — task-042; 0.37: `submit-footer.spec.ts`, the toasts unit suites, `ConsoleOptions.settings`, `support/remote.ts`, TT-PERF-02 in the perf run — task-038; 0.38: the git status e2e `git-status.spec.ts` (Y-01.x … Y-04.x, S-11.x, Cancel; Y-02.1 and Y-04.2 `@live-refresh`), `settings` of the e2e console, `support/remote.ts` `remoteCommit`/`setRemoteUrl`, a fourth `SCREENS` project and the *git status — fetch failed* entry, the X-09.1 time-only rendering, `test/web/repository/`, `test/web/api/git` — task-039; 0.39: the UI settings e2e `ui-settings.spec.ts` (C-07.1 … C-07.3, X-08.3), `ConsoleOptions.settings`, the *configuration — UI settings* `SCREENS` entry, C-07.3 in `timing/ui-settings.timing.test.ts`, `test/web/settings/`, `test/web/api/settings` — task-041; 0.40: *Publish smoke* (`test:publish-smoke`, `smoke/staging.publish.test.ts`, `smoke/registry.ts`, `smoke/registry-cleanup.ts`), `smoke/support.ts`, the publish-workflow invariants `package/publish-workflow.test.ts`, `scripts/check-release-tag`, `scripts/publish-guard`, the root package no longer private — task-029, review round 1; 0.41: the Update and Push e2e `update-push.spec.ts` (Y-05.x … Y-08.x, G-12.x, Push's Cancel; Y-05.2 `@live-refresh`), G-13.2's sidebar step, bug-016 in `shell.spec.ts`, `support/remote.ts` `fetchCopy`/`remoteHook`, a fifth `SCREENS` project and its entry, `test/web/repository/update-push`, `session` `watchFragmentToken` — task-040 / bug-016; 0.42: the commit-provenance e2e `commit-provenance.spec.ts` and its checker `harness/commit-provenance.ts`, G-04.1 with auto-push, X-06.2 Reject by keyboard, G-12.1 Submit while behind — task-043; 0.43: X-06.2 Cancel by keyboard, the bug-018 tests of `gate-footer.spec.ts` and `test/web/today/today.test.tsx`, the tracked-path rule of `harness/commit-provenance.ts` — task-043 AC-7, review round 1; 0.44: the summary item as the opener in `test/web/today/summary.test.tsx` — task-043 review round 2; 0.45: the harness git identity (`HARNESS_GIT_NAME`, `user.useConfigOnly`), `harness/git-identity.test.ts`, the strict-identity run, the remote-tracking `HEAD` rule of `harness/commit-provenance.ts` — task-044 / bug-020, bug-021; 0.46: `RepoState.symrefs`, the `followRemoteHEAD` emulation in the strict-run recipe — task-044 review round 1; 0.47: the matrix [0.2.2, 0.3.1] on the pin 0.3.1, the per-version `behaviours` of `contracts/support.ts`, the `workflow list` branches of `schemas.test.ts`, the `unknown` fixture's own workflow — task-046; 0.48: the `custom` fixture's governance per version (`customGovernance`, the frozen `harness/fixtures/custom-governance-0.2/`), `STANDARD_PACKS`, `test/governance/workflow-diagnostics.test.ts` and its baseline — governance-alignment-rel-v0.3-plan step 3, GA3-11 R-4; 0.49: the variant `usePrePacksStates` — the adoption's decision 1-A and review round 1; 0.50: the 0.2.2 quirks cite `wingfoil-cli` 1.15 — governance-alignment-rel-v0.3-plan step 4; 0.51: the WingFoil 0.3 operations `addOperations` (`harness/fixtures/operations.ts`), the samples `custom/memory-history-operations/`, the `memory history` entry definitions of `schemas.test.ts`, the e2e `history-operations.spec.ts` — task-048 / bug-026; 0.52: the gates named after the directives `definition-of-done` and `release-conventions`, the procedures folded into them, the diagnostics baseline of one row — task-049; 0.53: the sha-only re-capture rule, `test:timing` at the wave gate and before a release — its review round 1; 0.54: `scripts/coverage-totals`, `test-results`, `changelog-section` and the `release` job's invariants in `package/publish-workflow.test.ts` — task-052; 0.55: one console per test, `lint/one-console-per-test.test.ts`, `binTestMs` — task-053 / bug-023; 0.56: the governance checks `plan-versions`, `bug-releases`, `check-releases` — task-051; 0.57: the agent sessions' identity variables in *Git identity*, the `gitEnv` identity pin of `server/process/git-env.test.ts` — task-050; 0.58: the long-id variant `addLongIdElement` (`harness/fixtures/long-id.ts`), the short-id and resolution suites `server/reads/short-id`, `server/http/element-address`, `contracts/api-element-schema`, fixture content built once in a hook (bug-028) — task-057; 0.59: the `ui.yaml` suites `server/ui-config/`, `server/presets/ui-config`, `server/reads/ui-yaml`, `server/snapshot/ui-config`, `contracts/ui-yaml-schema`, `contracts/ui-config-fixtures`, the variant `usePresetUiConfig` — task-054; 0.60: the console address file suites `launcher/console-address`, `server/state/console-address`, `server/launcher/start-address`, `contracts/console-address-schema` and its launch-smoke checks — task-058; 0.61: the run's state directory `<root>/state/` (`WINGFOIL_UI_STATE_DIR`) — task-058 AC-9 / bug-030; 0.62: the `/config` `ui` suites `server/http/ui-config-route`, `server/ui-config/body`, `contracts/ui-config-api-schema`, the `ui.yaml` mark `server/reads/ui-yaml-mark`, the state key of an ignored `ui.yaml` in `server/snapshot/ui-config`, bug-033 in `server/snapshot/fingerprint`, the `/config` process audit — task-068; 0.63: the hostile-text variant `addHostileText` (`harness/fixtures/hostile.ts`), the commit-text suite `server/http/commit-text`, the AC-1 enumeration and its sweep `server/http/text-sweep`, `web/element/history-text`, `web/today/title-text` — task-056 / bug-027; 0.64: the reference index suites `server/references/` and `server/snapshot/reference-index`, the frontmatter parse `server/reads/frontmatter` — task-055 / bug-032; the author-identity cases of `server/identity/git-email` against the pinned CLI's resolver — bug-029)
+**Version:** 0.90 · **Date:** 2026-11-12 (0.1: workspace tooling and e2e harness — task-001; 0.2: `test/launcher/`, `test/server/` — task-002; 0.3: `test/contracts/`, local state isolation, secret scan — task-007; 0.4: `local-security` suite — task-003; 0.5: process runner fake, hand-made CLI packages, stub after global options — task-004; 0.6: CLI contract tests, captured samples, `test:contract` — task-005; 0.7: action descriptor tests, REQ-ARC-05 lint rule — task-011; 0.8: matrix builds of `cliBuildFor`, capability table and README checks — task-006; 0.9: identity tests, bin with a seeded state — task-009; 0.10: timing suite `test:timing`, `TempWorkspace`, snapshot audits and stand-ins — task-010 / bug-001; 0.11: project-list route tests, a dumb-HTTP git remote — task-008; 0.12: read routes, the read console replacing the stand-ins, spec-002 §3 event parse, confinement — task-012; 0.13: `test/web/` component tests, the shared e2e support of Wave 3, the shell e2e — task-013; 0.14: `test/web/element/` and the element panel e2e `element-panel.spec.ts` — task-018; 0.15: `test/web/docs/` and the documentation e2e `documentation.spec.ts` — task-020; 0.16: `test/web/memory/` and the Memory list e2e `memory-list.spec.ts` — task-017; 0.17: `test/web/dna/`, `directives/`, `team/`, the e2e `dna`, `directives`, `team` specs and G-02 in `element-panel.spec.ts`; load-independent waits, prebuilt fixtures and the console reaper of the e2e support, `test/harness/load.ts` — task-019 / bug-004; 0.18: the Playwright part of `test:timing` (strict live refresh) — task-019, W3-47; 0.19: `wingfoil-feedback.test.ts`, the WingFoil feedback inbox and the `wingfoil-cli` *Note* column — task-023; 0.20: the project switcher e2e `projects.spec.ts`, `stateDir` of the e2e console, `test/web/shell/project-switcher`, `switch-target`, `test/web/api/projects` — task-015; 0.21: the Add project e2e `add-project.spec.ts`, `support/switcher.ts`, `support/git-http.ts`, `test/web/shell/add-project`, `add-project-fields`, `working-directory` — task-014; 0.22: the project header e2e `project-header.spec.ts`, `test/web/project/`, `test/web/api/role-view` — task-016; 0.23: the e2e-smoke `accessibility` spec `accessibility.spec.ts`, `performance.spec.ts` (`@perf`, TT-PERF-04) and the large fixture `test/harness/fixtures/large.ts`, `support/screens.ts`, `strings.ts`, `perf.ts`, `focusRing`/`tabUntil`, `test/web/shell/page-title` — task-021; 0.24: the packaging guard `test/package/`, the launch smoke `test/smoke/` and `test:smoke`, the `scrum` fixture and `scrum.spec.ts`, `test/harness/repo-state.ts` and `no-commit.spec.ts`; the Vitest global setup builds `web/dist` too — task-025 / bug-007; 0.25: *Temporary folders* (the run's temporary root `harness/temp-root.ts`, the clone hooks path, `launcher/clone-hooks.test.ts`), fresh-read preconditions, `test:smoke` as a wave gate — task-026 / bug-008; 0.26: the public-text check `test/docs/public-text.test.ts` — task-028; 0.27: the e2e suite on Chromium, Firefox and WebKit, `test:e2e:chromium`, *Browsers*, `support/clipboard.ts` — task-027 / bug-009; 0.28: the UI settings tests `server/state/settings`, `server/http/settings` (with its process audit), `launcher/settings`, `contracts/api-settings-schema` — task-030; 0.29: `test/server/http/today-routes.test.ts`, `test/server/descriptor/today.test.ts`, the Today process audit — task-031; 0.30: the How to join e2e `how-to-join.spec.ts`, a third `SCREENS` project (Riley), the X-09.1 rule for a CLI command shown as data, `test/web/project/join`, `how-to-join` — task-035; 0.31: the governed-write suites, `test/server/writes/`, `test/scripts/` — task-032; 0.32: the Today e2e `today.spec.ts` (with TT-PERF-09), TT-PERF-01 in `performance.spec.ts`, two `SCREENS` entries, `test/web/today/`; X-06.4 and X-09.1 one test per screen — task-036 / bug-011; 0.33: the git-route suites `server/http/git-routes`, `repository-status` and their console `git-console.ts`, `server/git/` copy, transport, redaction and local-remote tests, the transport characterization, `launcher/git-routes` — task-033 / bug-010, bug-012, bug-013; 0.34: the gate footer e2e `gate-footer.spec.ts`, `lastCommitSubject` in `support/events.ts`, three `SCREENS` entries, the X-09.1 rule for the References field names (D37-13), `test/web/element/footer`, `gate-footer`, `test/web/api/writes` — task-037; 0.35: the auto-sync suites `server/sync/` (scheduler, automatic fetch and update), `server/http/auto-push`, `launcher/auto-sync`, TT-PERF-07 in `timing/auto-sync.timing.test.ts`, the bug-014 and D34 characterization rows, `autoPush` of `git-console.ts`, the runner's drain after exit (`server/process/runner.test.ts`) — task-034 / bug-014; 0.36: the notification bell e2e `notification-bell.spec.ts` (S-21.x, S-23.x, T-07.x), the *notification panel* `SCREENS` entry, `test/web/shell/notification-bell`, `notifications`, `test/web/today/summary`; the X-09.1 recorder of bug-015 — task-042; 0.37: `submit-footer.spec.ts`, the toasts unit suites, `ConsoleOptions.settings`, `support/remote.ts`, TT-PERF-02 in the perf run — task-038; 0.38: the git status e2e `git-status.spec.ts` (Y-01.x … Y-04.x, S-11.x, Cancel; Y-02.1 and Y-04.2 `@live-refresh`), `settings` of the e2e console, `support/remote.ts` `remoteCommit`/`setRemoteUrl`, a fourth `SCREENS` project and the *git status — fetch failed* entry, the X-09.1 time-only rendering, `test/web/repository/`, `test/web/api/git` — task-039; 0.39: the UI settings e2e `ui-settings.spec.ts` (C-07.1 … C-07.3, X-08.3), `ConsoleOptions.settings`, the *configuration — UI settings* `SCREENS` entry, C-07.3 in `timing/ui-settings.timing.test.ts`, `test/web/settings/`, `test/web/api/settings` — task-041; 0.40: *Publish smoke* (`test:publish-smoke`, `smoke/staging.publish.test.ts`, `smoke/registry.ts`, `smoke/registry-cleanup.ts`), `smoke/support.ts`, the publish-workflow invariants `package/publish-workflow.test.ts`, `scripts/check-release-tag`, `scripts/publish-guard`, the root package no longer private — task-029, review round 1; 0.41: the Update and Push e2e `update-push.spec.ts` (Y-05.x … Y-08.x, G-12.x, Push's Cancel; Y-05.2 `@live-refresh`), G-13.2's sidebar step, bug-016 in `shell.spec.ts`, `support/remote.ts` `fetchCopy`/`remoteHook`, a fifth `SCREENS` project and its entry, `test/web/repository/update-push`, `session` `watchFragmentToken` — task-040 / bug-016; 0.42: the commit-provenance e2e `commit-provenance.spec.ts` and its checker `harness/commit-provenance.ts`, G-04.1 with auto-push, X-06.2 Reject by keyboard, G-12.1 Submit while behind — task-043; 0.43: X-06.2 Cancel by keyboard, the bug-018 tests of `gate-footer.spec.ts` and `test/web/today/today.test.tsx`, the tracked-path rule of `harness/commit-provenance.ts` — task-043 AC-7, review round 1; 0.44: the summary item as the opener in `test/web/today/summary.test.tsx` — task-043 review round 2; 0.45: the harness git identity (`HARNESS_GIT_NAME`, `user.useConfigOnly`), `harness/git-identity.test.ts`, the strict-identity run, the remote-tracking `HEAD` rule of `harness/commit-provenance.ts` — task-044 / bug-020, bug-021; 0.46: `RepoState.symrefs`, the `followRemoteHEAD` emulation in the strict-run recipe — task-044 review round 1; 0.47: the matrix [0.2.2, 0.3.1] on the pin 0.3.1, the per-version `behaviours` of `contracts/support.ts`, the `workflow list` branches of `schemas.test.ts`, the `unknown` fixture's own workflow — task-046; 0.48: the `custom` fixture's governance per version (`customGovernance`, the frozen `harness/fixtures/custom-governance-0.2/`), `STANDARD_PACKS`, `test/governance/workflow-diagnostics.test.ts` and its baseline — governance-alignment-rel-v0.3-plan step 3, GA3-11 R-4; 0.49: the variant `usePrePacksStates` — the adoption's decision 1-A and review round 1; 0.50: the 0.2.2 quirks cite `wingfoil-cli` 1.15 — governance-alignment-rel-v0.3-plan step 4; 0.51: the WingFoil 0.3 operations `addOperations` (`harness/fixtures/operations.ts`), the samples `custom/memory-history-operations/`, the `memory history` entry definitions of `schemas.test.ts`, the e2e `history-operations.spec.ts` — task-048 / bug-026; 0.52: the gates named after the directives `definition-of-done` and `release-conventions`, the procedures folded into them, the diagnostics baseline of one row — task-049; 0.53: the sha-only re-capture rule, `test:timing` at the wave gate and before a release — its review round 1; 0.54: `scripts/coverage-totals`, `test-results`, `changelog-section` and the `release` job's invariants in `package/publish-workflow.test.ts` — task-052; 0.55: one console per test, `lint/one-console-per-test.test.ts`, `binTestMs` — task-053 / bug-023; 0.56: the governance checks `plan-versions`, `bug-releases`, `check-releases` — task-051; 0.57: the agent sessions' identity variables in *Git identity*, the `gitEnv` identity pin of `server/process/git-env.test.ts` — task-050; 0.58: the long-id variant `addLongIdElement` (`harness/fixtures/long-id.ts`), the short-id and resolution suites `server/reads/short-id`, `server/http/element-address`, `contracts/api-element-schema`, fixture content built once in a hook (bug-028) — task-057; 0.59: the `ui.yaml` suites `server/ui-config/`, `server/presets/ui-config`, `server/reads/ui-yaml`, `server/snapshot/ui-config`, `contracts/ui-yaml-schema`, `contracts/ui-config-fixtures`, the variant `usePresetUiConfig` — task-054; 0.60: the console address file suites `launcher/console-address`, `server/state/console-address`, `server/launcher/start-address`, `contracts/console-address-schema` and its launch-smoke checks — task-058; 0.61: the run's state directory `<root>/state/` (`WINGFOIL_UI_STATE_DIR`) — task-058 AC-9 / bug-030; 0.62: the `/config` `ui` suites `server/http/ui-config-route`, `server/ui-config/body`, `contracts/ui-config-api-schema`, the `ui.yaml` mark `server/reads/ui-yaml-mark`, the state key of an ignored `ui.yaml` in `server/snapshot/ui-config`, bug-033 in `server/snapshot/fingerprint`, the `/config` process audit — task-068; 0.63: the hostile-text variant `addHostileText` (`harness/fixtures/hostile.ts`), the commit-text suite `server/http/commit-text`, the AC-1 enumeration and its sweep `server/http/text-sweep`, `web/element/history-text`, `web/today/title-text` — task-056 / bug-027; 0.64: the reference index suites `server/references/` and `server/snapshot/reference-index`, the frontmatter parse `server/reads/frontmatter` — task-055 / bug-032; the author-identity cases of `server/identity/git-email` against the pinned CLI's resolver — bug-029; 0.65: *CI gates* (`.github/workflows/gates.yml`, its scopes and jobs), `package/gates-workflow.test.ts`, `scripts/e2e-own-specs` — task-071; 0.66: the measured run times of *CI gates* — task-071 AC-8; 0.67: the shard ratio of *CI gates* — task-071 review round 1; 0.68: the held-gate Given steps `submitToReleasing`, `addReleaseLine`, `releaseHeldRelease` (`harness/fixtures/held-gates.ts`), `server/descriptor/held-gates`, `server/http/held-gates-routes`, `contracts/api-descriptor-schema`, `contracts/held-gates-contract`, the e2e `held-gates.spec.ts` — task-069; 0.69: the per-match `memory search` and refusal-reason suites `server/cli/memory-search-matches`, `server/cli/refusal-reasons`, `server/http/dropped-matches` (real 0.2.2 and 0.3.1), `contracts/api-cli-refusal-schema`, `web/shell/refusal-reasons`, the refused-submit samples `kanban/memory-submit-refused.stderr.txt` (`capture-samples -t 'refusals'`) — task-070 / bug-024, bug-036; 0.70: the state-limit Given steps `planSprints`, `fillSprints` (`harness/fixtures/state-limit.ts`), `server/descriptor/state-limit`, `server/http/state-limit-routes`, `contracts/state-limit-contract`, the e2e `state-limit.spec.ts` — task-073; 0.71: the preset write suites `server/http/ui-config-preset`, `server/writes/preset`, `server/git/index-write`, `contracts/api-ui-config-preset-schema`, `preset` of `git-console.ts`, the preset commit rule of `harness/commit-provenance.ts` and its e2e test — task-060; 0.72: the Today cards e2e `today-cards.spec.ts`, `addPendingTasks` (`harness/fixtures/pending-tasks.ts`), the *today — card filter open* `SCREENS` entry, `test/web/today/cards` — task-061; 0.73: its X-09.1 and focus tests — its checker; 0.74: the project-state Given steps `addSecondRelease`, `draftRelease`, `setFrontmatterValue` (`harness/fixtures/progress.ts`), `server/project-state/`, `server/http/progress-routes`, `contracts/progress-api-schema`, AC-7 in `performance.spec.ts` — task-059; 0.75: own specs that select no test on an engine pass (`--pass-with-no-tests`) — task-059 AC-12 / bug-038; 0.76: own specs with no test on an engine counted first and named in a line — task-059 review round 1 F-4; 0.77: the own-specs list captured, a failed list fails — task-059 review round 2 F-7; 0.78: the element page e2e `element-page.spec.ts`, `support/element.ts`, the *element page — candidates* `SCREENS` entry, `test/web/element/page`, `address` — task-062; 0.79: the hostile repository variant `addHostileRepositoryText` (`harness/fixtures/hostile.ts`), `server/http/repository-text`, the sweep's route coverage and per-field reach, `contracts/api-docs-label-schema`, `web/docs/labels`, `web/team/escaped-names`, `web/shell/repository-text` — task-072 / bug-035; 0.80: the state-tie suites `server/snapshot/read-tie`, `server/snapshot/tie`, the `/config` tie in `server/http/ui-config-route`, `lastMarks` in `server/snapshot/fingerprint`; the key suites `server/reads/yaml-keys` (against `js-yaml` 4.3.2) and `server/reads/frontmatter-cli` — task-075 / bug-034, bug-037; 0.81: the alias bound `server/reads/alias-bound` (a 5 MiB worst case in a child process on `server/dist`), the empty-key rows — task-075 / bug-040, bug-042; 0.82: the recovery in place `web/session/recovery`, the announce cases of `web/session/session`, the e2e `session-recovery.spec.ts` (X-02.3), bug-031 and the 4xx codes in `server/http/app` — task-063 / bug-031; 0.83: `notification-bell.spec.ts` S-23.4 (the count, no item) and S-23.5, `summary.test.tsx` for the line of role tags, the Today summary cases of `contracts/api-element-schema` and the long-role-name wrap test (review round 1, F-1) — task-076; 0.84: `server/http/traceability-routes`, `server/project-state/traceability`, `contracts/traceability-api-schema`, the Traceability timing test of `performance.spec.ts` — task-074; 0.85: the side panel e2e `side-panel.spec.ts`, `sidePanel` of `support/element.ts`, the two *element side panel* `SCREENS` entries, `test/web/element/side-panel` — task-077; 0.86: bug-046 in `test/web/element/gate-footer` (the POST held, the refetch first) and X-06.2's retried focus check — task-077 / bug-046; 0.87: the decision-log e2e `decision-log.spec.ts`, `documentDialog` and `expectNoImageRequest` of `support/element.ts`, the two *element document* `SCREENS` entries, `test/web/element/document`, `summary`, `test/web/docs/classification-in-place`, bug-043's test in `documentation.spec.ts` — task-078 / bug-043; 0.88: `test/web/element/document-unavailable`, the linear-time check `test/web/docs/comment-linear` — task-078 security review rounds 1–2; 0.89: the CommonMark oracle `test/web/docs/commonmark-oracle.ts`, the seeded fuzz of `test/web/docs/render.test.ts` and its F-4 table checked against the oracle — task-078 security review round 4, R4-2; 0.90: the body names task-078's suites, specs, screens and support — its checker, G-4)
 
 Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`, `web/src`,
 `contracts/src`.
@@ -16,6 +16,7 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
 | `npm run test:smoke` | the launch smoke (the e2e smoke's `launch`, `release-conventions` › `pre-release-checks`): `test/smoke/**/*.smoke.test.ts` — packs the repository (`prepack` builds), installs the tarball into a temporary folder and runs `npx wingfoil-ui` there (see *Launch smoke*) |
 | `npm run test:publish-smoke` | the staging publish smoke (task-029, the publish pipeline's `stage` job): `test/smoke/**/*.publish.test.ts` — publishes the packed package to a local registry with no uplink, installs it by name and runs `npx wingfoil-ui` (see *Publish smoke*) |
 | `npm run lint` · `npm run format:check` · `npm run typecheck` · `npm run docs:api` | ESLint (with the REQ-SEC-05 no-shell rule on `server/`), Prettier, `tsc`, TypeDoc of `server/` and `contracts/` |
+| `.github/workflows/gates.yml` | the heavy gates on GitHub-hosted runners for every push of a `task/*` or `design/*` branch — `test:coverage`, `test:contract`, `test:e2e:chromium`, the task's own specs on Firefox and WebKit, `test:smoke`, `test:publish-smoke`; its `wave` scope runs the whole e2e suite on the three engines (dl-016; see *CI gates*) |
 
 ## Layout
 
@@ -37,7 +38,9 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   remote-tracking `HEAD` symref git ≥ 2.48 creates on fetch, read from the snapshot's `symrefs`
   (task-044 AC-5, bug-021; a plain ref of that name or another remote's is still reported) —,
   stash, status and `.git/config` unchanged, the remote's branch at HEAD
-  (`commit-provenance.test.ts` proves each rule fails).
+  (`commit-provenance.test.ts` proves each rule fails). From task-060 it also accepts the console's
+  preset commit (`isPresetCommit`): one of the three preset subjects (`PRESET_COMMIT_SUBJECTS`),
+  `.wingfoil/ui.yaml` its only path, untracked when the session started.
 - `test/package/` (task-025, bug-007) — the package contract: `allow-list.ts` (the paths the
   tarball may hold, those it must hold, the bare imports of `server/dist`, `npm` run with this
   Node.js) and the packaging guard `pack.test.ts` (`npm pack --dry-run --json --ignore-scripts`,
@@ -103,6 +106,12 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
     process group, recorded in the run's directory; it is killed when its test ends, when its worker
     ends (also on the worker's `exit`, SIGTERM, SIGINT) and by the global teardown, which fails the
     run naming any console that survived (`test/harness/e2e-reaper.test.ts`);
+  - `support/element.ts` (task-062): `elementView(page)` — the element shown, found by
+    `[data-element-view]` (the element page in the main region, or the side panel) —,
+    `openElementPage(page, c, eid, pid?)` (its address, then its first reads) and `sidePanel(page)`
+    (task-077: the side panel over the current view, `[role="dialog"][data-element-view]`);
+    `documentDialog(page)` (task-078: the element's document dialog, `[role="dialog"].element-document`)
+    and `expectNoImageRequest(page, action)` (fails when the page requested an image while `action` ran).
   - `support/identity.ts`: `actAs(fixture, name)` — "I am <member>" by `git config user.email`;
   - `support/switcher.ts` (task-015/014): the switcher's trigger, popover and rows,
     `openSwitcher(page)` returning the list read its opening sent, `expectListed`, `expectMemoryList`;
@@ -132,7 +141,7 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   `lastCommitSubject`; G-04.1 counts the clicks since Today was shown, TT-PERF-10); `SCREENS` gains
   *element panel — gate footer, reason empty*, *element panel — waiting for the workflow engine*
   and *element panel — read-only, not in team*. task-042: `notification-bell.spec.ts` (S-21.1 …
-  S-21.3, S-23.1 … S-23.4, T-07.1, T-07.2; element states moved with the pinned CLI on the copy
+  S-21.3, S-23.1 … S-23.5 — S-23.4 and S-23.5 the line of role tags since task-076, T-07.1, T-07.2; element states moved with the pinned CLI on the copy
   before the console starts, approvals made from Today through the gate footer); `SCREENS` gains
   *notification panel* (the existing *today* screen shows Morgan's all-roles summary).
   task-038: `submit-footer.spec.ts` (G-10.1 … G-10.3, G-11.1 … G-11.3, G-13.1, G-13.2, G-14.1, G-14.2,
@@ -171,14 +180,34 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   gains the describe "bug-018 — the focus back on the Today action" (Close, Escape, the title and
   *Waiting on others* links, no opener on a modified click, the opener no longer listed, a focus the
   user moved kept, another project's opener not used) and `summary.test.tsx` the roles summary's item
-  as the opener (review round 2).
+  as the opener (review round 2; removed by task-076 with the items).
+  task-061 (v0.3): `today-cards.spec.ts` (T-02.4 … T-02.7 on kanban and custom copies; T-02.6's 11
+  more pending tasks with `addPendingTasks` before the console starts; the filters and *Show all*
+  from the keyboard, axe in both themes; "X-09.1 — Render the cards’ strings from the message
+  catalogue" in the key build, collapsed, expanded and with no row matching; the focus moved to the
+  card's heading when a refetch removes the focused toggle, on the three engines — review rounds 1
+  and 2); `SCREENS` gains *today — card filter open*; the key-build
+  check accepts Today's entry date and its full time (`support/strings.ts`);
+  `test/web/today/cards.test.tsx` covers the filters, the 10-row limit, the dates and the short ids.
+  task-078 (v0.3): `decision-log.spec.ts` (G-03.1 … G-03.4, G-08.1 … G-08.3, AC-3's no image
+  request, AC-4's keyboard path; each on a custom copy where the user is Casey, with scenario-local
+  commits — a body, a DNA role, an empty decision-log — before the console starts);
+  `documentation.spec.ts` gains "bug-043 — A link clicked while a link check is pending opens" (the
+  missing file's check held with `page.route`, the anchor taken before its answer still the page's);
+  `SCREENS` gains *element document — rendered* and *element document — source* (the element read
+  answered with a body of their own through `page.route`).
 - `test/web/` — unit and component tests of `web/src` (Vitest; `// @vitest-environment jsdom` per
   file, Testing Library): `shell/render.tsx` renders the whole application on a memory history with
   a stubbed `fetch` (`stubApi`) — optionally with the key catalogue; theme tokens and contrast pairs
   (`theme/`), catalogue check and key catalogue (`i18n/`), API client, event stream, error renderer
   and session bootstrap; `element/` the element panel (its pure helpers and the route rendered on the
   stubbed API); `docs/` the Documentation view (link resolution and classification, the Markdown
-  rendering and its sanitising with attack payloads, the index and document pages); `dna/`,
+  rendering and its sanitising with attack payloads, the index and document pages; task-078:
+  `classification-in-place` — bug-043's kept anchors —, `comment-linear` — the comment rules within
+  5 × plain markdown-it on adversarial bodies —, and in `render.test.ts` the F-4 table and a seeded
+  fuzz of 400 bodies checked against the CommonMark oracle `commonmark-oracle.ts`, markdown-it 15.0.2
+  with `html: true` and the comments removed); `element/` also the element's document
+  (`document`, `summary`, `document-unavailable` — the document module failing to load); `dna/`,
   `directives/`, `team/` the *Rules and context* views (shared fake answers in `dna/data.ts`).
   `repository/` the sidebar's git status and its layout (task-039; `api/git` its fetch mutation),
   *Update*, *Push* and the footer's *Update* link (task-040).
@@ -269,7 +298,9 @@ Every test lives under `test/` (DNA `paths.tests`); sources stay in `server/src`
   every file the CLI points at, and checks the §4.1 state resolution against the transitions the
   CLI reports. `schemas.test.ts` validates the samples of `samples/wingfoil-<version>/<fixture>/`:
   real CLI output (`<command>.json`, `memory-history/<id>.json`, on a CLI ≥ 0.3 also
-  `custom/memory-history-operations/<id>.json` — `-t 'operations'` re-captures only those —, `version.txt`) and the
+  `custom/memory-history-operations/<id>.json` — `-t 'operations'` re-captures only those —, `version.txt`,
+  and the raw stderr of a refused submit `kanban/memory-submit-refused.stderr.txt` — `-t 'refusals'`
+  re-captures only those, checked by `api-cli-refusal-schema.test.ts`, task-070) and the
   allow-listed files as found (`files/`), captured with
   `WFUI_CAPTURE_SAMPLES=1 npx vitest run test/contracts/capture-samples.test.ts` (skipped
   otherwise; Prettier leaves `samples/` as captured). The fixtures' commit ids are not stable from
@@ -322,6 +353,9 @@ engine needs the approver's decision, recorded in the task. The `@perf` tests (T
 Chromium only (`grepInvert` of the other two projects) and the timing suite's Playwright part
 (`playwright.timing.config.ts`) is Chromium only (RP-44); `test/harness/playwright-config.test.ts`
 checks both configs and the scripts.
+
+Where `.github/workflows/gates.yml` exists on the branch, these runs happen on GitHub-hosted runners
+(see *CI gates*); the commands below are the same ones its jobs run.
 
 Which run when (task-027 D27-4, the approver's "hybrid"):
 
@@ -393,6 +427,85 @@ workflow changes; the publishing guide is [`docs/publishing.md`](../docs/publish
 `test/package/publish-workflow.test.ts` (default suite) freezes the workflow's invariants (triggers,
 permissions, job chain, gates, no credential, SHA-pinned actions; the draft `release` job and the
 path-free test reports, task-052).
+
+## CI gates
+
+`.github/workflows/gates.yml` (task-071, dl-016; directive `definition-of-done` › *Where the gates
+run*) runs the heavy gates on GitHub-hosted runners (`ubuntu-24.04`, Node 22.22.2 — `publish.yml`'s
+gate Node), so a task's gates no longer wait for the machine-free slot. Its invariants — triggers,
+one run per ref, a limit for every job, read-only permissions, no credential, every action pinned
+to the commit `publish.yml` pins, no expression in a `run:` line, the uploads — are frozen by
+`test/package/gates-workflow.test.ts`, which also checks that each rule catches a deliberately wrong
+copy of the file.
+
+**How a run starts.** Every push of a `task/**` or `design/**` branch starts one in the `task` scope;
+by hand, on such a branch only: `gh workflow run gates.yml --ref <branch>` (add `-f scope=wave` for
+the wave scope, `-f specs='test/e2e/a.spec.ts test/e2e/b.spec.ts'` to choose the own specs). It never
+runs on `main`, a tag or pull requests: the first step of `checks` refuses any other ref. One run per
+ref: a new push, or a new dispatch, on the same ref cancels the run in progress there — so the phase
+branch is not pushed while its `wave` run is in progress (that push cancels it).
+
+**The jobs.** `checks` (typecheck, lint, format:check) comes first and every other job needs it;
+then, in parallel:
+
+| Job | Scope | What it runs | Limit |
+|-----|-------|--------------|-------|
+| `coverage` | both | `npm run test:coverage` (the 80 % thresholds of `vitest.config.ts`), Python 3.12 for the governance suites; artifact `coverage-totals` (`coverage-totals.json`, rebuilt from the json-summary by `scripts/coverage-totals.mjs --source gates`, no path) | 30 min |
+| `contract` | both | `npm run test:contract` | 15 min |
+| `smoke` | both | `npm run test:smoke` | 20 min |
+| `publish-smoke` | both | `npm run test:publish-smoke` (packs on the runner) | 20 min |
+| `e2e-chromium` | `task` | `npm run test:e2e:chromium`, in `E2E_SHARDS` shards (2) | 45 min |
+| `own-specs` | `task` | the task's own specs on Firefox and on WebKit (one job each) | 45 min |
+| `e2e-wave` | `wave` | `npm run test:e2e` per engine and shard (3 × 2 jobs) — replaces `e2e-chromium` and `own-specs`, which it contains | 45 min |
+
+Run time, measured on 2026-11-08 at commit `33ac2124` (task-071 AC-8; Playwright's default 2
+workers on the runner's 4 vCPU): the `task` scope (run `42514947278`) **15.5 min** wall — `checks`
+1.4 min, then `coverage` 14.0 min (4118 tests), `e2e-chromium` 8.0 and 12.1 min (162 and 161 tests),
+`contract` 2.7, `smoke` 1.1, `publish-smoke` 1.1, `own-specs` 1.0 min each with no spec; the `wave`
+scope (run `42516344841`) **14.8 min** wall — `coverage` 13.6 min and the six `e2e-wave` jobs 7.1 to
+13.0 min (Chromium 162 + 161, Firefox 156 + 156, WebKit 156 + 156 tests: the 947 of the local wave
+gate, which took 49.7 min on this machine). Shard 2 runs about 1.3–1.9× longer than shard 1
+(Chromium 1.56×, Firefox 1.82×, WebKit 1.34× in the wave run); the slowest job stays under a third
+of its 45-minute limit, so the two shards are kept (D71-3).
+
+**The own specs.** `scripts/e2e-own-specs.mjs` (`test/scripts/e2e-own-specs.test.ts`) picks them: the
+`specs` input when given, else the spec files under `test/e2e/` the branch adds, changes or renames
+against its merge-base with the phase branch (`PHASE_BRANCH` in the workflow's `env`, the current
+release's `design/dev-loop_v…`; changed when the next one is created). None — on the phase branch
+itself, or a task with no spec of its own — the job passes with the line `no own e2e spec: nothing
+to run on <engine>`; listed specs that select no test on an engine (`performance.spec.ts`, whose
+`@perf` tests run on Chromium only) pass there too with the line `no test of the own specs runs on
+<engine>: nothing to run`, counted first from `playwright test --list`, captured in a variable (bug-038): a list that fails —
+a spec that does not load — fails the step, and the run itself still fails on "No tests found",
+so a list it cannot read is run and fails, never passes. Every name must be a plain spec path under `test/e2e/` naming an existing file,
+or the job fails with the name escaped. A task that changes only the e2e support
+(`test/e2e/support/`) or `playwright.config.ts` runs no spec on Firefox and WebKit before the wave
+gate: the script names those files in a `notice:` line; run the affected specs by hand with the
+`specs` input when it matters.
+
+**Artifacts.** A Playwright job that fails uploads its HTML report (`--reporter=github,html`, one per
+job: `playwright-report-<engine>-<shard>`, `playwright-report-chromium-<shard>`,
+`playwright-report-own-<engine>`), kept 14 days; it holds the runner's own paths (stack traces, file
+locations), never this machine's. The coverage job uploads only `coverage-totals` — never
+`coverage-final.json`, `clover.xml`, `lcov` or the json-summary, which hold a path per file.
+
+**Following a run** (agents and the coordinator): `gh run list --workflow gates.yml --branch <branch>`,
+`gh run watch <id>`, `gh run view <id> --log-failed` for the failed steps, `gh run download <id>` for
+the artifacts (check them for paths of this machine before quoting them). A gate's evidence in a
+task's Execution Notes is the run id, its commit and its result.
+
+**What stays local** (dl-016 item 2): `typecheck`, `lint`, `format:check`, `docs:api` and targeted
+`npx vitest run <files>` before every push; the suites that touch git under the strict-identity
+recipe (*Fixtures* › *Git identity*, dl-011) and the public-text check
+(`npx vitest run test/docs/public-text.test.ts`) before the push; `test:timing`, alone through the
+machine-free slot, at the wave gate and at `pre-release-checks` — a hosted runner's timings are not
+this machine's (dl-009). Where `gates.yml` does not exist on a branch, its heavy gates run locally
+through the slot, one at a time.
+
+**The wave gate** (dl-016 item 4): the `wave` scope by `workflow_dispatch` on the phase branch's tip,
+before its merge into `main`; the merge is then checked to change no file against that tip
+(`git diff <tip> <merge>` empty), `test:timing` runs locally, and dl-011's dispatch of `publish.yml`
+on `main` follows the push of `main`.
 
 ## Timing suite
 
@@ -551,7 +664,32 @@ whose title holds U+202E and U+200B, submitted by Jordan and rejected by Morgan 
 names holding U+202E (their emails the members'), the reason a 10 000-character line naming the
 project and the home folders, then a plain edit commit whose subject and `Reason:` line also hold
 ESC, BEL and U+2028 (WingFoil 0.3.1 refuses those in a `--reason`) — feeds the commit-text and
-sweep suites. Fixture content
+sweep suites. The variant *the kanban fixture with hostile repository texts* (task-072, bug-035) —
+`addHostileRepositoryText(fixture)` on a copy: U+202E and ESC (`hostileMark`, served as
+`escapedMark`) in the DNA's project, modules, stacks, a role description, the agent's name and a
+`paths` value, in Alex's name and email (and his git `user.email`), in a custom directive's name
+and title, in a workflow's description, in the `origin` URL (never fetched) and in a state written
+by hand on a new task and set back — feeds the repository-text and sweep suites; the sweep also
+checks that every GET route the launcher registers is swept and that every display field is
+reached by the fixture (*route coverage*, *per-field reach*). The held-gate Given steps (task-069, S-24.5, S-24.6) — on a copy of the custom
+fixture, CLI ≥ 0.3, every move a verb run as a member (W-34): `submitToReleasing(fixture)`
+(`minor-v0.1` submitted by Alex to `releasing`), `addReleaseLine(fixture)` (`rl-v1`, `version: v1`,
+added and submitted by Casey, approved into `active` by Morgan) and `releaseHeldRelease(fixture)`
+(`minor-v0.1` approved into `released` by Morgan); with `usePresetUiConfig` they feed the held-gate
+route, contract and e2e suites. The project-state Given steps (task-059, `harness/fixtures/progress.ts`;
+T-12.4, T-12.5, T-12.6, R-01.5, R-01.7, M-03.2, M-04.3) — on a copy of the custom fixture, CLI ≥ 0.3:
+`addSecondRelease(fixture)` (`minor-v0.1` released by the verbs above, `minor-v0.2`, `version: v0.2`,
+added by Casey and submitted twice to `in-development`), `draftRelease(fixture)` (`minor-v0.1`
+`planning → draft` by the harness's hand transition: no verb makes it, a commit outside the UI) and
+`setFrontmatterValue(fixture, id, field, value)` (a top-level field set or added and committed
+alone); with `usePresetUiConfig` they feed `server/http/progress-routes` and
+`server/http/traceability-routes` (task-074), the unit suites `server/project-state/` (an index
+built from the custom fixture's values, `support.ts`), `contracts/progress-api-schema` and
+`contracts/traceability-api-schema`, and the AC-7 timing tests of `performance.spec.ts` (`@perf`,
+with task-074's `/traceability` warm p95).
+The Given step of T-02.6 (task-061) — `addPendingTasks(fixture,
+count)` on a kanban copy: `count` tasks added and submitted by Jordan, dated after the fixture's own
+commits (`harness/pending-tasks.test.ts`). Fixture content
 made with the CLI (a variant, a `memory deprecate`) is built once in a `beforeAll` with
 `HEAVY_MS`, never in a test body: each body copies the result and does its own reads (bug-028).
 

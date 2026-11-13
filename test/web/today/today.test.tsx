@@ -146,8 +146,9 @@ it('lists Requires you in the API order with type, title, reason, state and one 
   expect(rows).toHaveLength(2);
   const first = rows[0]!;
   expect(within(first).getByText('task').className).toContain('type-tag');
+  // task-077: the title opens the side panel over Today.
   expect(within(first).getByRole('link', { name: 'Title of task-001-login' }).getAttribute('href')).toBe(
-    `/p/${PID}/e/task-001-login`,
+    `/p/${PID}/today?panel=task-001-login`,
   );
   expect(first.querySelector('.today-reason')?.textContent).toBe('pending for 3 days');
   expect(within(first).getByText('pending', { selector: '.state-pill' }).className).toContain('tone-human');
@@ -200,7 +201,8 @@ it('opens the element panel from the action, with no write (D36-3)', async () =>
   const button = await screen.findByRole('button', { name: 'Approve task-001-login' });
   button.focus();
   await user.keyboard('{Enter}');
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/e/task-001-login`));
+  await waitFor(() => expect(router.state.location.search).toEqual({ panel: 'task-001-login' }));
+  expect(router.state.location.pathname).toBe(`/p/${PID}/today`);
   // task-037 (G-04.3, D37-1): a gate opens with its reason focused.
   expect(router.state.location.state.gateFocus).toBe(true);
   expect(
@@ -219,7 +221,7 @@ it('asks no reason focus for an action that is not a gate (task-037, D37-1)', as
   stubApi(api({ [`${TODAY}?view=approver`]: { status: 200, body } }));
   const { router } = renderApp(`/p/${PID}/today`);
   await userEvent.click(await screen.findByRole('button', { name: 'Submit task-004-timeout' }));
-  await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/e/task-004-timeout`));
+  await waitFor(() => expect(router.state.location.search).toEqual({ panel: 'task-004-timeout' }));
   expect(router.state.location.state.gateFocus).toBe(false);
 });
 
@@ -238,8 +240,41 @@ it('lists Waiting on others with who must act (T-11.1, T-11.2, T-06.1, D36-6)', 
   ]);
   // The members are their own text (data for the catalogue check).
   expect(rows[4]!.querySelector('.today-members')?.textContent).toBe('Alex, Casey');
-  expect(within(rows[0]!).getByRole('link').getAttribute('href')).toBe(`/p/${PID}/e/task-002-reset`);
-  expect(within(waitingCard()).queryAllByRole('button')).toEqual([]);
+  expect(within(rows[0]!).getByRole('link').getAttribute('href')).toBe(`/p/${PID}/today?panel=task-002-reset`);
+  // A row is one link, with no button (the card's filters are buttons of its own, task-061).
+  for (const row of rows) expect(within(row).queryAllByRole('button')).toEqual([]);
+});
+
+it('task-069 — a held gate shows its hold in place of "Reserved to approver" (S-24.5, S-24.6)', async () => {
+  const held: TodayRow[] = [
+    {
+      ...waiting('rel-002-held', 'releasing', { kind: 'role', role: 'approver', members: ['Morgan'] }),
+      descriptor: descriptor('rel-002-held', {
+        status: 'releasing',
+        tone: 'human',
+        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+        approveHeld: { condition: 'never', reason: { code: 'held-by-config' } },
+      }),
+    },
+    {
+      ...waiting('rl-001-held', 'active', { kind: 'role', role: 'approver', members: ['Morgan'] }),
+      descriptor: descriptor('rl-001-held', {
+        status: 'active',
+        tone: 'human',
+        actor: { kind: 'role', role: 'approver', members: ['Morgan'] },
+        approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 2 } },
+      }),
+    },
+  ];
+  stubApi(api({ [`${TODAY}?view=approver`]: { status: 200, body: { ...MORGAN_TODAY, waitingOnOthers: held } } }));
+  renderApp(`/p/${PID}/today`);
+  await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
+  const rows = rowsOf(waitingCard());
+  expect(rows.map((r) => r.querySelector('.today-who')?.textContent)).toEqual([
+    'Approved outside the console (ui.yaml)',
+    'Waits for 2 referencing elements to be done',
+  ]);
+  expect(within(waitingCard()).queryByText(/Reserved to/)).toBeNull();
 });
 
 it('says that nothing requires the user, and hides an empty Waiting on others (D36-4)', async () => {
@@ -429,6 +464,7 @@ it('announces nothing when another project opens on Today (review F1)', async ()
 
 // task-043 AC-7 (bug-018): the panel opened from a Today action gives the focus back to that action
 // when it closes (the Memory list's opener handling, X-06.3, W3-23); `#main` when the action is gone.
+// Since task-077 the panel is the side panel over Today (`?panel=`): closed, the parameter is gone.
 describe('bug-018 — the focus back on the Today action', () => {
   const ELEMENT = `/api/p/${PID}/elements/task-001-login`;
   const notFound = { status: 404, body: { error: { code: 'not-found', message: 'x' } } };
@@ -441,10 +477,10 @@ describe('bug-018 — the focus back on the Today action', () => {
       const user = userEvent.setup();
       const { router } = renderApp(`/p/${PID}/today`);
       await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-      await screen.findByRole('dialog');
+      await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
       if (how === 'Close') await user.click(screen.getByRole('button', { name: 'Close' }));
       else await user.keyboard('{Escape}');
-      await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+      await waitFor(() => expect(router.state.location.search).toEqual({}));
       await waitFor(() =>
         expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Approve task-001-login' })),
       );
@@ -457,12 +493,12 @@ describe('bug-018 — the focus back on the Today action', () => {
     const user = userEvent.setup();
     const { router, queryClient } = renderApp(`/p/${PID}/today`);
     await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     const without: Today = { ...MORGAN_TODAY, requiresYou: MORGAN_TODAY.requiresYou!.slice(1) };
     fake[`${TODAY}?view=approver`] = { status: 200, body: without };
     await queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) });
     await user.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Approve task-001-login' })).toBeNull());
     await waitFor(() => expect(document.activeElement?.id).toBe('main'));
   });
@@ -476,9 +512,9 @@ describe('bug-018 — the focus back on the Today action', () => {
     const { router } = renderApp(`/p/${PID}/today`);
     await screen.findByRole('button', { name: 'Approve task-001-login' });
     await user.click(linkOf(requiresYou(), 'task-001-login'));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     await user.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
     await waitFor(() => expect(document.activeElement).toBe(linkOf(requiresYou(), 'task-001-login')));
   });
 
@@ -489,9 +525,9 @@ describe('bug-018 — the focus back on the Today action', () => {
     await screen.findByRole('button', { name: 'Approve task-001-login' });
     linkOf(waitingCard(), 'task-002-reset').focus();
     await user.keyboard('{Enter}');
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     await user.keyboard('{Escape}');
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
     await waitFor(() => expect(document.activeElement).toBe(linkOf(waitingCard(), 'task-002-reset')));
   });
 
@@ -504,9 +540,9 @@ describe('bug-018 — the focus back on the Today action', () => {
     await user.click(linkOf(requiresYou(), 'task-001-login'));
     await user.keyboard('{/Control}');
     await act(async () => router.navigate({ to: '/p/$pid/e/$eid', params: { pid: PID, eid: 'task-001-login' } }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     await user.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
     await screen.findByRole('button', { name: 'Approve task-001-login' });
     await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
     expect(document.activeElement?.id).toBe('main');
@@ -528,12 +564,12 @@ describe('bug-018 — the focus back on the Today action', () => {
     const user = userEvent.setup();
     const { router, queryClient } = renderApp(`/p/${PID}/today`);
     await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     holding = true;
     // Not awaited: the notification bell reads the same Today, held until the release.
     void queryClient.invalidateQueries({ queryKey: queryKeys.project(PID, 'today') });
     await user.click(screen.getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/today`));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
     // Before Today is read again, the user goes to another control.
     const other = await screen.findByRole('button', { name: 'Approve bug-001-crash' });
     other.focus();
@@ -564,7 +600,7 @@ describe('bug-018 — the focus back on the Today action', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/p/${PID}/today`);
     await user.click(await screen.findByRole('button', { name: 'Approve task-001-login' }));
-    await screen.findByRole('dialog');
+    await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
     // Another project's Today (the same element id there): its action does not take the focus.
     await act(async () => router.navigate({ to: '/p/$pid/today', params: { pid: PID_B } }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID_B}/today`));

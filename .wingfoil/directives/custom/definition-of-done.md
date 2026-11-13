@@ -9,12 +9,15 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.3 · **Date:** 2026-11-04 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.5 · **Date:** 2026-11-13 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
 governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
 `docs:api` — the adoption's review round 1, m2; 1.2: the gates of the former `dev-loop` procedure,
 one section per `backlog-item` phase, its file removed — task-049; 1.3: review round 1 of task-049:
-the `memory add --type tech-spec --title` form)
+the `memory add --type tech-spec --title` form; 1.4: the heavy gates on `.github/workflows/gates.yml`
+where it exists on the branch, the local checks, a run as a gate's evidence, the wave gate on the
+phase branch's tip — `governance-evolution-3-plan`, dl-016; 1.5: the wave scope's engine × shard
+jobs — `governance-evolution-5-plan`, dl-018)
 
 A Sprint Backlog item (a task, run through `backlog-item`: start · build · review · approve · done)
 is done only when every rule below holds; until then it is not part of the Increment. The phases'
@@ -76,8 +79,18 @@ With the tests green, on the task's branch:
   the launch and publish smokes when packaging, the launcher, the bin or the publish workflow
   change (`CLAUDE.md` *Checks before handing work back*).
 
-Heavy gates (Playwright, `test:coverage`, the smokes, `test:timing`) run through the machine-free
-slot, the load and the wait for the slot written in each log (dl-009 action 4).
+**Where the gates run** (dl-016). Where `.github/workflows/gates.yml` exists on the branch, the
+heavy gates — `test:coverage`, `test:contract`, `test:e2e:chromium`, the task's own specs on Firefox
+and WebKit, `test:smoke`, `test:publish-smoke` — run there, on the run a push of the branch starts
+(or a `workflow_dispatch` on a `task/*` or `design/*` ref); followed with `gh run watch <id>` and
+`gh run view <id> --log-failed`, its artifacts read with `gh run download <id>`; a gate's evidence
+is the run id, its commit and its result. Before the push: the suites that touch git green under
+the strict-identity recipe of `test/README.md` (dl-011), and the public-text check (`npx vitest run
+test/docs/public-text.test.ts`). Local, always: `typecheck`, `lint`, `format:check`, `docs:api`,
+targeted `npx vitest run <files>`. Where the workflow does not exist on the branch, the heavy gates
+(Playwright, `test:coverage`, the smokes) run through the machine-free slot, one at a time; there,
+and for `test:timing` everywhere, the load and the wait for the slot are written in each log
+(dl-009 action 4).
 
 ## review (reviewer)
 
@@ -102,9 +115,14 @@ The approver's `memory approve <task>` (`in-review → approved`). A reject (`me
   it back).
 - `memory submit <task>` (`approved → done`). The bugs it names move with it by their own verbs
   (`.wingfoil/memory.yaml`): `submit`, and the approver's `approve` along the bug's machine.
-- **The wave gate**, on `main` after the wave's merge: `npm run test:e2e` (Chromium, Firefox,
-  WebKit), `npm run test:smoke`, and `npm run test:timing` run alone through the machine-free slot
-  whatever the diff since its last run (dl-009 action 6).
+- **The wave gate.** Where `gates.yml` exists: its `wave` scope (the three-engine `test:e2e`, engine
+  × shard jobs (dl-016), with the task scope's gates) by `workflow_dispatch` on the phase branch's tip,
+  before the merge into `main`; the merge then checked to change no file against that tip (`git
+  diff <tip> <merge>` empty). Otherwise, on `main` after the wave's merge: `npm run test:e2e`
+  (Chromium, Firefox, WebKit) and `npm run test:smoke` through the machine-free slot. In both cases
+  `npm run test:timing` runs alone, locally, through the slot, whatever the diff since its last run
+  (dl-009 action 6); then the push of `main` with the approver's OK and dl-011's
+  `workflow_dispatch` of `publish.yml` on `main`.
 
 ## Documented
 

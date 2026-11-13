@@ -227,7 +227,11 @@ export class Snapshots {
       entry.watcher = (this.options.watchRepository ?? watchRepository)(
         { root, gitDir: layout.gitDir, commonDir: layout.commonDir, globalConfig: globalConfigFiles(env) },
         {
-          repo: debounced(check),
+          // Counted before the debounce: a read completing after an event is not kept (bug-034, D75-6).
+          repo: ((repoCheck) => () => {
+            snapshot.touched();
+            repoCheck();
+          })(debounced(check)),
           cli: debounced(() => {
             if (live()) snapshot.cliChanged();
           }),

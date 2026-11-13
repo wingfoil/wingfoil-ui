@@ -6,10 +6,12 @@
 import { cp, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import type { Locator, Page } from '@playwright/test';
+import type { Browser, Locator, Page } from '@playwright/test';
+import type { ElementList, Progress, Traceability } from '@wingfoil-ui/contracts';
+import { setFrontmatterValue, usePresetUiConfig } from '../harness/fixtures/index.js';
 import { buildLargeFixture, LARGE_ELEMENTS, type LargeFixture } from '../harness/fixtures/large.js';
 import { git } from '../harness/run.js';
-import { COLD_READ_MS } from './support/cold-read.js';
+import { COLD_READ_MS, REFRESH_BUDGET_MS } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
 import { expect, test as base } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
@@ -90,7 +92,7 @@ const VIEWS: View[] = [
     name: 'element panel',
     from: (pid) => `/p/${pid}/memory?type=task`,
     target: (page) => page.locator('.memory-row[data-eid="task-250-generated-task-151"]'),
-    ready: '.drawer .history-sha',
+    ready: '[data-element-view] .history-sha',
     reads: (pid) => `/api/p/${pid}/elements/task-250-generated-task-151/history`,
   },
   {
@@ -343,7 +345,7 @@ test.describe(`TT-PERF-02 — gate and submit latency ${PERF_TAG}`, () => {
       for (const [i, element] of elements.entries()) {
         if (i === 0) await openConsole(page, c, { path: `/p/${pid}/e/${element.id}` });
         else await page.goto(`${c.origin}/p/${pid}/e/${element.id}`, { timeout: COLD_READ_MS });
-        const button = page.locator('.drawer').getByRole('button', { name: series.button });
+        const button = page.locator('[data-element-view]').getByRole('button', { name: series.button });
         const ms = await timeWrite(page, button, element.id);
         if (i === 0) warmUp = ms;
         else times.push(ms);
@@ -358,4 +360,118 @@ test.describe(`TT-PERF-02 — gate and submit latency ${PERF_TAG}`, () => {
       if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(WRITE_BUDGET_MS);
     });
   }
+});
+
+// task-059 AC-7 (REQ-PERF-03, REQ-PERF-04; spec-012 §8, §11 *Timing*; K2) — the project-state reads
+// on a copy of the large fixture with the sw-life-cycle preset committed (its `requires` and its
+// `when-references-done` hold build the reference index on every state). Measured at the API, with
+// the page's session: the progress card, the Memory list's flags and the Traceability view (task-074)
+// are later tasks' screens. `@perf`: the budgets are asserted under `npm run test:timing` only (the
+// coordinator's run at the wave gate, task-059 Q7).
+test.describe(`TT-PERF-03, TT-PERF-04 — progress and missing references ${PERF_TAG}`, () => {
+  /** A copy of the large fixture with the preset, a console on it and a page with its session. */
+  async function presetConsole(
+    browser: Browser,
+    large: LargeFixture,
+    consoles: { start(o: { projects: LargeFixture[] }): Promise<RunningConsole> },
+    dir: string,
+  ) {
+    await cp(large.dir, dir, { recursive: true });
+    const copy = { ...large, dir };
+    await usePresetUiConfig(copy);
+    const c = await consoles.start({ projects: [copy] });
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await openConsole(page, c, { path: `/p/${c.pids[0]}/docs` });
+    const get = async <T = ElementList & Progress>(route: string): Promise<{ ms: number; body: T }> => {
+      const start = performance.now();
+      const res = await page.request.get(`${c.origin}/api/p/${c.pids[0]}${route}`, { timeout: COLD_READ_MS });
+      const body = (await res.json()) as T;
+      expect(res.status(), route).toBe(200);
+      return { ms: performance.now() - start, body };
+    };
+    return { copy, c, context, get };
+  }
+
+  test('AC-7 — /elements with requires and /progress answer within 1.0 s (p95, warm cache)', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const { context, get } = await presetConsole(browser, large, consoles, testInfo.outputPath('large-preset'));
+    try {
+      for (const route of ['/elements', '/progress']) {
+        const first = await get(route);
+        if (route === '/elements') expect(first.body.missingReferences?.shown).toBe(true);
+        const times: number[] = [];
+        for (let i = 0; i < PERF_RUNS; i++) times.push((await get(route)).ms);
+        reportRuns(route, first.ms, times, `TT-PERF-04 ${route} with the preset (${times.length} runs, warm cache)`);
+        if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+
+  // task-074 AC-5 (REQ-PERF-04 since TQ-6 (a), D74-10): the Traceability view's read, both scopes.
+  test('AC-5 (task-074) — /traceability answers within 1.0 s (p95, warm cache), both scopes', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const { context, get } = await presetConsole(browser, large, consoles, testInfo.outputPath('large-trace'));
+    try {
+      for (const route of ['/traceability', '/traceability?scope=project']) {
+        const first = await get<Traceability>(route);
+        expect(first.body.figures.coverage.state).toBe('shown');
+        const times: number[] = [];
+        for (let i = 0; i < PERF_RUNS; i++) times.push((await get<Traceability>(route)).ms);
+        reportRuns(route, first.ms, times, `TT-PERF-04 ${route} with the preset (${times.length} runs, warm cache)`);
+        if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+
+  test('AC-7 — a commit outside the UI reaches /progress and the /elements flags within 5 s', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const { copy, context, get } = await presetConsole(browser, large, consoles, testInfo.outputPath('large-commit'));
+    try {
+      const flagged = (body: ElementList) =>
+        body.elements.find((e) => e.id === 'task-004-themes')?.missingCategories !== undefined;
+      const count = (body: Progress) =>
+        body.figures.completion.state === 'shown' ? body.figures.completion.referencesCount : 0;
+      expect(flagged((await get<ElementList>('/elements')).body)).toBe(true);
+      const before = count((await get<Progress>('/progress')).body);
+      const start = performance.now();
+      await setFrontmatterValue(copy, 'task-004-themes', 'ref', 'US-X-08');
+      let elementsAt: number | undefined;
+      let progressAt: number | undefined;
+      while ((elementsAt === undefined || progressAt === undefined) && performance.now() - start < COLD_READ_MS) {
+        if (elementsAt === undefined && !flagged((await get<ElementList>('/elements')).body))
+          elementsAt = performance.now() - start;
+        if (progressAt === undefined && count((await get<Progress>('/progress')).body) > before)
+          progressAt = performance.now() - start;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      console.log(
+        `TT-PERF-03 /elements flag ${Math.round(elementsAt ?? -1)} ms, /progress ${Math.round(progressAt ?? -1)} ms`,
+      );
+      expect(elementsAt).toBeDefined();
+      expect(progressAt).toBeDefined();
+      if (STRICT_PERF) {
+        expect(elementsAt!).toBeLessThanOrEqual(REFRESH_BUDGET_MS);
+        expect(progressAt!).toBeLessThanOrEqual(REFRESH_BUDGET_MS);
+      }
+    } finally {
+      await context.close();
+    }
+  });
 });

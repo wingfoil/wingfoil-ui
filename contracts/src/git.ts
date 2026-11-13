@@ -37,7 +37,10 @@ export type GitRefusalCode =
   | 'not-in-team'
   | GitTransportRefusalCode
   | 'git-refused'
-  | 'internal';
+  | 'internal'
+  /** A body too large or of a content type without a parser, before the handler (task-063 D63-10). */
+  | 'payload-too-large'
+  | 'unsupported-media-type';
 
 /** The last failed fetch: git's message (local paths redacted) and when. */
 export interface SyncError {

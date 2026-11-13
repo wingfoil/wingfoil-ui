@@ -231,7 +231,7 @@ it('G-06.2 — an outcome posts the decision; a toast says the result; the focus
   ]);
   // The project's queries are read again (the panel shows the new state).
   await waitFor(() => expect(fetch.mock.calls.filter((c) => String(c[0]) === BASE).length).toBeGreaterThan(reads));
-  expect(screen.getByRole('dialog').contains(document.activeElement)).toBe(true);
+  expect(document.querySelector('[data-element-view]')?.contains(document.activeElement)).toBe(true);
 });
 
 it('G-05.2 — a reject posts to /reject with the reason', async () => {
@@ -296,7 +296,7 @@ it('G-04.2 — Cancel closes the panel and sends nothing', async () => {
   renderApp(`/p/${PID}/e/${EID}`);
   const f = await footer();
   await userEvent.click(within(f).getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'A gated element' })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'A gated element' })).toBeNull());
   expect(posts(fetch)).toEqual([]);
 });
 
@@ -343,10 +343,74 @@ it('S-24.4 — a gate that is also a waiting state: only the reject, empty reaso
   expect(within(f).getByText('Waiting for the workflow engine to advance')).toBeTruthy();
 });
 
+const HELD: ActionDescriptor = {
+  ...GATE,
+  verbs: [GATE.verbs[1]!],
+  approveHeld: { condition: 'never', reason: { code: 'held-by-config' } },
+};
+
+it('S-24.5 — a held gate for an approver: the hold line, an empty required reason, each reject and Cancel, no Approve', async () => {
+  stub(HELD);
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  expect(within(f).getByText('Approved outside the console (ui.yaml)')).toBeTruthy();
+  expect(
+    within(f)
+      .getAllByRole('button')
+      .map((b) => b.textContent),
+  ).toEqual(['Reject → s1', 'Cancel']);
+  expect((reasonField(f) as HTMLTextAreaElement).value).toBe('');
+  expect(outcome(f, 'Reject → s1').getAttribute('aria-disabled')).toBe('true');
+  expect(within(f).queryByRole('button', { name: /Approve/ })).toBeNull();
+});
+
+it('task-069 review F5 — the hold line describes each reject, with the blank-reason hint, then alone', async () => {
+  stub(HELD);
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const line = within(f).getByText('Approved outside the console (ui.yaml)');
+  const reject = outcome(f, 'Reject → s1');
+  expect(reject.getAttribute('aria-describedby')?.split(' ')).toEqual([
+    line.id,
+    within(f).getByText('A reason is required').id,
+  ]);
+  fireEvent.change(reasonField(f), { target: { value: 'Not yet' } });
+  expect(reject.getAttribute('aria-describedby')).toBe(line.id);
+});
+
+it('S-24.6 — a held gate for a member without the role: the hold line only, no outcome, no "Reserved to"', async () => {
+  stub(
+    {
+      ...HELD,
+      approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 1 } },
+    },
+    { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
+  expect(await within(dialog).findByText('Waits for 1 referencing element to be done')).toBeTruthy();
+  expect(within(dialog).queryByText(/Reserved to/)).toBeNull();
+  expect(within(dialog).queryByRole('button', { name: /→/ })).toBeNull();
+  expect(within(dialog).queryByRole('textbox')).toBeNull();
+});
+
+it('task-069 — the plural of the referencing elements', async () => {
+  stub(
+    {
+      ...HELD,
+      approveHeld: { condition: 'when-references-done', reason: { code: 'held-until-references-done', count: 3 } },
+    },
+    { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
+  );
+  renderApp(`/p/${PID}/e/${EID}`);
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
+  expect(await within(dialog).findByText('Waits for 3 referencing elements to be done')).toBeTruthy();
+});
+
 it('G-09.1 — a member without the gate role sees who can act and no outcome', async () => {
   stub(GATE, { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   const line = await within(dialog).findByText(
     (_, el) => el?.tagName === 'P' && el.textContent === `Reserved to ${ROLE} — Mo, Al can act`,
   );
@@ -361,7 +425,7 @@ it('D37-6 — a gate-waiting state for a member without the role: reserved witho
     { kind: 'member', email: 'sa@x.test', name: 'Sa', roles: ['r-review'] },
   );
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText(`Reserved to ${ROLE}`)).toBeTruthy();
   expect(within(dialog).getByText('Waiting for the workflow engine to advance')).toBeTruthy();
 });
@@ -369,7 +433,7 @@ it('D37-6 — a gate-waiting state for a member without the role: reserved witho
 it('S-13.2 — not in the team: the read-only line with How to join, no outcome', async () => {
   stub(GATE, { kind: 'not-in-team', email: 'zed@x.test' });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   const line = await within(dialog).findByText('Read-only: zed@x.test is not in the team —');
   const join = within(line.closest('.element-footer') as HTMLElement).getByRole('button', { name: 'How to join' });
   expect(within(dialog).queryByRole('button', { name: /→/ })).toBeNull();
@@ -380,7 +444,7 @@ it('S-13.2 — not in the team: the read-only line with How to join, no outcome'
 it('S-15.2 — an ambiguous identity: the read-only line pointing to the notice, no outcome', async () => {
   stub(GATE, { kind: 'ambiguous', email: 'j@x.test', members: ['Jo', 'Sa'] });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Read-only: see the notice above the view')).toBeTruthy();
   expect(within(dialog).queryByRole('button', { name: /→/ })).toBeNull();
   expect(within(dialog).queryByRole('button', { name: 'How to join' })).toBeNull();
@@ -389,11 +453,13 @@ it('S-15.2 — an ambiguous identity: the read-only line pointing to the notice,
 it('S-24.2 — a waiting state: the engine note, no button', async () => {
   stub({ ...GATE, kind: 'waiting', tone: 'neutral', verbs: [], actor: { kind: 'engine' } });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Waiting for the workflow engine (state: s2)')).toBeTruthy();
   expect(
     within(dialog)
       .getAllByRole('button')
+      // *Open document* of the summary (task-078) is no footer action.
+      .filter((b) => !b.classList.contains('element-document-open'))
       .map((b) => b.textContent),
   ).toEqual(['Close']);
 });
@@ -401,13 +467,15 @@ it('S-24.2 — a waiting state: the engine note, no button', async () => {
 it('S-24.1 — a final state: the chip says final, the note says no action, no button', async () => {
   stub({ ...GATE, status: 's3', kind: 'last', tone: 'done', verbs: [], actor: { kind: 'none' } });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
   const current = within(dialog).getByRole('list', { name: 'State machine' }).querySelector('[aria-current="step"]');
   expect(current?.querySelector('.visually-hidden')?.textContent).toBe('s3, final state');
   expect(
     within(dialog)
       .getAllByRole('button')
+      // *Open document* of the summary (task-078) is no footer action.
+      .filter((b) => !b.classList.contains('element-document-open'))
       .map((b) => b.textContent),
   ).toEqual(['Close']);
 });
@@ -420,7 +488,7 @@ it('shows no footer for a submit-only element (task-038) nor without a descripto
     actor: { kind: 'none' },
   });
   renderApp(`/p/${PID}/e/${EID}`);
-  const dialog = await screen.findByRole('dialog', { name: 'A gated element' });
+  const dialog = await screen.findByRole('region', { name: 'A gated element' });
   await within(dialog).findByText('Summary.');
   expect(within(dialog).queryByRole('region', { name: 'Decision' })).toBeNull();
   expect(within(dialog).queryByText(/Final state|Waiting for the workflow engine/)).toBeNull();
@@ -448,7 +516,7 @@ it('review F2 — a refusal stays shown when the refetched element has no gate f
   );
   renderApp(`/p/${PID}/e/${EID}`);
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
-  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  const dialog = screen.getByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
   expect(assertiveToasts().textContent).toContain('This element changed since you opened it');
 });
@@ -463,7 +531,7 @@ it('review F4, F5 — after a success the outcomes stay disabled until the state
   for (const name of ['Approve → s3', 'Reject → s1']) {
     expect(outcome(await footer(), name).getAttribute('aria-disabled')).toBe('true');
   }
-  expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'A gated element' }));
+  expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1, name: 'A gated element' }));
 });
 
 it('review F9 — the blank reason field is described by the hint', async () => {
@@ -503,7 +571,7 @@ it('review F12 — outcomes are enabled again when the element comes back to the
   );
   const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
-  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  const dialog = screen.getByRole('region', { name: 'A gated element' });
   expect(await within(dialog).findByText('Final state: no action is possible')).toBeTruthy();
   // A later change (e.g. a hand edit, a live refresh) brings the element back to the gate.
   stub(GATE);
@@ -530,11 +598,11 @@ it('D38-10 — the panel shows no result of its own: the refusal is a toast outs
   renderApp(`/p/${PID}/e/${EID}`);
   await userEvent.click(outcome(await footer(), 'Approve → s3'));
   await waitFor(() => expect(assertiveToasts().textContent).toContain('This element changed since you opened it'));
-  const dialog = screen.getByRole('dialog', { name: 'A gated element' });
+  const dialog = screen.getByRole('region', { name: 'A gated element' });
   expect(within(dialog).queryByRole('alert')).toBeNull();
   expect(document.querySelector('.element-footer-alert')).toBeNull();
   expect(within(dialog).getByRole('status').textContent).toBe('');
-  expect(document.querySelectorAll('.drawer .element-footer')).toHaveLength(1);
+  expect(document.querySelectorAll('[data-element-view] .element-footer')).toHaveLength(1);
 });
 
 // task-040 — G-12.2 (D40-2): the Update link of the copy-behind reason runs the update of the project
@@ -604,7 +672,7 @@ it('R3 — a focus the user moved out of the footer meanwhile is left alone', as
   const f = await footer();
   await userEvent.click(updateLink(f));
   await waitFor(() => expect(updateLink(f).getAttribute('aria-disabled')).toBeNull());
-  const close = within(screen.getByRole('dialog', { name: 'A gated element' })).getAllByRole('button', {
+  const close = within(screen.getByRole('region', { name: 'A gated element' })).getAllByRole('button', {
     name: /close/i,
   })[0]!;
   close.focus();
@@ -626,4 +694,325 @@ it('R3 — with no action left to take, the focus goes to the panel heading', as
     await queryClient.invalidateQueries({ queryKey: ['p', PID] });
   });
   await waitFor(() => expect(document.activeElement?.classList.contains('drawer-title')).toBe(true));
+});
+
+// task-073 (spec-003 §6 rule 5; D73-5, D73-7): rule 5 disables the approve only — its reason
+// describes Approve, never a reject, which stays enabled.
+it('state-limit — an approve disabled by the limit: its reason describes Approve only, the rejects stay enabled', async () => {
+  stub({
+    ...GATE,
+    verbs: [
+      { verb: 'approve', to: 's3', role: ROLE, enabled: false, reason: { code: 'state-limit', state: 's3', limit: 2 } },
+      { verb: 'reject', to: 's1', role: ROLE, enabled: true },
+    ],
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const approve = outcome(f, 'Approve → s3');
+  expect(approve.getAttribute('aria-disabled')).toBe('true');
+  const describedBy = (b: HTMLElement) =>
+    (b.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((id) => document.getElementById(id)?.textContent);
+  expect(describedBy(approve)).toEqual(['Blocked: only 2 s3 at a time']);
+  const reject = outcome(f, 'Reject → s1');
+  expect(reject.getAttribute('aria-disabled')).toBeNull();
+  expect(describedBy(reject)).toEqual([]);
+});
+
+// task-073 Q3 (b), option (A) (the approver, 2026-11-11): one blocked line per distinct reason, each
+// disabled outcome described by its own reason's line; one shared reason keeps the single v0.2 line
+// (D37-8 above).
+it('state-limit — outcomes disabled by different reasons: one line per reason, each outcome described by its own', async () => {
+  stub({
+    ...GATE,
+    verbs: [
+      { verb: 'approve', to: 's3', role: ROLE, enabled: false, reason: { code: 'state-limit', state: 's3', limit: 1 } },
+      { verb: 'reject', to: 's1', role: ROLE, enabled: false, reason: { code: 'copy-diverged' } },
+      { verb: 'reject', to: 's0', role: ROLE, enabled: false, reason: { code: 'copy-diverged' } },
+    ],
+  });
+  renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const lines = [...f.querySelectorAll('.gate-blocked')].map((p) => p.textContent);
+  expect(lines).toEqual(['Blocked: only 1 s3 at a time', 'Blocked: your copy has diverged from the remote']);
+  const describedBy = (name: string) =>
+    (outcome(f, name).getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .filter(Boolean)
+      .map((id) => document.getElementById(id)?.textContent);
+  expect(describedBy('Approve → s3')).toEqual(['Blocked: only 1 s3 at a time']);
+  expect(describedBy('Reject → s1')).toEqual(['Blocked: your copy has diverged from the remote']);
+  expect(describedBy('Reject → s0')).toEqual(['Blocked: your copy has diverged from the remote']);
+});
+
+// task-077 (X-06.2 in the side panel): a decision taken in the side panel over Today keeps the
+// focus inside the panel once the refetched element is in its final state (D37-9).
+it('task-077 — in the side panel, the focus stays inside it after a decision reaches a final state', async () => {
+  stub(
+    GATE,
+    MO,
+    { [`${BASE}/approve`]: { status: 200, body: OK } },
+    {
+      ...GATE,
+      status: 's3',
+      kind: 'last',
+      tone: 'done',
+      verbs: [],
+      actor: { kind: 'none' },
+    },
+  );
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/today?panel=${EID}`);
+  const panel = await screen.findByRole('dialog', { name: 'A gated element' });
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+  expect(await within(panel).findByText('Final state: no action is possible')).toBeTruthy();
+  await act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+  expect(panel.contains(document.activeElement)).toBe(true);
+});
+
+// bug-046 (absorbed by task-077): the server publishes `repo` before it answers a decision, so the
+// refetch can show the final state while the POST is still pending; the focused outcome is removed
+// then, and the focus must go to the element's heading at once — not rest on `<body>` until the reply.
+const FINAL_STATE: ActionDescriptor = {
+  ...GATE,
+  status: 's3',
+  kind: 'last',
+  tone: 'done',
+  verbs: [],
+  actor: { kind: 'none' },
+};
+
+/** Stub the API with the decision's POST held until `release()`; the refetch after it reads `after`. */
+function holdPost(posts: FakeApi, after: ActionDescriptor, before: ActionDescriptor = GATE): () => void {
+  const inner = stub(before, MO, posts, after);
+  let release: () => void = () => {};
+  const held = new Promise<void>((r) => (release = r));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const answer = (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+      if (init?.method === 'POST') await held;
+      return answer;
+    }),
+  );
+  return () => release();
+}
+
+const nextFrame = () => act(async () => new Promise((r) => requestAnimationFrame(() => r(undefined))));
+
+for (const where of ['page', 'side panel'] as const) {
+  for (const verb of ['approve', 'reject'] as const) {
+    it(`bug-046 — on the ${where}, after ${verb === 'approve' ? 'an approve' : 'a reject'}, the heading takes the focus when the refetch removes the focused outcome before the reply`, async () => {
+      const release = holdPost(
+        { [`${BASE}/${verb}`]: { status: 200, body: OK } },
+        verb === 'approve' ? FINAL_STATE : { ...FINAL_STATE, status: 's1' },
+      );
+      const user = userEvent.setup();
+      const { queryClient } = renderApp(where === 'page' ? `/p/${PID}/e/${EID}` : `/p/${PID}/today?panel=${EID}`);
+      const f = await footer();
+      if (verb === 'reject') {
+        reasonField(f).focus();
+        await user.clear(reasonField(f));
+        await user.type(reasonField(f), 'Not yet');
+      }
+      outcome(f, verb === 'approve' ? 'Approve → s3' : 'Reject → s1').focus();
+      await user.keyboard('{Enter}');
+      // The `repo` event's refetch, before the reply.
+      await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+      expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+      await nextFrame();
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+      release();
+      expect(
+        await within(politeToasts()).findByText(`${verb === 'approve' ? 'Approved' : 'Rejected'} ${EID}`),
+      ).toBeTruthy();
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'A gated element' }));
+    });
+  }
+}
+
+// task-077 security review round 2, R2-1: the footer takes the focus back only from a control it
+// removed — never from a focus the user moved away or let go of.
+it('bug-046 — a focus the user let go of (blurred to nothing) is not taken back when the refetch removes the outcome', async () => {
+  const release = holdPost({ [`${BASE}/approve`]: { status: 200, body: OK } }, FINAL_STATE);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  act(() => (document.activeElement as HTMLElement).blur());
+  await act(async () => Promise.resolve());
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+  await nextFrame();
+  expect(document.activeElement).toBe(document.body);
+  release();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+});
+
+it('bug-046 — a focus the user moved to Close before the refetch stays on Close', async () => {
+  const release = holdPost({ [`${BASE}/approve`]: { status: 200, body: OK } }, FINAL_STATE);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  outcome(f, 'Approve → s3').focus();
+  await user.keyboard('{Enter}');
+  const close = screen.getByRole('button', { name: 'Close' });
+  act(() => close.focus());
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(await screen.findByText('Final state: no action is possible')).toBeTruthy();
+  await nextFrame();
+  expect(document.activeElement).toBe(close);
+  release();
+  expect(await within(politeToasts()).findByText(`Approved ${EID}`)).toBeTruthy();
+});
+
+// R2-2: G-12.2 with the update's reply after the `repo` refetch: the link is gone before the reply,
+// and the focus still ends on the reason field (D40-2), not on the heading.
+it('G-12.2 — the focus goes to the reason field also when the refetch removes the Update link before the reply (R2-2)', async () => {
+  const behind: ActionDescriptor = {
+    ...GATE,
+    verbs: GATE.verbs.map((v) => ({ ...v, enabled: false, reason: { code: 'copy-behind', commits: 1 } as const })),
+  };
+  const release = holdPost(
+    { [`/api/p/${PID}/git/update`]: { status: 200, body: { repository: header(MO, ROLE).repository } } },
+    GATE,
+    behind,
+  );
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = within(f.querySelector('.gate-blocked') as HTMLElement).getByRole('button', { name: 'Update' });
+  link.focus();
+  await user.keyboard('{Enter}');
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  release();
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
+});
+
+// task-077 review round 3: the *Update* focus request (D40-2) lives for one update only.
+/** The API with a descriptor that can change and the POSTs held while `hold` is set. */
+function liveApi(posts: FakeApi): { set(d: ActionDescriptor): void; hold(): () => void } {
+  let inner = stub(GATE, MO, posts);
+  let held: Promise<void> | undefined;
+  const wrapper = vi.fn(async (url: string, init?: RequestInit) => {
+    if (init?.method === 'POST' && held) await held;
+    return (inner as unknown as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+  });
+  vi.stubGlobal('fetch', wrapper);
+  return {
+    set(d) {
+      inner = stub(d, MO, posts);
+      vi.stubGlobal('fetch', wrapper);
+    },
+    hold() {
+      let release: () => void = () => {};
+      held = new Promise<void>((r) => (release = r));
+      return () => {
+        held = undefined;
+        release();
+      };
+    },
+  };
+}
+const heading = () => screen.getByRole('heading', { name: 'A gated element' });
+const UPDATED = { [UPDATE]: { status: 200, body: { repository: header(MO, ROLE).repository } } };
+
+it('R3-1 — a refused update drops the request: when the copy becomes current later, the focus is not moved to the reason', async () => {
+  const api = liveApi({
+    [UPDATE]: {
+      status: 409,
+      body: { error: { code: 'local-changes-in-the-way', message: 'x', detail: { files: ['a.md'] } } },
+    },
+  });
+  api.set(BEHIND);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await user.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  // The copy becomes current by other means (a fetch and update from the sidebar, a terminal).
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(heading());
+});
+
+it('R3-2 (S2) — a heading the user focused on purpose during an update keeps the focus after it', async () => {
+  const api = liveApi(UPDATED);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  outcome(await footer(), 'Approve → s3').focus();
+  // A decision taken outside: the fallback moves the focus to the heading.
+  api.set(FINAL_STATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(document.activeElement).toBe(heading()));
+  // Back at the gate, behind the remote: Update, its reply held.
+  api.set(BEHIND);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  const f = await footer();
+  const release = api.hold();
+  updateLink(f).focus();
+  await user.keyboard('{Enter}');
+  act(() => heading().focus());
+  release();
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(heading());
+});
+
+it('R3-2 (S3) — the control: the heading the fallback focused during the update gives the focus on to the reason', async () => {
+  const api = liveApi(UPDATED);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  outcome(await footer(), 'Approve → s3').focus();
+  api.set(FINAL_STATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(document.activeElement).toBe(heading()));
+  api.set(BEHIND);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  const f = await footer();
+  const release = api.hold();
+  updateLink(f).focus();
+  await user.keyboard('{Enter}');
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  release();
+  await waitFor(() => expect(document.activeElement).toBe(reasonField(f)));
+});
+
+it('R3-3 — an update the copy stays behind after spends the request: a later catch-up leaves the focus on Cancel', async () => {
+  const api = liveApi(UPDATED);
+  api.set(BEHIND);
+  const user = userEvent.setup();
+  const { queryClient } = renderApp(`/p/${PID}/e/${EID}`);
+  const f = await footer();
+  const link = updateLink(f);
+  link.focus();
+  await user.keyboard('{Enter}');
+  await waitFor(() => expect(link.getAttribute('aria-disabled')).toBeNull());
+  // The update's refresh: still behind (another commit arrived meanwhile), the link stays.
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  expect(updateLink(f)).toBeTruthy();
+  const cancel = within(f).getByRole('button', { name: 'Cancel' });
+  act(() => cancel.focus());
+  // Much later the copy catches up.
+  api.set(GATE);
+  await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+  await waitFor(() => expect(outcome(f, 'Approve → s3').getAttribute('aria-disabled')).toBeNull());
+  await nextFrame();
+  expect(document.activeElement).toBe(within(f).getByRole('button', { name: 'Cancel' }));
 });

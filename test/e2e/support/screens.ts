@@ -150,8 +150,10 @@ export const SCREENS: readonly Screen[] = [
     open: (page, c) => project(page, c, `/p/${c.pids[0]}/memory?type=task`, (p) => p.locator('.memory-row')),
   },
   {
+    // The element page since task-062 (the address opens it in the main region; the name is kept).
     name: 'element panel',
-    open: (page, c) => project(page, c, `/p/${c.pids[0]}/e/task-001-login-form`, (p) => p.locator('.drawer .type-tag')),
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/e/task-001-login-form`, (p) => p.locator('[data-element-view] .type-tag')),
   },
   {
     name: 'role view selector open',
@@ -218,21 +220,26 @@ export const SCREENS: readonly Screen[] = [
     // task-037 (D37-12): the gate footer with its reason cleared — outcomes disabled, the hint shown.
     name: 'element panel — gate footer, reason empty',
     open: async (page, c) => {
-      await project(page, c, `/p/${c.pids[0]}/e/task-001-login-form`, (p) => p.locator('.drawer .gate-reason-field'));
-      await page.locator('.drawer .gate-reason-field').fill('');
-      await expect(page.locator('.drawer .gate-hint')).toBeVisible();
+      await project(page, c, `/p/${c.pids[0]}/e/task-001-login-form`, (p) =>
+        p.locator('[data-element-view] .gate-reason-field'),
+      );
+      await page.locator('[data-element-view] .gate-reason-field').fill('');
+      await expect(page.locator('[data-element-view] .gate-hint')).toBeVisible();
     },
   },
   {
     // task-037: a state the workflow engine leaves (custom `release` `planning`, S-24.2, RP-13).
     name: 'element panel — waiting for the workflow engine',
-    open: (page, c) => project(page, c, `/p/${c.pids[1]}/e/minor-v0.1`, (p) => p.locator('.drawer .element-footer')),
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[1]}/e/minor-v0.1`, (p) => p.locator('[data-element-view] .element-footer')),
   },
   {
     // task-037: Riley, not in the team — the read-only line with How to join (S-13.2).
     name: 'element panel — read-only, not in team',
     open: (page, c) =>
-      project(page, c, `/p/${c.pids[2]}/e/task-001-login-form`, (p) => p.locator('.drawer .element-footer button')),
+      project(page, c, `/p/${c.pids[2]}/e/task-001-login-form`, (p) =>
+        p.locator('[data-element-view] .element-footer button'),
+      ),
   },
   {
     // task-042 (D42-8): the notification bell's panel as Morgan — To unblock and Updates.
@@ -249,7 +256,9 @@ export const SCREENS: readonly Screen[] = [
     // task-038 (D38-13): the single-action footer, Submit enabled (a draft of the kanban fixture).
     name: 'element panel — submit footer',
     open: (page, c) =>
-      project(page, c, `/p/${c.pids[0]}/e/task-004-session-timeout`, (p) => p.locator('.drawer .submit-footer')),
+      project(page, c, `/p/${c.pids[0]}/e/task-004-session-timeout`, (p) =>
+        p.locator('[data-element-view] .submit-footer'),
+      ),
   },
   {
     // task-039 (D39-12): the sidebar's git status after a failed fetch, git's message open.
@@ -282,8 +291,169 @@ export const SCREENS: readonly Screen[] = [
     name: 'git status — behind, Update in the sidebar and the footer',
     open: async (page, c) => {
       // The reason's paragraph, not its link: the key-rendering build drops rich-text tags (X-09.1).
-      await project(page, c, `/p/${c.pids[4]}/e/task-001-login-form`, (p) => p.locator('.drawer .gate-blocked'));
+      await project(page, c, `/p/${c.pids[4]}/e/task-001-login-form`, (p) =>
+        p.locator('[data-element-view] .gate-blocked'),
+      );
       await expect(page.locator('.git-status .git-update')).toBeVisible({ timeout: COLD_READ_MS });
     },
   },
+  {
+    // task-062 (D62-5): the element page of an ambiguous short id — its candidates. The screens console
+    // holds no ambiguous id (its figures stay as they are), so the element read answers the contract's
+    // 409 G-01.6 sets up (`task-001-login-form` and a hand-made copy; the real 409 and its axe scan are
+    // G-01.6's, `element-page.spec.ts`).
+    name: 'element page — candidates',
+    open: async (page, c) => {
+      await page.route(`**/api/p/${c.pids[0]}/elements/task-001`, (route) =>
+        route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: {
+              code: 'ambiguous-id',
+              message: 'Ambiguous id',
+              detail: {
+                candidates: [
+                  {
+                    id: 'task-001-login-form',
+                    shortId: 'task-001',
+                    title: 'Login form',
+                    type: 'task',
+                    status: 'pending',
+                  },
+                  {
+                    id: 'task-001-login-form-copy',
+                    shortId: 'task-001',
+                    title: 'Login form copy',
+                    type: 'task',
+                    status: 'pending',
+                  },
+                ],
+                more: 0,
+              },
+            },
+          }),
+        }),
+      );
+      await project(page, c, `/p/${c.pids[0]}/e/task-001`, (p) => p.locator('[data-element-view] .candidate-link'));
+    },
+  },
+  {
+    // task-061 (D61-13): Today as Morgan with the Requires you card's type filter open (its listbox
+    // of options with counts); the short ids and the entry dates are on the "today" screen.
+    name: 'today — card filter open',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-row'));
+      await page.locator('.today-card .today-filter-button').first().click();
+      await expect(page.locator('.today-filter-popover [role="option"]').first()).toBeVisible();
+      await expectSettled(page);
+    },
+  },
+  {
+    // task-077 (D77-9): Today as Morgan with the side panel of `task-001-login-form` opened from its
+    // Requires you title (`?panel=`, the view under it).
+    name: 'element side panel (Today)',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-row'));
+      await page.locator('.today-row[data-eid="task-001-login-form"] .today-title').click();
+      await expect(page.locator('[role="dialog"][data-element-view] .type-tag')).toBeVisible({ timeout: COLD_READ_MS });
+      await expectSettled(page);
+    },
+  },
+  {
+    // task-077 (D77-3, D77-9): the side panel of an ambiguous short value over Today — its candidates,
+    // `?panel=` links on the view; the element read answers the 409 of "element page — candidates".
+    name: 'element side panel — candidates',
+    open: async (page, c) => {
+      await page.route(`**/api/p/${c.pids[0]}/elements/task-001`, (route) =>
+        route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: {
+              code: 'ambiguous-id',
+              message: 'Ambiguous id',
+              detail: {
+                candidates: [
+                  {
+                    id: 'task-001-login-form',
+                    shortId: 'task-001',
+                    title: 'Login form',
+                    type: 'task',
+                    status: 'pending',
+                  },
+                  {
+                    id: 'task-001-login-form-copy',
+                    shortId: 'task-001',
+                    title: 'Login form copy',
+                    type: 'task',
+                    status: 'pending',
+                  },
+                ],
+                more: 0,
+              },
+            },
+          }),
+        }),
+      );
+      await project(page, c, `/p/${c.pids[0]}/today?panel=task-001`, (p) =>
+        p.locator('[role="dialog"][data-element-view] .candidate-link'),
+      );
+    },
+  },
+  {
+    // task-078 (D78-10): the document dialog of a decision-log, rendered — its body answered with
+    // headings, a table, a link of each class and a code block (the screens console holds the
+    // template's body), through `page.route` on the element read. No image: its alternative text is
+    // a word of a long body, which X-09.1 does not count as data (the images are AC-3's e2e).
+    name: 'element document — rendered',
+    open: (page, c) => openDocumentScreen(page, c, 'rendered'),
+  },
+  {
+    name: 'element document — source',
+    open: (page, c) => openDocumentScreen(page, c, 'source'),
+  },
 ];
+
+/** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
+const DOCUMENT_SCREEN_BODY = [
+  '## Context',
+  '',
+  '<!-- The situation. -->',
+  '',
+  'We need a *fast* server: see [the first decision](dl-001-initialise-wingfoil-before-inception.md),',
+  '[the index](../../../01_vision/00_index.md), [the guide](https://example.test/guide),',
+  '[a missing file](missing.md) and [the decision](#decision).',
+  '',
+  '## Decision',
+  '',
+  '| Option | Kept |',
+  '|---|:---:|',
+  '| Fastify | yes |',
+  '',
+  '```',
+  'npm install fastify',
+  '```',
+  '',
+].join('\n');
+
+/** Open the document dialog of `dl-002-use-fastify` of the custom project, in `mode`. */
+async function openDocumentScreen(page: Page, c: RunningConsole, mode: 'rendered' | 'source'): Promise<void> {
+  const pid = c.pids[1]!;
+  await page.route(`**/api/p/${pid}/elements/dl-002-use-fastify`, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as { body: string };
+    await route.fulfill({ response, json: { ...body, body: DOCUMENT_SCREEN_BODY } });
+  });
+  await project(page, c, `/p/${pid}/e/dl-002-use-fastify`, (p) =>
+    p.locator('[data-element-view] .element-document-open'),
+  );
+  await page.locator('[data-element-view] .element-document-open').click();
+  const dialog = page.locator('[role="dialog"].element-document');
+  await expect(dialog.locator('.doc-article')).toBeVisible({ timeout: COLD_READ_MS });
+  if (mode === 'source') {
+    await dialog.locator('.element-document-mode [role="radio"]').nth(1).click();
+    await expect(dialog.locator('pre.element-document-source')).toBeVisible();
+  }
+  await expectSettled(page);
+}

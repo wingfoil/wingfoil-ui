@@ -1,0 +1,233 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://wingfoil-ui.local/contracts/api/traceability.schema.json",
+  "title": "GET /api/p/:pid/traceability?scope=",
+  "description": "Traceability (spec-012 §4): every categorised reference with its linked elements, completion and coverage, the elements missing required references and every element the answer names, in the applied scope (current or project). Ids are full ids; titles and pattern reference ids are escaped (§9).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ui", "patterns", "scope", "figures", "references", "missing", "elements", "unreadable", "capped"],
+  "properties": {
+    "ui": {
+      "$ref": "ui-config.schema.json#/definitions/status"
+    },
+    "patterns": {
+      "type": "boolean",
+      "description": "The effective taxonomy.patterns is non-empty."
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "current", "applied"],
+      "properties": {
+        "type": {
+          "type": ["string", "null"]
+        },
+        "current": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "ui-config.schema.json#/definitions/elementRef"
+            }
+          ]
+        },
+        "applied": {
+          "enum": ["current", "project"]
+        }
+      }
+    },
+    "figures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completion", "phaseCompletion", "coverage", "referencesWithoutElements"],
+      "properties": {
+        "completion": {
+          "$ref": "progress.schema.json#/definitions/completion"
+        },
+        "phaseCompletion": {
+          "$ref": "progress.schema.json#/definitions/readOnly"
+        },
+        "coverage": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "carrying", "total", "percent"],
+              "properties": {
+                "state": {
+                  "const": "shown"
+                },
+                "carrying": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "total": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "percent": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  ],
+                  "description": "null when total is 0 (task-074 Q2 (a))."
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["state", "reason"],
+              "properties": {
+                "state": {
+                  "const": "unavailable"
+                },
+                "reason": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["code"],
+                  "properties": {
+                    "code": {
+                      "enum": ["no-requires"]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "referencesWithoutElements": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "category", "element", "linked", "done", "total", "percent", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "An element reference's target id as memory search returns it, or a pattern reference's value escaped (§9); a pattern reference carries its id only (RP3-14 D9)."
+          },
+          "category": {
+            "$ref": "ui-config.schema.json#/definitions/category"
+          },
+          "element": {
+            "type": "boolean",
+            "description": "An element reference: the id is a listed element's, which elements names."
+          },
+          "linked": {
+            "$ref": "progress.schema.json#/definitions/ids"
+          },
+          "done": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "percent": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 100
+              }
+            ]
+          },
+          "status": {
+            "enum": ["completed", "in-progress", "not-started", "no-elements"]
+          }
+        }
+      }
+    },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "categories"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "categories": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "ui-config.schema.json#/definitions/category"
+            }
+          }
+        }
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "An element named by the answer (spec-012 §4): the /elements row (each property by reference to elements.schema.json definitions.row, missingCategories left to the missing section) plus done (descriptor kind last) and inScope (in the current element's scope; true for every element when there is none).",
+        "required": ["path", "id", "title", "type", "status", "tags", "localChanges", "done", "inScope"],
+        "properties": {
+          "path": {
+            "$ref": "elements.schema.json#/definitions/row/properties/path"
+          },
+          "id": {
+            "$ref": "elements.schema.json#/definitions/row/properties/id"
+          },
+          "shortId": {
+            "$ref": "elements.schema.json#/definitions/row/properties/shortId"
+          },
+          "title": {
+            "$ref": "elements.schema.json#/definitions/row/properties/title"
+          },
+          "type": {
+            "$ref": "elements.schema.json#/definitions/row/properties/type"
+          },
+          "status": {
+            "$ref": "elements.schema.json#/definitions/row/properties/status"
+          },
+          "tags": {
+            "$ref": "elements.schema.json#/definitions/row/properties/tags"
+          },
+          "localChanges": {
+            "$ref": "elements.schema.json#/definitions/row/properties/localChanges"
+          },
+          "descriptor": {
+            "$ref": "elements.schema.json#/definitions/row/properties/descriptor"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "inScope": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "unreadable": {
+      "$ref": "progress.schema.json#/definitions/ids"
+    },
+    "capped": {
+      "$ref": "progress.schema.json#/definitions/ids"
+    },
+    "eventsError": {
+      "$ref": "error.schema.json"
+    }
+  }
+}

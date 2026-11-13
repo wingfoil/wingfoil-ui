@@ -1,6 +1,6 @@
 # CLI reference — `wingfoil-ui`
 
-**Version:** 0.6 · **Date:** 2026-11-05 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1)
+**Version:** 0.7 · **Date:** 2026-11-11 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1; 0.7: deep links across a restart with `--port` only, a page recovers in place — task-063)
 
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
@@ -31,7 +31,7 @@ usage error.
 
 | Option | Meaning |
 |--------|---------|
-| `--port <n>` · `--port=<n>` | listen on port `n`, an integer from 1024 to 65535; default: a free port chosen by the operating system |
+| `--port <n>` · `--port=<n>` | listen on port `n`, an integer from 1024 to 65535; default: a free port chosen by the operating system. Links to the console's pages survive a restart only with a fixed port: a page left open recovers in place once the new URL is opened in any tab of the same browser (adr-003 D6, D7) |
 | `--no-open` | do not open a browser; print the URL only |
 | `--version` | print the package version (the `version` of the root `package.json`, e.g. `0.2.0`) on stdout and exit 0 |
 | `--help` | print the usage on stdout and exit 0 |

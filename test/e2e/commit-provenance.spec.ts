@@ -6,8 +6,9 @@
 // After the console stopped, `test/harness/commit-provenance.ts` checks every commit of
 // `<before>..HEAD` the remote did not bring (the CLI's subject form, only its element's file, in the
 // session's order), that no other ref, tag, stash, configuration or working-tree file changed, and
-// that the remote's branch is HEAD. v0.2 writes no `.wingfoil/ui.yaml`, so no `chore(ui)` commit
-// is expected. `autoFetch` is off (a real-bin console fetches every 60 s, task-034) and auto-push
+// that the remote's branch is HEAD. v0.2 writes no `.wingfoil/ui.yaml`, so the first test expects no
+// `chore(ui)` commit; the second (task-060 AC-5, D60-14) applies the Kanban preset through the API —
+// the *Use preset* control is task-064's — and expects its `chore(ui)` commit in the session. `autoFetch` is off (a real-bin console fetches every 60 s, task-034) and auto-push
 // off (the Push is the user's).
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -30,10 +31,11 @@ const SUBMIT = 'wf(task): submit task-004-session-timeout';
 const APPROVE = 'wf(task): approve task-001-login-form [pending → approved]';
 const REJECT = 'wf(bug): reject bug-001-crash-on-save [pending → draft]';
 const REJECT_REASON = 'Steps to reproduce are missing (task-043)';
+const PRESET = 'chore(ui): apply the Kanban preset';
 
 const gitStatus = (page: Page): Locator => page.getByRole('region', { name: 'Git status' });
 const syncButton = (page: Page, name: string): Locator => gitStatus(page).getByRole('button', { name, exact: true });
-const drawer = (page: Page): Locator => page.locator('.drawer');
+const drawer = (page: Page): Locator => page.locator('[data-element-view]');
 const gate = (page: Page): Locator => drawer(page).getByRole('region', { name: 'Decision' });
 const reasonField = (page: Page): Locator =>
   gate(page).getByRole('textbox', { name: 'Reason, recorded in the commit' });
@@ -152,5 +154,53 @@ test.describe('task-043 AC-1 — commit provenance of a UI session (G2)', () => 
     // The reject's reason is recorded in its commit (the CLI's `--reason`).
     const { stdout: body } = await git(fx.dir, ['log', '-1', '--format=%B'], fx.env);
     expect(body).toContain(REJECT_REASON);
+  });
+});
+
+test.describe('task-060 AC-5 — the console’s preset commit in a session (D60-14)', () => {
+  test('the Kanban preset applied through the API is accepted by the provenance check', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const fx = await fixtures.copy('kanban');
+    await actAs(fx, 'Morgan');
+    const before = await snapshotRepo(fx.dir, fx.env);
+    const remoteBefore = await remoteRefs(fx.remoteDir, fx.env);
+    const c = await consoles.start({ projects: [fx], settings: { autoFetch: false } });
+    await openConsole(page, c, { path: `/p/${c.pids[0]}/today` });
+    await expectFirstLoad(gitStatus(page));
+
+    await remoteCommit(fx, 'outside.txt', 'pushed by someone else\n');
+    const brought = await remoteHead(fx);
+    expect(await clickAndAnswer(page, syncButton(page, 'Fetch'), '/git/fetch')).toBe(200);
+    await expect(gitStatus(page)).toContainText('1 behind', { timeout: COLD_READ_MS });
+    expect(await clickAndAnswer(page, syncButton(page, 'Update'), '/git/update')).toBe(200);
+    await expect(gitStatus(page)).toContainText('In sync with git', { timeout: COLD_READ_MS });
+
+    // The page's session (its cookie) applies the preset, as task-064's control will.
+    const res = await page.request.post(`${c.origin}/api/p/${c.pids[0]}/ui-config/preset`, {
+      data: { preset: 'kanban' },
+      timeout: COLD_READ_MS,
+    });
+    expect(res.status()).toBe(200);
+    await expect.poll(() => lastCommitSubject(fx), { timeout: COLD_READ_MS }).toBe(PRESET);
+    await expect(gitStatus(page)).toContainText('1 commit to push', { timeout: COLD_READ_MS });
+    expect(await clickAndAnswer(page, syncButton(page, 'Push'), '/git/push')).toBe(200);
+    await expect(gitStatus(page)).toContainText('In sync with git', { timeout: COLD_READ_MS });
+
+    await c.stop();
+    const problems = await provenanceProblems({
+      dir: fx.dir,
+      env: fx.env,
+      before,
+      after: await snapshotRepo(fx.dir, fx.env),
+      remoteBefore,
+      remoteAfter: await remoteRefs(fx.remoteDir, fx.env),
+      remoteBrought: brought,
+      remoteExpected: ['outside: outside.txt'],
+      expected: [PRESET],
+    });
+    expect(problems).toEqual([]);
   });
 });

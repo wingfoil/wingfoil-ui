@@ -38,7 +38,7 @@ import './toasts.css';
 
 /**
  * Where the stack goes now (`toastPlacement`), followed while toasts are shown (review R2-4): the
- * drawer and its footer slot are watched with a `ResizeObserver` (a footer that grows, a resized
+ * drawer and its footer slot (or the element page's footer bar, task-062) are watched with a `ResizeObserver` (a footer that grows, a resized
  * reason field), the shell root with a `childList` observer (a drawer or a footer that appears or
  * goes); the window's resize too. All are disconnected when no toast is left.
  */
@@ -53,7 +53,11 @@ function usePlacement(active: boolean, stack: RefObject<HTMLDivElement | null>):
       const drawer = shell.querySelector('.drawer') ?? undefined;
       const footer = drawer?.querySelector('.element-footer-slot') ?? undefined;
       const drawerHeader = drawer?.querySelector('.drawer-header') ?? undefined;
-      const targets = [drawer, footer].filter((e): e is Element => e !== undefined);
+      // The element page's footer bar (task-062 D62-12), when no drawer is open.
+      const page = drawer ? undefined : (shell.querySelector('.element-page') ?? undefined);
+      const pageFooter = page?.querySelector('.element-footer-slot') ?? undefined;
+      const pageHeader = page?.querySelector('.element-page-header') ?? undefined;
+      const targets = [drawer, footer, pageFooter].filter((e): e is Element => e !== undefined);
       if (sizes && (targets.length !== watched.length || targets.some((t, k) => t !== watched[k]))) {
         sizes.disconnect();
         for (const t of targets) sizes.observe(t);
@@ -72,6 +76,8 @@ function usePlacement(active: boolean, stack: RefObject<HTMLDivElement | null>):
               },
             }
           : {}),
+        ...(pageFooter ? { pageFooterTop: pageFooter.getBoundingClientRect().top } : {}),
+        ...(pageHeader ? { pageHeaderBottom: pageHeader.getBoundingClientRect().bottom } : {}),
       });
       setPlacement((prev) =>
         prev &&
@@ -85,10 +91,13 @@ function usePlacement(active: boolean, stack: RefObject<HTMLDivElement | null>):
     }
     place();
     window.addEventListener('resize', place);
+    // The page's footer bar moves with the page's scroll while its content is shorter than the view.
+    window.addEventListener('scroll', place, { passive: true });
     const children = new MutationObserver(() => place());
     children.observe(shell, { childList: true, subtree: true });
     return () => {
       window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place);
       children.disconnect();
       sizes?.disconnect();
     };

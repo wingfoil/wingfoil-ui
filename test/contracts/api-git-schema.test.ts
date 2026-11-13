@@ -187,6 +187,9 @@ describe('git.refusal.schema.json (spec-010 §5, §8)', () => {
     'refspec-outside-remotes',
     'git-refused',
     'internal',
+    // Body parsing before the handler (task-063 D63-10, review round 1 F-4).
+    'payload-too-large',
+    'unsupported-media-type',
   ])('accepts %s without detail', (code) => {
     expect(refusal(envelope(code))).toBe(true);
     expect(refusal(envelope(code, { files: ['a'] }))).toBe(false);
