@@ -18,10 +18,10 @@ Wave 2's merge into `main`:
 
 - F-040 (`docs/wingfoil-feedback/`) reports a `wingfoil-cli` entry W-51 that the directive does not
   hold: its *Known behaviours* table ends at W-50 (1.27).
-- task-072's red phase found WingFoil 0.3.1 refusing every verb when the git author name or email
+- task-072's red phase found WingFoil 0.3.1 refusing a verb when the git author name or email
   holds a control character, with no entry.
-- `gates.yml` reads `PHASE_BRANCH` (`.github/workflows/gates.yml:58`, "changed when the next one is
-  created"), and no directive says who creates the next phase branch or sets the variable
+- `gates.yml` reads `PHASE_BRANCH` (`.github/workflows/gates.yml:58`; its comment at `:30`: "changed when the next one
+  is created"), and no directive says who creates the next phase branch or sets the variable
   (task-071 G7).
 - `definition-of-done` *The wave gate* says the `wave` scope runs "one job per engine", while
   `gates.yml`'s `e2e-wave` runs engine × shard jobs, as dl-016 allows (task-071 F6, D71-3).
@@ -33,15 +33,16 @@ jobs as `gates.yml` runs them.**
 
 1. **`wingfoil-cli` 1.27 → 1.28, entry W-51** — Behaviour: a state named after an `Object.prototype`
    member (`constructor`, `toString`, `__proto__`, …) reads as a WIP limit; every move into it is
-   refused with `WIP limit reached for '<state>' on type '<type>' (limit function Object() { [native
-   code] }): held by .`, although `limits` declares nothing for it and no element holds it.
+   refused: for `constructor`, `WIP limit reached for 'constructor' on type '<type>' (limit function
+   Object() { [native code] }): held by . Move one of them out of 'constructor', then retry. …`
+   (alike for `toString` and `__proto__`, with the prototype's member as the limit), although `limits` declares nothing for it and no element holds it.
    Reproduced on 0.3.1 with a scratch type (task-073 review, 2026-11-11). How to work with it: never
    name a state or a type after an `Object.prototype` member; the console reads the limits as own
    keys only (task-073). *Note*: F-040.
 2. **`wingfoil-cli`, entry W-52** — Behaviour: a verb run with a git author name or email holding a
    control character is refused, `git identity not usable: the author name contains '<', '>' or a
    control character` (the same for the email); U+202E passes, and `dna show` returns a member's
-   name and email raw whatever they hold. Reproduced on 0.3.1 (task-072 red, 2026-11-12). How to
+   name and email raw, U+202E, ESC and BEL included. Reproduced on 0.3.1 (task-072 red, 2026-11-11). How to
    work with it: keep the git identity printable; a DNA member's name or email may still hold such
    text, which the console escapes as display text (spec-004 §5). *Note*: empty (an unusable
    identity refused is not a defect, as W-48).
