@@ -9,10 +9,11 @@ tags: [custom, release, planning, scrum]
 
 # Directive — Release planning of WingFoil UI
 
-**Version:** 1.1 · **Date:** 2026-11-04 (1.0: this repository's `release-planning` procedure folded
+**Version:** 1.2 · **Date:** 2026-11-13 (1.0: this repository's `release-planning` procedure folded
 into a directive, its file removed — task-049, adoption decision 2, RP3-13; 1.1: review round 1 of
 task-049: the release's submits are `plan-release`'s (product-owner), `plan-sprint` adds only the
-first Sprint, the stage plan names a sub workflow, the `memory add --type … --title` forms)
+first Sprint, the stage plan names a sub workflow, the `memory add --type … --title` forms; 1.2:
+*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018)
 
 Applies to the product-owner, the tech-lead and the architect when a release is planned. It says
 how each step is done in this repository; the packs' phases and the verbs own every transition
@@ -157,7 +158,9 @@ Sprint's `planned → active` comes last, after the *Review*.
 
 An independent, fresh-context review of the whole planning (scope, bugs, specs, backlog,
 `check_tasks.py`) until PASS; then the approver's OK, `memory submit <sprint>`, the plan closed by
-hand (`wingfoil-cli` W-04), the merge into `main` with `--no-ff`.
+hand (`wingfoil-cli` W-04), the merge into `main` with `--no-ff`. Then the tech-lead creates the
+release's phase branch `design/dev-loop_vX.Y` from `main`; its first commit sets `PHASE_BRANCH` in
+`.github/workflows/gates.yml` to that branch, which the own-specs job diffs against (dl-018).
 
 ## A new release line
 

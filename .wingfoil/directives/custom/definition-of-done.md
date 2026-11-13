@@ -9,14 +9,15 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.4 · **Date:** 2026-11-08 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.5 · **Date:** 2026-11-13 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
 governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
 `docs:api` — the adoption's review round 1, m2; 1.2: the gates of the former `dev-loop` procedure,
 one section per `backlog-item` phase, its file removed — task-049; 1.3: review round 1 of task-049:
 the `memory add --type tech-spec --title` form; 1.4: the heavy gates on `.github/workflows/gates.yml`
 where it exists on the branch, the local checks, a run as a gate's evidence, the wave gate on the
-phase branch's tip — `governance-evolution-3-plan`, dl-016)
+phase branch's tip — `governance-evolution-3-plan`, dl-016; 1.5: the wave scope's engine × shard
+jobs — `governance-evolution-5-plan`, dl-018)
 
 A Sprint Backlog item (a task, run through `backlog-item`: start · build · review · approve · done)
 is done only when every rule below holds; until then it is not part of the Increment. The phases'
@@ -114,8 +115,8 @@ The approver's `memory approve <task>` (`in-review → approved`). A reject (`me
   it back).
 - `memory submit <task>` (`approved → done`). The bugs it names move with it by their own verbs
   (`.wingfoil/memory.yaml`): `submit`, and the approver's `approve` along the bug's machine.
-- **The wave gate.** Where `gates.yml` exists: its `wave` scope (the three-engine `test:e2e`, one
-  job per engine, with the task scope's gates) by `workflow_dispatch` on the phase branch's tip,
+- **The wave gate.** Where `gates.yml` exists: its `wave` scope (the three-engine `test:e2e`, engine
+  × shard jobs (dl-016), with the task scope's gates) by `workflow_dispatch` on the phase branch's tip,
   before the merge into `main`; the merge then checked to change no file against that tip (`git
   diff <tip> <merge>` empty). Otherwise, on `main` after the wave's merge: `npm run test:e2e`
   (Chromium, Firefox, WebKit) and `npm run test:smoke` through the machine-free slot. In both cases
