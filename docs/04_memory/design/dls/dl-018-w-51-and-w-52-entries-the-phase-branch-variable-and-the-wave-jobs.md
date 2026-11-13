@@ -3,8 +3,8 @@ id: dl-018-w-51-and-w-52-entries-the-phase-branch-variable-and-the-wave-jobs    
 type: decision-log
 title: "W-51 and W-52 entries, the phase branch variable and the wave jobs"              # REQUIRED — e.g. "Retrospective v0.1" or "Initialise WingFoil before inception"
 status: draft          # auto-set by wingfoil
-context: ""            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
-release: ""            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
+context: "governance-evolution"            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
+release: "v0.3"            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
 tmpl_version: 260703   # Orignal template version
@@ -12,20 +12,63 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-<!-- The situation or question that prompted this decision. -->
+The `governance-evolution` run `governance-evolution-5-plan` (its *Assessment*), on the candidates
+`backlog-item-rel-v0.3-plan` collected during Wave 2 of `minor-v0.3` (W2-3, W2-4, W2-8), before
+Wave 2's merge into `main`:
+
+- F-040 (`docs/wingfoil-feedback/`) reports a `wingfoil-cli` entry W-51 that the directive does not
+  hold: its *Known behaviours* table ends at W-50 (1.27).
+- task-072's red phase found WingFoil 0.3.1 refusing every verb when the git author name or email
+  holds a control character, with no entry.
+- `gates.yml` reads `PHASE_BRANCH` (`.github/workflows/gates.yml:58`, "changed when the next one is
+  created"), and no directive says who creates the next phase branch or sets the variable
+  (task-071 G7).
+- `definition-of-done` *The wave gate* says the `wave` scope runs "one job per engine", while
+  `gates.yml`'s `e2e-wave` runs engine × shard jobs, as dl-016 allows (task-071 F6, D71-3).
 
 ## Decision
 
-<!-- What was decided. State it directly, in the present tense.
-     Do NOT mark the body as unratified (no "proposed, not yet ratified" preamble): `status:` already
-     says whether the decision is `in-discussion` or `ready`, and `memory approve` changes only
-     `status`, so a body marker would stay wrong. Where options are still open, present them as
-     options; the approver's choice is recorded in the approve commit's `Reason:`. -->
+**Two `wingfoil-cli` entries, the phase branch's first commit in `release-planning`, and the wave
+jobs as `gates.yml` runs them.**
+
+1. **`wingfoil-cli` 1.27 → 1.28, entry W-51** — Behaviour: a state named after an `Object.prototype`
+   member (`constructor`, `toString`, `__proto__`, …) reads as a WIP limit; every move into it is
+   refused with `WIP limit reached for '<state>' on type '<type>' (limit function Object() { [native
+   code] }): held by .`, although `limits` declares nothing for it and no element holds it.
+   Reproduced on 0.3.1 with a scratch type (task-073 review, 2026-11-11). How to work with it: never
+   name a state or a type after an `Object.prototype` member; the console reads the limits as own
+   keys only (task-073). *Note*: F-040.
+2. **`wingfoil-cli`, entry W-52** — Behaviour: a verb run with a git author name or email holding a
+   control character is refused, `git identity not usable: the author name contains '<', '>' or a
+   control character` (the same for the email); U+202E passes, and `dna show` returns a member's
+   name and email raw whatever they hold. Reproduced on 0.3.1 (task-072 red, 2026-11-12). How to
+   work with it: keep the git identity printable; a DNA member's name or email may still hold such
+   text, which the console escapes as display text (spec-004 §5). *Note*: empty (an unusable
+   identity refused is not a defect, as W-48).
+3. **`release-planning` 1.1 → 1.2, *Review*** — after the planning's merge into `main`, the
+   tech-lead creates the release's phase branch `design/dev-loop_vX.Y` from `main`, and its first
+   commit sets `PHASE_BRANCH` in `.github/workflows/gates.yml` to that branch (the own-specs job
+   diffs against it).
+4. **`definition-of-done` 1.4 → 1.5, *The wave gate*** — "one job per engine" becomes "engine ×
+   shard jobs (dl-016)".
+5. Each directive's version history names this run and this decision-log. No other governance file
+   changes (`memory.yaml`, `workflows.yaml`, `roles.yaml` untouched).
+6. The apply runs `npx vitest run test/governance test/docs test/wingfoil-feedback.test.ts` in a
+   check worktree with its own `npm ci` before its commit (`governance-evolution-4-plan`).
 
 ## Rationale
 
-<!-- Why this option was chosen over alternatives. Include the key trade-offs considered. -->
+- W-51 closes F-040's dangling reference and warns before a `memory.yaml` change hits it; W-52
+  records a refusal the console's own fixtures had to work around (task-072).
+- The phase branch is born where a release planning ends, so `release-planning` *Review* owns it;
+  `release-conventions` covers the release's end (tag, publish), not its start.
+- dl-016 already allows the shards; only the directive's wording lagged behind `gates.yml`.
+- Left out: `scripts/e2e-own-specs.mjs` selecting no spec for a change under `test/e2e/support/`
+  only is documented (task-071 G9, `test/README.md` *CI gates*); it goes to the Sprint's
+  retrospective.
 
 ## Actions
 
-<!-- Optional: follow-up actions that result from this decision, with owners and deadlines. -->
+- The facilitator (agent) applies 1–6 at the run's `apply` step, after the approver's approve, and
+  ends the run (`workflow end governance-evolution-5-plan`). The change reaches `main` with Wave 2's
+  merge.
