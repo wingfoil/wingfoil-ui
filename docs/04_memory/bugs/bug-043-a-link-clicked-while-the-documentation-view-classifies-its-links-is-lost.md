@@ -63,3 +63,4 @@ link marked). The approver chose to open it (2026-11-11, "flake R-09.4 a").
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- close note (2026-11-13): fixed by task-078 as its AC-6 (`done` `c55c8d79`), merged into the phase branch in `55ea30db`; resolved by the approver (`5705dd86`). When the link lookup answers, `RenderedArticle` replaces only the link groups whose classification changed, from the new sanitised output (DOMPurify still last), so the anchor being clicked stays the same element; a change of the rest of the document still replaces it whole (`test/web/docs/classification-in-place.test.tsx`; `test/e2e/documentation.spec.ts` › the bug-043 test, and R-09.4, green on WebKit). It closes with Wave 2's merge into `main`.
