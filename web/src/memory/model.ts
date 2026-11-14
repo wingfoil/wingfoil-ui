@@ -114,15 +114,38 @@ export function bucketFilters(elements: readonly ListedElement[]): BucketFilter[
   return BUCKET_FILTERS.map((b) => ({ ...b, count: counts.get(b.key) ?? 0 }));
 }
 
+/** The value of the URL's `missing` parameter: the elements missing a required reference (task-066 D66-13). */
+export const MISSING_REFS = 'refs';
+
 /** The filters of the list (the URL's search parameters). */
 export interface ListFilters {
   type?: string;
   state?: string;
   bucket?: string;
+  missing?: typeof MISSING_REFS;
+  figure?: string;
+}
+
+/** Red stub (task-066): the states of one bucket. */
+export function bucketStateFilters(
+  _types: MemoryYaml | undefined,
+  _elements: readonly ListedElement[],
+  _bucket: string,
+): StateFilter[] {
+  return [];
+}
+
+/** Red stub (task-066): the flagged elements of the selection. */
+export function missingCount(_elements: readonly ListedElement[], _type: string | undefined): number {
+  return 0;
 }
 
 /** The elements of `elements` that pass `filters`: a type and its state, or (all types) a bucket. */
-export function filterRows(elements: readonly ListedElement[], filters: ListFilters): ListedElement[] {
+export function filterRows(
+  elements: readonly ListedElement[],
+  filters: ListFilters,
+  _ids?: ReadonlySet<string>,
+): ListedElement[] {
   const { type, state, bucket } = filters;
   if (type !== undefined) {
     return elements.filter((e) => e.type === type && (state === undefined || e.status === state));

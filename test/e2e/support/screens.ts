@@ -413,6 +413,26 @@ export const SCREENS: readonly Screen[] = [
     name: 'element document — source',
     open: (page, c) => openDocumentScreen(page, c, 'source'),
   },
+  {
+    // task-066 (D66-3, D66-7): the kanban list with *All types*, the bucket "To approve" narrowed to
+    // its state `pending` — the sub-row and the active filter.
+    name: 'memory list — bucket narrowed to a state',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/memory?bucket=toApprove&state=pending`, (p) => p.locator('.memory-active')),
+  },
+  {
+    // task-066 (D66-4 … D66-6): the custom list filtered on the missing references, its rows badged and
+    // its notes. The screens console holds no preset (not changed, RP-43): the list's answer gains the
+    // flag section, one flagged row and one unreadable id through `page.route`, as the document screens.
+    name: 'memory list — missing required references',
+    open: (page, c) => openMissingScreen(page, c),
+  },
+  {
+    // task-066 (D66-8, D66-9): the kanban list filtered on the figure "Pending gates" of `/progress`.
+    name: 'memory list — figure filter',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/memory?figure=pending-gates`, (p) => p.locator('.memory-active')),
+  },
 ];
 
 /** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
@@ -456,4 +476,24 @@ async function openDocumentScreen(page: Page, c: RunningConsole, mode: 'rendered
     await expect(dialog.locator('pre.element-document-source')).toBeVisible();
   }
   await expectSettled(page);
+}
+
+/** Open the custom list on `?missing=refs`, its answer given a flagged row and the notes (task-066). */
+async function openMissingScreen(page: Page, c: RunningConsole): Promise<void> {
+  const pid = c.pids[1]!;
+  await page.route(`**/api/p/${pid}/elements`, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as { elements: { id: string }[] };
+    await route.fulfill({
+      response,
+      json: {
+        ...body,
+        elements: body.elements.map((e) =>
+          e.id === 'task-004-themes' ? { ...e, missingCategories: ['requirement'] } : e,
+        ),
+        missingReferences: { shown: true, unreadable: ['dl-002-use-fastify'], capped: [] },
+      },
+    });
+  });
+  await project(page, c, `/p/${pid}/memory?missing=refs`, (p) => p.locator('.memory-badge-missing'));
 }
