@@ -107,3 +107,219 @@ gates through the machine-free slot with the load and the slot wait in each log 
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-14)
+
+Read (dl-015): this task; the Execution Notes of task-059 (D59-12 the harness variants
+`setFrontmatterValue` and `usePresetUiConfig`, the `/elements` fields, AC-7's API timing), task-017
+(v0.1: the URL filters, `FilterLink` with `aria-current`, the return row W3-23, F2, N2), task-062
+(rows open the element page `/p/<pid>/e/<eid>`) and task-077 (P4: a view's own navigation drops
+`panel=`); `ux-reference.md` §4.4 with its v0.1 and v0.3 blocks, §4.1 v0.3, §4.8 v0.3 (*Missing
+references*, *Show in Memory*), §6 (the eight categories); spec-012 §3 (*Figure filters*), §5, §8,
+§10, §11 and its Process Notes (TQ-4 (a), TQ-5 (a)); spec-003 §8 (`bucket`, `tone` as data);
+spec-008 §2, §3, §6; spec-011 §2; `memory-list.feature` (M-01.2, M-02.2, M-02.4),
+`missing-references.feature` (M-03.1 … M-04.3), `progress-card.feature` (T-12.1, T-13.1 … T-13.4);
+the stage plan W0-x … W2-11 and Wave 2's gate; directives `definition-of-done` 1.5,
+`ux-consistency`, `accessibility`; `.notes/dev-rules.md` (Wave 2 overrides). The prototype's Memory
+view (its bundle read in a scratch folder outside the repository): row 2 holds the state chips and,
+after them, a separate chip "missing required references" with a red dot, exclusive with the state
+chips and combined with the type; a row flagged shows a warning badge ("missing refs"). The code:
+`web/src/memory/{model.ts,MemoryList.tsx,memory.css}`, `web/src/routes/{memory,project}.tsx`,
+`web/src/api/{queries,query-keys}.ts`, `contracts/src/{api,progress,ui-config}.ts`,
+`test/web/memory/{list.test.tsx,model.test.ts}`, `test/e2e/{memory-list,performance}.spec.ts`,
+`test/e2e/support/{screens,cold-read}.ts`, `test/harness/fixtures/progress.ts`.
+
+No probe: the task changes no CLI call, git read or write (no security probe, `definition-of-done`
+*Security probes*); M-03.2's commit outside the UI is the harness's `setFrontmatterValue` by the
+fixture's identity, run under the strict-identity recipe (dl-011) in the self-check.
+
+#### Decisions (D66-n)
+
+- **D66-1 — The web filters, the server decides.** Every filter is a pure function over the
+  answers of `/elements` (the descriptor's `bucket`, each row's `missingCategories`,
+  `missingReferences`) and `/progress` (a figure's `ids`), in `web/src/memory/model.ts` and a new
+  `web/src/memory/figure.ts`; no reference, category or done state is derived in the web
+  (spec-012 *Consequences*); no type, state or category literal (REQ-ARC-05).
+- **D66-2 — The URL (AC-1, AC-2, AC-3).** `memorySearch` (`routes/memory.tsx`) keeps, in this
+  precedence: (1) `figure=<code>` when `code` is one of the four — then **nothing else** (the
+  other filters cleared, AC-3); an unknown code is dropped as if absent; (2) `type=<t>`, optional;
+  then one state-row choice: `missing=refs` (D66-4), or with a type `state=<s>` (v0.1), or without
+  a type `bucket=<key>` with an optional `state=<s>` (N7). `missing` wins over `state`/`bucket`
+  when both are present; a `state` with neither type nor bucket is dropped; any other value of
+  `missing` is dropped. `panel=` stays the layout's (task-077). The filter links build their
+  search from scratch (task-077 P4 unchanged), so a type link drops a figure.
+- **D66-3 — State sub-options (N7, AC-1, M-02.4).** With *All types*, row 2 keeps *All states*
+  and the four buckets as in v0.1 (M-01.2, M-02.2 unchanged: same links, names, `?bucket=` URLs).
+  When a bucket is selected, a sub-row right under row 2 lists that bucket's states: one link per
+  state name present in the bucket, with its count and the tone dot of the descriptor (as
+  `stateFilters`), in a stable order — the types in type-filter order, each type's `sequence`
+  order, then states found but not declared in order of appearance; a state name shared by two
+  types is one sub-option (AC-1 "by name"). Each link goes to `?bucket=<key>&state=<s>`; the
+  bucket link stays a link to the whole bucket. The sub-row is a `ul` labelled "In <bucket>"
+  (`memory.filter.bucketStates`; not containing "States", so the v0.1 e2e's `getByRole('list',
+  { name: 'States' })` stays unique). A state in the URL that the bucket no longer holds lists
+  nothing ("No element matches these filters."), the active filter still named (it can be
+  cleared). Why a sub-row, not every bucket's states always visible: row 2 stays short with the
+  custom fixture's many states, and the sequence "bucket, then its state" of M-02.4 is two clicks
+  of the same kind; recorded in `ux-reference.md` §4.4 as this task's refinement (Q3).
+- **D66-4 — The missing-references filter (US-M-03, US-M-04, AC-2).** Shown iff
+  `elements.missingReferences?.shown === true` (absent with `typesError`, so hidden then, M-04.1,
+  M-04.2), as its own `ul` "Reference filters" placed in row 2 after the state links (the
+  prototype's separate chip; not inside the "States" list, so M-01.5's exact state names hold),
+  one `FilterLink` "Missing required references" with its count and a danger-coloured dot (the
+  prototype's red; `--color-danger`, both themes). Count = the rows of the current type selection
+  (all types, or the selected type's non-archived rows) that carry `missingCategories` — 0 shown
+  as 0 (TQ-5 (a), M-04.3). Selected (`?missing=refs`, with `type` kept), the list shows those
+  rows only; it is exclusive with the state and bucket links (the prototype). With a type
+  selected, the filter is offered only when the effective `taxonomy.requires` (`/config`
+  `ui.taxonomy.requires.value`) names that type: a 0 for a type nothing requires would read as
+  good news (US-M-04's reasoning); with *All types* it follows `shown` alone (Q3 records it).
+- **D66-5 — The badge "missing refs" (M-03.1).** On every row that carries `missingCategories`,
+  whatever the filter: a `memory-badge memory-badge-missing` "missing refs"
+  (`memory.missingRefs.badge`), after *local changes*. The row link gets `aria-describedby` to a
+  `hidden` span (`useId`) reading "Missing required references: <categories>"
+  (`memory.missingRefs.description`, `{categories}` = `intl.formatList` of the codes as written,
+  e.g. "requirement") — the same text as the badge's `title` tooltip. Categories are shown as the
+  `ui.yaml` codes, like the Traceability view's (R-01.6, "the category 'requirement'"; spec-008 §3,
+  data as written). The badge and its description are `web/src/memory/MissingRefsBadge.tsx`,
+  exported for task-067's section if it fits there (its rows say "needs <categories>").
+- **D66-6 — The notes of `unreadable` and `capped` (AC-2).** While the filter is shown, each
+  non-empty list gets a `memory-notice`: "<n> element(s) could not be read: their references are
+  not checked — <ids>" (`memory.notice.missingUnreadable`) and "<n> element(s) were checked on
+  their first 200 values only — <ids>" (`memory.notice.missingCapped`), the ids as written
+  (`formatList`), every id listed.
+- **D66-7 — The active filter (M-02.4, AC-3).** A labelled group "Active filter"
+  (`memory.active.label`) under the filter rows names what narrows the list beyond the type and
+  offers *Clear filter* (`memory.active.clear`): a bucket alone ("Waiting/drafts/closed"), a bucket
+  and its state ("Waiting/drafts/closed · open", `memory.active.bucketState` with the bucket label
+  and the state name as arguments, M-02.4), the missing-references filter ("Missing required
+  references"), a figure (its label, D66-9). Not shown for a type alone or a type and its state
+  (v0.1 unchanged, AC-1). *Clear filter* is a link to the list with the type kept (a figure or a
+  bucket: no type, so the bare list) and moves the focus to the list heading — the `h1` "Memory",
+  `tabIndex={-1}`, focused once the navigation landed (AC-3); the return-row rule of W3-23 is
+  untouched (a pending return row is dropped by the clear, as by any focus the user moved, N2).
+- **D66-8 — `/progress` in the web (AC-3).** `progressQuery(pid)` in `web/src/api/queries.ts`,
+  key `queryKeys.project(pid, 'progress')` — the one task-065's progress card reads (one entry per
+  repository state, invalidated by `repo` with every `['p', pid]` key, spec-012 §8). The Memory
+  list enables it only while a known `figure` is in the URL: the plain list reads nothing more
+  (TT-PERF-05, the S-26.3 process count unchanged). The list waits for `/progress` before showing
+  rows with a figure (the loading status; no unfiltered flash); a `/progress` error shows a notice
+  "The figure could not be read: the list is not filtered." with the error (`ErrorText`) and the
+  unfiltered list, no active filter.
+- **D66-9 — The figure filter (AC-3, TQ-4 (a)).** `web/src/memory/figure.ts`: the codes
+  `completion`, `iterated`, `open-defects`, `pending-gates` → the `figures` keys `completion`,
+  `iterated`, `openDefects`, `pendingGates`; `figureIds(progress, code)` returns the figure's
+  `ids` when its `state` is `shown`, else `undefined` (an `unavailable` figure, or `phase` and
+  `phaseCompletion`, which are no codes). With ids: the rows are the non-archived rows whose full
+  id is in them (server order), the type row's and row 2's counts unchanged, the active filter
+  named by the figure; without (`unavailable`): the unfiltered list, no active filter (T-13.4's
+  rule). The ids live only in the query cache, never in the address. The labels (Q2):
+  `memory.figure.completion` "Project completion", `memory.figure.pendingGates` "Pending gates"
+  (T-13.1), `memory.figure.iterated` "Iterated: {type}", `memory.figure.openDefects` "Open:
+  {type}" (the figure's `type` as written).
+- **D66-10 — Refresh and announcements.** No new event or poll: a `repo` event refetches
+  `/elements` and `/progress`, so a badge (M-03.2), a count or a figure's rows follow the next
+  state. The live region's `filterKey` gains `missing`, `figure` and the bucket's `state` (a
+  filter change still clears the announcement, review N1 of task-017).
+- **D66-11 — Rows.** The row stays `MemoryList`'s (it owns the return row of W3-23) and still
+  opens the element page (`/p/<pid>/e/<eid>`, task-062); the file header's "element panel" and
+  "no missing-references chip" lines are brought up to date. Short ids on rows are not in this
+  task (N4 is Today's).
+- **D66-12 — Catalogue (spec-008, RP-43 additions only).** New keys, all under `memory.`:
+  `active.bucketState`, `active.clear`, `active.label`, `figure.completion`, `figure.iterated`,
+  `figure.openDefects`, `figure.pendingGates`, `filter.bucketStates`, `filter.missing`,
+  `filter.references`, `missingRefs.badge`, `missingRefs.description`,
+  `notice.figureError`, `notice.missingCapped`, `notice.missingUnreadable`; no key changed or
+  removed.
+- **D66-13 — The URL parameter for task-067 (AC-2, R-01.8).** `missing=refs`:
+  `/p/<pid>/memory?missing=refs` lists every element missing a required reference, all types (Q1).
+  Recorded in `ux-reference.md` §4.4 v0.3 and a spec-012 Process Note (§5 names the filter, not
+  its address), in the green commit.
+- **D66-14 — Performance (AC-4).** A `@perf` test in `performance.spec.ts`'s "TT-PERF-03,
+  TT-PERF-04" describe on a copy of `large` with the preset (`presetConsole`): the Memory list
+  reached from Documentation by the sidebar, as TT-PERF-04's M-01.1 view (the same `run`), its
+  rows and the "Missing required references" link visible; p95 ≤ 1.0 s asserted under
+  `test:timing` only (the coordinator's run at the wave gate, as task-059 Q7).
+
+#### Acceptance criteria: class and test plan
+
+| AC / scenario | Class | Test (file › title) |
+|---------------|-------|---------------------|
+| M-02.4 | red-first | `test/e2e/memory-filters.spec.ts` › `M-02.4 — Narrow a bucket to one of its states` (unknown; *All types*, the bucket, its state "open" reached and followed from the keyboard with visible focus; exactly `note-001-kickoff`; the active filter "Waiting/drafts/closed · open"; URL `?bucket=waiting&state=open`; a reload restores it; *Clear filter* → every element, focus on the heading; axe both themes) |
+| M-01.2, M-02.2 | characterization | `test/e2e/memory-list.spec.ts`, unchanged titles and assertions (run on the three engines with this task's spec) |
+| M-03.1 | red-first | `memory-filters.spec.ts` › `M-03.1 — Filter the elements missing a required reference` (custom copy + `usePresetUiConfig`; exactly `task-004-themes`, `adr-001-local-server`; each row's badge "missing refs" and accessible description "Missing required references: requirement"; URL `?missing=refs`; axe both themes) |
+| M-03.2 | red-first | `memory-filters.spec.ts` › `M-03.2 — Drop the badge when the reference is added` (`@live-refresh`, `refreshClock`; `setFrontmatterValue(copy, 'task-004-themes', 'ref', 'US-X-08')`; the badge gone without a reload; strict 5 s under `test:timing`) |
+| M-04.1 | red-first | `memory-filters.spec.ts` › `M-04.1 — Hide the filter when no type requires references` (unknown; once `/elements` and `/config` answered, no "Missing required references") |
+| M-04.2 | red-first | `memory-filters.spec.ts` › `M-04.2 — Hide the filter on the custom fixture without ui.yaml` |
+| M-04.3 | red-first | `memory-filters.spec.ts` › `M-04.3 — Show the filter with 0 when every required reference is present` (`ref: US-X-08` on `task-004-themes`, `sard_ref: REQ-ARC-01` on `adr-001-local-server`, committed before the console starts; "Missing required references, 0 elements") |
+| AC-1 | red-first | `test/web/memory/filters.test.tsx` › `AC-1 …`: the sub-row lists the bucket's states by name with counts in D66-3's order; a shared state name is one entry; the bucket lists all, the state narrows; URL keeps both and a fresh render restores them; a state without bucket is dropped; with a type the state filters are v0.1's; `test/web/memory/model.test.ts` (the pure functions, `memorySearch`'s precedence) |
+| AC-2 | red-first | `filters.test.tsx` › `AC-2 …`: shown with its count, with 0, hidden when `shown` false, absent, or with `typesError`; with a type only when `requires` names it; exclusive with a bucket; the badge and its description on a flagged row whatever the filter; the `unreadable` and `capped` notes |
+| AC-3 | red-first | `test/web/memory/figure-filter.test.tsx`, one test per case: `AC-3 completion`, `… iterated`, `… open-defects`, `… pending-gates` (exactly the figure's ids, other filters cleared, the label); `… clear` (unfiltered, no active filter, focus on the heading, no `figure` in the URL); `… unknown code`; `… a figure not shown` (each `unavailable` reason); `… /progress fails` (notice, unfiltered); `… ids never in the address`; `… a repo refresh follows the new ids`; `… no /progress read without a figure` |
+| AC-4 | red-first (`@perf`) | `test/e2e/performance.spec.ts` › `AC-4 (task-066) — the Memory list with requires renders within 1.0 s (p95, warm cache)` |
+| AC-5 | docs | `docs/user-guide.md` (the Memory list's filters, the badge, the figure filter), `CHANGELOG.md` *Unreleased* *Added*, `test/README.md` (the new suites), `ux-reference.md` §4.4, spec-012 Process Note; Version/Date bumped |
+| Screens (X-06.4, X-09.1) | red-first | `test/e2e/support/screens.ts`, three entries appended: `memory list — bucket narrowed to a state` (kanban, `?bucket=toApprove&state=<its state>`); `memory list — missing required references` (custom, `?missing=refs`, the `/elements` answer given `missingReferences` with one `unreadable` id and one flagged row through `page.route`, as task-078's document screens — the screens console has no preset and is not changed, RP-43); `memory list — figure filter` (kanban, `?figure=pending-gates`, the real `/progress`) |
+
+Own specs on the three engines: `memory-filters.spec.ts` and `memory-list.spec.ts` (the changed
+screen), through a `gates.yml` dispatch with `-f specs=…` when the push's own-spec selection does
+not name both; `accessibility.spec.ts` for the new screens (task-078's G9 lesson: a change under
+`test/e2e/support/` alone selects no spec).
+
+#### File layout
+
+- `web/src/memory/model.ts` — `bucketStateFilters`, `filterRows` (bucket and state, missing,
+  ids), `missingCount`; `ListFilters` gains `missing?` and `figure?`.
+- `web/src/memory/figure.ts` (new) — the codes, `figureCode`, `figureIds`, the label descriptors.
+- `web/src/memory/MissingRefsBadge.tsx` (new) — the badge and its description.
+- `web/src/memory/MemoryList.tsx` — the sub-row, the reference filters, the notes, the active
+  filter, the badge on rows, the heading focus; `memory.css` — the sub-row, the danger dot, the
+  badge variant, the active filter.
+- `web/src/routes/memory.tsx` — `memorySearch` (D66-2), the `/progress` query (D66-8).
+- `web/src/api/queries.ts` — `progressQuery`.
+- `web/src/i18n/en.json` — D66-12's keys.
+- Tests: `test/web/memory/{model.test.ts,filters.test.tsx,figure-filter.test.tsx}`,
+  `test/e2e/memory-filters.spec.ts`, `test/e2e/support/screens.ts`, `test/e2e/performance.spec.ts`.
+- Docs: `docs/user-guide.md`, `CHANGELOG.md`, `test/README.md`, `docs/00_reference/ux-reference.md`
+  §4.4, spec-012 Process Note.
+
+#### Spec gaps and Process Notes
+
+- No new tech-spec: the Memory list's address is the web's (task-017 fixed `?type`, `?state`,
+  `?bucket` the same way), the figure address is spec-012 §3's.
+- spec-012 §5 names the filter but not its address, which task-067 needs (R-01.8): a Process Note
+  naming `?missing=refs` (D66-13, Q1).
+- `ux-reference.md` §4.4 v0.3 does not say how a bucket's states are offered, that M-02.4's
+  "active filter" exists for a bucket and its state, nor the filter's rule with a type selected:
+  recorded as this task's refinements (D66-3, D66-4, D66-7; Q3).
+- The figure labels of iterated and open defects carry a type name; the card's own wording is
+  task-065's (Q2).
+
+#### Questions
+
+- **Q1 — AC-2's URL parameter (task-067's *Show in Memory*).** (a) `missing=refs` — reads as what
+  it filters, leaves room for another "missing" filter later (e.g. `missing=fields`), a plain
+  string the existing `text()` parsing keeps; (b) `refs=missing`; (c) `missingRefs=true` (TanStack
+  parses it as a boolean, a second parsing rule). **Recommended (a).**
+- **Q2 — The figure labels of the active filter.** (a) defined here as D66-9 says — "Project
+  completion", "Pending gates" (T-13.1), "Iterated: task", "Open: bug" (the type as written, no
+  plural or capital made from project data) —, task-065 free to word its card and to align later
+  with new keys; (b) wait for task-065's design to fix the card's words and reuse them (task-066
+  ships with a placeholder); (c) shared `today.progress.*` keys defined here that the card must
+  reuse. **Recommended (a):** only "Pending gates" is asserted (T-13.1) and the type must stay
+  data either way.
+- **Q3 — The refinements of `ux-reference.md` §4.4.** (a) as designed: the sub-row of the selected
+  bucket (D66-3), the active filter for a bucket, a bucket and its state, the missing filter and a
+  figure (D66-7), the missing filter with a type only when `requires` names that type (D66-4) —
+  recorded in §4.4 by this task; (b) every bucket's states always visible (nested under each
+  bucket), the rest as (a); (c) the missing filter with a type follows `shown` alone. **Recommended
+  (a).**
+- **Q4 — Size (RP3-20 G2).** (a) no split; (b) split AC-3 (the figure filter, `progressQuery`, its
+  component tests and screen) into a new task after task-066 and before task-065; (c) move AC-3 into
+  task-065. **Recommended (a):** one component, one route and one review; the seam (the active
+  filter, D66-7) is built here for M-02.4 anyway; (b) adds a serial step before task-065 in Wave 3
+  for about 0.4 day, (c) grows task-065, itself a large task.
+
+#### Estimate
+
+About **1.4 active days**: red 0.6 (model and component tests 0.3, the e2e spec 0.2, screens and
+the `@perf` test 0.1); green 0.5 (model, route, list UI, catalogue, CSS); refactor and docs 0.15;
+gates and the `gates.yml` runs 0.15. Without AC-3 (Q4 (b)): about 1.0.
