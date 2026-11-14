@@ -70,11 +70,12 @@ function navigatesHere(event: MouseEvent<HTMLAnchorElement>): boolean {
   );
 }
 
-/** An error of a query as the catalogue renders it. */
+/** A query's error as an API error (a transport failure is `internal`). */
 function toApiError(error: Error): ApiError {
   return error instanceof ApiError ? error : new ApiError(0, 'internal', error.message, undefined);
 }
 
+/** An error of a query as the catalogue renders it. */
 function QueryError({ error }: { error: Error }): ReactNode {
   const e = toApiError(error);
   return (
@@ -197,6 +198,8 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
       ? BUCKET_FILTERS.find((b) => b.key === filters.bucket)
       : undefined;
   const bucketLabel = selectedBucket?.label;
+  // The states of the selected bucket (D66-3); none without descriptors (no bucket on any element).
+  const bucketStates = selectedBucket !== undefined ? bucketStateFilters(types, base, selectedBucket.key) : [];
   // A type in the URL that is neither declared nor on an element (review F5), known only once the
   // configuration is settled, as the route's archived read (review N3).
   const configSettled = config.data !== undefined || config.error !== null;
@@ -399,7 +402,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
               </ul>
             )
           )}
-          {selectedBucket !== undefined && (
+          {selectedBucket !== undefined && bucketStates.length > 0 && (
             <ul
               className="filter-row filter-states filter-bucket-states"
               aria-label={intl.formatMessage(
@@ -407,7 +410,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
                 { bucket: intl.formatMessage(selectedBucket.label) },
               )}
             >
-              {bucketStateFilters(types, base, selectedBucket.key).map((s) => (
+              {bucketStates.map((s) => (
                 <FilterLink
                   key={s.state}
                   pid={pid}
