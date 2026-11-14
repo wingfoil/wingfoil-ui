@@ -487,3 +487,36 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   as an alert; the tests find it by its class. (3) The ICU examples quote their braces (`'{'`,
   `'}'`); the patterns example uses double quotes instead of YAML's single ones (an apostrophe is
   ICU's quote character).
+
+#### e2e closure
+
+C-02.1 … C-02.5, C-03.1 and C-03.2 are delivered by task-079-use-preset-on-the-configuration-taxonomy-tab
+(W3-1).
+
+| Scenario / AC | Test (file › title) |
+|---------------|---------------------|
+| C-01.1 | `test/e2e/configuration-tabs.spec.ts` › "C-01.1 — Show inferred values on a project without ui.yaml" |
+| C-01.2 | `test/e2e/configuration-tabs.spec.ts` › "C-01.2 — Show declared values from ui.yaml" |
+| C-01.3 | `test/e2e/configuration-tabs.spec.ts` › "C-01.3 — Mark a type with no inferable category" |
+| C-04.2 (AC-3) | `test/e2e/configuration-tabs.spec.ts` › "C-04.2 — Treat unparsable ui.yaml the same way" (Taxonomy, then Progress) |
+| AC-2 | `test/e2e/configuration-tabs.spec.ts` › "AC-2 — the Progress tab on the kanban fixture: inferred flow, whole project"; C-01.2's link to the element page |
+| D64-1, D64-16 | `test/e2e/configuration-tabs.spec.ts` › "D64-1, D64-16 — the tabs are links reached from the keyboard, in their order" |
+| X-06.4, X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › *configuration — taxonomy*, *configuration — progress* (one test per screen) |
+
+#### Gates (2026-11-14)
+
+- Local: `npm run typecheck`, `npm run lint`, `npx prettier --check .`, `npm run docs:api` clean;
+  `npx vitest run --maxWorkers=2` of `test/web/configuration`, `test/web/shell/ui-yaml-warning`,
+  `test/web/i18n`, `test/web/routes`, `test/web/settings`, `test/web/shell/page-title`,
+  `test/docs/public-text`: 12 files, 143 tests passed; `test/lint/methodology-literals`,
+  `catalogue-placeholders`, `one-console-per-test`: passed; `check_tasks.py v0.3` OK. No local suite
+  touches git (component tests on a stubbed API).
+- `gates.yml` push run `43648989600` on `e6f040af`: success — checks, coverage, contract,
+  e2e-chromium ×2 (the whole suite, `accessibility.spec.ts` with the two new screens included),
+  own specs (`configuration-tabs.spec.ts`) on Firefox and WebKit, smoke, publish-smoke.
+- Dispatch `43650770538` on `e6f040af` with `specs` = `configuration-tabs.spec.ts
+  accessibility.spec.ts` (task-071 G9: a change to `support/screens.ts` selects no spec): success —
+  the new screens' X-06.4 and X-09.1 on Firefox and WebKit too.
+- Strict identity (dl-011): the spec's only commit is C-04.2's Given step (`commitFile` on the
+  fixture copy with its member's identity), run on the CI runner (a fresh account, task-071).
+- Refactor: none needed beyond the deviations above.
