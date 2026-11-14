@@ -4,7 +4,7 @@
 // with its category (or "No category") and origin, the requires and patterns with their origins,
 // the patterns as served, the 8 categories explained, the ui.yaml warning, the missing `ui` section,
 // the tab links in their order, and the key build.
-import { cleanup, screen, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';
@@ -13,6 +13,13 @@ import { resetSession } from '../../../web/src/session/session.js';
 import { PID } from '../dna/data.js';
 import { renderApp, stubApi } from '../shell/render.js';
 import { UI_DECLARED, UI_IGNORED, UI_INFERRED, uiApi } from './data.js';
+
+/** The ui.yaml warning (a static paragraph, D64-6). */
+function warning(): HTMLElement {
+  const el = document.querySelector<HTMLElement>('.ui-yaml-warning');
+  if (!el) throw new Error('no ui.yaml warning');
+  return el;
+}
 
 const PAGE = `/p/${PID}/configuration/taxonomy`;
 
@@ -93,13 +100,13 @@ it('AC-1 — declared values: categories, requires and patterns with their origi
   expect(within(rows[0]!).getByText('requirement')).toBeTruthy();
   const line = screen.getByText('patterns', { selector: '.config-key-line code' }).closest('p');
   expect(line && within(line).getByText('declared')).toBeTruthy();
-  expect(screen.queryByRole('note')).toBeNull();
+  expect(document.querySelector('.ui-yaml-warning')).toBeNull();
 });
 
 it('AC-3 / C-04.2 — an ignored ui.yaml: the warning at the top, every value inferred', async () => {
   stubApi(uiApi(UI_IGNORED));
   renderApp(PAGE);
-  const note = await screen.findByRole('note');
+  const note = await waitFor(() => warning());
   expect(note.textContent).toBe(
     'ui.yaml ignored: Nested mappings are not allowed in compact mappings (line 3, column 7)',
   );
@@ -132,6 +139,6 @@ it('X-09.1 — every text from the catalogue (key build)', async () => {
   stubApi(uiApi(UI_IGNORED));
   renderApp(PAGE, keyCatalogue(en));
   expect(await screen.findByRole('heading', { level: 2, name: 'settings.taxonomy.title' })).toBeTruthy();
-  expect(screen.getByRole('note').textContent).toContain('shell.uiYaml.ignored');
+  expect((await waitFor(() => warning())).textContent).toContain('shell.uiYaml.ignored');
   expect(screen.getByRole('table', { name: 'settings.taxonomy.types.title' })).toBeTruthy();
 });

@@ -6,6 +6,13 @@ import { afterEach, expect, it } from 'vitest';
 import { AppIntlProvider } from '../../../web/src/i18n/index.js';
 import { UiYamlWarning } from '../../../web/src/shell/UiYamlWarning.js';
 
+/** The ui.yaml warning (a static paragraph, D64-6). */
+function warning(): HTMLElement {
+  const el = document.querySelector<HTMLElement>('.ui-yaml-warning');
+  if (!el) throw new Error('no ui.yaml warning');
+  return el;
+}
+
 afterEach(() => cleanup());
 
 it('an ignored file: the note with the failure as served', () => {
@@ -22,10 +29,9 @@ it('an ignored file: the note with the failure as served', () => {
       />
     </AppIntlProvider>,
   );
-  expect(screen.getByRole('note').textContent).toBe(
-    'ui.yaml ignored: progress.mode must be sequence or flow (found \\u202espiral)',
-  );
+  expect(warning().textContent).toBe('ui.yaml ignored: progress.mode must be sequence or flow (found \\u202espiral)');
   expect(screen.queryByRole('alert')).toBeNull();
+  expect(warning().getAttribute('role')).toBeNull();
 });
 
 it.each([[{ source: 'file' as const }], [{ source: 'none' as const }], [undefined]])('nothing for %j', (status) => {

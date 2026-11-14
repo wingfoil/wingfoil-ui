@@ -4,7 +4,7 @@
 // origin, meaning and allowed values; the current element of scope as a link to its element page,
 // "derived"; "Whole project", "No current …", the phases' note, the holds' rules, the warning.
 import type { UiConfig } from '@wingfoil-ui/contracts';
-import { cleanup, screen, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';
@@ -13,6 +13,13 @@ import { resetSession } from '../../../web/src/session/session.js';
 import { PID } from '../dna/data.js';
 import { renderApp, stubApi } from '../shell/render.js';
 import { UI_DECLARED, UI_IGNORED, UI_INFERRED, uiApi } from './data.js';
+
+/** The ui.yaml warning (a static paragraph, D64-6). */
+function warning(): HTMLElement {
+  const el = document.querySelector<HTMLElement>('.ui-yaml-warning');
+  if (!el) throw new Error('no ui.yaml warning');
+  return el;
+}
 
 const PAGE = `/p/${PID}/configuration/progress`;
 
@@ -115,7 +122,7 @@ it('AC-2 — sequence mode with no element under way: "No current <type>"', asyn
 it('AC-3 — an ignored ui.yaml: the warning at the top, every value inferred', async () => {
   stubApi(uiApi(UI_IGNORED));
   renderApp(PAGE);
-  expect((await screen.findByRole('note')).textContent).toContain('ui.yaml ignored: Nested mappings');
+  expect((await waitFor(() => warning())).textContent).toContain('ui.yaml ignored: Nested mappings');
   await keyRow('mode');
   const badges = [...document.querySelectorAll('.config-origin')].map((b) => b.textContent);
   expect(badges.length).toBe(6);
@@ -126,5 +133,5 @@ it('X-09.1 — every text from the catalogue (key build)', async () => {
   stubApi(uiApi(UI_DECLARED));
   renderApp(PAGE, keyCatalogue(en));
   expect(await screen.findByRole('heading', { level: 2, name: 'settings.progress.title' })).toBeTruthy();
-  expect(screen.getByRole('table', { name: 'settings.progress.table' })).toBeTruthy();
+  expect(await screen.findByRole('table', { name: 'settings.progress.table' })).toBeTruthy();
 });

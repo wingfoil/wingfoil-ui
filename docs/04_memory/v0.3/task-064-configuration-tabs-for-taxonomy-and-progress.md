@@ -461,3 +461,29 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   opening *UI settings*.
 - **Q4 (a):** one shared `web/src/shell/UiYamlWarning.tsx` with the key `shell.uiYaml.ignored`,
   built here; task-065 and task-067 reuse it.
+
+### red / green / refactor (2026-11-14)
+
+- **Split** (`d62a8acc`): Description and AC trimmed to US-C-01 (AC-4 and AC-6 cite
+  task-079-use-preset-on-the-configuration-taxonomy-tab), the approver's answers recorded above.
+- **Red** (`ac34c9fa`): `test/web/configuration/taxonomy.test.tsx`, `progress.test.tsx` (their fake
+  `ui` sections in `data.ts`), `test/web/shell/ui-yaml-warning.test.tsx`, the e2e spec
+  `test/e2e/configuration-tabs.spec.ts`, two `SCREENS` entries appended. `npx vitest run
+  --maxWorkers=2 test/web/configuration test/web/shell/ui-yaml-warning.test.tsx`: 13 tests failed
+  (no route, no tab) and the warning's file failed on its missing module.
+- **Green**: `web/src/configuration/{UiFrame,TaxonomyView,ProgressView}.tsx`, `configuration.css`;
+  `web/src/shell/UiYamlWarning.tsx` and `ui-yaml-warning.css` (Q4 (a)); the two routes and links
+  appended in `web/src/routes/configuration.tsx`; 55 catalogue keys inserted in sorted place
+  (`settings.*`, `shell.uiYaml.ignored`); `docs/user-guide.md` 0.41 (*Taxonomy and progress
+  (ui.yaml)*), `ux-reference.md` 1.22 (§4.11 v0.3 block), `CHANGELOG.md` *Unreleased* › *Added*
+  (and task-068's "No screen shows it yet" line now names the tabs), `test/README.md` 0.91.
+- **Deviations from the design.** (1) D64-4's contract constant `UI_CATEGORIES` was not added:
+  `@wingfoil-ui/contracts` exports types only (its `default` entry is a `dist` the web does not
+  build), so the 8 categories and their meanings are one catalogue message with `<item>`/`<name>`
+  tags (`settings.taxonomy.categories.list`) — still no category literal in `web/`, and no
+  contract change. (2) D64-6's `role="note"`: the REQ-ARC-05 rule reports the literal `note` (a
+  fixture type) and `test/lint/methodology-literals.test.ts` ignores inline disables, so the
+  warning is a plain paragraph (`.ui-yaml-warning`), read in the page's order and never announced
+  as an alert; the tests find it by its class. (3) The ICU examples quote their braces (`'{'`,
+  `'}'`); the patterns example uses double quotes instead of YAML's single ones (an apostrophe is
+  ICU's quote character).

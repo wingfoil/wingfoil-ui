@@ -78,7 +78,7 @@ test('C-04.2 — Treat unparsable ui.yaml the same way', async ({ page, fixtures
   await commitFile(kanban, '.wingfoil/ui.yaml', 'version: 1\nprogress: { mode: flow\n', 'chore: a broken ui.yaml');
   const c = await consoles.start({ projects: [kanban] });
   await openTab(page, c, 'taxonomy');
-  const note = page.getByRole('note');
+  const note = page.locator('.ui-yaml-warning');
   await expect(note).toHaveText(/^ui\.yaml ignored: .*line \d+/);
   const origins = page.locator('.config-origin');
   await expect(origins.first()).toBeVisible();
@@ -90,7 +90,7 @@ test('C-04.2 — Treat unparsable ui.yaml the same way', async ({ page, fixtures
     .getByRole('link', { name: 'Progress' })
     .click();
   await expectFirstLoad(progressTable(page));
-  await expect(page.getByRole('note')).toHaveText(/^ui\.yaml ignored: .*line \d+/);
+  await expect(page.locator('.ui-yaml-warning')).toHaveText(/^ui\.yaml ignored: .*line \d+/);
   expect(new Set(await page.locator('.config-origin').allTextContents())).toEqual(new Set(['inferred']));
 });
 

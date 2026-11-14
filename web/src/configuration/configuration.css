@@ -1,0 +1,194 @@
+/* Configuration › Taxonomy and Progress (task-064; prototype *Tassonomia* and *Avanzamento*: the
+   categories explained, a type → category table, the patterns table, one row per progress key with
+   its value and a hint). Long names and patterns wrap: no horizontal page scroll at 400 px (D64-16). */
+
+.config-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 960px;
+  margin-top: var(--space-4);
+}
+
+.config-tab-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.config-subtitle {
+  margin: var(--space-2) 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.config-help,
+.config-meaning,
+.config-allowed {
+  margin: 0;
+  color: var(--color-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.config-allowed {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.config-example {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.config-key-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.config-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-2);
+  font-size: 13px;
+}
+
+.config-category {
+  margin-right: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+  color: var(--color-primary);
+}
+
+.config-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.config-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.config-table th,
+.config-table td {
+  padding: 8px 10px 8px 0;
+  border-top: 1px solid var(--color-divider);
+  text-align: left;
+  vertical-align: baseline;
+  overflow-wrap: anywhere;
+}
+
+.config-table thead th {
+  border-top: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.config-table tbody th {
+  font-weight: 400;
+}
+
+.config-table code {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.config-value {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.config-origin {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--color-control-border);
+  border-radius: 999px;
+  color: var(--color-text-2);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.config-none {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.config-phases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.config-phases > li + li::before {
+  content: '→ ';
+  color: var(--color-text-muted);
+}
+
+.config-holds {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.config-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.config-current-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.config-current-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.config-current-link .element-id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.config-state {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.config-error {
+  padding: 10px 14px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+}
+
+.config-error-frame {
+  margin: 0 0 4px;
+  color: var(--color-danger);
+  font-weight: 600;
+}
