@@ -23,13 +23,14 @@ tmpl_version: 260703   # Orignal template version
 C1, Wave 3 (RP3-7 "C1a read and tabs, C1b preset write"; `ux-reference.md` §4.11): two new
 Configuration sub-tabs, **Taxonomy** and **Progress**, that explain each `ui.yaml` key and show its
 current value with its origin — *declared*, *inferred* or *derived* — from the `ui` section of
-`GET /api/p/:pid/config` (task-054, spec-012 §2), and the **Use preset** control on Taxonomy that
-applies a shipped preset through `POST /api/p/:pid/ui-config/preset` (task-060, spec-005 §5). The
-sub-tabs are links with one URL each, as *UI settings* (task-041): `/p/<id>/configuration/taxonomy`
-and `/p/<id>/configuration/progress`. The web renders the server's values and never infers one.
+`GET /api/p/:pid/config` (task-054, spec-012 §2). The sub-tabs are links with one URL each, as *UI
+settings* (task-041): `/p/<id>/configuration/taxonomy` and `/p/<id>/configuration/progress`. The
+web renders the server's values and never infers one.
 
-This task hosts the web part of C1b (task-060 is server-only), so it closes the e2e of US-C-02 and
-US-C-03 as well as US-C-01, and of C-04.2 (US-C-04, listed by task-054).
+This task closes the e2e of US-C-01 and of C-04.2 (US-C-04, listed by task-054). The **Use preset**
+control on Taxonomy (the web part of C1b, task-060's route) is delivered by
+task-079-use-preset-on-the-configuration-taxonomy-tab (split at design, 2026-11-14,
+`backlog-item-rel-v0.3-plan` W3-1).
 
 **Backlog items:** US-C-01
 
@@ -55,28 +56,15 @@ US-C-03 as well as US-C-01, and of C-04.2 (US-C-04, listed by task-054).
   ignored: {failure}" at the top and mark every value *inferred*; C-04.2 (US-C-04, task-054's item)
   Treat unparsable ui.yaml the same way passes in this task's spec (a warning naming the YAML error
   and its line on Taxonomy, every value *inferred*).
-- **AC-4 — Use preset.** On Taxonomy: hidden when `.wingfoil/ui.yaml` exists or the user is not
-  identified in the team; disabled with the reason when the copy is behind, diverged or detached or
-  the version is out of range (spec-005 §5, the reasons of spec-003 §6); otherwise a dialog to choose
-  *Kanban*, *Scrum* or *WingFoil sw-life-cycle*, naming the file and the commit it will make, with
-  Confirm and Cancel (modal dismissal as `ux-reference.md` §5; focus returned to the control). On
-  success a toast names the commit and the tabs re-read (`write` and `repo` events); a refusal shows
-  the red toast "ui.yaml not written: {failure}" or the code's text (spec-004 §5 codes
-  `ui-config-invalid`, `ui-config-exists`, `stale-copy`, `not-in-team`, `git-refused`,
-  `write-incomplete`). The e2e spec closes, with tests titled by their ids, task-060's scenarios:
-  C-02.1 (the Kanban preset as one `chore(ui)` commit, then every value *declared*), C-02.2 (a
-  staged `README.md` left out), C-02.3 (no *Use preset* with `ui.yaml`), C-02.5 (none for Riley),
-  C-02.4 ("Blocked: your copy is 1 commit behind the remote — Update"), C-03.1 (the test build whose
-  Kanban preset lacks `version`: the toast, no file, HEAD unchanged) and C-03.2 (the sw-life-cycle
-  preset on kanban: "type service is not declared in memory.yaml").
-- **AC-5 — Docs.** `docs/user-guide.md` (Configuration › Taxonomy and Progress, *Use preset* and the
-  commit it makes), `ux-reference.md` §4.11 a v0.3 block for any decision taken at design (with the
+- **AC-4 — moved** to task-079-use-preset-on-the-configuration-taxonomy-tab (the split, W3-1): the
+  *Use preset* control and its e2e — C-02.1 … C-02.5 (US-C-02) and C-03.1, C-03.2 (US-C-03) — are
+  delivered by task-079.
+- **AC-5 — Docs.** `docs/user-guide.md` (Configuration › Taxonomy and Progress; *Use preset* and the
+  commit it makes are task-079's), `ux-reference.md` §4.11 a v0.3 block for any decision taken at design (with the
   approver), `CHANGELOG.md` *Unreleased*; Version/Date bumped.
-- **AC-6 — Dogfooding (G4).** After task-060 and this task are merged, the approver applies the
-  WingFoil sw-life-cycle preset to this repository from the console (one `chore(ui)` commit in the
-  action log, REQ-SEC-10), so that the A-1/A-2 holds (`release` `releasing`, `release-line`
-  `active`) take effect here; the agent hands the approver the step and records the commit in the
-  Execution Notes, it never applies the preset itself.
+- **AC-6 — moved** to task-079-use-preset-on-the-configuration-taxonomy-tab (the split, W3-1): the
+  approver's dogfooding step (the WingFoil sw-life-cycle preset applied to this repository from the
+  console) is delivered by task-079.
 
 Screen: `docs/00_reference/ux-reference.md` §4.11 (*Taxonomy*, *Progress*), §6 (the file) and the
 prototype (`docs/00_reference/prototype/`, its Configuration view and the *Tassonomia* tab),
@@ -93,8 +81,8 @@ Gates: `typecheck`, `lint`, `format:check`, `test:coverage` (≥ 80 %), `npm run
 and the task's own specs on Chromium, Firefox and WebKit (`npm run test:e2e -- <spec files>`), heavy
 gates through the machine-free slot with the load and the slot wait in each log (dl-009 action 4);
 `check_tasks.py v0.3`.
-The e2e of C-02.x and C-03.x commit to fixtures: also the strict-identity run of `test/README.md`
-*Fixtures* › *Git identity* for that spec (dl-011).
+The e2e of C-02.x and C-03.x, which commit to fixtures, are task-079's with their strict-identity
+run (dl-011); this task's spec commits only in its Given steps (C-04.2's `ui.yaml`).
 
 ## Implementation Notes
 
@@ -110,6 +98,7 @@ The e2e of C-02.x and C-03.x commit to fixtures: also the strict-identity run of
 - The *Use preset* control is the console's first write that is not a Memory verb: the design
   checks with the reviewer that every refusal the server can answer has its text, and that the
   control is never offered where the server would refuse for a reason the page already knows.
+  Moved with the control to task-079 (W3-1); the design's check is D64-13.
 
 ## Execution Notes
 
@@ -456,3 +445,19 @@ about 0.9 day. Above one active day: a split is proposed.
 **Recommended (b)**: two clean scopes along RP3-7's C1a / C1b line, the read with no write, the
 write with all its committing scenarios and the dogfooding step; the new task created by the
 coordinator.
+
+#### Decisions of the approver (2026-11-14)
+
+Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-v0.3-plan` W3-1):
+
+- **Split (b):** task-079-use-preset-on-the-configuration-taxonomy-tab (added `25d5cb28`, body
+  `97522797`, submitted `f98bb5b4`) takes the former AC-4 (C-02.1 … C-02.5, C-03.1, C-03.2), AC-6
+  (the dogfooding hand-over above), *Use preset*'s docs, D64-9 … D64-13, D64-19 and Q2, Q3, Q5 (all
+  (a)). This task keeps US-C-01: AC-1, AC-2, AC-3 with C-04.2, the tabs' docs, D64-1 … D64-8 and
+  D64-14 … D64-18 for the tabs. D64-11's extractions (`reason.tsx`, `WriteResultBody`) are
+  task-079's; the AC-4 rows of the test plan, the *use preset dialog* screen and the refusal table
+  are task-079's. The `UI_PRESET_IDS` constant (D64-10) is task-079's; `UI_CATEGORIES` stays here.
+- **Q1 (a):** the tab order *UI settings · Taxonomy · Progress*; `/p/<id>/configuration` keeps
+  opening *UI settings*.
+- **Q4 (a):** one shared `web/src/shell/UiYamlWarning.tsx` with the key `shell.uiYaml.ignored`,
+  built here; task-065 and task-067 reuse it.
