@@ -358,3 +358,39 @@ and the user guide: this task's changes there are additions only.
   `docs:api` clean; `npx vitest run test/web/memory test/web/i18n test/web/routes test/docs
   --maxWorkers=2` green (68 + 10 + 68); `check_tasks.py v0.3` OK. No local Playwright or
   coverage (Wave 2 overrides): those run on `gates.yml`.
+- **Gates on `gates.yml`** (task scope, W1-11):
+
+  | Run | Commit | Trigger | Result |
+  |-----|--------|---------|--------|
+  | `43648507906` | `473606cc` (green) | push | failure: only M-02.4, on Chromium, Firefox and WebKit — `expectFocusVisible` after `state.focus()` following two mouse clicks (no `:focus-visible` for a programmatic focus after a pointer); checks, coverage, contract, both smokes and every other e2e green |
+  | `43650167157` | `6b5a4926` | push | cancelled by the dispatch below (same concurrency group) |
+  | `43650199306` | `6b5a4926` | dispatch, `specs` = `memory-filters.spec.ts memory-list.spec.ts accessibility.spec.ts` | **success**: checks, coverage (96.71 % statements, 91.84 % branches), contract, smoke, publish-smoke, e2e-chromium 195 + 194 passed, own specs 107 passed on Firefox and 107 on WebKit |
+
+  The fix (`6b5a4926`): M-02.4 reaches the state with `tabUntil` from the bucket link, as a keyboard
+  user does. The three specs are named in the dispatch because the push's own-spec selection
+  takes only the changed spec files (`memory-filters.spec.ts`, `performance.spec.ts`), not
+  `memory-list.spec.ts` (the changed screen) or `accessibility.spec.ts` (the new `SCREENS`
+  entries, task-071 G9).
+- **Strict identity (dl-011):** the task changes no harness or git code; M-03.2's commit outside
+  the UI is task-059's `setFrontmatterValue` by the fixture's identity, run on the runner in the
+  e2e jobs above (Playwright does not run locally, Wave 2 overrides).
+- **AC-4** is `@perf`: its budget is asserted only under `test:timing`, the coordinator's run at
+  the wave gate (D66-14).
+
+#### e2e closure
+
+| Scenario | Spec file : test |
+|----------|------------------|
+| M-02.4 Narrow a bucket to one of its states | `test/e2e/memory-filters.spec.ts` : `M-02.4 — Narrow a bucket to one of its states` |
+| M-01.2 Filter all types by bucket (unchanged) | `test/e2e/memory-list.spec.ts` : `M-01.2 — Filter all types by bucket` |
+| M-02.2 Group unknown states in generic buckets (unchanged) | `test/e2e/memory-list.spec.ts` : `M-02.2 — Group unknown states in generic buckets: <bucket>` (four rows) |
+| M-03.1 Filter the elements missing a required reference | `test/e2e/memory-filters.spec.ts` : `M-03.1 — Filter the elements missing a required reference` |
+| M-03.2 Drop the badge when the reference is added | `test/e2e/memory-filters.spec.ts` : `M-03.2 — Drop the badge when the reference is added` (`@live-refresh`; strict 5 s under `test:timing`) |
+| M-04.1 Hide the filter when no type requires references | `test/e2e/memory-filters.spec.ts` : `M-04.1 — Hide the filter when no type requires references` |
+| M-04.2 Hide the filter on the custom fixture without ui.yaml | `test/e2e/memory-filters.spec.ts` : `M-04.2 — Hide the filter on the custom fixture without ui.yaml` |
+| M-04.3 Show the filter with 0 when every required reference is present | `test/e2e/memory-filters.spec.ts` : `M-04.3 — Show the filter with 0 when every required reference is present` |
+| X-06.4, X-09.1 on the new screens | `test/e2e/accessibility.spec.ts` over `SCREENS`: `memory list — bucket narrowed to a state`, `memory list — missing required references`, `memory list — figure filter` |
+| TT-PERF-04 with `requires` (AC-4) | `test/e2e/performance.spec.ts` : `AC-4 (task-066) — the Memory list with requires renders within 1.0 s (p95, warm cache)` |
+
+T-13.1 … T-13.4 (the figure filter from Today) stay with task-065; AC-3's cases are the component
+tests of `test/web/memory/figure-filter.test.tsx`.
