@@ -119,3 +119,340 @@ The e2e of C-02.x and C-03.x commit to fixtures: also the strict-identity run of
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-14)
+
+Read (definition-of-done 1.5 › build › design): this task; `CLAUDE.md`, `AGENTS.md`; the stage
+plan's W0-x … W2-11 and Wave 2's gate; spec-005 §1–§5 and its Process Notes; spec-012 §2, §9 and
+its Process Notes; spec-004 §3–§6; spec-008 §1–§4; `ux-reference.md` §4.11, §5, §6;
+`features/c/ui-yaml.feature`; the prototype's Configuration view (its *Tassonomia* and
+*Avanzamento* tabs: the 8 categories with a meaning each, a *type → category · requires* table, the
+patterns table, one row per progress key with its value and a hint; no preset control); the
+Execution Notes of task-054 (AC-7's variant `usePresetUiConfig`, D54-6, D54-10), task-068 (D68-9:
+`ui` names escaped, `types` raw, the tabs never join them), task-060 (D60-2's refusal schema,
+D60-12's C-03.1 seam, deviation (3), the e2e closure), task-041 (D41-1, D41-2: the sub-tabs are
+links, `/configuration` leads to *UI settings*), task-038 (the toast store, D38-2 … D38-5, D38-11),
+task-039/040 (the copy state in the header, `UpdateLink`, D40-2). The code it builds on:
+`web/src/routes/configuration.tsx`, `routes/tree.ts`, `api/queries.ts` (`projectConfigQuery`,
+`projectHeaderQuery`), `api/writes.ts`, `api/error-message.ts`, `element/write-toast.tsx`,
+`element/ElementFooter.tsx` (`REASONS`, `reasonMessage`, `ReasonUpdateLink`),
+`repository/UpdateLink.tsx`, `shell/toasts.ts`, `shell/RemoveProjectDialog.tsx` (the modal
+pattern), `contracts/src/ui-config.ts`, `contracts/src/writes.ts`,
+`contracts/api/ui-config.preset.refusal.schema.json`, `web/scripts/catalogue.mjs` (`AREAS`),
+`test/e2e/support/{screens,identity,events,axe}.ts`, `test/e2e/ui-settings.spec.ts` (it asserts
+that *Configuration* opens `/configuration/ui-settings`). No probe: the task starts no new git or
+CLI command (the preset route and its git steps are task-060's, already probed and reviewed).
+
+#### Decisions (D64-n)
+
+- **D64-1 — Tabs and their order.** Two child routes of `configurationRoute`,
+  `/p/$pid/configuration/taxonomy` and `/p/$pid/configuration/progress`, appended to
+  `configurationRoutes.addChildren([...])`, and their two links appended after *UI settings* in
+  the tab row: **UI settings · Taxonomy · Progress**. `/p/$pid/configuration` keeps leading to *UI
+  settings* (task-041 D41-1; `ui-settings.spec.ts` asserts it), so the landing tab stays the first
+  one. `ux-reference.md` §4.11 lists Taxonomy and Progress before the v0.2 *UI settings*; the
+  prototype has no *UI settings* tab — the order is recorded in the §4.11 v0.3 block (Q1).
+- **D64-2 — One read, rendered as served.** Both tabs read `projectConfigQuery(pid)` (`GET
+  /config`, its `ui` section; no new query, no new key) and render each value with its origin
+  exactly as served: the web never infers a value, a category or an origin. Every `ui` string is
+  shown as text (escaped by the server, spec-012 §9); `patterns[].match` in `<code>`, as served
+  (backslashes kept, W1-18), never compiled or tested in the page. The tabs never join a `ui` type
+  name with `types` (D68-9), so the Implementation Notes' escaped-key comparison is needed nowhere:
+  no row of either tab comes from `types`.
+- **D64-3 — Origin badges.** Each value carries a badge "declared", "inferred" or "derived"
+  (`settings.origin`, one ICU `select`), a text inside the row (so C-01.x read it and the row's
+  accessible text includes it); `scope.current` is always "derived" (spec-012 Process Note
+  2026-11-06: no field carries it). Badges are text with a border, no colour-only meaning.
+- **D64-4 — Taxonomy tab (AC-1).** In order: the ui.yaml warning (D64-6); the explanation —
+  why categories exist, where they live (`.wingfoil/ui.yaml › taxonomy`), then the 8 categories,
+  each with its meaning (the prototype's list); then **Types → categories**: one row per
+  `ui.taxonomy.categories` entry (type, category or "No category — not counted in progress
+  figures", its origin) with a *Requires* column filled from `requires.value` (`—` when the type
+  has none) and the origin of `requires` once, in the column's header line; the explanation of
+  `categories` and `requires` with the example `categories: { task: work } · requires: { task:
+  [requirement] }` (an example in the catalogue, not a type literal in code); then **Reference
+  patterns**: `match` → category per row in file order, the origin of `patterns`, "No patterns"
+  when empty, and the explanation — regular expressions, the first match wins, each alternative
+  starts with `^`, no backreference or lookaround, at most 2 quantifiers on single characters, a
+  value over 256 characters never tested (spec-005 §1's safe subset, in plain words) — with the
+  examples of `ux-reference.md` §6; then *Use preset* (D64-9). The category list comes from a new
+  contract constant `UI_CATEGORIES` (`contracts/src/ui-config.ts`, appended; a contract test keeps
+  it equal to `contracts/files/ui-yaml.schema.json`'s enum) and each meaning from one ICU `select`
+  message (`settings.taxonomy.categoryMeaning`), so no category name is a literal in `web/`
+  (REQ-ARC-05: `release` is a fixture type).
+- **D64-5 — Progress tab (AC-2).** One row per key — `mode`, `scope`, `phases`, `iterates`,
+  `defects`, `holds` — with the key (`<code>`), the value, its origin, its meaning and its allowed
+  values (the prototype's layout): `mode` "sequence | flow"; `scope` the type (or "Whole project"
+  when `null`), then the current element on its own line — a link to `/p/<pid>/e/<full id>`
+  (`encodeURIComponent`, spec-011 §2) showing the id, the title and the state pill with its served
+  `tone`, marked "derived" — or "No current {type}" when `current` is `null` in `sequence` mode
+  (spec-005 §4), no line in `flow` mode; `phases` joined by " → " with "matched to the workflow
+  from v0.4" (RP3-14 D2) or "None"; `iterates` and `defects` the type or "None"; `holds` one line
+  per entry (type, state, and the rule's text: `never` → "Approved outside the console (ui.yaml)",
+  the text of spec-005 §4a; `when-references-done` → "Approve not offered while an element that
+  references it is not done", the count-free form of §4a's second text, since the tab has no
+  element to count) or "No held gates". `artifacts` is not shown: no AC asks for it and it has no
+  view before v0.4.
+- **D64-6 — The ui.yaml warning (AC-3, C-04.2).** When `ui.status.source` is `ignored` both tabs
+  show "ui.yaml ignored: {failure}" at the top (`failure` as served, already through the server's
+  sanitiser), as a static note (`role="note"`, not an alert that re-announces on every refetch);
+  the values below are then all "inferred" because the server says so (D64-2). A small component
+  `UiYamlWarning` (`web/src/configuration/UiYamlWarning.tsx`) and its key are shared with task-065
+  and task-067, which show the same sentence (Q4).
+- **D64-7 — No `ui` section.** When `/config` has no `ui` (`memory.yaml` unreadable, spec-012 §2)
+  both tabs show the `types` error from the catalogue (`ErrorText`) and no values; a failed
+  `/config` read shows its error with the existing loading/error pattern (`expectFirstLoad`).
+- **D64-8 — Live refresh.** Nothing new: the `repo` event invalidates `['p', pid]`, so an edit of
+  `ui.yaml` (tracked, untracked or ignored, task-068 D68-5) re-reads `/config`; the preset write's
+  own mutation invalidates the project's queries when it settles (as `useElementWrite`), and other
+  tabs get the `repo` event the write's state check publishes. No handler for the `write` event
+  (no view handles it today; the commit always moves HEAD, so `repo` follows).
+- **D64-9 — *Use preset*: offered, disabled or hidden (AC-4, spec-005 §5).** A pure function
+  `presetControl(header, ui)` (`web/src/configuration/preset-control.ts`) decides, from what the
+  server already told the page: **hidden** when `ui` is absent (D64-7: the write would answer 502
+  `read-error`), when `ui.status.source` is `file` or `ignored` (an entry exists, C-02.3; a
+  `.wingfoil` link reads `ignored`, task-060 Q1), or when `header.identity.kind` is not `member`
+  (`not-in-team`, `no-identity`, `ambiguous`, also after a `dnaError`; C-02.5); otherwise
+  **disabled with the reason**, in spec-003 §6's order — `header.readOnly`'s `version-unsupported`
+  ("Read-only: supported {range}"), then `header.repository.copy` `behind` ("Blocked: your copy is
+  {commits} commit(s) behind the remote — Update", with `header.repository.behind`), `diverged`,
+  `detached` — rendered with the element footer's reason messages and *Update* link (D64-11);
+  otherwise **enabled**. `in-sync`, `ahead`, `no-remote` and `no-upstream` do not block (the
+  server's `blocksWrites`). The control is a button kept focusable when disabled
+  (`aria-disabled`, the reason line its accessible description, as the footer's D37-3). The three
+  presets are always offered: the page does not validate a preset against the project (C-03.2
+  needs the server's 422; D64-2).
+- **D64-10 — The dialog.** A React Aria `ModalOverlay` (`isDismissable` off, Escape closes;
+  `ux-reference.md` §5 *Modal dismissal*): the title "Use a preset"; a `RadioGroup` of *Kanban*,
+  *Scrum*, *WingFoil sw-life-cycle*, each with what it is made for (spec-005 §5's *Made for*
+  column), none chosen at first; a line naming the file and the commit for the chosen preset —
+  "Writes .wingfoil/ui.yaml and commits it alone as chore(ui): apply the {name} preset. Other
+  staged changes stay staged." —; *Confirm* (disabled until a preset is chosen) and *Cancel*. The
+  preset ids come from a new contract constant `UI_PRESET_IDS` (`contracts/src/writes.ts`,
+  appended; a contract test keeps it equal to the request schema's enum); the names and the
+  subject from the catalogue (`settings.preset.name` `select`, `settings.preset.commit`), and a
+  unit test renders the subject for each id against the server's `presetCommitSubject`
+  (`server/src/presets/ui-config.ts`), so the dialog never names another commit than the server
+  makes. While the write runs: Confirm and Cancel disabled, Escape ignored, a polite status
+  "Applying the preset…" inside the dialog. Cancel or Escape: the focus back to *Use preset*.
+- **D64-11 — Shared parts, extracted unchanged.** `reasonMessage`, `REASONS` and the *Update*
+  link of the copy-behind reason move from `ElementFooter.tsx` to `web/src/element/reason.tsx`
+  (`ReasonText {reason, pid, onUpdate…}`), the footer importing them (behaviour unchanged, its
+  tests untouched); the commit list and the push lines of `writeSuccessToast` move to an exported
+  `WriteResultBody` in `write-toast.tsx`, used by both toasts (keys `element.write.commit`,
+  `.pushed`, `.notPushed` unchanged). After *Update* succeeds and the reason (with its link) goes
+  away, the focus moves to *Use preset* when it was on the link (the bug-046 rule: never left on
+  `<body>`).
+- **D64-12 — The write and its toasts.** `web/src/api/ui-config.ts`: `postUiPreset(pid, preset)`
+  (`POST /api/p/:pid/ui-config/preset`, body `{ preset }`) and `useUiPresetWrite()`, a mutation
+  with `{ pid, preset }` as variables (Wave 4 lesson) whose own callbacks raise the toast (D38-11)
+  and whose `onSettled` invalidates `['p', pid]` without awaiting. Toast key `preset:<pid>`.
+  **Success:** "{name} preset applied", the commit line (7-character hash, subject) and "pushed"
+  or the sticky "Not pushed — the commit stays local" with its reason (`WriteResultBody`, D38-3,
+  D38-4); the dialog closes and, the control being gone after the refetch, the focus goes to
+  `#main` (Waves 0–1 lesson: the opener is gone). **Refusal:** a red, sticky toast "{name} preset
+  not applied" with the code's text (`ErrorText`); the dialog closes; the focus goes back to *Use
+  preset* when it is still shown, else `#main`.
+- **D64-13 — Every refusal has its text (the Implementation Notes' check).** The codes of
+  `contracts/api/ui-config.preset.refusal.schema.json`, what the page knows before sending, and the
+  text:
+
+  | Code | Known to the page before sending? | Control | Text |
+  |------|-----------------------------------|---------|------|
+  | `forbidden-origin` | n/a (the console's own page) | — | `error.forbiddenOrigin` |
+  | `unauthenticated` | no (a lost session; task-063 recovers the page) | — | `error.unauthenticated` |
+  | `not-found` | no (the project removed meanwhile) | — | `error.notFound` |
+  | `invalid-request` | the page sends only an id of `UI_PRESET_IDS` | — | `error.invalidRequest` |
+  | `not-in-team` | yes — `header.identity` | hidden | `error.notInTeam` (an identity changed meanwhile) |
+  | `unsupported-version` | yes — `header.readOnly` | disabled, reason | `error.unsupportedVersion` |
+  | `ui-config-exists` | partly — a working-tree entry (`source` `file`/`ignored`); not an entry only in the index or at HEAD (a staged deletion, `skip-worktree`, intent-to-add of a removed file), nor one made meanwhile | hidden for what it knows | **new** `error.uiConfigExists` |
+  | `stale-copy` | yes — `header.repository.copy` (a fetch meanwhile: no) | disabled, reason | `error.staleCopy` |
+  | `ui-config-invalid` | no — the page never validates (D64-2, D64-9) | — | **new** `error.uiConfigInvalid` "ui.yaml not written: {failure}" (spec-008 §4) |
+  | `read-error` | yes when `ui` is absent (D64-7) | hidden | `error.readError` |
+  | `git-refused` | no | — | `error.gitRefused` + git's text verbatim |
+  | `write-incomplete` | no | — | the existing text says "WingFoil did not finish the action … WingFoil made the commit", wrong for a write the console makes itself: a preset-specific text (Q2) |
+  | `cli-refused`, `cli-output`, `cli-timeout`, `cli-not-found` | no (rows 5–6 read on a cold state) | — | existing `error.cli*` |
+  | `internal` | no | — | `error.internal` |
+  | no answer | no | — | `error.unreachable` |
+
+  The two new codes are appended to `MESSAGES` (`api/error-message.ts`). A unit test reads the
+  schema's codes and asserts that each renders its own message (none falls back to `internal`
+  but `internal`), so a code added to the route later without a text fails the build.
+- **D64-14 — Catalogue.** Keys in the existing `settings` area (task-041's Configuration area; no
+  new entry in `web/scripts/catalogue.mjs` `AREAS`): `settings.tab.taxonomy`,
+  `settings.tab.progress`, `settings.origin`, `settings.taxonomy.*`, `settings.progress.*`,
+  `settings.preset.*`; `error.uiConfigExists`, `error.uiConfigInvalid` (spec-008 §4 names both);
+  inserted in sorted place (append-only, RP-43). The warning's key per Q4.
+- **D64-15 — REQ-ARC-05.** No type, state, category or preset-name literal in `web/`: categories
+  and preset ids from the contract constants (D64-4, D64-10), meanings and names from `select`
+  messages, every type and state shown from data.
+- **D64-16 — Accessibility.** The tab links as task-041's (`aria-current="page"`); each tab a
+  section with an `h2`; tables with header cells; the dialog labelled by its title, the radio group
+  by its legend, the description line referenced by Confirm; visible focus everywhere; axe-core 0
+  serious/critical in both themes on each new screen (`scanThemes`); the 400 px width checked for
+  horizontal scroll (bug-044's lesson) with long type names and patterns wrapping (`overflow-wrap`).
+- **D64-17 — Docs (AC-5).** `docs/user-guide.md` *Configuration › Taxonomy* and *› Progress*, *Use
+  preset* (who sees it, when it is disabled, the one `chore(ui)` commit, staged changes left out,
+  the refusal toasts); `ux-reference.md` §4.11 a v0.3 block for D64-1, D64-3 … D64-5, D64-9 …
+  D64-12 once the approver decides them; `CHANGELOG.md` *Unreleased* › *Added* (the tabs and *Use
+  preset*; task-060's "Nothing shows it yet" entry gets a pointer); `test/README.md` version line
+  and the new suites; the spec-008 Process Note if Q2 (a). Version/Date bumped on each.
+- **D64-18 — e2e support.** One spec, `test/e2e/configuration-tabs.spec.ts`, `test.use({ prebuild:
+  ['kanban', 'custom', 'unknown'] })`; Given steps from the existing support — `usePresetUiConfig`
+  (the custom variant, D54-10), `actAs` (Morgan, Alex, Riley), `behindCopy` (`screens.ts`),
+  `commitFile` (an invalid `ui.yaml`), `lastCommitSubject`; the fixture's git reads for C-02.1's
+  one-file commit and C-02.2's staged `README.md` through the harness's `gitEnv`. Every first read
+  waits with `COLD_READ_MS`; transient toasts are asserted right after the action (Wave 5 lesson).
+- **D64-19 — C-03.1's test build.** The shipped bin has no seam that changes a preset (D60-12: only
+  the API test passes a table; a test asserts the launcher passes none). The e2e makes the page
+  receive the answer such a build gives: Playwright's `page.route` on the preset POST fulfils it
+  with task-060's 422 body (`ui-config-invalid`, `detail.failure` "missing required key version"),
+  never forwarding it to the console; the test asserts the red toast, no `.wingfoil/ui.yaml` and
+  HEAD unchanged. The server half of C-03.1 stays closed by task-060's API test (its e2e closure).
+  `page.route` is already used by `update-push.spec.ts` and `submit-footer.spec.ts` (Q3).
+
+#### File layout
+
+| File | Change |
+|------|--------|
+| `web/src/routes/configuration.tsx` | two child routes and two tab links appended (D64-1) |
+| `web/src/configuration/TaxonomyView.tsx`, `ProgressView.tsx` (new) | the tabs (D64-4, D64-5) |
+| `web/src/configuration/Origin.tsx`, `UiYamlWarning.tsx` (new) | the badge, the warning (D64-3, D64-6) |
+| `web/src/configuration/preset-control.ts`, `UsePreset.tsx`, `preset-toast.tsx` (new) | the control's state, the button and dialog, the toasts (D64-9 … D64-12) |
+| `web/src/configuration/configuration.css` (new) | the tables, badges, 400 px wrapping |
+| `web/src/api/ui-config.ts` (new) | `postUiPreset`, `useUiPresetWrite` (D64-12) |
+| `web/src/element/reason.tsx` (new), `ElementFooter.tsx`, `write-toast.tsx` | the shared reason and result parts (D64-11) |
+| `web/src/api/error-message.ts` | two codes appended; the preset `write-incomplete` text (Q2) |
+| `web/src/i18n/en.json` | the keys of D64-14, in sorted place |
+| `contracts/src/ui-config.ts`, `contracts/src/writes.ts`, `contracts/src/index.ts` | `UI_CATEGORIES`, `UI_PRESET_IDS` appended |
+| `test/web/configuration/*.test.tsx` (new), `test/web/api/error-message` cases, `test/contracts/ui-constants.test.ts` (new) | the unit and component tests |
+| `test/e2e/configuration-tabs.spec.ts` (new), `test/e2e/support/screens.ts` | the e2e; `SCREENS` entries appended |
+| `docs/user-guide.md`, `docs/00_reference/ux-reference.md`, `CHANGELOG.md`, `test/README.md` | D64-17 |
+
+No server file changes (module `web`); `contracts/` only appended constants.
+
+#### Specs and gaps
+
+| Artefact | Spec | State |
+|----------|------|-------|
+| The `ui` section the tabs render | spec-012 §2 (approved), `contracts/api/ui-config.schema.json` | covered |
+| The preset route, its codes, the commit | spec-005 §5, spec-004 §3–§6 (approved) | covered |
+| The control's hidden and disabled states | spec-005 §5 | covered; D64-9 reads them from the header (Q5) |
+| The texts of `ui-config-exists`, `ui-config-invalid` | spec-008 §4 | named there; texts in the catalogue |
+| The text of the preset's `write-incomplete` | spec-008 §4 (`error.<code>`) | **gap**: the one key's text names WingFoil (Q2) |
+| The count-free hold text (D64-5) | spec-005 §4a | no gap: §4a's texts are per element; the implementing task words the catalogue (spec-008 §4) |
+| The tab order and the screens | `ux-reference.md` §4.11 | the v0.3 block, with the approver (Q1) |
+
+No new tech-spec is needed: no file format, schema, constant set or module API beyond two contract
+constants that mirror existing schema enums (each kept equal by a test).
+
+#### Classification and test plan
+
+Every AC is **red-first** (no Taxonomy or Progress tab and no *Use preset* exist); the extractions
+of D64-11 are **characterization** (the footer's and the toast's tests stay green unchanged).
+
+| AC / scenario | Unit / component test | e2e (`test/e2e/configuration-tabs.spec.ts` › title) |
+|---------------|-----------------------|-------------------------------------------------------|
+| C-01.1 | `test/web/configuration/taxonomy.test.tsx` › inferred rows and the 8 categories | "C-01.1 — Show inferred values on a project without ui.yaml" (kanban, Alex) |
+| C-01.2 | `test/web/configuration/progress.test.tsx` › declared scope, derived current element (link `href` encoded), mode and its allowed values | "C-01.2 — Show declared values from ui.yaml" (custom with the sw-life-cycle preset, Alex; the link opens `minor-v0.1`'s page) |
+| C-01.3 | `taxonomy.test.tsx` › no category | "C-01.3 — Mark a type with no inferable category" (unknown, Alex) |
+| AC-1 rest | `taxonomy.test.tsx` › patterns as served (a backslash and a visible `‮` escape shown as text), requires, empty lists, the explanation | in C-01.1/C-02.1 (the rows seen) |
+| AC-2 rest | `progress.test.tsx` › `scope` `null` ("Whole project"), `current` `null` ("No current {type}"), phases note, `iterates`/`defects` `null`, each `holds` rule, flow mode | "AC-2 — the Progress tab on the kanban fixture" (inferred `flow`, no scope) |
+| AC-3 / C-04.2 | `taxonomy.test.tsx`, `progress.test.tsx` › the warning and every origin "inferred"; no `ui` → the `types` error | "C-04.2 — Treat unparsable ui.yaml the same way" (kanban copy with a committed invalid `ui.yaml`, Taxonomy: the warning names the YAML error and its line, every badge "inferred"); "AC-3 — the ui.yaml warning on Progress" |
+| AC-4 states | `test/web/configuration/preset-control.test.ts` › hidden: no `ui`, `file`, `ignored`, each non-member identity; disabled in order: version, behind (with the count), diverged, detached; enabled: in-sync, ahead, no-remote, no-upstream | "C-02.3 — Offer no preset when ui.yaml exists" (custom with the preset, Alex); "C-02.5 — Offer no preset to a user who is not in the team" (kanban, Riley); "C-02.4 — Block the preset while the copy is behind" (`behindCopy`, Morgan: the disabled button's description "Blocked: your copy is 1 commit behind the remote — Update") |
+| AC-4 dialog | `test/web/configuration/use-preset.test.tsx` › the three choices with their notes, the file and subject line per choice, Confirm disabled until a choice, Cancel and Escape returning the focus, no outside-click dismissal, the pending state (buttons disabled, Escape ignored, the status), the POST body; *Update* in the reason, then the focus on *Use preset*; `test/web/configuration/preset-subject.test.ts` › each id's subject equals `presetCommitSubject` | "AC-4 — the dialog from the keyboard" (open with Enter, choose with the arrows, Escape: the focus on *Use preset*, no commit) |
+| AC-4 success | `use-preset.test.tsx` › the success toast (commit line, pushed, not pushed), the focus on `#main`, the invalidation | "C-02.1 — Apply the Kanban preset as one chore(ui) commit" (kanban copy, Morgan: the toast's commit line, `lastCommitSubject`, the commit changes exactly `.wingfoil/ui.yaml`, Taxonomy every value "declared" — categories, patterns, requires, as task-060 deviation (3)); "C-02.2 — Leave other staged changes out of the commit" (`README.md` staged before, still staged and uncommitted after) |
+| AC-4 refusals | `use-preset.test.tsx` › one case per code of D64-13 (the toast's text; `git-refused` verbatim; `write-incomplete` with and without `commit`; no answer), the focus after; `test/web/api/error-message` › every code of the preset refusal schema renders its own message | "C-03.1 — Refuse a preset that fails the schema" (D64-19: the red toast "ui.yaml not written: missing required key version", no file, HEAD unchanged); "C-03.2 — Refuse a preset that maps a type the project does not declare" (kanban, sw-life-cycle: "ui.yaml not written: type service is not declared in memory.yaml", no file) |
+| Contracts | `test/contracts/ui-constants.test.ts` › `UI_CATEGORIES` = the schema's category enum, `UI_PRESET_IDS` = the request schema's enum | — |
+| Accessibility, X-06.4, X-09.1 | — | "X-06 — the tabs and the dialog in both themes" (axe on Taxonomy, Progress, the dialog); `SCREENS` appended: *configuration — taxonomy* (`pids[0]`, kanban as Morgan: inferred values and *Use preset*), *configuration — progress* (`pids[1]`, custom), *configuration — use preset dialog* (`pids[0]`, the dialog open) — so `accessibility.spec.ts` X-06.4 and X-09.1 cover them, one test per screen |
+
+**Strict identity (dl-011).** The committing tests (C-02.1, C-02.2; C-03.x check that nothing is
+committed) run in Playwright, which runs only on `gates.yml` (dev rules): their run on the CI
+runner — a fresh account with no identity of its own (task-071) — is the strict-identity evidence,
+as for task-062's G-01.7 and task-078's G-08.x; the fixture copies carry their member's identity
+(`actAs`). No local suite of this task touches git (the component tests mock the API), so no
+local wrapper run is needed; if one is added, it runs under the wrapper of `test/README.md` *Git
+identity*. Gates: locally typecheck, lint, format:check, `docs:api`, targeted `npx vitest run
+--maxWorkers=2 <files>`, `check_tasks.py v0.3`, the public-text check before each push; on
+`gates.yml`: `test:coverage`, `test:contract`, `test:e2e:chromium`, the own spec (and
+`accessibility.spec.ts`, whose screens grow: a dispatch with `specs` if `e2e-own-specs` does not
+select it, task-071 G9) on Firefox and WebKit; run id, commit and result in these notes.
+
+#### AC-6 — the approver's dogfooding step
+
+Never done by an agent (CLAUDE.md: an agent never acts through the approver's console). After this
+task and task-060 are merged into the phase branch, the coordinator hands the approver the step
+below in the gate packet, and records the commit here when the approver reports it:
+
+1. In a terminal the approver opens (not one an agent session started), start the console on this
+   repository's main checkout (`npx wingfoil-ui` from the phase branch's build), with the copy in
+   sync with its remote (else *Use preset* is disabled with the reason).
+2. *Configuration › Taxonomy › Use preset*, choose *WingFoil sw-life-cycle*, check that the dialog
+   names `.wingfoil/ui.yaml` and `chore(ui): apply the WingFoil sw-life-cycle preset`, Confirm.
+3. Expect one commit `chore(ui): apply the WingFoil sw-life-cycle preset` changing only
+   `.wingfoil/ui.yaml`, in the console's action log (REQ-SEC-10); *Taxonomy* then shows every value
+   "declared"; a release in `releasing` and a release line in `active` show the hold's line instead
+   of *Approve* (A-1, A-2).
+4. Push with the usual OK; the coordinator records the commit's hash and the action-log entry in
+   these notes (the check `git show --stat <hash>`).
+
+If the task is split (*Size* below), AC-6 moves with *Use preset*.
+
+#### Questions (one recommendation each)
+
+- **Q1 — Tab order (D64-1).** (a) *UI settings · Taxonomy · Progress*, `/configuration` still
+  opening *UI settings* (the landing tab first; v0.2 tests unchanged; recorded in the §4.11 v0.3
+  block); (b) *Taxonomy · Progress · UI settings* (`ux-reference.md` §4.11's order), the landing
+  tab then the third one; (c) (b) with `/configuration` opening *Taxonomy* (changes task-041's
+  D41-1 and `ui-settings.spec.ts`). **Recommended (a).**
+- **Q2 — The preset's `write-incomplete` text.** `error.writeIncomplete` reads "WingFoil did not
+  finish the action: check {file} with git before trying again — WingFoil made the commit
+  {commit}"; the preset write is the console's own git commit. (a) A variant key
+  `error.writeIncomplete.preset` ("The preset was not applied completely: check {file} with git
+  before trying again{commit, select, none {} other { — the commit {commit} was made}}"), chosen by
+  the preset toast only, inside spec-008 §2's `<area>.<item>.<variant>` scheme, with a spec-008 §4
+  Process Note (a route may render a code from a variant of its key); (b) reuse the existing text
+  (wrong: it names WingFoil); (c) reword `error.writeIncomplete` for both writes (a changed meaning
+  needs a new key, spec-008 §2, and changes the element writes' tests). **Recommended (a).**
+- **Q3 — C-03.1's "test build" in e2e (D64-19).** (a) `page.route` fulfils the POST with
+  task-060's 422 body: the user-visible half in this spec, the server half in task-060's API test,
+  both named in the e2e closure; (b) a test-only launcher under `test/` that starts the server with
+  a preset table (a second entry point to keep equal to `start.ts`, against D60-12's intent that
+  nothing outside the API test reaches the seam); (c) close C-03.1 at the component level only.
+  **Recommended (a).**
+- **Q4 — The shared ui.yaml warning (D64-6).** task-065 (Today, C-04.1) and task-067
+  (Traceability, C-04.3) show the same "ui.yaml ignored: {failure}". (a) One component and one key
+  (`shell.uiYaml.ignored`, in `web/src/shell/UiYamlWarning.tsx`), created by whichever of the three
+  tasks merges first and reused by the others (the coordinator relays the name to task-065's and
+  task-067's developers now); (b) each task its own key (three identical strings). **Recommended
+  (a).**
+- **Q5 — Where the control's rule lives (D64-9).** (a) In the web, from the header and `ui` (the
+  rules spec-005 §5 states for the page; the server re-checks every one fresh under the lock; no
+  contract change); (b) a server-made `ui.preset { offered, reason? }` in `/config` (one source of
+  truth, but a server and contract change in a web task, and `/config` would depend on the
+  identity). **Recommended (a).**
+
+#### Size (RP3-20 G2)
+
+About **1.7 active days**: the tabs (two views, the badge, the warning, about 40 catalogue keys,
+two component suites, five e2e tests, three `SCREENS` entries, the docs) about 0.8 day; *Use
+preset* (the control's rule, the dialog, the write and its toasts, the D64-11 extractions, the
+refusal table's tests, seven committing or commit-checking e2e tests, the AC-6 hand-over, the docs)
+about 0.9 day. Above one active day: a split is proposed.
+
+- (a) No split: one task, one review (the write's UI is small, but the review of the refusal
+  texts and the committing e2e doubles the review surface).
+- (b) **Split in two** (the form of W2-5 … W2-7): task-064 keeps US-C-01 — AC-1, AC-2, AC-3 with
+  C-04.2, the tabs' part of AC-5, D64-1 … D64-8, D64-14 … D64-18 for the tabs — and cites C-02.x and
+  C-03.x as delivered by the new task; a new task, *Use preset on the Configuration Taxonomy tab*
+  (module `web`, `ref` US-C-02, after task-064 and task-060), takes AC-4 with C-02.1 … C-02.5,
+  C-03.1, C-03.2, AC-6, *Use preset*'s part of AC-5, D64-9 … D64-13, D64-19 and Q2, Q3, Q5. Each
+  about 0.8–0.9 day, each with its own e2e spec (`configuration-tabs.spec.ts`,
+  `use-preset.spec.ts`) and `SCREENS` entries.
+- (c) Split by risk: the tabs plus the hidden states (C-02.3, C-02.5) here, the dialog and the
+  write in the new task — the hidden states need the control, so the new task would reopen the
+  same component.
+
+**Recommended (b)**: two clean scopes along RP3-7's C1a / C1b line, the read with no write, the
+write with all its committing scenarios and the dogfooding step; the new task created by the
+coordinator.
