@@ -160,7 +160,7 @@ describe('ageOf', () => {
 });
 
 // task-066 — the states of a bucket (N7, AC-1), the missing-references filter (AC-2), the figure ids
-// (AC-3) and the URL (D66-2).
+// (AC-3) and the URL (D66-2): `memorySearch` is the route's validation (the address itself is kept).
 const FLAGGED = (e: ListedElement): ListedElement => ({ ...e, missingCategories: ['requirement'] });
 const MIXED = [
   el('z1', 'zeta', 's1', 'waiting', 'neutral'),

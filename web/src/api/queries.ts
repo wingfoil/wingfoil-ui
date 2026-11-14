@@ -10,6 +10,7 @@ import type {
   ProjectConfig,
   ProjectHeader,
   ProjectListResponse,
+  Progress,
   ServerInfo,
   Today,
   UiSettings,
@@ -133,5 +134,17 @@ export function settingsQuery() {
   return queryOptions({
     queryKey: queryKeys.settings(),
     queryFn: ({ signal }) => apiGet<UiSettings>('/api/settings', signal),
+  });
+}
+
+/**
+ * `GET /api/p/:pid/progress`: the progress figures (spec-012 §3). Shared by the Memory list's figure
+ * filter (task-066 D66-8, read only while `?figure=` names a known code) and Today's progress card
+ * (task-065): one entry per repository state, refreshed by `repo` like every `['p', pid]` key.
+ */
+export function progressQuery(pid: string) {
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'progress'),
+    queryFn: ({ signal }) => apiGet<Progress>(`${projectPath(pid)}/progress`, signal),
   });
 }

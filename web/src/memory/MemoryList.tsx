@@ -1,26 +1,35 @@
 /**
  * The Memory list (ux-reference §4.4, prototype Memory screen): the heading and the number of
  * types; row 1, the type filters of `memory.yaml` with counts; row 2, the state filters — with *All
- * types* the four buckets of the descriptor, with a type its states —; the rows (type tag, title,
- * id, *local changes*, age in the state, state pill with the descriptor's tone), each opening the
- * element panel. Read-only in v0.1: no "+ Ingestion", no producer note, no missing-references chip
- * (W3-26). Filters are links: the URL holds them.
+ * types* the four buckets of the descriptor, with a type its states — and, from v0.3, the filter
+ * "Missing required references" (task-066 D66-4); under a selected bucket, its states (D66-3); the
+ * active filter with *Clear filter* (D66-7); the rows (type tag, title, id, *local changes*,
+ * "missing refs", age in the state, state pill with the descriptor's tone), each opening the
+ * element page (task-062). No "+ Ingestion" and no producer note (W3-26). Filters are links: the
+ * URL holds them; a figure of the progress card filters on the ids of `/progress` (D66-9).
  *
  * Renders the server's data as is: the bucket and the tone come with each element's descriptor
- * (spec-003 §8), never re-derived; type and state names are shown as written.
+ * (spec-003 §8), the missing references with each row (spec-012 §5), a figure's ids with
+ * `/progress` — never re-derived; type, state and category names are shown as written.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
-import type { ElementList, ListedElement, ProjectConfig } from '@wingfoil-ui/contracts';
+import type { ElementList, ListedElement, Progress, ProjectConfig } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
+import { FIGURE_LABELS, figureCode, shownFigure } from './figure.js';
+import { MissingRefsBadge } from './MissingRefsBadge.js';
 import {
   ageOf,
+  BUCKET_FILTERS,
   bucketFilters,
+  bucketStateFilters,
   filterRows,
   isListedType,
+  MISSING_REFS,
+  missingCount,
   stateFilters,
   typeFilters,
   typesOf,
@@ -39,6 +48,8 @@ export interface MemoryListProps {
   elements: Read<ElementList>;
   /** Every element, archived ones included: read once a type is selected (W3-24). */
   withArchived?: Read<ElementList> | undefined;
+  /** `GET /progress`: read while a figure is in the URL (task-066 D66-8). */
+  progress?: Read<Progress> | undefined;
 }
 
 /**
@@ -60,8 +71,12 @@ function navigatesHere(event: MouseEvent<HTMLAnchorElement>): boolean {
 }
 
 /** An error of a query as the catalogue renders it. */
+function toApiError(error: Error): ApiError {
+  return error instanceof ApiError ? error : new ApiError(0, 'internal', error.message, undefined);
+}
+
 function QueryError({ error }: { error: Error }): ReactNode {
-  const e = error instanceof ApiError ? error : new ApiError(0, 'internal', error.message, undefined);
+  const e = toApiError(error);
   return (
     <div className="memory-error" role="alert">
       <ErrorText error={e} />
@@ -118,6 +133,8 @@ function Age({ since, now }: { since: string | undefined; now: number }): ReactN
 /** One row: a link to the element panel. */
 function Row({ pid, element, now }: { pid: string; element: ListedElement; now: number }): ReactNode {
   const tone = element.descriptor?.tone;
+  const descriptionId = useId();
+  const missing = element.missingCategories;
   return (
     <li>
       <Link
@@ -125,6 +142,7 @@ function Row({ pid, element, now }: { pid: string; element: ListedElement; now: 
         to="/p/$pid/e/$eid"
         params={{ pid, eid: element.id }}
         data-eid={element.id}
+        aria-describedby={missing !== undefined ? descriptionId : undefined}
         onClick={(event) => {
           // Only a click that navigates here (primary button, no modifier: not a new tab or window).
           if (navigatesHere(event)) returnRow = { pid, eid: element.id };
@@ -140,6 +158,7 @@ function Row({ pid, element, now }: { pid: string; element: ListedElement; now: 
             <FormattedMessage id="memory.localChanges" />
           </span>
         )}
+        {missing !== undefined && <MissingRefsBadge categories={missing} descriptionId={descriptionId} />}
         <Age since={element.descriptor?.since} now={now} />
         <span className={tone === undefined ? 'state-pill' : `state-pill tone-${tone}`}>{element.status}</span>
       </Link>
@@ -148,7 +167,7 @@ function Row({ pid, element, now }: { pid: string; element: ListedElement; now: 
 }
 
 /** The Memory list. */
-export function MemoryList({ pid, filters, config, elements, withArchived }: MemoryListProps): ReactNode {
+export function MemoryList({ pid, filters, config, elements, withArchived, progress }: MemoryListProps): ReactNode {
   const intl = useIntl();
   const list = elements.data;
   const selected = filters.type;
@@ -161,13 +180,32 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   // A selected type lists its archived elements too, once read (W3-24); its count stays on `base`.
   const pool = filters.type !== undefined ? (withArchived?.data?.elements ?? base) : base;
   const ofType = filters.type !== undefined ? pool.filter((e) => e.type === filters.type) : [];
-  const rows = filterRows(pool, filters);
+  // A figure (D66-9): its ids once `/progress` answered; a figure not shown, or a failed read, filters
+  // nothing. The rows wait for the answer (no unfiltered flash).
+  const figure = figureCode(filters.figure);
+  const shown = figure !== undefined && progress?.data !== undefined ? shownFigure(progress.data, figure) : undefined;
+  const awaitingFigure =
+    figure !== undefined && progress !== undefined && progress.data === undefined && progress.error === null;
+  const rows = filterRows(pool, filters, shown?.ids);
+  // The missing-references filter (D66-4): offered when `requires` names a type, with a type only when
+  // it names that one.
+  const requiredTypes = config.data?.ui?.taxonomy.requires.value.map((r) => r.type) ?? [];
+  const missingOffered =
+    list?.missingReferences?.shown === true && (selected === undefined || requiredTypes.includes(selected));
+  const selectedBucket =
+    selected === undefined && figure === undefined && filters.missing === undefined
+      ? BUCKET_FILTERS.find((b) => b.key === filters.bucket)
+      : undefined;
+  const bucketLabel = selectedBucket?.label;
   // A type in the URL that is neither declared nor on an element (review F5), known only once the
   // configuration is settled, as the route's archived read (review N3).
   const configSettled = config.data !== undefined || config.error !== null;
   const unknownType =
     list !== undefined && configSettled && selected !== undefined && !isListedType(types, base, selected);
   const listRef = useRef<HTMLUListElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  // *Clear filter* moves the focus to the heading once the cleared list is shown (D66-7).
+  const focusHeading = useRef(false);
 
   // Back from the element panel: the row it was opened from is taken when the list mounts, and
   // focused once the rows are there (W3-23). A later refetch never moves the focus.
@@ -198,7 +236,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
   // Every refresh that changed the list is announced (directive `accessibility`): each one renders a
   // new node in the live region (keyed by a counter), and a filter change clears it (review F3).
   // The ages are computed against the time of the last read.
-  const filterKey = JSON.stringify([filters.type, filters.state, filters.bucket]);
+  const filterKey = JSON.stringify([filters.type, filters.state, filters.bucket, filters.missing, filters.figure]);
   const [announcement, setAnnouncement] = useState<{ n: number; filterKey: string } | undefined>(undefined);
   const [now, setNow] = useState(Date.now);
   const previous = useRef<ElementList | undefined>(undefined);
@@ -216,11 +254,34 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
     }
     previous.current = list;
   }, [list, filterKey]);
+  useEffect(() => {
+    if (!focusHeading.current) return;
+    focusHeading.current = false;
+    pendingRow.current = undefined;
+    headingRef.current?.focus();
+  }, [filterKey]);
+
+  // The active filter (D66-7): what narrows the list beyond the type, and where *Clear filter* goes.
+  const activeName =
+    shown !== undefined && figure !== undefined
+      ? intl.formatMessage(FIGURE_LABELS[figure], shown.values)
+      : filters.missing !== undefined
+        ? intl.formatMessage({ id: 'memory.filter.missing' })
+        : bucketLabel !== undefined
+          ? filters.state !== undefined
+            ? intl.formatMessage(
+                { id: 'memory.active.bucketState' },
+                { bucket: intl.formatMessage(bucketLabel), state: filters.state },
+              )
+            : intl.formatMessage(bucketLabel)
+          : undefined;
+  const clearSearch: ListFilters = filters.missing !== undefined && selected !== undefined ? { type: selected } : {};
+  const missingRefs = list?.missingReferences;
 
   return (
     <div className="page memory">
       <div className="memory-head">
-        <h1 className="page-title">
+        <h1 className="page-title" ref={headingRef} tabIndex={-1}>
           <FormattedMessage id="memory.title" />
         </h1>
         {types && (
@@ -238,7 +299,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
       </div>
       {elements.error ? (
         <QueryError error={elements.error} />
-      ) : !list ? (
+      ) : !list || awaitingFigure ? (
         <p className="muted" role="status">
           <FormattedMessage id="memory.loading" />
         </p>
@@ -252,6 +313,30 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
           {list.eventsError && (
             <p className="memory-notice">
               <FormattedMessage id="memory.notice.eventsError" />
+            </p>
+          )}
+          {figure !== undefined && progress?.error && (
+            <div className="memory-notice" role="alert">
+              <p>
+                <FormattedMessage id="memory.notice.figureError" />
+              </p>
+              <ErrorText error={toApiError(progress.error)} />
+            </div>
+          )}
+          {missingRefs?.shown === true && missingRefs.unreadable.length > 0 && (
+            <p className="memory-notice">
+              <FormattedMessage
+                id="memory.notice.missingUnreadable"
+                values={{ count: missingRefs.unreadable.length, ids: intl.formatList(missingRefs.unreadable) }}
+              />
+            </p>
+          )}
+          {missingRefs?.shown === true && missingRefs.capped.length > 0 && (
+            <p className="memory-notice">
+              <FormattedMessage
+                id="memory.notice.missingCapped"
+                values={{ count: missingRefs.capped.length, ids: intl.formatList(missingRefs.capped) }}
+              />
             </p>
           )}
           {list.warnings.length > 0 && (
@@ -313,6 +398,56 @@ export function MemoryList({ pid, filters, config, elements, withArchived }: Mem
                 ))}
               </ul>
             )
+          )}
+          {selectedBucket !== undefined && (
+            <ul
+              className="filter-row filter-states filter-bucket-states"
+              aria-label={intl.formatMessage(
+                { id: 'memory.filter.bucketStates' },
+                { bucket: intl.formatMessage(selectedBucket.label) },
+              )}
+            >
+              {bucketStateFilters(types, base, selectedBucket.key).map((s) => (
+                <FilterLink
+                  key={s.state}
+                  pid={pid}
+                  search={{ bucket: selectedBucket.key, state: s.state }}
+                  name={s.state}
+                  count={s.count}
+                  tone={s.tone}
+                />
+              ))}
+            </ul>
+          )}
+          {missingOffered && !unknownType && (
+            <ul
+              className="filter-row filter-states filter-refs"
+              aria-label={intl.formatMessage({ id: 'memory.filter.references' })}
+            >
+              <FilterLink
+                pid={pid}
+                search={{ ...(selected !== undefined ? { type: selected } : {}), missing: MISSING_REFS }}
+                name={intl.formatMessage({ id: 'memory.filter.missing' })}
+                count={missingCount(base, selected)}
+                tone="danger"
+              />
+            </ul>
+          )}
+          {activeName !== undefined && (
+            <div className="memory-active" role="group" aria-label={intl.formatMessage({ id: 'memory.active.label' })}>
+              <span className="memory-active-name">{activeName}</span>
+              <Link
+                className="memory-active-clear"
+                to="/p/$pid/memory"
+                params={{ pid }}
+                search={clearSearch}
+                onClick={(event) => {
+                  if (navigatesHere(event)) focusHeading.current = true;
+                }}
+              >
+                <FormattedMessage id="memory.active.clear" />
+              </Link>
+            </div>
           )}
           <ul ref={listRef} className="memory-rows" aria-label={intl.formatMessage({ id: 'memory.list.label' })}>
             {rows.map((e) => (

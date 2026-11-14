@@ -216,3 +216,31 @@
     width: auto;
   }
 }
+
+/* task-066 — the states of a bucket (D66-3), the missing-references filter and badge (D66-4,
+   D66-5), the active filter (D66-7). */
+.filter-dot.tone-danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+}
+
+.memory-badge-missing {
+  border: 1px solid var(--color-danger);
+  background: transparent;
+  color: var(--color-danger);
+}
+
+.memory-active {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+}
+
+.memory-active-name {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--tone-active-bg);
+  color: var(--tone-active-fg);
+}

@@ -219,9 +219,9 @@ describe('AC-1 — the states of a bucket (N7)', () => {
 
   it('drops a state with neither type nor bucket; with a type, the state filters and no active filter are v0.1', async () => {
     stubApi(api());
-    const { router } = renderApp(`/p/${PID}/memory?state=s1`);
+    renderApp(`/p/${PID}/memory?state=s1`);
     await waitFor(() => expect(rows()).toHaveLength(6));
-    expect(router.state.location.search).toEqual({});
+    expect(screen.queryByRole('group', { name: 'Active filter' })).toBeNull();
     cleanup();
     stopEventStream();
     renderApp(`/p/${PID}/memory?type=kind-a&state=s1`);
@@ -289,9 +289,12 @@ describe('AC-2 — missing required references (M2)', () => {
 
   it('is exclusive with a bucket: missing=refs wins, the bucket link is not current', async () => {
     stubApi(api());
-    const { router } = renderApp(`/p/${PID}/memory?missing=refs&bucket=done`);
+    renderApp(`/p/${PID}/memory?missing=refs&bucket=done`);
     await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'm-001-delta']));
-    expect(router.state.location.search).toEqual({ missing: 'refs' });
+    expect(screen.getByRole('group', { name: 'Active filter' }).querySelector('.memory-active-name')?.textContent).toBe(
+      MISSING,
+    );
+    expect(screen.queryByRole('list', { name: /^In / })).toBeNull();
     expect(screen.getByRole('link', { name: /^Done,/ }).getAttribute('aria-current')).toBeNull();
   });
 
@@ -340,7 +343,7 @@ describe('AC-2 — missing required references (M2)', () => {
       }),
     );
     renderApp(`/p/${PID}/memory?bucket=waiting&state=s1`, keyCatalogue(en));
-    await waitFor(() => expect(rows()).toEqual(['k-002-beta', 'm-002-eps']));
+    await screen.findByText('memory.filter.missing');
     expect(screen.getByText('memory.filter.missing')).toBeTruthy();
     expect(screen.getByRole('group', { name: 'memory.active.label' })).toBeTruthy();
     expect(screen.getByRole('list', { name: 'memory.filter.bucketStates memory.bucket.waiting' })).toBeTruthy();

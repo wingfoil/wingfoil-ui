@@ -144,9 +144,10 @@ describe('AC-3 — the figure filter', () => {
   ] as const) {
     it(`AC-3 ${code} — lists the figure's elements in list order, the other filters cleared, named "${label}"`, async () => {
       stubApi(api());
-      const { router } = renderApp(`/p/${PID}/memory?figure=${code}&type=kind-a&bucket=done`);
+      renderApp(`/p/${PID}/memory?figure=${code}&type=kind-a&bucket=done`);
       await waitFor(() => expect(rows()).toEqual(ids));
-      expect(router.state.location.search).toEqual({ figure: code });
+      // The type and the bucket of the address are cleared: the state row offers the buckets.
+      expect(within(screen.getByRole('list', { name: 'States' })).getAllByRole('link')).toHaveLength(5);
       expect(activeName()).toBe(label);
       // The counts of the filter rows stay those of the whole list.
       expect(screen.getByRole('link', { name: /^All types,/ }).textContent).toBe('All types5');
@@ -167,9 +168,8 @@ describe('AC-3 — the figure filter', () => {
 
   it('AC-3 unknown code — the unfiltered list, no active filter, no /progress read', async () => {
     const fetch = stubApi(api());
-    const { router } = renderApp(`/p/${PID}/memory?figure=bogus`);
+    renderApp(`/p/${PID}/memory?figure=bogus`);
     await waitFor(() => expect(rows()).toEqual(ALL));
-    expect(router.state.location.search).toEqual({});
     expect(activeName()).toBeUndefined();
     expect(paths(fetch)).not.toContain(PROGRESS);
   });
