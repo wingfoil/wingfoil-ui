@@ -323,3 +323,11 @@ not name both; `accessibility.spec.ts` for the new screens (task-078's G9 lesson
 About **1.4 active days**: red 0.6 (model and component tests 0.3, the e2e spec 0.2, screens and
 the `@perf` test 0.1); green 0.5 (model, route, list UI, catalogue, CSS); refactor and docs 0.15;
 gates and the `gates.yml` runs 0.15. Without AC-3 (Q4 (b)): about 1.0.
+
+### design approved (2026-11-14, W3-1)
+
+The approver, 2026-11-14 ("tutto come consigliato"; `backlog-item-rel-v0.3-plan` W3-1): Q1 (a)
+`?missing=refs`, recorded in `ux-reference.md` §4.4 and a spec-012 §5 Process Note; Q2 (a) the
+figure labels defined here (D66-9); Q3 (a) the §4.4 refinements as designed (D66-3, D66-4, D66-7);
+Q4 (a) no split. task-064 runs in parallel and also adds to `en.json`, `screens.ts`, `CHANGELOG.md`
+and the user guide: this task's changes there are additions only.
