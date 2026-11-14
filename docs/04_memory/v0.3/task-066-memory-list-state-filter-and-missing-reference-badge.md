@@ -331,3 +331,30 @@ The approver, 2026-11-14 ("tutto come consigliato"; `backlog-item-rel-v0.3-plan`
 figure labels defined here (D66-9); Q3 (a) the §4.4 refinements as designed (D66-3, D66-4, D66-7);
 Q4 (a) no split. task-064 runs in parallel and also adds to `en.json`, `screens.ts`, `CHANGELOG.md`
 and the user guide: this task's changes there are additions only.
+
+### red / green / refactor (2026-11-14)
+
+- **Red** (`ae9e267f`): `test/web/memory/{filters,figure-filter}.test.tsx` (new), the task-066 part
+  of `model.test.ts`, `test/e2e/memory-filters.spec.ts` (new), three `SCREENS` entries and the AC-4
+  `@perf` test; stubs in `model.ts` (`MISSING_REFS`, `bucketStateFilters`, `missingCount`, the
+  `ids` argument of `filterRows`) kept the typecheck green. `npx vitest run test/web/memory/
+  {model,filters,figure-filter}` → 32 failed, 17 passed. The passing ones were the model's v0.1
+  tests and two guards that hold before the task (AC-3 "a figure not shown" and "no /progress
+  read without a figure": the list was unfiltered and read no `/progress`).
+- **Green** (`473606cc`): D66-1 … D66-12 as designed. Deviations, none of behaviour:
+  - TanStack Router passes the address's other keys on to the route's search (the layout's
+    `panelSearch` and the root route keep them), so `?figure=pending-gates&type=x` reached the list
+    with `type` set: the page applies `memorySearch` again to what `useSearch` returns (the address
+    itself is left as typed). The component tests assert that a deep link's extra keys are ignored
+    by what the list shows rather than by `router.state.location.search`.
+  - The figure label's arguments come from `shownFigure` (`figure.ts`), which returns the ids and,
+    for `iterated` and `open-defects`, `{ type }`.
+- **Refactor** (`95dbc309`): the bucket's states computed once; no sub-row without descriptors
+  (`typesError`) or for a bucket with no element.
+- Docs (`c916316a`): `docs/user-guide.md` 0.41, `CHANGELOG.md` *Unreleased* *Added*,
+  `test/README.md` 0.91, `ux-reference.md` 1.22 (§4.4 v0.3 refinements), spec-012 Process Note
+  of 2026-11-14 (`?missing=refs`, the figure rules).
+- Local checks: `npm run typecheck`, `lint` (with the catalogue check), `format:check`,
+  `docs:api` clean; `npx vitest run test/web/memory test/web/i18n test/web/routes test/docs
+  --maxWorkers=2` green (68 + 10 + 68); `check_tasks.py v0.3` OK. No local Playwright or
+  coverage (Wave 2 overrides): those run on `gates.yml`.
