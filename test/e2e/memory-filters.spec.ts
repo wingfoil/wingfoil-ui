@@ -13,7 +13,7 @@ import { openConsole, type RunningConsole } from './support/console.js';
 import { mutateAndWait, recordServerEvents } from './support/events.js';
 import { expect, test } from './support/fixtures.js';
 import { actAs } from './support/identity.js';
-import { expectFocusVisible } from './support/keyboard.js';
+import { expectFocusVisible, tabUntil } from './support/keyboard.js';
 
 test.use({ prebuild: ['custom', 'unknown'] });
 
@@ -76,9 +76,9 @@ test.describe('US-M-02 — a bucket narrowed to one of its states (v0.3)', () =>
       .getByRole('link', { name: /^Waiting\/drafts\/closed,/ })
       .click();
     const sub = page.getByRole('list', { name: 'In Waiting/drafts/closed' });
-    // The state reached and followed from the keyboard, with visible focus.
+    // The state reached by Tab from the bucket and followed from the keyboard, with visible focus.
     const state = sub.getByRole('link', { name: /^open,/ });
-    await state.focus();
+    await tabUntil(page, state);
     await expectFocusVisible(state);
     await page.keyboard.press('Enter');
     await expect(state).toHaveAttribute('aria-current', 'page');
