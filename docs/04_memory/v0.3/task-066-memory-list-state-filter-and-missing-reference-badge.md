@@ -411,3 +411,16 @@ branch (`05ae2056`).
 Local: `npm run typecheck`, `lint`, `format:check` clean; `npx vitest run test/web/memory
 --maxWorkers=2` 71 passed.
 
+
+### review round 2 (2026-11-15)
+
+PASS: the five findings of round 1 closed, `SearchLink` keeps the router link's behaviour. Two
+small fixes on the tip `9550034e` (the phase branch merged in, with the plan's version fix):
+
+| Finding | What changed | Test |
+|---------|--------------|------|
+| R2-1 (minor) a reload or deep link of `?type=<t>&missing=refs` showed every row of the type, no active filter, until `/config` answered | while a type and `missing` are asked for and `/config` has not settled, the list keeps its loading status (`awaitingConfig`) | `filters.test.tsx` › "R2-1 — a type with missing=refs waits for /config before showing rows (no unfiltered flash)" (`/config` held) |
+| R2-2 (nit) `?figure=<known>` with a figure not shown or a failed `/progress`: unfiltered, but no filter link current | the links' `applied` filters drop `figure` once `/progress` settled without a shown figure | `figure-filter.test.tsx` › "R2-2 — a figure not shown or a failed /progress leaves the unfiltered list’s own links current" |
+
+Local: `npm run typecheck`, `lint`, `format:check` clean; `npx vitest run test/web/memory
+--maxWorkers=2` 73 passed.
