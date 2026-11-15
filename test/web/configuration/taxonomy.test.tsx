@@ -135,6 +135,46 @@ it('D64-1 — the tab links in order, Taxonomy current', async () => {
   expect(links[2]!.getAttribute('href')).toBe(`/p/${PID}/configuration/progress`);
 });
 
+it('review round 1 F-2 — the loading status first, then a failed /config read: its error, no table', async () => {
+  let answer: (r: Response) => void = () => {};
+  const api = uiApi(UI_INFERRED);
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url === `/api/p/${PID}/config`) return new Promise<Response>((resolve) => (answer = resolve));
+      const a = api[url] ?? { status: 404, body: { error: { code: 'not-found', message: 'Not found' } } };
+      return new Response(JSON.stringify(a.body), {
+        status: a.status,
+        headers: { 'content-type': 'application/json' },
+      });
+    }),
+  );
+  renderApp(PAGE);
+  expect((await screen.findByText('Loading the configuration…')).getAttribute('role')).toBe('status');
+  answer(
+    new Response(JSON.stringify({ error: { code: 'internal', message: 'boom' } }), {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+    }),
+  );
+  const alert = await screen.findByRole('alert');
+  expect(alert.textContent).toBe('Something went wrong in the console: see its log in the terminal');
+  expect(screen.queryByRole('table')).toBeNull();
+  expect(screen.queryByText('Loading the configuration…')).toBeNull();
+});
+
+it('review round 1 F-4 — the categories listed are the schema’s category enum, in order', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { REPO_ROOT } = await import('../../harness/cli.js');
+  const schema = JSON.parse(await readFile(`${REPO_ROOT}/contracts/files/ui-yaml.schema.json`, 'utf8')) as {
+    definitions: { category: { enum: string[] } };
+  };
+  const names = [
+    ...(en as Record<string, string>)['settings.taxonomy.categories.list']!.matchAll(/<name>([^<]*)<\/name>/g),
+  ].map((m) => m[1]);
+  expect(names).toEqual(schema.definitions.category.enum);
+});
+
 it('X-09.1 — every text from the catalogue (key build)', async () => {
   stubApi(uiApi(UI_IGNORED));
   renderApp(PAGE, keyCatalogue(en));

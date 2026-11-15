@@ -3,7 +3,11 @@
 // tabs render `/config`'s `ui` section as served, each value with its origin. *Use preset* and the
 // scenarios that commit (C-02.x, C-03.x) are task-079's. Each test has its own console.
 import type { Locator, Page } from '@playwright/test';
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { parse, stringify } from 'yaml';
 import { usePresetUiConfig } from '../harness/fixtures/index.js';
+import { git } from '../harness/run.js';
 import { scanThemes } from './support/axe.js';
 import { COLD_READ_MS, expectFirstLoad } from './support/cold-read.js';
 import { openConsole, type RunningConsole } from './support/console.js';
@@ -62,7 +66,23 @@ test('C-01.2 — Show declared values from ui.yaml', async ({ page, fixtures, co
   await expect(mode.locator('.config-value')).toHaveText(/^sequence\s*declared$/);
   await expect(mode).toContainText('Allowed values: sequence | flow');
   expect(await scanThemes(page)).toEqual([]);
+  // Review round 1 F-10: Taxonomy with the preset — the Requires column and the patterns table filled.
+  await page
+    .getByRole('navigation', { name: 'Configuration sections' })
+    .getByRole('link', { name: 'Taxonomy' })
+    .click();
+  await expectFirstLoad(typesTable(page));
+  await expect(row(typesTable(page), 'task').getByRole('cell').nth(1)).toHaveText('requirement');
+  const patterns = page.getByRole('table', { name: 'Reference patterns' });
+  await expect(patterns.locator('tbody tr')).toHaveCount(3);
+  await expect(patterns.locator('tbody code.config-pattern').first()).toHaveText('^(REQ|US)-');
+  expect(await scanThemes(page)).toEqual([]);
   // AC-2: the current element is a link to its element page.
+  await page
+    .getByRole('navigation', { name: 'Configuration sections' })
+    .getByRole('link', { name: 'Progress' })
+    .click();
+  await expectFirstLoad(progressTable(page));
   await current.getByRole('link').click();
   await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/e/minor-v0.1`, { timeout: COLD_READ_MS });
 });
@@ -121,4 +141,46 @@ test('D64-1, D64-16 — the tabs are links reached from the keyboard, in their o
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(`${c.origin}/p/${c.pids[0]}/configuration/progress`);
   await expectFirstLoad(progressTable(page));
+});
+
+/** A type name and a pattern with no break opportunity but the hyphens / none at all (D64-16). */
+const LONG_TYPE = 'a-memory-type-whose-name-is-long-enough-to-wrap-in-a-narrow-window';
+const LONG_PATTERN = `^${'X'.repeat(180)}`;
+
+test('review round 1 F-3 — at 400 px a long type name and a long pattern wrap: no horizontal page scroll', async ({
+  page,
+  fixtures,
+  consoles,
+}) => {
+  const kanban = await fixtures.copy('kanban');
+  const memoryYaml = path.join(kanban.dir, '.wingfoil', 'memory.yaml');
+  const memory = parse(await readFile(memoryYaml, 'utf8')) as { types: Record<string, unknown> };
+  memory.types[LONG_TYPE] = {
+    ...(memory.types['adr'] as object),
+    path: 'docs/memory/long/{id}.md',
+    id_pattern: 'long-{n}-{slug}',
+  };
+  await writeFile(memoryYaml, stringify(memory));
+  await git(kanban.dir, ['add', '--', '.wingfoil/memory.yaml'], kanban.env);
+  await git(kanban.dir, ['commit', '--quiet', '-m', 'chore: a long type name'], kanban.env);
+  await commitFile(
+    kanban,
+    '.wingfoil/ui.yaml',
+    `version: 1\ntaxonomy:\n  categories:\n    ${LONG_TYPE}: work\n  patterns:\n    - { match: '${LONG_PATTERN}', category: requirement }\n`,
+    'chore: a ui.yaml with a long pattern',
+  );
+  const c = await consoles.start({ projects: [kanban] });
+  await page.setViewportSize({ width: 400, height: 800 });
+  await openTab(page, c, 'taxonomy');
+  await expect(row(typesTable(page), LONG_TYPE).getByRole('cell').first()).toHaveText(/^work\s*declared$/);
+  await expect(page.locator('code.config-pattern')).toHaveText(LONG_PATTERN);
+  const overflow = () =>
+    page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(await overflow()).toBeLessThanOrEqual(0);
+  await page
+    .getByRole('navigation', { name: 'Configuration sections' })
+    .getByRole('link', { name: 'Progress' })
+    .click();
+  await expectFirstLoad(progressTable(page));
+  expect(await overflow()).toBeLessThanOrEqual(0);
 });

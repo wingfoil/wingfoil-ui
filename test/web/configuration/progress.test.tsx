@@ -63,7 +63,7 @@ it('C-01.2 — scope declared with its current element derived, mode with its al
   expect(link.textContent).toContain('First release');
   const current = link.closest('.config-current')!;
   expect(within(current as HTMLElement).getByText('derived')).toBeTruthy();
-  expect(within(current as HTMLElement).getByText('in-progress').className).toContain('tone-active');
+  expect(within(current as HTMLElement).getByText('in-progress').className).toBe('state-pill tone-active');
   const mode = await keyRow('mode');
   expect(within(mode).getByText('sequence')).toBeTruthy();
   expect(within(mode).getByText('declared')).toBeTruthy();
@@ -117,6 +117,58 @@ it('AC-2 — sequence mode with no element under way: "No current <type>"', asyn
   const scope = await keyRow('scope');
   expect(within(scope).getByText('No current release')).toBeTruthy();
   expect(within(scope).getByText('derived')).toBeTruthy();
+});
+
+it('review round 1 F-1 — the current element shows its short id, the link keeps the full id', async () => {
+  const ui: UiConfig = {
+    ...UI_DECLARED,
+    progress: {
+      ...UI_DECLARED.progress,
+      scope: {
+        value: { type: 'release' },
+        origin: 'declared',
+        current: { ...UI_DECLARED.progress.scope.current!, id: 'release-007-first-release', shortId: 'release-007' },
+      },
+    },
+  };
+  stubApi(uiApi(ui));
+  renderApp(PAGE);
+  const link = within(await keyRow('scope')).getByRole('link');
+  expect(link.getAttribute('href')).toBe(`/p/${PID}/e/release-007-first-release`);
+  expect(link.querySelector('.element-id')?.textContent).toBe('release-007');
+  expect(link.textContent).not.toContain('release-007-first-release');
+});
+
+it('review round 1 F-8 — a current element whose id is path syntax is text, never a link', async () => {
+  const ui: UiConfig = {
+    ...UI_DECLARED,
+    progress: {
+      ...UI_DECLARED.progress,
+      scope: {
+        value: { type: 'release' },
+        origin: 'declared',
+        current: { ...UI_DECLARED.progress.scope.current!, id: '..' },
+      },
+    },
+  };
+  stubApi(uiApi(ui));
+  renderApp(PAGE);
+  const scope = await keyRow('scope');
+  expect(within(scope).queryByRole('link')).toBeNull();
+  expect(scope.querySelector('.config-current-link .element-id')?.textContent).toBe('..');
+  expect(scope.querySelector('.state-pill.tone-active')?.textContent).toBe('in-progress');
+});
+
+it('review round 1 F-6 — an approve rule or an origin the page does not know shows the raw value', async () => {
+  const ui = {
+    ...UI_DECLARED,
+    holds: { value: [{ type: 'release', state: 'releasing', approve: 'some-new-rule' }], origin: 'other-origin' },
+  } as unknown as UiConfig;
+  stubApi(uiApi(ui));
+  renderApp(PAGE);
+  const holds = await keyRow('holds');
+  expect(within(holds).getByRole('listitem').textContent).toBe('release in releasing: some-new-rule');
+  expect(holds.querySelector('.config-origin')?.textContent).toBe('other-origin');
 });
 
 it('AC-3 — an ignored ui.yaml: the warning at the top, every value inferred', async () => {

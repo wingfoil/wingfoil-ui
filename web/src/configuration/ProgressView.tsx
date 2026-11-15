@@ -10,6 +10,8 @@ import { Link } from '@tanstack/react-router';
 import type { UiConfig } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
+import { isPathSyntaxId } from '../element/queries.js';
+import '../memory/memory.css';
 import { Origin, UiFrame } from './UiFrame.js';
 
 const TITLE = defineMessages({ progress: { id: 'settings.progress.title' } });
@@ -49,6 +51,11 @@ const KEYS = {
 } satisfies Record<string, { name: MessageDescriptor; meaning: MessageDescriptor; allowed: MessageDescriptor }>;
 
 const code = (chunks: ReactNode[]) => <code>{chunks}</code>;
+
+/** A value as an ICU `select` key: `when-references-done` → `whenReferencesDone` (ICU keys hold no `-`). */
+function selectorOf(value: string): string {
+  return value.replace(/-(\w)/g, (_m, c: string) => c.toUpperCase());
+}
 
 /** "None": a key with no value. */
 function None(): ReactNode {
@@ -95,6 +102,13 @@ function Row({
 /** The current element of `scope` (mode `sequence`): a link to its page, or "No current <type>". */
 function Current({ pid, scope }: { pid: string; scope: UiConfig['progress']['scope'] }): ReactNode {
   const current = scope.current;
+  // The short id of spec-011 §1 (N4, as Today's rows), else the full id; the link keeps the full id.
+  const names = current ? (
+    <>
+      <span className="element-id">{current.shortId ?? current.id}</span>
+      <span className="config-current-title">{current.title}</span>
+    </>
+  ) : null;
   return (
     <div className="config-current">
       <span className="config-current-label">
@@ -102,11 +116,15 @@ function Current({ pid, scope }: { pid: string; scope: UiConfig['progress']['sco
       </span>
       {current ? (
         <>
-          <Link className="config-current-link" to="/p/$pid/e/$eid" params={{ pid, eid: current.id }}>
-            <span className="element-id">{current.id}</span>
-            <span className="config-current-title">{current.title}</span>
-          </Link>
-          <span className={`config-state tone-${current.tone}`}>{current.status}</span>
+          {isPathSyntaxId(current.id) ? (
+            // An id the URL parser reads as path syntax is never a link (as Candidates.tsx).
+            <span className="config-current-link">{names}</span>
+          ) : (
+            <Link className="config-current-link" to="/p/$pid/e/$eid" params={{ pid, eid: current.id }}>
+              {names}
+            </Link>
+          )}
+          <span className={`state-pill tone-${current.tone}`}>{current.status}</span>
         </>
       ) : (
         <span className="config-none">
@@ -197,7 +215,7 @@ function ProgressRows({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode {
                   <li key={`${h.type}\u0000${h.state}`}>
                     <FormattedMessage
                       id="settings.progress.hold"
-                      values={{ code, type: h.type, state: h.state, approve: h.approve }}
+                      values={{ code, type: h.type, state: h.state, rule: selectorOf(h.approve), approve: h.approve }}
                     />
                   </li>
                 ))}

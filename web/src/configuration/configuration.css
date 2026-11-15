@@ -175,12 +175,6 @@
   font-size: 12px;
 }
 
-.config-state {
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
 .config-error {
   padding: 10px 14px;
   border: 1px solid var(--color-danger);

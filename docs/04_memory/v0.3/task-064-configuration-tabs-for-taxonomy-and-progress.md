@@ -520,3 +520,24 @@ C-02.1 … C-02.5, C-03.1 and C-03.2 are delivered by task-079-use-preset-on-the
 - Strict identity (dl-011): the spec's only commit is C-04.2's Given step (`commitFile` on the
   fixture copy with its member's identity), run on the CI runner (a fresh account, task-071).
 - Refactor: none needed beyond the deviations above.
+
+### review round 1 (2026-11-15, PASS with 3 minor and 7 nit)
+
+On `8bf3b9a7`; the coordinator merged the phase branch into this branch first (`a596b80b`).
+
+| Finding | Change | Test |
+|---------|--------|------|
+| F-1 (minor) — the current element showed its full id | `ProgressView.tsx`: `shortId ?? id` shown (spec-011 §1 N4, as `RowParts.tsx`), the link keeps the full id | `progress.test.tsx` › "review round 1 F-1 — …" (fails with the full id shown: guard removal) |
+| F-2 (minor) — `UiFrame`'s loading status and failed read untested | none needed | `taxonomy.test.tsx` › "review round 1 F-2 — the loading status first, then a failed /config read: its error, no table" (the `/config` answer held, then a 500) |
+| F-3 (minor) — D64-16's 400 px check missing | none needed: `overflow-wrap: anywhere` on the cells and codes already wraps | `configuration-tabs.spec.ts` › "review round 1 F-3 — at 400 px a long type name and a long pattern wrap: no horizontal page scroll" (a 67-character type added to the copy's `memory.yaml`, a 181-character unbroken pattern in a committed `ui.yaml`; Taxonomy and Progress) |
+| F-4 (nit) — the catalogue's category list not tied to the schema | — | `taxonomy.test.tsx` › "review round 1 F-4 — the categories listed are the schema’s category enum, in order" |
+| F-5 (nit) — the pattern rules missed three limits | `settings.taxonomy.patterns.rules`: at most 32 patterns, 1 to 200 characters, `{n,m}` with m at most 100 | — (text) |
+| F-6 (nit) — `select` fell back to the last case | `settings.origin` gains `derived`, `settings.progress.hold` `whenReferencesDone` (ICU keys hold no `-`: the value is passed through `selectorOf`, camel case, no literal), each `other` shows the raw value | `progress.test.tsx` › "review round 1 F-6 — …" (fails with a fixed `other` text: guard removal) |
+| F-7 (nit) — a new `config-state` class | the shared `state-pill tone-<tone>` (`memory.css` imported by the tab), `config-state` removed | `progress.test.tsx` C-01.2 asserts the class `state-pill tone-active` |
+| F-8 (nit) — a path-syntax id became a link | text only when `isPathSyntaxId(current.id)` (as `Candidates.tsx`) | `progress.test.tsx` › "review round 1 F-8 — …" (fails with the check removed: guard removal) |
+| F-9 — the two deviations (D64-4, D64-6) | to the approver; `ux-reference.md` §4.11's v0.3 block now says it records D64-1 … D64-8 as built and names the two deviations, Q1 (a) and Q4 (a) the approver's | — |
+| F-10 (nit) — Taxonomy with filled patterns and Requires never scanned in a browser | — | `configuration-tabs.spec.ts` C-01.2 opens Taxonomy on the preset copy: the Requires cell, 3 pattern rows, `scanThemes` |
+
+Guard removals (each edit reverted after its run, `npx vitest run --maxWorkers=2
+test/web/configuration/progress.test.tsx`): the full id shown and the path-syntax check removed →
+F-1 and F-8 failed (2); a fixed `other` text in both `select`s → F-6 failed (1).
