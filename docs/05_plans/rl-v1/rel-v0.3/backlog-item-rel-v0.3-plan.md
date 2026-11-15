@@ -15,7 +15,7 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-**Version:** 0.31 · **Date:** 2026-11-13 (0.1: plan created; Wave 0 scope, decisions W0-1 … W0-4; 0.2: task-049 design, W0-5 … W0-7; 0.3: task-052 and task-053 designs, the `.wingfoil/` OK of task-049, W0-8 … W0-10; 0.4: the first merges, bug-028, W0-11; 0.5: task-050 and task-051 designs, W0-12 … W0-14; 0.6: bug-029, W0-15, W0-16; 0.7: Wave 0 done; 0.8: its wave gate, the dispatch run; 0.9: Wave 1 scope, bug-028 and bug-029 absorbed, W1-1 … W1-5; 0.10: the first designs, task-054 split into task-068, W1-6 … W1-9; 0.11: task-068 approved, the governance-evolution run of W-46, W0-15 corrected; 0.12: the heavy gates on GitHub Actions, W1-10 … W1-13; 0.13: task-057 done, bug-030 and bug-031, W1-14 … W1-16; 0.14: task-054 and task-058 done, task-055 and task-068 started; 0.15: the designs of task-055 and task-068, task-055 split into task-069, bug-032 and bug-033, W1-17; 0.16: task-068 done, bug-034, task-056 started, W1-18; 0.17: task-056 split into task-070, bug-035 and bug-036, W1-19; 0.18: the W-47 run, task-056 and task-055 done, Wave 1 done; 0.19: its wave gate, the dispatch run; 0.20: Wave 2 start, the `governance-evolution-3-plan` run, task-071 and task-072, the bugs' tasks, W2-1 … W2-3; 0.21: the `governance-evolution-4-plan` run, task-071 done, W1-11 in force, W2-4; 0.22: the designs of task-069 and task-070, task-069 split into task-073, W2-5; 0.23: task-069 done; 0.24: task-070 done, the designs of task-059 and task-073, task-059 split into task-074 and task-075, W2-6; 0.25: six more tasks started, their designs, task-061 split into task-076, task-062 into task-077 and task-078, bug-038 … bug-041, W2-7; 0.26: task-073 done, task-076 started, bug-040 and bug-042 into task-075, W2-8; 0.27: task-060 done; 0.28: task-061 and task-059 done, bug-043 and bug-044, task-074 started; 0.29: task-062, task-072, task-075, task-063 and task-076 done, bug-043 into task-078, bug-045, the designs of task-074 and task-077 approved, W2-10; 0.30: task-074, task-077 and task-078 done, bug-046 and bug-047, every Wave 2 task done, W2-11; 0.31: the `governance-evolution-5-plan` run, Wave 2's gate, eleven bugs closed)
+**Version:** 0.32 · **Date:** 2026-11-14 (0.1: plan created; Wave 0 scope, decisions W0-1 … W0-4; 0.2: task-049 design, W0-5 … W0-7; 0.3: task-052 and task-053 designs, the `.wingfoil/` OK of task-049, W0-8 … W0-10; 0.4: the first merges, bug-028, W0-11; 0.5: task-050 and task-051 designs, W0-12 … W0-14; 0.6: bug-029, W0-15, W0-16; 0.7: Wave 0 done; 0.8: its wave gate, the dispatch run; 0.9: Wave 1 scope, bug-028 and bug-029 absorbed, W1-1 … W1-5; 0.10: the first designs, task-054 split into task-068, W1-6 … W1-9; 0.11: task-068 approved, the governance-evolution run of W-46, W0-15 corrected; 0.12: the heavy gates on GitHub Actions, W1-10 … W1-13; 0.13: task-057 done, bug-030 and bug-031, W1-14 … W1-16; 0.14: task-054 and task-058 done, task-055 and task-068 started; 0.15: the designs of task-055 and task-068, task-055 split into task-069, bug-032 and bug-033, W1-17; 0.16: task-068 done, bug-034, task-056 started, W1-18; 0.17: task-056 split into task-070, bug-035 and bug-036, W1-19; 0.18: the W-47 run, task-056 and task-055 done, Wave 1 done; 0.19: its wave gate, the dispatch run; 0.20: Wave 2 start, the `governance-evolution-3-plan` run, task-071 and task-072, the bugs' tasks, W2-1 … W2-3; 0.21: the `governance-evolution-4-plan` run, task-071 done, W1-11 in force, W2-4; 0.22: the designs of task-069 and task-070, task-069 split into task-073, W2-5; 0.23: task-069 done; 0.24: task-070 done, the designs of task-059 and task-073, task-059 split into task-074 and task-075, W2-6; 0.25: six more tasks started, their designs, task-061 split into task-076, task-062 into task-077 and task-078, bug-038 … bug-041, W2-7; 0.26: task-073 done, task-076 started, bug-040 and bug-042 into task-075, W2-8; 0.27: task-060 done; 0.28: task-061 and task-059 done, bug-043 and bug-044, task-074 started; 0.29: task-062, task-072, task-075, task-063 and task-076 done, bug-043 into task-078, bug-045, the designs of task-074 and task-077 approved, W2-10; 0.30: task-074, task-077 and task-078 done, bug-046 and bug-047, every Wave 2 task done, W2-11; 0.31: the `governance-evolution-5-plan` run, Wave 2's gate, eleven bugs closed; 0.32: Wave 3 start, the designs of task-066 and task-064, task-064 split into task-079, W3-1)
 **Branch:** `design/dev-loop_v0.3`, merged into `main` with `--no-ff` at every wave gate (W0-1)
 **Workflows:** the run `sw-life-cycle-1-plan` (`sw-life-cycle` › `delivery` › `sprint`
 `sprint-001` › `development`), which runs `backlog-item` (start · build · review · approve · done)
@@ -53,7 +53,7 @@ Waves and order: RP3-19.
 | 0 | task-049, task-050, task-051, task-052, task-053 | 049, 052, 053 in parallel; 050 and 051 after 049's merge; merges 049 → 050 → 051, 052 and 053 after 049 (W0-3) |
 | 1 | task-054 … task-058, task-068 | 054 before 055, 056 and 068; 068 before 056 (W1-6) |
 | 2 | task-071, task-069, task-070, task-059 … task-063, task-072 … task-078 | task-071 (the `gates.yml` governance task) first, task-069 and task-070 after its merge (W1-12, W1-17, W1-19, W2-1); 069 before 059 and 073 (W2-5); 070 before 060 … 063 and 072; 059 before 074, 075 alongside 059 (W2-6); 062 before 077 before 078, 076 alongside 061 (W2-7) |
-| 3 | task-064 … task-067 | 066 before 065 and 067 |
+| 3 | task-064 … task-067, task-079 | 066 before 065 and 067; 064 before 079 (W3-1) |
 
 Per task: `memory submit <task>` (`backlog → in-progress`, `backlog-item` › `start`; a bug the
 task names moves `planned → in-progress` with `memory submit`, R-3); a worktree
@@ -772,3 +772,25 @@ dispatch with `specs`: a retrospective item.
   retrospective: `scripts/e2e-own-specs` selecting no spec for a change under `test/e2e/support/`
   only (task-071 G9, met by task-078); the WebKit retry of X-02.3 (`session-recovery.spec.ts`), seen
   once.
+
+### Session 4 — 2026-11-14 (Wave 3)
+
+task-066 and task-064 started (`a6b92f8c`, `fe22b515`), their worktrees from `fe22b515`; the phase
+branch's run `43634703757` green. Their designs `0098914b` (task-066) and `aef2718d` (task-064).
+
+- **W3-1** — the designs, as recommended (the approver, "tutto come consigliato", 2026-11-14):
+  - task-066 (about 1.4 active days, RP3-20 G2): Q4 (a) no split (one component, one route, one
+    review; the active-filter group is needed for M-02.4 anyway); Q1 (a) the missing-references
+    filter's address `?missing=refs`, used by task-067's *Show in Memory* link, recorded in
+    `ux-reference.md` §4.4 and a spec-012 §5 Process Note; Q2 (a) the figure filters' labels
+    defined by task-066, task-065 free to word its card; Q3 (a) the §4.4 refinements as designed
+    (D66-3, D66-4, D66-7).
+  - task-064 (about 1.7 active days): split (b) — task-064 keeps US-C-01 (the Taxonomy and
+    Progress tabs, C-04.2); task-079 (`25d5cb28`, body `97522797`, submitted `f98bb5b4`, approved
+    `f915ffe4`, GOV, after task-064 and task-060) takes *Use preset* (the former AC-4: C-02.1 …
+    C-02.5, C-03.1, C-03.2) and the dogfooding step (the former AC-6). Q1 (a) the tab order UI
+    settings · Taxonomy · Progress, `/configuration` still opening UI settings; Q4 (a) one shared
+    "ui.yaml ignored" warning (`web/src/shell/UiYamlWarning.tsx`, key `shell.uiYaml.ignored`),
+    built by task-064 and reused by task-065 and task-067; for task-079: Q2 (a) a preset variant of
+    the `write-incomplete` text with a spec-008 §4 Process Note, Q3 (a) C-03.1's user-visible half
+    by `page.route`, Q5 (a) the control's rule in the web, re-checked by the server.
