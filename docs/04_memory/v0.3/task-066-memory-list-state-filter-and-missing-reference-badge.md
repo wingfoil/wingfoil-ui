@@ -411,6 +411,14 @@ branch (`05ae2056`).
 Local: `npm run typecheck`, `lint`, `format:check` clean; `npx vitest run test/web/memory
 --maxWorkers=2` 71 passed.
 
+Gates on `gates.yml` after round 1:
+
+| Run | Commit | Trigger | Result |
+|-----|--------|---------|--------|
+| `43752099391` | `05ae2056` | push | failure: coverage only, `test/governance/plan-versions.test.ts` (the plan commit `3ddf24e2` of the phase branch); every other job green |
+| `43753851226` | `257417c4` | push | cancelled by the dispatch below |
+| `43753875925` | `257417c4` | dispatch, `specs` = `memory-filters.spec.ts memory-list.spec.ts accessibility.spec.ts` | failure: coverage only, the same cause; every other job green |
+| `43755970114` | `9550034e` | push | **success** (the phase branch's fix `5402f77e` merged in) |
 
 ### review round 2 (2026-11-15)
 
@@ -424,3 +432,9 @@ small fixes on the tip `9550034e` (the phase branch merged in, with the plan's v
 
 Local: `npm run typecheck`, `lint`, `format:check` clean; `npx vitest run test/web/memory
 --maxWorkers=2` 73 passed.
+
+Gates on `gates.yml` after round 2:
+
+| Run | Commit | Trigger | Result |
+|-----|--------|---------|--------|
+| `43758476900` | `99ab297e` | push | **success** |

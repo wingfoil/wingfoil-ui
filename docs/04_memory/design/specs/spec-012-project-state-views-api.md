@@ -618,4 +618,6 @@ every object `additionalProperties: false`, as the other API schemas.
   selected); the Traceability view's *Show in Memory* (R-01.8, task-067) opens it. §3 *Figure
   filters*: a known `figure` clears every other parameter of the address, an unknown code is
   ignored as if absent, and the web reads `/progress` only while a known code is in the address.
-  No shape changes.
+  `?missing=refs` is ignored likewise (the address kept, no active filter) where the filter is not
+  offered, and with a type selected the list waits for `/config` before applying it (task-066
+  review rounds 1 and 2, 2026-11-15). No shape changes.
