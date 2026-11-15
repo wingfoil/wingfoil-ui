@@ -251,3 +251,26 @@ describe('AC-3 — the figure filter', () => {
     await waitFor(() => expect(rows()).toEqual(['d-001-defect']));
   });
 });
+
+describe('review round 2', () => {
+  it('R2-2 — a figure not shown or a failed /progress leaves the unfiltered list’s own links current', async () => {
+    const cases: FakeApi[] = [
+      {
+        [PROGRESS]: {
+          status: 200,
+          body: progress({ completion: { state: 'unavailable', reason: { code: 'no-reference-categories' } } }),
+        },
+      },
+      { [PROGRESS]: { status: 502, body: { error: { code: 'internal', message: 'x' } } } },
+    ];
+    for (const over of cases) {
+      stubApi(api(over));
+      renderApp(`/p/${PID}/memory?figure=completion`);
+      await waitFor(() => expect(rows()).toEqual(ALL));
+      expect(screen.getByRole('link', { name: /^All types,/ }).getAttribute('aria-current')).toBe('page');
+      expect(screen.getByRole('link', { name: /^All states,/ }).getAttribute('aria-current')).toBe('page');
+      cleanup();
+      stopEventStream();
+    }
+  });
+});

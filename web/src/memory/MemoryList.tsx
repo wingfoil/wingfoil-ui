@@ -92,6 +92,13 @@ function withoutMissing(filters: ListFilters): ListFilters {
   return rest;
 }
 
+/** `filters` without the figure filter. */
+function withoutFigure(filters: ListFilters): ListFilters {
+  const { figure: _figure, ...rest } = filters;
+  void _figure;
+  return rest;
+}
+
 /** Whether two filter sets are the same (every parameter the list reads). */
 function sameFilters(a: ListFilters, b: ListFilters): boolean {
   return (
@@ -257,6 +264,10 @@ export function MemoryList({
   const missingOffered =
     list?.missingReferences?.shown === true && (selected === undefined || requiredTypes.includes(selected));
   const filters = requested.missing !== undefined && !missingOffered ? withoutMissing(requested) : requested;
+  // A type and `missing` asked for: whether the filter is offered is known once `/config` answered,
+  // so the rows wait for it (review round 2, R2-1: no unfiltered flash on a reload or a deep link).
+  const configSettled = config.data !== undefined || config.error !== null;
+  const awaitingConfig = requested.type !== undefined && requested.missing !== undefined && !configSettled;
   // No descriptor (unreadable `memory.yaml` on the list's side): no bucket row. The type definitions
   // unavailable — that, a failed `types` section or a failed `GET /config` (review F6) — get the notice.
   const noDescriptors = list?.typesError !== undefined;
@@ -272,6 +283,9 @@ export function MemoryList({
   const awaitingFigure =
     figure !== undefined && progress !== undefined && progress.data === undefined && progress.error === null;
   const rows = filterRows(pool, filters, shown?.ids);
+  // The filters the links mark current: without a figure that `/progress` settled as not shown or
+  // failed, so the unfiltered list's own links are current (review round 2, R2-2).
+  const applied = figure !== undefined && shown === undefined && !awaitingFigure ? withoutFigure(filters) : filters;
   const selectedBucket =
     selected === undefined && figure === undefined && filters.missing === undefined
       ? BUCKET_FILTERS.find((b) => b.key === filters.bucket)
@@ -281,7 +295,6 @@ export function MemoryList({
   const bucketStates = selectedBucket !== undefined ? bucketStateFilters(types, base, selectedBucket.key) : [];
   // A type in the URL that is neither declared nor on an element (review F5), known only once the
   // configuration is settled, as the route's archived read (review N3).
-  const configSettled = config.data !== undefined || config.error !== null;
   const unknownType =
     list !== undefined && configSettled && selected !== undefined && !isListedType(types, base, selected);
   const listRef = useRef<HTMLUListElement>(null);
@@ -381,7 +394,7 @@ export function MemoryList({
       </div>
       {elements.error ? (
         <QueryError error={elements.error} />
-      ) : !list || awaitingFigure ? (
+      ) : !list || awaitingFigure || awaitingConfig ? (
         <p className="muted" role="status">
           <FormattedMessage id="memory.loading" />
         </p>
@@ -432,7 +445,7 @@ export function MemoryList({
           )}
           <ul className="filter-row filter-types" aria-label={intl.formatMessage({ id: 'memory.filter.types' })}>
             <FilterLink
-              applied={filters}
+              applied={applied}
               pid={pid}
               search={{}}
               name={intl.formatMessage({ id: 'memory.filter.allTypes' })}
@@ -440,7 +453,7 @@ export function MemoryList({
             />
             {typeFilters(types, base).map((t) => (
               <FilterLink
-                applied={filters}
+                applied={applied}
                 key={t.type}
                 pid={pid}
                 search={{ type: t.type }}
@@ -452,7 +465,7 @@ export function MemoryList({
           {unknownType ? null : selected !== undefined ? (
             <ul className="filter-row filter-states" aria-label={intl.formatMessage({ id: 'memory.filter.states' })}>
               <FilterLink
-                applied={filters}
+                applied={applied}
                 pid={pid}
                 search={{ type: selected }}
                 name={intl.formatMessage({ id: 'memory.filter.allStates' })}
@@ -460,7 +473,7 @@ export function MemoryList({
               />
               {stateFilters(types?.types[selected]?.states?.sequence, ofType).map((s) => (
                 <FilterLink
-                  applied={filters}
+                  applied={applied}
                   key={s.state}
                   pid={pid}
                   search={{ type: selected, state: s.state }}
@@ -474,7 +487,7 @@ export function MemoryList({
             !noDescriptors && (
               <ul className="filter-row filter-states" aria-label={intl.formatMessage({ id: 'memory.filter.states' })}>
                 <FilterLink
-                  applied={filters}
+                  applied={applied}
                   pid={pid}
                   search={{}}
                   name={intl.formatMessage({ id: 'memory.filter.allStates' })}
@@ -482,7 +495,7 @@ export function MemoryList({
                 />
                 {bucketFilters(base).map((b) => (
                   <FilterLink
-                    applied={filters}
+                    applied={applied}
                     key={b.key}
                     pid={pid}
                     search={{ bucket: b.key }}
@@ -504,7 +517,7 @@ export function MemoryList({
             >
               {bucketStates.map((s) => (
                 <FilterLink
-                  applied={filters}
+                  applied={applied}
                   key={s.state}
                   pid={pid}
                   search={{ bucket: selectedBucket.key, state: s.state }}
@@ -521,7 +534,7 @@ export function MemoryList({
               aria-label={intl.formatMessage({ id: 'memory.filter.references' })}
             >
               <FilterLink
-                applied={filters}
+                applied={applied}
                 pid={pid}
                 search={{ ...(selected !== undefined ? { type: selected } : {}), missing: MISSING_REFS }}
                 name={intl.formatMessage({ id: 'memory.filter.missing' })}

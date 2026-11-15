@@ -426,3 +426,30 @@ describe('review round 1', () => {
     expect(within(sub).getByRole('link', { name: 'm1, 1 element' }).hasAttribute('aria-current')).toBe(false);
   });
 });
+
+describe('review round 2', () => {
+  it('R2-1 — a type with missing=refs waits for /config before showing rows (no unfiltered flash)', async () => {
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((r) => (release = r));
+    const fake = api({ [CONFIG]: { status: 200, body: config(['kind-m']) } });
+    const fn = vi.fn(async (url: string) => {
+      if (url === CONFIG) await held;
+      const a = fake[url] ?? { status: 404, body: { error: { code: 'not-found', message: 'x' } } };
+      return new Response(JSON.stringify(a.body), {
+        status: a.status,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fn);
+    renderApp(`/p/${PID}/memory?type=kind-m&missing=refs`);
+    await screen.findByText('Loading the Memory list…');
+    await waitFor(() => expect(fn.mock.calls.map((c) => String(c[0]))).toContain(LIST));
+    expect(screen.queryByRole('list', { name: 'Elements' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Active filter' })).toBeNull();
+    release();
+    await waitFor(() => expect(rows()).toEqual(['m-001-delta']));
+    expect(screen.getByRole('group', { name: 'Active filter' }).querySelector('.memory-active-name')?.textContent).toBe(
+      MISSING,
+    );
+  });
+});
