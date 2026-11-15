@@ -541,3 +541,19 @@ On `8bf3b9a7`; the coordinator merged the phase branch into this branch first (`
 Guard removals (each edit reverted after its run, `npx vitest run --maxWorkers=2
 test/web/configuration/progress.test.tsx`): the full id shown and the path-syntax check removed →
 F-1 and F-8 failed (2); a fixed `other` text in both `select`s → F-6 failed (1).
+
+Runs of round 1: `43753785376` on `ddc45c4e` — F-3's first form failed on the three engines (bug-044,
+above) and coverage on `test/governance/plan-versions.test.ts`; `43755441519` on `5902067d` — every
+job green but coverage, red only on `test/governance/plan-versions.test.ts` ("frontmatter version
+0.31 ≠ Context Version 0.32" of `backlog-item-rel-v0.3-plan`, the coordinator's plan commit, fixed
+on the phase branch `5402f77e` and merged into this branch with `ea468f01`).
+
+### review round 2 (2026-11-15, PASS)
+
+All ten round-1 findings closed; the narrower F-3 check judged sufficient (the page-level overflow
+is bug-044). Two fixes:
+
+| Finding | Change |
+|---------|--------|
+| R2-1 (minor, doc-versioning) — `ux-reference.md` 1.22's entry edited in place after its commit | 1.22's entry restored as committed in `e6f040af`; Version 1.23 · Date 2026-11-15 with "1.23: §4.11 v0.3 block records D64-1 … D64-8 as built, the two deviations for the approver — task-064 review round 1, F-9". No other versioned doc was edited after its first committed bump (`git diff --stat e6f040af 5902067d`: the user guide and `test/README.md` unchanged) |
+| R2-2 (nit) — round 1's runs not recorded | the runs above; this round's run below |
