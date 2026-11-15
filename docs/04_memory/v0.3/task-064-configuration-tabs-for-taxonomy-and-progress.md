@@ -501,6 +501,8 @@ C-02.1 … C-02.5, C-03.1 and C-03.2 are delivered by task-079-use-preset-on-the
 | C-04.2 (AC-3) | `test/e2e/configuration-tabs.spec.ts` › "C-04.2 — Treat unparsable ui.yaml the same way" (Taxonomy, then Progress) |
 | AC-2 | `test/e2e/configuration-tabs.spec.ts` › "AC-2 — the Progress tab on the kanban fixture: inferred flow, whole project"; C-01.2's link to the element page |
 | D64-1, D64-16 | `test/e2e/configuration-tabs.spec.ts` › "D64-1, D64-16 — the tabs are links reached from the keyboard, in their order" |
+| AC-1 | `test/e2e/configuration-tabs.spec.ts` › C-01.1, C-01.3 and C-01.2's Taxonomy step (the preset copy: the Requires cell, the patterns table, `scanThemes`) |
+| D64-16, review round 1 F-3 | `test/e2e/configuration-tabs.spec.ts` › "review round 1 F-3 — at 400 px a long type name and a long pattern wrap: the tabs scroll nothing sideways" |
 | X-06.4, X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › *configuration — taxonomy*, *configuration — progress* (one test per screen) |
 
 #### Gates (2026-11-14)
@@ -542,7 +544,7 @@ Guard removals (each edit reverted after its run, `npx vitest run --maxWorkers=2
 test/web/configuration/progress.test.tsx`): the full id shown and the path-syntax check removed →
 F-1 and F-8 failed (2); a fixed `other` text in both `select`s → F-6 failed (1).
 
-Runs of round 1: `43753785376` on `ddc45c4e` — F-3's first form failed on the three engines (bug-044,
+Runs of round 1: `43652593960` on `8bf3b9a7`, cancelled (replaced by the coordinator's merge); `43652703246` on `a596b80b` — every job green but coverage (its failed-job log is no longer served by `gh run view --log-failed`, checked once: empty; the merge brought the plan commit whose version mismatch made `43753785376` and `43755441519` red, below); `43753785376` on `ddc45c4e` — F-3's first form failed on the three engines (bug-044,
 above) and coverage on `test/governance/plan-versions.test.ts`; `43755441519` on `5902067d` — every
 job green but coverage, red only on `test/governance/plan-versions.test.ts` ("frontmatter version
 0.31 ≠ Context Version 0.32" of `backlog-item-rel-v0.3-plan`, the coordinator's plan commit, fixed
@@ -557,3 +559,13 @@ is bug-044). Two fixes:
 |---------|--------|
 | R2-1 (minor, doc-versioning) — `ux-reference.md` 1.22's entry edited in place after its commit | 1.22's entry restored as committed in `e6f040af`; Version 1.23 · Date 2026-11-15 with "1.23: §4.11 v0.3 block records D64-1 … D64-8 as built, the two deviations for the approver — task-064 review round 1, F-9". No other versioned doc was edited after its first committed bump (`git diff --stat e6f040af 5902067d`: the user guide and `test/README.md` unchanged) |
 | R2-2 (nit) — round 1's runs not recorded | the runs above; this round's run below |
+
+Runs of round 2: `43757060158` on `ea468f01`, cancelled (replaced by `a2700889`); `gates.yml` push
+run `43757482173` on `a2700889`: success — every job green (checks, coverage, contract,
+e2e-chromium ×2, own specs on Firefox and WebKit, smoke, publish-smoke).
+
+### checker round 1 (2026-11-15, NOT READY on the notes)
+
+G-1 the round-2 runs, N-1 the round-1 runs completed, N-2 the closure table's AC-1 and 400 px rows,
+N-3 `test/README.md` 0.92 naming the 400 px test — all in one commit; its run is recorded in the
+stage plan by the coordinator.
