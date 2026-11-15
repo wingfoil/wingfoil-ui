@@ -120,8 +120,8 @@ references*, *Show in Memory*), §6 (the eight categories); spec-012 §3 (*Figur
 spec-008 §2, §3, §6; spec-011 §2; `memory-list.feature` (M-01.2, M-02.2, M-02.4),
 `missing-references.feature` (M-03.1 … M-04.3), `progress-card.feature` (T-12.1, T-13.1 … T-13.4);
 the stage plan W0-x … W2-11 and Wave 2's gate; directives `definition-of-done` 1.5,
-`ux-consistency`, `accessibility`; `.notes/dev-rules.md` (Wave 2 overrides). The prototype's Memory
-view (its bundle read in a scratch folder outside the repository): row 2 holds the state chips and,
+`ux-consistency`, `accessibility`; the stage's working rules (Wave 2). The prototype's Memory
+view: row 2 holds the state chips and,
 after them, a separate chip "missing required references" with a red dot, exclusive with the state
 chips and combined with the type; a row flagged shows a warning badge ("missing refs"). The code:
 `web/src/memory/{model.ts,MemoryList.tsx,memory.css}`, `web/src/routes/{memory,project}.tsx`,
@@ -357,7 +357,7 @@ and the user guide: this task's changes there are additions only.
 - Local checks: `npm run typecheck`, `lint` (with the catalogue check), `format:check`,
   `docs:api` clean; `npx vitest run test/web/memory test/web/i18n test/web/routes test/docs
   --maxWorkers=2` green (68 + 10 + 68); `check_tasks.py v0.3` OK. No local Playwright or
-  coverage (Wave 2 overrides): those run on `gates.yml`.
+  coverage (the stage's working rules): those run on `gates.yml`.
 - **Gates on `gates.yml`** (task scope, W1-11):
 
   | Run | Commit | Trigger | Result |
@@ -373,7 +373,7 @@ and the user guide: this task's changes there are additions only.
   entries, task-071 G9).
 - **Strict identity (dl-011):** the task changes no harness or git code; M-03.2's commit outside
   the UI is task-059's `setFrontmatterValue` by the fixture's identity, run on the runner in the
-  e2e jobs above (Playwright does not run locally, Wave 2 overrides).
+  e2e jobs above (Playwright does not run locally, the stage's working rules).
 - **AC-4** is `@perf`: its budget is asserted only under `test:timing`, the coordinator's run at
   the wave gate (D66-14).
 
@@ -394,3 +394,20 @@ and the user guide: this task's changes there are additions only.
 
 T-13.1 … T-13.4 (the figure filter from Today) stay with task-065; AC-3's cases are the component
 tests of `test/web/memory/figure-filter.test.tsx`.
+
+### review round 1 (2026-11-15)
+
+PASS with 3 minor findings and 2 nits; fixed on top of the coordinator's merge of the phase
+branch (`05ae2056`).
+
+| Finding | What changed | Test |
+|---------|--------------|------|
+| F-1 (minor) *Clear filter* carried `aria-current="page"` (the router's partial search match) | the filter links and *Clear filter* are a `SearchLink` (`MemoryList.tsx`): an anchor with the router's `href` and `navigate`, whose `aria-current` the list sets; *Clear filter* has none | `filters.test.tsx` › "clears the active filter …" (no `aria-current`) |
+| F-2 (minor) `?missing=refs` filtered and named the active filter where the filter is not offered (`shown` false or absent, `typesError`, a type `requires` does not name) | the list applies `missing` only when the filter is offered, as an unknown figure (D66-2): `filters` = the requested ones without `missing` otherwise; the address is kept | `filters.test.tsx` › "F-2, F-4 — ignores missing=refs where the filter is not offered …" (four cases) |
+| F-3 (minor, dl-005) the design cited a local file outside the repository | the design's read list, and the two later mentions, name "the stage's working rules"; the prototype is "the prototype's Memory view" | — |
+| F-4 (nit) the `unreadable` / `capped` notes showed while the filter was not offered | gated on the filter being offered (D66-6) | the F-2 test asserts no note |
+| F-5 (nit) `aria-current` from the router match, so an address with ignored keys marked no filter | `aria-current` computed from the filters the list applies (`sameFilters`); a bucket is `aria-current="true"` while one of its states is selected (`[aria-current='true']` style) | `filters.test.tsx` › "F-5 — marks the filters the list applies as current …", "F-5 — marks a bucket \"true\" …" |
+
+Local: `npm run typecheck`, `lint`, `format:check` clean; `npx vitest run test/web/memory
+--maxWorkers=2` 71 passed.
+
