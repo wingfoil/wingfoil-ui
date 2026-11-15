@@ -244,3 +244,9 @@
   background: var(--tone-active-bg);
   color: var(--tone-active-fg);
 }
+
+/* A bucket while one of its states is selected (review round 1, F-5). */
+.filter-states .filter-link[aria-current='true'] {
+  border-color: var(--tone-active-fg);
+  color: var(--tone-active-fg);
+}

@@ -14,7 +14,7 @@
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { ElementList, ListedElement, Progress, ProjectConfig } from '@wingfoil-ui/contracts';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate, useRouter } from '@tanstack/react-router';
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
@@ -85,36 +85,106 @@ function QueryError({ error }: { error: Error }): ReactNode {
   );
 }
 
-/** One filter link: its name, its count, the router's `aria-current` when it is the URL's filter. */
+/** `filters` without the missing-references filter. */
+function withoutMissing(filters: ListFilters): ListFilters {
+  const { missing: _missing, ...rest } = filters;
+  void _missing;
+  return rest;
+}
+
+/** Whether two filter sets are the same (every parameter the list reads). */
+function sameFilters(a: ListFilters, b: ListFilters): boolean {
+  return (
+    a.type === b.type &&
+    a.state === b.state &&
+    a.bucket === b.bucket &&
+    a.missing === b.missing &&
+    a.figure === b.figure
+  );
+}
+
+/**
+ * A link to the list with `search`. Its `aria-current` is the caller's — computed from the filters
+ * the list applies, not from the address, which may carry keys the list ignores (task-066 review
+ * round 1, F-1, F-5); a router `Link` would derive it from the address.
+ */
+function SearchLink({
+  pid,
+  search,
+  current,
+  className,
+  label,
+  onFollow,
+  children,
+}: {
+  pid: string;
+  search: ListFilters;
+  current?: 'page' | 'true' | undefined;
+  className: string;
+  label?: string | undefined;
+  onFollow?: () => void;
+  children: ReactNode;
+}): ReactNode {
+  const router = useRouter();
+  const navigate = useNavigate();
+  const target = { to: '/p/$pid/memory', params: { pid }, search } as const;
+  return (
+    <a
+      className={className}
+      href={router.buildLocation(target).href}
+      aria-current={current}
+      aria-label={label}
+      onClick={(event) => {
+        // Only a click that navigates here (primary button, no modifier: not a new tab or window).
+        if (!navigatesHere(event)) return;
+        event.preventDefault();
+        onFollow?.();
+        void navigate(target);
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+
+/**
+ * One filter link: its name, its count, `aria-current="page"` when it is the filter the list
+ * applies (`applied`); `parent` marks a bucket `aria-current="true"` while one of its states is
+ * selected (review round 1, F-5).
+ */
 function FilterLink({
   pid,
   search,
+  applied,
+  parent = false,
   name,
   count,
   tone,
 }: {
   pid: string;
   search: ListFilters;
+  applied: ListFilters;
+  parent?: boolean;
   name: ReactNode;
   count: number;
   tone?: string | undefined;
 }): ReactNode {
   const intl = useIntl();
   const label = typeof name === 'string' ? name : '';
+  const current = sameFilters(applied, search) ? 'page' : parent ? 'true' : undefined;
   return (
     <li>
-      <Link
+      <SearchLink
         className="filter-link"
-        to="/p/$pid/memory"
-        params={{ pid }}
+        pid={pid}
         search={search}
-        activeOptions={{ exact: true }}
-        aria-label={intl.formatMessage({ id: 'memory.filter.withCount' }, { name: label, count })}
+        current={current}
+        label={intl.formatMessage({ id: 'memory.filter.withCount' }, { name: label, count })}
       >
         {tone !== undefined && <span className={`filter-dot tone-${tone}`} aria-hidden="true" />}
         <span>{name}</span>
         <span className="filter-count">{count}</span>
-      </Link>
+      </SearchLink>
     </li>
   );
 }
@@ -168,11 +238,25 @@ function Row({ pid, element, now }: { pid: string; element: ListedElement; now: 
 }
 
 /** The Memory list. */
-export function MemoryList({ pid, filters, config, elements, withArchived, progress }: MemoryListProps): ReactNode {
+export function MemoryList({
+  pid,
+  filters: requested,
+  config,
+  elements,
+  withArchived,
+  progress,
+}: MemoryListProps): ReactNode {
   const intl = useIntl();
   const list = elements.data;
-  const selected = filters.type;
+  const selected = requested.type;
   const types = typesOf(config.data);
+  // The missing-references filter (D66-4): offered when `requires` names a type, with a type only when
+  // it names that one. Asked for where it is not offered, it is ignored, as an unknown figure (review
+  // round 1, F-2): the list applies `filters`, the address keeps what was typed.
+  const requiredTypes = config.data?.ui?.taxonomy.requires.value.map((r) => r.type) ?? [];
+  const missingOffered =
+    list?.missingReferences?.shown === true && (selected === undefined || requiredTypes.includes(selected));
+  const filters = requested.missing !== undefined && !missingOffered ? withoutMissing(requested) : requested;
   // No descriptor (unreadable `memory.yaml` on the list's side): no bucket row. The type definitions
   // unavailable — that, a failed `types` section or a failed `GET /config` (review F6) — get the notice.
   const noDescriptors = list?.typesError !== undefined;
@@ -188,11 +272,6 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
   const awaitingFigure =
     figure !== undefined && progress !== undefined && progress.data === undefined && progress.error === null;
   const rows = filterRows(pool, filters, shown?.ids);
-  // The missing-references filter (D66-4): offered when `requires` names a type, with a type only when
-  // it names that one.
-  const requiredTypes = config.data?.ui?.taxonomy.requires.value.map((r) => r.type) ?? [];
-  const missingOffered =
-    list?.missingReferences?.shown === true && (selected === undefined || requiredTypes.includes(selected));
   const selectedBucket =
     selected === undefined && figure === undefined && filters.missing === undefined
       ? BUCKET_FILTERS.find((b) => b.key === filters.bucket)
@@ -326,7 +405,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
               <ErrorText error={toApiError(progress.error)} />
             </div>
           )}
-          {missingRefs?.shown === true && missingRefs.unreadable.length > 0 && (
+          {missingOffered && missingRefs !== undefined && missingRefs.unreadable.length > 0 && (
             <p className="memory-notice">
               <FormattedMessage
                 id="memory.notice.missingUnreadable"
@@ -334,7 +413,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
               />
             </p>
           )}
-          {missingRefs?.shown === true && missingRefs.capped.length > 0 && (
+          {missingOffered && missingRefs !== undefined && missingRefs.capped.length > 0 && (
             <p className="memory-notice">
               <FormattedMessage
                 id="memory.notice.missingCapped"
@@ -353,18 +432,27 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
           )}
           <ul className="filter-row filter-types" aria-label={intl.formatMessage({ id: 'memory.filter.types' })}>
             <FilterLink
+              applied={filters}
               pid={pid}
               search={{}}
               name={intl.formatMessage({ id: 'memory.filter.allTypes' })}
               count={base.length}
             />
             {typeFilters(types, base).map((t) => (
-              <FilterLink key={t.type} pid={pid} search={{ type: t.type }} name={t.type} count={t.count} />
+              <FilterLink
+                applied={filters}
+                key={t.type}
+                pid={pid}
+                search={{ type: t.type }}
+                name={t.type}
+                count={t.count}
+              />
             ))}
           </ul>
           {unknownType ? null : selected !== undefined ? (
             <ul className="filter-row filter-states" aria-label={intl.formatMessage({ id: 'memory.filter.states' })}>
               <FilterLink
+                applied={filters}
                 pid={pid}
                 search={{ type: selected }}
                 name={intl.formatMessage({ id: 'memory.filter.allStates' })}
@@ -372,6 +460,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
               />
               {stateFilters(types?.types[selected]?.states?.sequence, ofType).map((s) => (
                 <FilterLink
+                  applied={filters}
                   key={s.state}
                   pid={pid}
                   search={{ type: selected, state: s.state }}
@@ -385,6 +474,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
             !noDescriptors && (
               <ul className="filter-row filter-states" aria-label={intl.formatMessage({ id: 'memory.filter.states' })}>
                 <FilterLink
+                  applied={filters}
                   pid={pid}
                   search={{}}
                   name={intl.formatMessage({ id: 'memory.filter.allStates' })}
@@ -392,9 +482,11 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
                 />
                 {bucketFilters(base).map((b) => (
                   <FilterLink
+                    applied={filters}
                     key={b.key}
                     pid={pid}
                     search={{ bucket: b.key }}
+                    parent={selectedBucket?.key === b.key && filters.state !== undefined}
                     name={intl.formatMessage(b.label)}
                     count={b.count}
                   />
@@ -412,6 +504,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
             >
               {bucketStates.map((s) => (
                 <FilterLink
+                  applied={filters}
                   key={s.state}
                   pid={pid}
                   search={{ bucket: selectedBucket.key, state: s.state }}
@@ -428,6 +521,7 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
               aria-label={intl.formatMessage({ id: 'memory.filter.references' })}
             >
               <FilterLink
+                applied={filters}
                 pid={pid}
                 search={{ ...(selected !== undefined ? { type: selected } : {}), missing: MISSING_REFS }}
                 name={intl.formatMessage({ id: 'memory.filter.missing' })}
@@ -439,17 +533,16 @@ export function MemoryList({ pid, filters, config, elements, withArchived, progr
           {activeName !== undefined && (
             <div className="memory-active" role="group" aria-label={intl.formatMessage({ id: 'memory.active.label' })}>
               <span className="memory-active-name">{activeName}</span>
-              <Link
+              <SearchLink
                 className="memory-active-clear"
-                to="/p/$pid/memory"
-                params={{ pid }}
+                pid={pid}
                 search={clearSearch}
-                onClick={(event) => {
-                  if (navigatesHere(event)) focusHeading.current = true;
+                onFollow={() => {
+                  focusHeading.current = true;
                 }}
               >
                 <FormattedMessage id="memory.active.clear" />
-              </Link>
+              </SearchLink>
             </div>
           )}
           <ul ref={listRef} className="memory-rows" aria-label={intl.formatMessage({ id: 'memory.list.label' })}>

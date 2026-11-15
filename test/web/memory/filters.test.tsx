@@ -210,6 +210,8 @@ describe('AC-1 — the states of a bucket (N7)', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/p/${PID}/memory?bucket=waiting&state=s1`);
     await waitFor(() => expect(rows()).toEqual(['k-002-beta', 'm-002-eps']));
+    // Not the current page: it leads elsewhere (review round 1, F-1).
+    expect(screen.getByRole('link', { name: 'Clear filter' }).hasAttribute('aria-current')).toBe(false);
     await user.click(screen.getByRole('link', { name: 'Clear filter' }));
     await waitFor(() => expect(rows()).toHaveLength(6));
     expect(router.state.location.search).toEqual({});
@@ -351,5 +353,76 @@ describe('AC-2 — missing required references (M2)', () => {
     expect(document.querySelector('.memory-active-name')?.textContent).toBe(
       'memory.active.bucketState memory.bucket.waiting s1',
     );
+  });
+});
+
+describe('review round 1', () => {
+  it('F-2, F-4 — ignores missing=refs where the filter is not offered: rows, active filter and notes', async () => {
+    const notes = { unreadable: ['x-001-broken'], capped: ['y-001-big'] };
+    const cases: [string, FakeApi][] = [
+      [
+        '/memory?missing=refs',
+        { [LIST]: { status: 200, body: list({ missingReferences: { shown: false, ...notes } }) } },
+      ],
+      [
+        '/memory?missing=refs',
+        { [LIST]: { status: 200, body: (({ missingReferences: _, ...rest }) => rest)(list()) } },
+      ],
+      [
+        '/memory?missing=refs',
+        {
+          [LIST]: {
+            status: 200,
+            body: (({ missingReferences: _, ...rest }) => ({
+              ...rest,
+              typesError: { code: 'read-error', message: 'x' },
+            }))(list()),
+          },
+        },
+      ],
+      [
+        '/memory?type=kind-a&missing=refs',
+        {
+          [CONFIG]: { status: 200, body: config(['kind-m']) },
+          [LIST]: { status: 200, body: list({ missingReferences: { shown: true, ...notes } }) },
+        },
+      ],
+    ];
+    for (const [path, over] of cases) {
+      stubApi(api(over));
+      renderApp(`/p/${PID}${path}`);
+      await screen.findByText('Title of k-001-alpha');
+      const expected = path.includes('type=')
+        ? ['k-001-alpha', 'k-002-beta', 'k-003-gamma']
+        : ELEMENTS.map((e) => e.id);
+      await waitFor(() => expect(rows()).toEqual(expected));
+      expect(screen.queryByRole('group', { name: 'Active filter' })).toBeNull();
+      expect(screen.queryByText(/references are not checked|first 200 values/)).toBeNull();
+      cleanup();
+      stopEventStream();
+    }
+  });
+
+  it('F-5 — marks the filters the list applies as current, whatever else the address carries', async () => {
+    stubApi(api());
+    renderApp(`/p/${PID}/memory?type=kind-a&bucket=done&figure=bogus`);
+    await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'k-002-beta', 'k-003-gamma']));
+    expect(screen.getByRole('link', { name: /^kind-a,/ }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: /^All types,/ }).hasAttribute('aria-current')).toBe(false);
+    cleanup();
+    stopEventStream();
+    renderApp(`/p/${PID}/memory?missing=refs&bucket=done&panel=`);
+    await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'm-001-delta']));
+    expect(screen.getByRole('link', { name: `${MISSING}, 2 elements` }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: /^Done,/ }).hasAttribute('aria-current')).toBe(false);
+  });
+
+  it('F-5 — marks a bucket "true" while one of its states is selected, the state "page"', async () => {
+    stubApi(api());
+    renderApp(`/p/${PID}/memory?bucket=waiting&state=s1`);
+    const sub = await screen.findByRole('list', { name: 'In Waiting/drafts/closed' });
+    expect(screen.getByRole('link', { name: /^Waiting\/drafts\/closed,/ }).getAttribute('aria-current')).toBe('true');
+    expect(within(sub).getByRole('link', { name: 's1, 2 elements' }).getAttribute('aria-current')).toBe('page');
+    expect(within(sub).getByRole('link', { name: 'm1, 1 element' }).hasAttribute('aria-current')).toBe(false);
   });
 });
