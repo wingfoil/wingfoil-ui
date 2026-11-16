@@ -14,6 +14,7 @@ import { projectRoute } from './project.js';
 import { rootRoute } from './root.js';
 import { startRoute } from './start.js';
 import { teamRoute } from './team.js';
+import { traceabilityRoute } from './traceability.js';
 import { projectIndexRoute, todayRoute } from './today.js';
 
 /**
@@ -34,6 +35,7 @@ export const PROJECT_ROUTES = [
   teamRoute,
   todayRoute,
   configurationRoutes,
+  traceabilityRoute,
 ] as const;
 
 /** Every route of the application. */

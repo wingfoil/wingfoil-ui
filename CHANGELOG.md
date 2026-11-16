@@ -9,6 +9,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **Traceability** (task-067, US-R-01, US-C-04 C-04.3; spec-012 §4): a page in the sidebar's
+  *Work* group lists every reference — an element's frontmatter value that is another element's id,
+  or that matches a `ui.yaml` pattern — with its linked elements as chips (short id, state colour,
+  full title, id and state on hover and focus) and its completion, in natural id order. The scope
+  follows the current release by default, or the whole project; the figures show project
+  completion, phase completion (read-only) and reference coverage. A search and the category and
+  status filters, with counts, are kept in the address. The elements missing required references
+  are listed with *Show in Memory*; without `ui.yaml` a note says only references between Memory
+  elements are recognised, and an ignored file shows its warning.
 - **Configuration › Taxonomy and › Progress** (task-064, US-C-01, US-C-04 C-04.2; spec-005 §1–§4,
   spec-012 §2): two tabs after *UI settings* show how the console reads the project's
   `.wingfoil/ui.yaml`, each value marked *declared*, *inferred* or *derived* as the server serves

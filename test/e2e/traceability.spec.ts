@@ -125,10 +125,18 @@ test.describe('US-R-01 — traceability', () => {
   });
 
   test('R-01.7 — List references between Memory elements without ui.yaml', async ({ page, fixtures, consoles }) => {
-    const fx = await customCopy(fixtures, (f) => setFrontmatterValue(f, 'task-001-cli-adapter', 'related', DL_001), false);
+    const fx = await customCopy(
+      fixtures,
+      (f) => setFrontmatterValue(f, 'task-001-cli-adapter', 'related', DL_001),
+      false,
+    );
     const c = await consoles.start({ projects: [fx] });
     await openPage(page, c);
-    await expect(page.getByText(/^No ui\.yaml — only references to other Memory elements are recognised/)).toBeVisible();
+    await expect(
+      page.locator('p.trace-note', {
+        hasText: /^No ui\.yaml — only references to other Memory elements are recognised/,
+      }),
+    ).toBeVisible();
     const r = row(page, DL_001);
     await expect(r.locator('td').first().locator('.type-tag')).toHaveText('decision');
     await expect(chips(r)).toHaveText(['task-001']);
@@ -175,7 +183,9 @@ test.describe('US-C-04 — the ui.yaml warning', () => {
     await expect(page.locator('.ui-yaml-warning')).toHaveText(
       'ui.yaml ignored: progress.mode must be sequence or flow (found spiral)',
     );
-    const note = page.getByText(/^No ui\.yaml — only references to other Memory elements are recognised/);
+    const note = page.locator('p.trace-note', {
+      hasText: /^No ui\.yaml — only references to other Memory elements are recognised/,
+    });
     await expect(note).toBeVisible();
     // A file exists, even ignored: no Use preset (Q3 (a)); the Taxonomy link.
     await expect(note.getByRole('link', { name: 'Use preset' })).toHaveCount(0);
@@ -190,10 +200,7 @@ test.describe('task-067 acceptance criteria', () => {
     await openPage(page, c, '?category=requirement&q=US-M');
     await expect.poll(() => rowIds(page)).toEqual(['US-M-01']);
     await expect(page.getByRole('searchbox', { name: 'Search references' })).toHaveValue('US-M');
-    await page
-      .getByRole('group', { name: 'Category' })
-      .getByRole('button', { name: /^All,/ })
-      .click();
+    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: /^All,/ }).click();
     await expect(page).not.toHaveURL(/category=/);
     await page.goBack();
     await expect(page).toHaveURL(/category=requirement/);
@@ -243,13 +250,13 @@ test.describe('task-067 acceptance criteria', () => {
     // The page's own parts; the project header's bug-044 is page-level and not this test's measure.
     const parts = await page.evaluate(() => {
       const width = document.documentElement.clientWidth;
-      return [...document.querySelectorAll<HTMLElement>('.trace-figures, .trace-filters, .trace-table-wrap, .trace-missing')].map(
-        (el) => ({
-          part: el.className,
-          inner: el.classList.contains('trace-table-wrap') ? 0 : el.scrollWidth - el.clientWidth,
-          past: Math.ceil(el.getBoundingClientRect().right - width),
-        }),
-      );
+      return [
+        ...document.querySelectorAll<HTMLElement>('.trace-figures, .trace-filters, .trace-table-wrap, .trace-missing'),
+      ].map((el) => ({
+        part: el.className,
+        inner: el.classList.contains('trace-table-wrap') ? 0 : el.scrollWidth - el.clientWidth,
+        past: Math.ceil(el.getBoundingClientRect().right - width),
+      }));
     });
     expect(parts.length).toBe(4);
     for (const part of parts) expect(part, part.part).toMatchObject({ inner: 0 });

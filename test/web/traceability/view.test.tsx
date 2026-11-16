@@ -22,7 +22,14 @@ const CURRENT = `${BASE}/traceability?scope=current`;
 const PROJECT = `${BASE}/traceability?scope=project`;
 const PAGE = `/p/${PID}/traceability`;
 
-function el(id: string, shortId: string, title: string, status: string, tone: 'done' | 'human' | 'neutral', done = false): TraceabilityElement {
+function el(
+  id: string,
+  shortId: string,
+  title: string,
+  status: string,
+  tone: 'done' | 'human' | 'neutral',
+  done = false,
+): TraceabilityElement {
   return {
     path: `docs/${id}.md`,
     id,
@@ -124,7 +131,11 @@ function api(over: FakeApi = {}, who: ProjectHeader = header(BO)): FakeApi {
       status: 200,
       body: answer({
         scope: { ...answer().scope, applied: 'project' },
-        references: [...REFERENCES, ref('US-S-09', { linked: ['dl-001-first-decision'], done: 1, total: 1, percent: 100, status: 'completed' }), ref('US-X-01', { status: 'no-elements' })],
+        references: [
+          ...REFERENCES,
+          ref('US-S-09', { linked: ['dl-001-first-decision'], done: 1, total: 1, percent: 100, status: 'completed' }),
+          ref('US-X-01', { status: 'no-elements' }),
+        ],
         figures: { ...answer().figures, referencesWithoutElements: 1 },
       }),
     },
@@ -178,11 +189,11 @@ describe('AC-1 — the page (D67-1, D67-7)', () => {
   it('renders three columns and the rows in the server order', async () => {
     stubApi(api());
     await opened();
-    expect(within(table()).getAllByRole('columnheader').map((h) => h.textContent)).toEqual([
-      'Reference',
-      'Linked elements',
-      'Completion',
-    ]);
+    expect(
+      within(table())
+        .getAllByRole('columnheader')
+        .map((h) => h.textContent),
+    ).toEqual(['Reference', 'Linked elements', 'Completion']);
     expect(rowIds()).toEqual(['dl-001-first-decision', 'US-M-01', 'US-S-01']);
   });
 
@@ -276,16 +287,18 @@ describe('AC-1 — figures (D67-6; the completion and phase cards behind the Q1 
       api({
         [CURRENT]: {
           status: 200,
-          body: answer({ figures: { ...answer().figures, coverage: { state: 'unavailable', reason: { code: 'no-requires' } } } }),
+          body: answer({
+            figures: { ...answer().figures, coverage: { state: 'unavailable', reason: { code: 'no-requires' } } },
+          }),
         },
       }),
     );
     await opened();
     const figures = screen.getByRole('region', { name: 'Figures' });
     expect(figures.textContent).toContain('No type requires references — see Configuration › Taxonomy');
-    expect(
-      within(figures).getByRole('link', { name: 'see Configuration › Taxonomy' }).getAttribute('href'),
-    ).toBe(`/p/${PID}/configuration/taxonomy`);
+    expect(within(figures).getByRole('link', { name: 'see Configuration › Taxonomy' }).getAttribute('href')).toBe(
+      `/p/${PID}/configuration/taxonomy`,
+    );
     // No requires: no missing-references section.
     expect(screen.queryByRole('heading', { name: /Elements missing required references/ })).toBeNull();
   });
@@ -305,7 +318,11 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
     await user.click(whole);
     await waitFor(() => expect(rowIds()).toContain('US-S-09'));
     expect(router.state.location.search).toEqual({ scope: 'project' });
-    expect(within(screen.getByRole('group', { name: 'Scope' })).getByRole('button', { name: 'Whole project' }).getAttribute('aria-pressed')).toBe('true');
+    expect(
+      within(screen.getByRole('group', { name: 'Scope' }))
+        .getByRole('button', { name: 'Whole project' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 
   it('hides the scope control when there is no current element', async () => {
@@ -323,17 +340,19 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
     const user = userEvent.setup();
     const { router } = await opened();
     const category = screen.getByRole('group', { name: 'Category' });
-    expect(within(category).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
-      'All, 3 references',
-      'decision, 1 reference',
-      'requirement, 2 references',
-    ]);
+    expect(
+      within(category)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['All, 3 references', 'decision, 1 reference', 'requirement, 2 references']);
     const status = screen.getByRole('status', { name: 'Traceability updates' });
     expect(status.textContent).toBe('');
     await user.click(within(category).getByRole('button', { name: 'requirement, 2 references' }));
     await waitFor(() => expect(rowIds()).toEqual(['US-M-01', 'US-S-01']));
     expect(router.state.location.search).toEqual({ category: 'requirement' });
-    expect(within(category).getByRole('button', { name: 'requirement, 2 references' }).getAttribute('aria-pressed')).toBe('true');
+    expect(
+      within(category).getByRole('button', { name: 'requirement, 2 references' }).getAttribute('aria-pressed'),
+    ).toBe('true');
     await waitFor(() => expect(status.textContent).toBe('2 references'));
   });
 
@@ -342,12 +361,11 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
     const user = userEvent.setup();
     const { router } = await opened(`${PAGE}?category=requirement`);
     const status = screen.getByRole('group', { name: 'Status' });
-    expect(within(status).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual([
-      'All, 2 references',
-      'Completed, 0 references',
-      'In progress, 1 reference',
-      'Not started, 1 reference',
-    ]);
+    expect(
+      within(status)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['All, 2 references', 'Completed, 0 references', 'In progress, 1 reference', 'Not started, 1 reference']);
     await user.click(within(status).getByRole('button', { name: 'In progress, 1 reference' }));
     await waitFor(() => expect(rowIds()).toEqual(['US-M-01']));
     expect(router.state.location.search).toEqual({ category: 'requirement', status: 'partial' });
@@ -371,7 +389,7 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
   it('says "No reference matches" when the filters match nothing, and Clear filters keeps the scope', async () => {
     stubApi(api());
     const user = userEvent.setup();
-    const { router } = await opened(`${PAGE}?scope=project&status=completed&category=decision`);
+    const { router } = renderApp(`${PAGE}?scope=project&status=completed&category=decision`);
     expect(await screen.findByText('No reference matches')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Clear filters' }));
     await waitFor(() => expect(rowIds()).toHaveLength(5));
@@ -384,7 +402,9 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
     await opened(`${PAGE}?category=spec`);
     expect(rowIds()).toHaveLength(3);
     expect(
-      within(screen.getByRole('group', { name: 'Category' })).getByRole('button', { name: 'All, 3 references' }).getAttribute('aria-pressed'),
+      within(screen.getByRole('group', { name: 'Category' }))
+        .getByRole('button', { name: 'All, 3 references' })
+        .getAttribute('aria-pressed'),
     ).toBe('true');
   });
 });
@@ -414,7 +434,10 @@ describe('AC-2 — ui.yaml warning and note (D67-11, Q3 (a))', () => {
         [CURRENT]: {
           status: 200,
           body: answer({
-            ui: { source: 'ignored', warning: { code: 'ui-config-ignored', failure: 'progress.mode must be sequence or flow (found spiral)' } },
+            ui: {
+              source: 'ignored',
+              warning: { code: 'ui-config-ignored', failure: 'progress.mode must be sequence or flow (found spiral)' },
+            },
           }),
         },
       }),
@@ -423,7 +446,9 @@ describe('AC-2 — ui.yaml warning and note (D67-11, Q3 (a))', () => {
     expect(container.querySelector('.ui-yaml-warning')?.textContent).toBe(
       'ui.yaml ignored: progress.mode must be sequence or flow (found spiral)',
     );
-    const note = screen.getByText(/^No ui.yaml — only references to other Memory elements are recognised/);
+    const note = screen
+      .getByText(/^No ui.yaml — only references to other Memory elements are recognised/)
+      .closest('p') as HTMLElement;
     expect(within(note).getByRole('link', { name: 'Configuration › Taxonomy' }).getAttribute('href')).toBe(
       `/p/${PID}/configuration/taxonomy`,
     );
@@ -433,7 +458,7 @@ describe('AC-2 — ui.yaml warning and note (D67-11, Q3 (a))', () => {
   it('offers Use preset without a file to a member of the team, not to an outsider', async () => {
     stubApi(api({ [CURRENT]: { status: 200, body: answer({ ui: { source: 'none' } }) } }));
     await opened();
-    const note = () => screen.getByText(/^No ui.yaml — only references/);
+    const note = () => screen.getByText(/^No ui.yaml — only references/).closest('p') as HTMLElement;
     await waitFor(() =>
       expect(within(note()).getByRole('link', { name: 'Use preset' }).getAttribute('href')).toBe(
         `/p/${PID}/configuration/taxonomy`,

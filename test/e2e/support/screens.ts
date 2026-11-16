@@ -445,6 +445,18 @@ export const SCREENS: readonly Screen[] = [
     open: (page, c) =>
       project(page, c, `/p/${c.pids[0]}/memory?figure=pending-gates`, (p) => p.locator('.memory-active')),
   },
+  {
+    // task-067 (D67-15): Traceability on the custom fixture without ui.yaml — the note, the figures
+    // and the element references or the empty text.
+    name: 'traceability',
+    open: (page, c) => project(page, c, `/p/${c.pids[1]}/traceability`, (p) => p.locator('.trace-figures')),
+  },
+  {
+    // task-067 (D67-15): Traceability with patterns, chips, filters and the missing-references
+    // section. The screens console holds no preset (RP-43): the answer gains them through `page.route`.
+    name: 'traceability — with the preset',
+    open: (page, c) => openTraceabilityScreen(page, c),
+  },
 ];
 
 /** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
@@ -508,4 +520,66 @@ async function openMissingScreen(page: Page, c: RunningConsole): Promise<void> {
     });
   });
   await project(page, c, `/p/${pid}/memory?missing=refs`, (p) => p.locator('.memory-badge-missing'));
+}
+
+/**
+ * The Traceability screen with the preset's parts (task-067, D67-15): the custom fixture's answer
+ * with a pattern reference linking two of its elements, a shown coverage and one missing element.
+ */
+async function openTraceabilityScreen(page: Page, c: RunningConsole): Promise<void> {
+  const pid = c.pids[1]!;
+  await page.route(`**/api/p/${pid}/traceability?scope=*`, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as {
+      elements: { id: string }[];
+      references: unknown[];
+      figures: Record<string, unknown>;
+    };
+    // Two elements of the custom fixture, as rows of the answer (added when the answer names none).
+    const named = new Set(body.elements.map((e) => e.id));
+    const extra = [
+      ['task-002-memory-list', 'task-002', 'Memory list', 'done', 'done'],
+      ['task-003-element-panel', 'task-003', 'Element panel', 'backlog', 'neutral'],
+    ]
+      .filter(([id]) => !named.has(id!))
+      .map(([id, shortId, title, status, tone]) => ({
+        path: `docs/04_memory/tasks/${id}.md`,
+        id,
+        shortId,
+        title,
+        type: 'task',
+        status,
+        tags: [],
+        localChanges: false,
+        descriptor: { id, type: 'task', status, kind: 'work', tone, verbs: [], actor: { kind: 'none' } },
+        done: tone === 'done',
+        inScope: true,
+      }));
+    const linked = ['task-002-memory-list', 'task-003-element-panel'];
+    await route.fulfill({
+      response,
+      json: {
+        ...body,
+        ui: { source: 'file' },
+        patterns: true,
+        elements: [...body.elements, ...extra],
+        references: [
+          ...body.references,
+          {
+            id: 'US-M-01',
+            category: 'requirement',
+            element: false,
+            linked,
+            done: 1,
+            total: linked.length,
+            percent: 50,
+            status: 'in-progress',
+          },
+        ],
+        figures: { ...body.figures, coverage: { state: 'shown', carrying: 3, total: 5, percent: 60 } },
+        missing: [{ id: 'task-004-themes', categories: ['requirement'] }],
+      },
+    });
+  });
+  await project(page, c, `/p/${pid}/traceability`, (p) => p.locator('.trace-chip'));
 }

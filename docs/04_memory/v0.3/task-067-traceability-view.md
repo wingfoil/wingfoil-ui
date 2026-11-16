@@ -314,16 +314,16 @@ what the user sees; the variants from the harness (`usePresetUiConfig`, `usePreP
 
 | Scenario | Spec file : test |
 |----------|------------------|
-| R-01.1 | `test/e2e/traceability.spec.ts` : (to fill at green) |
+| R-01.1 | `test/e2e/traceability.spec.ts` : "R-01.1 — List references with their completion" |
 | R-01.2 | closed by task-081-traceability-inline-detail-and-refresh |
-| R-01.3 | `test/e2e/traceability.spec.ts` : |
-| R-01.4 | `test/e2e/traceability.spec.ts` : |
-| R-01.5 | `test/e2e/traceability.spec.ts` : |
-| R-01.6 | `test/e2e/traceability.spec.ts` : |
-| R-01.7 | `test/e2e/traceability.spec.ts` : |
-| R-01.8 | `test/e2e/traceability.spec.ts` : |
-| R-01.9 | `test/e2e/traceability.spec.ts` : |
-| C-04.3 | `test/e2e/traceability.spec.ts` : |
+| R-01.3 | `test/e2e/traceability.spec.ts` : "R-01.3 — Filter references by status" |
+| R-01.4 | `test/e2e/traceability.spec.ts` : "R-01.4 — Explain an empty traceability" |
+| R-01.5 | `test/e2e/traceability.spec.ts` : "R-01.5 — Show the rows outside the current release under the whole project" |
+| R-01.6 | `test/e2e/traceability.spec.ts` : "R-01.6 — Show a pattern reference by its id only" |
+| R-01.7 | `test/e2e/traceability.spec.ts` : "R-01.7 — List references between Memory elements without ui.yaml" |
+| R-01.8 | `test/e2e/traceability.spec.ts` : "R-01.8 — Open the elements missing required references in Memory" |
+| R-01.9 | `test/e2e/traceability.spec.ts` : "R-01.9 — Filter references by category" |
+| C-04.3 | `test/e2e/traceability.spec.ts` : "C-04.3 — Show the ui.yaml warning on Traceability" |
 
 #### Files
 
@@ -406,3 +406,43 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   `ux-reference.md` §4.8 records the address word.
 - **Q3 (a)** — *Use preset* is a link to Configuration › Taxonomy, shown only without `ui.yaml`
   (`ui.source` `none`) and with the user identified in the team.
+
+### red (2026-11-16)
+
+`6a3b88fa`: `test/web/traceability/model.test.ts` (10 tests: the address, the status key and the
+category order against the schema lists, facets, search, row keys), `view.test.tsx` (26 tests),
+`test/e2e/traceability.spec.ts` (R-01.1, R-01.3 … R-01.9, C-04.3, AC-1 ×3, AC-3) and "AC-5
+(task-067)" in `performance.spec.ts`. Seen failing: `npx vitest run
+test/web/traceability/model.test.ts --maxWorkers=2` — the module does not exist (no test runs);
+`npx vitest run test/web/traceability/view.test.tsx --maxWorkers=2` — every test times out looking
+for the page (no route). The e2e spec and the timing test are not run locally (no local Playwright):
+their first run is the push run of `gates.yml`.
+
+### green (2026-11-16)
+
+- New: `web/src/routes/traceability.tsx` (route, `traceabilityQuery`, `keepPreviousData` on a scope
+  change), `web/src/traceability/` (`model.ts`, `TraceabilityView.tsx`, `Figures.tsx`,
+  `ReferenceTable.tsx`, `MissingSection.tsx`, `traceability.css`); one route line in `tree.ts`; the
+  catalogue block `traceability.*` and `shell.nav.traceability`; `traceability` appended to the
+  catalogue's areas (`web/scripts/catalogue.mjs` `AREAS`, spec-008 §2 "later releases add areas the
+  same way").
+- **The Q1 seam.** `Figures.tsx` `CompletionCard` and `PhaseCompletionCard` render the value only
+  ("Project completion 25 %", "Phase completion — …") from the temporary keys `traceability.seam.*`;
+  the T-14 explanation and the T-15 texts are task-065's. Left for after task-065's merge: replace
+  the two components by `web/src/progress/`'s, drop the four `traceability.seam.*` keys, add the
+  explanation's hover and focus to AC-1's e2e test.
+- Deviations from the design, all small: (1) ICU `select` selectors take no hyphen, so the status
+  filter reaches the catalogue through a map (`notStarted`, `noElements`) and the phase reason as
+  `needsVersion: yes|no`; (2) the completion message's placeholder is `finished`, not `done` (the
+  bare key `done` is a fixture state name, REQ-ARC-05); (3) the announcement and the search field's
+  sync are state adjusted while rendering, not effects (`react-hooks/set-state-in-effect`); (4) the
+  second `SCREENS` entry is "traceability — with the preset" (no open detail: task-081's).
+- Test fixes at green (the code was right, the test was not): the "No reference matches" test waited
+  for the table, which an empty result does not render; the note was located by its first text node
+  (a `<span>`) instead of its paragraph — `closest('p')` in the unit test, `p.trace-note` in the e2e
+  spec.
+- `npx vitest run test/web/traceability/model.test.ts --maxWorkers=2`: 10 passed;
+  `npx vitest run test/web/traceability/view.test.tsx --maxWorkers=2`: 26 passed.
+- Docs: `docs/user-guide.md` 0.43 (*Traceability*), `CHANGELOG.md` *Unreleased* › *Added*,
+  `ux-reference.md` 1.26 (§4.8 the address's status words, Q2 (a)), `test/README.md` 0.94.
+

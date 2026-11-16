@@ -111,7 +111,16 @@ describe('Q2 (a) — the orders derived from the contract types, no colliding li
   it('orders the categories as the schema lists them (the closed order of ux-reference §6)', () => {
     expect(CATEGORIES).toHaveLength(8);
     const shuffled = [...CATEGORIES].reverse();
-    const mixed = [shuffled[3], shuffled[0], shuffled[7], shuffled[1], shuffled[5], shuffled[2], shuffled[6], shuffled[4]];
+    const mixed = [
+      shuffled[3],
+      shuffled[0],
+      shuffled[7],
+      shuffled[1],
+      shuffled[5],
+      shuffled[2],
+      shuffled[6],
+      shuffled[4],
+    ];
     expect((mixed as UiCategory[]).sort(byCategoryOrder)).toEqual(CATEGORIES);
   });
 });
