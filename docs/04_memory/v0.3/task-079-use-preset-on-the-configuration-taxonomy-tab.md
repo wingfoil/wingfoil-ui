@@ -495,3 +495,12 @@ fail), and C-02.4's forced press reaches the native button, whose handler ignore
 Local, on the fixes: `npm run typecheck`, `npm run lint`, `npx prettier --check .` clean; `npx vitest
 run --maxWorkers=2`, one file at a time: `test/web/configuration/use-preset` (24),
 `taxonomy` (9), `progress` (9), `test/web/api/ui-config` (4): passed.
+
+Runs of round 1 (`gates.yml`):
+- push run `43847040848` on the merge `c4cb6a12` (the phase branch merged in by the coordinator):
+  success — checks, coverage, contract, e2e-chromium ×2 (the whole suite, `accessibility.spec.ts`
+  with task-066's and this task's screens included), own specs on Firefox and WebKit, smoke,
+  publish-smoke.
+- push run `43850280471` on the fixes `4d1e8f8e`: success — checks, coverage, contract,
+  e2e-chromium ×2, own specs (`test/e2e/use-preset.spec.ts`, selected by the push: "playwright test
+  --project=firefox … test/e2e/use-preset.spec.ts", and the same on WebKit), smoke, publish-smoke.
