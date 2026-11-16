@@ -422,3 +422,31 @@ emulation) → 5 passed. The e2e spec's git work (T-08.2's CLI approve, T-08.3's
 Left for the coordinator: `test:timing` (TT-PERF-01 with the card, T-08.2's strict 5 s) at the wave
 gate; the merge with task-065 on `TodayView.tsx`, `routes/today.tsx`, `performance.spec.ts`
 (Today's `ready`), `process-audit.test.ts`, `en.json`, `screens.ts` and the docs (Q1 (a)).
+
+### review round 1 (2026-11-16)
+
+Independent reviewer (reviewer role) on `6b55c1ed` (`git diff design/dev-loop_v0.3...HEAD`).
+**Verdict: FAIL** (one major).
+
+Checked and found sound: T-08.1 … T-08.3 titled by scenario id and asserting the visible rows'
+text, times, descriptions, the absent Timeline link, the side panel by the keyboard and `#main`
+focused on close; `cliAs` builds a fresh `env` for one CLI process (no `process.env` mutation),
+WingFoil 0.3.1 resolves `GIT_AUTHOR_EMAIL` first (`node_modules/wingfoil/dist/core/git-identity.js`),
+T-08.2 asserts the copy's `user.email` stays Casey's, and run 43852819196 / 43855786755 show
+"· Morgan" on the runner; repository strings reach the DOM only as React text or ICU values (no
+HTML path); server order kept, no re-sort; loading (`role="status"`), error (`role="alert"`, checked
+before data) and empty states distinct; refetch silent (unit test asserts no live region);
+`today.activity.*` keys appended in place, `what` formatted to a string for X-09.1; `SCREENS` two
+entries appended; `TodayView` gains one optional prop and one line; the `today.test.tsx` /
+`summary.test.tsx` stubs only add the `?limit=5` answer (the exact request set extended, not
+loosened); TT-PERF-01's `ready` is stricter (Today's rows and the card's); the process-audit test
+has a recorded guard-removal failure; docs bumped (`ux-reference.md` 1.26, `user-guide.md` 0.43,
+`test/README.md` 0.94), no local paths or other project names. `npx vitest run
+test/web/today/recent-activity.test.tsx --maxWorkers=2` → 10 passed. The push run 43858553268 on
+`6b55c1ed` was still in progress at review; `test:timing` (AC-3) is left to the wave gate as recorded.
+
+| # | Severity | File:line | Issue | Fix |
+|---|----------|-----------|-------|-----|
+| F-1 | major | `web/src/today/RecentActivity.tsx:121` (and `:50`) | Rows are keyed by `event.sha` and marked `data-sha`, but one commit can be several events: spec-002 §3 rule 1, "a grouped subject: one event per id", each with the same `sha`. Such a commit gives duplicate React keys in the card's list (React may drop or duplicate rows on the `repo` refetch) and non-unique `data-sha`. No test has two events with one sha. The bell has the same key (`web/src/shell/NotificationBell.tsx:241`, pre-existing). | Key the row by `${sha}:${id}` (unique per spec-002) and carry the id beside the sha on the `li` (e.g. `data-sha` plus `data-event-id`, still no `data-eid`); add a unit test with two events of one sha listed both, in order, across a refetch; record the bell's key as a bug (or fix it in the same change if the approver agrees). |
+| F-2 | minor | `web/src/today/RecentActivity.tsx:57-63` | The id link does not forget the panel opener. The side panel is not modal: open it from a *Requires you* or *Waiting on others* row (`rememberOpener`, `TodayView.tsx:123/139/197`), then follow a Recent activity link; on close the focus goes back to that earlier row, not to the main region of Q3 (a) / §4.2 "another link". The bell, also an opener with no focus to return to, calls `forgetOpener(event)` (`NotificationBell.tsx:71`). | `onClick={(event) => forgetOpener(event)}` on the link, as the bell; a unit test (row opener, then activity link, Escape → `#main` focused). |
+| F-3 | nit | `web/src/today/RecentActivity.tsx:48` | `durationOf` takes the absolute age, so an event whose author date is later than the read (another machine's clock) reads "N minutes ago". Shared with Today's rows (`model.ts:39-42`). | Accept as Today's existing rule, or clamp a future timestamp to "0 seconds ago"; no change required for this task. |
