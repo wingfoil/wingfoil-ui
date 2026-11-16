@@ -546,3 +546,8 @@ F-1 "link kept on the release scope" test and F-6, below).
 test/web/today/progress-card.test.tsx test/web/today/progress-tooltip.test.tsx
 test/web/i18n/catalogue.test.ts --maxWorkers=2`: 3 files, 28 passed.
 
+Push run `43925965015` on `d8831bc3`: **success**, every job green — checks, coverage (statements
+96.74 %), contract, e2e-chromium ×2, own specs on Firefox and WebKit (14 passed on each), smoke,
+publish-smoke. Local before the push: typecheck, lint, format:check, docs:api clean;
+`check_tasks.py v0.3` OK; `npx vitest run test/governance test/docs/public-text.test.ts
+--maxWorkers=2`: 5 files passed.
