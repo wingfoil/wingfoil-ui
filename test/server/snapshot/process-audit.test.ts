@@ -173,6 +173,28 @@ describe('Today and the Memory events (task-031)', () => {
   });
 });
 
+// task-065 (AC-3, D65-15; spec-012 §8): Today's progress card reads `/progress` with Today's own
+// read — the page adds no CLI process to the cold Today and no `git log`, and a warm reopen starts none.
+describe('Today with the progress card (task-065)', () => {
+  it('cold Today page with the progress card: 0 CLI processes added, 2 git log; warm, 0 processes', async () => {
+    const { pid, standIn, runner } = await fresh(3_600_000);
+    runner.spawned.length = 0;
+    expect((await standIn.get(`/api/p/${pid}/today`)).status).toBe(200);
+    const today = runner.wingfoilCommands();
+    expect((await standIn.get(`/api/p/${pid}/progress`)).status).toBe(200);
+    const page = runner.wingfoilCommands();
+    console.info(
+      `task-065 cold Today with the progress card: ${page.length} CLI processes (${page.join(', ')}), ${runner.count('git')} git`,
+    );
+    expect(page).toEqual(today);
+    expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(2);
+    const before = runner.spawned.length;
+    expect((await standIn.get(`/api/p/${pid}/today`)).status).toBe(200);
+    expect((await standIn.get(`/api/p/${pid}/progress`)).status).toBe(200);
+    expect(runner.spawned.length).toBe(before);
+  });
+});
+
 /** Every entry of `dir` (name, type, size, mtime) and the SHA-256 of every file: `.git` unchanged. */
 async function treeDigest(dir: string): Promise<string> {
   const hash = createHash('sha256');

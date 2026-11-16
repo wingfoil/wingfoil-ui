@@ -84,3 +84,12 @@ export async function setFrontmatterValue(fixture: Fixture, id: string, field: s
   await git(fixture.dir, ['add', '--', file], fixture.env);
   await git(fixture.dir, ['commit', '-q', '-m', `docs: ${field} on ${id}`, '--', file], fixture.env);
 }
+
+/**
+ * X-10.4's Given (task-065 D65-14, Q6 (a)): the kanban `fixture` showing a project completion of
+ * 40 %. Red stub.
+ */
+export async function kanbanCompletion(fixture: Fixture): Promise<void> {
+  void fixture;
+  return Promise.resolve();
+}
