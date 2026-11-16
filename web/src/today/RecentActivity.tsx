@@ -16,7 +16,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useId, type ReactNode } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { memoryEventsQuery } from '../api/queries.js';
 import { panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
@@ -34,12 +34,10 @@ function asApiError(error: Error): ApiError {
 }
 
 /** What happened: "from → to", else the operation's word ("created" for an `add`). */
-function What({ line }: { line: UpdateLine }): ReactNode {
-  return line.from !== null && line.to !== null ? (
-    <FormattedMessage id="element.history.transition" values={{ from: line.from, to: line.to }} />
-  ) : (
-    <FormattedMessage id="today.activity.operation" values={{ operation: line.operation }} />
-  );
+function what(intl: IntlShape, line: UpdateLine): string {
+  return line.from !== null && line.to !== null
+    ? intl.formatMessage({ id: 'element.history.transition' }, { from: line.from, to: line.to })
+    : intl.formatMessage({ id: 'today.activity.operation' }, { operation: line.operation });
 }
 
 /** One event: the id (a link to its side panel), what happened and who, its age. */
@@ -64,12 +62,9 @@ function ActivityRow({ line, now }: { line: UpdateLine; now: number }): ReactNod
                 {line.id}
               </Link>
             ),
-            // Its own element: the transition or the operation is a message of its own.
-            what: (
-              <span className="today-activity-what">
-                <What line={line} />
-              </span>
-            ),
+            // Text, not an element: the transition (or the operation) and the name stay one text with
+            // the message's own words — in the key build too, where a lone name would not be data.
+            what: what(intl, line),
             name: line.name,
           }}
         />

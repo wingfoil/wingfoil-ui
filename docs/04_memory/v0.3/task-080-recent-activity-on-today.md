@@ -371,3 +371,18 @@ Local results (load average 15–18 during the runs):
   OK".
 
 The e2e spec, the screens and the heavy gates run on `gates.yml` (below).
+
+`gates.yml` run **43852819196** (push of `185e8901`): `checks`, `coverage`, `contract`, `smoke`,
+`publish-smoke` passed; own specs (the push's selection: `recent-activity.spec.ts`,
+`performance.spec.ts`) **3 passed** on Firefox and on WebKit — T-08.2's "· Morgan" shows that
+`cliAs` makes the approve Morgan's; `e2e-chromium` **failed, 8 tests**, all X-09.1 on the key build
+(`accessibility.spec.ts` › `today`, `today — not in team`, `notification panel`, `today — card filter
+open`, `element side panel (Today)`, `element side panel — candidates`, `today — recent activity`;
+`today-cards.spec.ts` › "X-09.1 — Render the cards’ strings …"), each "span.today-activity-main:
+Sam". The key build renders `today.activity.by {id} {what} {name}` with `id` and `what` as elements,
+so the name was a text node of its own, and "Sam" alone is not data (the API's value is "Sam
+<sam@example.test>"; a name is accepted as a word after a key). Fix: `what` is formatted to a string
+(`intl.formatMessage` of `element.history.transition` or `today.activity.operation`), so the
+transition and the name are one text node — in the key build "element.history.transition draft
+pending Sam", a key followed by data words, as the bell's `element.history.entry`. The visible row
+is unchanged (`npx vitest run test/web/today/recent-activity.test.tsx --maxWorkers=2` → 10 passed).

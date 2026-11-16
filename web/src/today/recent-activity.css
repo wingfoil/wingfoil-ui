@@ -39,10 +39,6 @@
   font-size: 12px;
 }
 
-.today-activity-what {
-  color: var(--color-text-2);
-}
-
 .today-activity-time {
   flex: none;
   color: var(--color-text-muted);
