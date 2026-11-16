@@ -20,27 +20,31 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-T2 and T5 on Today, Wave 3 (RP3-7; `ux-reference.md` §4.1 item 2 and 6 and its v0.3 block): the
-**progress card** — the current scope with its state pill, then one row of selectable figures:
-project completion, phase completion, iterated x/y, open bugs, pending gates — and the **Recent
-activity** card with the last 5 Memory events, both from the server (`GET /api/p/:pid/progress`,
-task-059, spec-012 §3; `GET /api/p/:pid/events/memory?limit=5`, spec-012 §6); the project
-completion also enters the browser tab title (X-10.4, US-X-10). The web renders figures, never
-computes one (spec-003 §8).
+T2 on Today, Wave 3 (RP3-7; `ux-reference.md` §4.1 item 2 and its v0.3 block): the **progress
+card** — the current scope with its state pill, then one row of selectable figures: project
+completion, phase completion, iterated x/y, open bugs, pending gates — from the server (`GET
+/api/p/:pid/progress`, task-059, spec-012 §3); the project completion also enters the browser tab
+title (X-10.4, US-X-10). The web renders figures, never computes one (spec-003 §8).
+
+T5's **Recent activity** card (US-T-08, T-08.1 … T-08.3, `GET /api/p/:pid/events/memory?limit=5`,
+spec-012 §6) is delivered by task-080-recent-activity-on-today (split at design, 2026-11-16, the
+approver, Q1 (b); `backlog-item-rel-v0.3-plan` W3-3): US-T-08 stays listed below, its scenarios
+closed by task-080's e2e spec. This task keeps Today's layout ready for that card, the last one.
 
 Decisions it carries: RP3-14 D2 — the phase figures read-only with their reason until v0.4, no
-phase strip and no `flow` columns; D8 — no "Open the Timeline" link while R6 is in v0.4 (T-08.1
-amended); RP3-18 TQ-4 — each shown figure opens `/p/<id>/memory?figure=<code>`, the list filtering on
-the ids of the same `/progress` answer (the Memory list side is task-066's); REQ-PERF-11 — Recent
-activity lists 5 events; the `ui.yaml` warning of C-04.1 shown on Today (US-C-04, listed by task-054).
+phase strip and no `flow` columns; RP3-18 TQ-4 — each shown figure opens `/p/<id>/memory?figure=<code>`, the list filtering on
+the ids of the same `/progress` answer (the Memory list side is task-066's); the `ui.yaml` warning of C-04.1 shown on Today (US-C-04, listed by task-054).
 
 **Backlog items:** US-T-12, US-T-13, US-T-14, US-T-15, US-T-08, US-X-10
+
+US-T-08's scenarios are delivered by task-080-recent-activity-on-today (W3-3).
 
 ## Acceptance Criteria
 
 - **US-T-12** — every `@v0.3` scenario (`t/progress-card.feature`) passes in the task's e2e spec:
   - T-12.1 Show the figures of the current scope — "minor-v0.1" "planning"; "Project completion
-    25 %", "Tasks 1/4", "Open bugs 1", "Pending gates 3";
+    25 %", "Iterated: task 1/4", "Open: bug 1", "Pending gates 3" (amended 2026-11-16, Q2 (b): the
+    type as written, task-066's labels);
   - T-12.4 Move the scope to the most advanced release — "minor-v0.2" "in-development";
   - T-12.5 Say that no release is under way — "No current release" and the whole project's figures;
   - T-12.6 Say that no reference is linked in the current release — "No references linked in
@@ -53,7 +57,7 @@ activity lists 5 events; the `ui.yaml` warning of C-04.1 shown on Today (US-C-04
   handling is task-066's):
   - T-13.1 Open the items behind "Pending gates" — exactly `task-001-cli-adapter`,
     `dl-002-use-fastify`, `bug-001-toast-overlap`, active filter "Pending gates";
-  - T-13.2 Open the items behind "Tasks 1/4" — the 4 tasks of `v0.1`, `task-002-memory-list` done;
+  - T-13.2 Open the items behind "Iterated: task 1/4" (amended 2026-11-16, Q2 (b)) — the 4 tasks of `v0.1`, `task-002-memory-list` done;
   - T-13.3 Clear a figure filter — every non-archived element, no active filter;
   - T-13.4 Ignore an unknown figure code — `?figure=bogus`: every non-archived element, no active
     filter.
@@ -67,18 +71,14 @@ activity lists 5 events; the `ui.yaml` warning of C-04.1 shown on Today (US-C-04
     project: 0.2.2)" with "Project completion 25 %";
   - T-15.2 Show phase completion read-only too — "Phase completion — needs WingFoil 0.3"; on 0.3.1
     the `not-in-release` reason's text (a test of its own).
-- **US-T-08** — every `@v0.3` scenario (`t/recent-activity.feature`) passes in the task's e2e spec:
-  - T-08.1 Show the last 5 Memory events — newest first; time, element, "from → to" and author, or
-    "created"; no link "Open the Timeline";
-  - T-08.2 Add an event made outside the UI — "task-001-login-form pending → approved · Morgan" first
-    within 5 s;
-  - T-08.3 Leave out commits that are not Memory events — "docs: fix a typo in README" not listed.
+- **US-T-08** — moved to task-080-recent-activity-on-today (the split, W3-3): T-08.1, T-08.2 and
+  T-08.3 pass in task-080's e2e spec. (amended 2026-11-16, Q1 (b).)
 - **US-X-10** (v0.1 story; its `@v0.3` scenario, B2 (c)) — passes in the task's e2e spec:
   - X-10.4 Show the project completion in the tab title — "kanban · 40 % · Today — WingFoil UI"
     when the card shows 40 %; no percentage when completion is not shown (a test of its own).
-- **AC-1 — The card.** In the order of `ux-reference.md` §4.1 (greeting, progress card, *Requires
-  you*, *Waiting on others*, *Recent activity* last), the place of the v0.2 *Your roles* line next to
-  the card recorded at design with the approver (§4.1 places both after the greeting); each shown figure a link to `?figure=<code>`
+- **AC-1 — The card.** In the order of `ux-reference.md` §4.1 (greeting, progress card, *Your
+  roles*, *Requires you*, *Waiting on others*, then task-080's *Recent activity* last; the place of
+  *Your roles* decided at design, Q3 (b)); each shown figure a link to `?figure=<code>`
   (`completion`, `iterated`, `open-defects`, `pending-gates`); a figure `unavailable` or `read-only`
   shows its reason's text and is not a link; `unreadable` / `capped` named in a note ("some elements
   could not be read"); a failed read is an error, never an empty card; a refresh on `repo` re-reads
@@ -87,8 +87,8 @@ activity lists 5 events; the `ui.yaml` warning of C-04.1 shown on Today (US-C-04
   task-054's item) passes in this task's spec: "ui.yaml ignored: progress.mode must be sequence or
   flow (found spiral)" on Today and the scope "Whole project".
 - **AC-3 — Performance.** TT-PERF-01 (REQ-PERF-01, Today p95 ≤ 2.0 s warm, ≤ 5.0 s first open) holds
-  with both cards in `test/e2e/performance.spec.ts` and in `test:timing` (Chromium, run alone).
-- **AC-4 — Docs.** `docs/user-guide.md` (Today's progress card and Recent activity), `CHANGELOG.md`
+  with the progress card in `test/e2e/performance.spec.ts` and in `test:timing` (Chromium, run alone).
+- **AC-4 — Docs.** `docs/user-guide.md` (Today's progress card; Recent activity is task-080's), `CHANGELOG.md`
   *Unreleased*, `test/README.md` for new suites; Version/Date bumped.
 
 Screen: `docs/00_reference/ux-reference.md` §4.1 (items 2 and 6, the v0.3 block), §7 (computations)
@@ -116,10 +116,11 @@ gates through the machine-free slot with the load and the slot wait in each log 
   bell's events, the page title code `web/src/shell/page-title.ts`) and of task-061 (role tags,
   filters, short ids; a dependency) — Today's files are shared, so this task builds on its merge.
 - Recent activity reads the existing events route; the row names the element by the short id when
-  the elements list Today reads has it (spec-012 §6, spec-011 §1).
+  the elements list Today reads has it (spec-012 §6, spec-011 §1). Moved with the card to
+  task-080 (W3-3); Q5 (a): the event's full id.
 - Today's layout changes touch the v0.2 Today specs (`today.spec.ts`, `notification-bell.spec.ts`)
   and `SCREENS`; no expectation of an earlier scenario is loosened.
-- T-08.2 and T-12.3 commit through a CLI approve outside the UI: their spec runs under the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity* in the self-check (dl-011).
+- T-12.3 commits through a CLI approve outside the UI (T-08.2 is task-080's): its spec runs under the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity* in the self-check (dl-011).
 
 ## Execution Notes
 
@@ -240,7 +241,7 @@ X-10.4's Given commits on a copy (D65-14): those suites run under the strict-ide
 - **D65-9 — The `ui.yaml` warning (AC-2, US-C-04).** `UiYamlWarning` (task-064, key
   `shell.uiYaml.ignored`) with `/progress`'s `ui` status, placed above the progress card; no new
   key, no `role` (W3-2). C-04.1's spec finds it by `.ui-yaml-warning`.
-- **D65-10 — Recent activity (US-T-08).** A region "Recent activity" with the 5 events of the
+- **D65-10 — Recent activity (US-T-08)** *(moved to task-080, W3-3; recorded as designed for it)*. A region "Recent activity" with the 5 events of the
   answer, newest first as received (spec-004 §3; no re-sort). Each row: the element id as a link to
   its side panel (the event's id as written — Q5), then the transition "{from} → {to}" (the
   existing `element.history.transition`) or "created" for an `add` (`from` `null`), or, for an
@@ -329,13 +330,9 @@ task); the task's e2e spec is `test/e2e/today-progress.spec.ts` (new; `prebuild:
 | T-14.2 | red-first | e2e › `T-14.2 — Reach the explanation with the keyboard` (Tab to the link, visible focus, the tooltip shown, `toHaveAccessibleDescription` the same text; Escape closes it) |
 | T-15.1 | red-first | e2e › `T-15.1 — Show the phase figure read-only on WingFoil 0.2.2` (version-fake 0.2.2; the exact text, not a link; "Project completion 25 %") |
 | T-15.2 | red-first | e2e › `T-15.2 — Show phase completion read-only too` (0.2.2) and `T-15.2 — the not-in-release text on WingFoil 0.3.1` (its own test) |
-| T-08.1 | red-first | e2e › `T-08.1 — Show the last 5 Memory events` (kanban; 5 rows, `dateTime` descending; each transition row "from → to" and "· <name>", each `add` row "created"; no link "Open the Timeline") |
-| T-08.2 | red-first | e2e › `T-08.2 — Add an event made outside the UI` (`@live-refresh`; CLI approve; the first row "task-001-login-form pending → approved · Morgan" within 5 s; strict under `test:timing`) |
-| T-08.3 | red-first | e2e › `T-08.3 — Leave out commits that are not Memory events` (the README commit not listed; 5 rows) |
 | X-10.4 | red-first | e2e › `X-10.4 — Show the project completion in the tab title` ("kanban · 40 % · Today — WingFoil UI") and `X-10.4 — no percentage when completion is not shown` (plain kanban: "kanban · Today — WingFoil UI") |
 | C-04.1 (AC-2) | red-first | e2e › `C-04.1 — Fall back to inferred values when ui.yaml is invalid` (`.ui-yaml-warning` exact text; scope "Whole project") |
 | AC-1 | red-first | `test/web/today/progress-model.test.ts` (each figure's item: shown → link and code, every `unavailable` and `read-only` reason → its text, iterated/open defects unavailable → absent, `majorMinor`, the explanation's "and n more" past 10, the signature); `test/web/today/progress-card.test.tsx` (the order of §4.1 with *Your roles*; a failed `/progress` → an error in the card, the rest of Today shown; loading status; the `unreadable`/`capped` notes; a refetch with the same texts not announced, a changed figure announced once; the scope link opens the side panel; no class `today-card`; the card within 400 px) |
-| T-08.x (unit) | red-first | `test/web/today/recent-activity.test.tsx` (the server's order kept; "created", a transition, an operation without a transition; the author rule; the time's description; empty, loading, error; no Timeline link) |
 | X-10.4 (unit) | red-first | `test/web/shell/page-title.test.tsx` (the completion title with a shown completion, `title.projectView` otherwise) |
 | AC-3 | red-first (`@perf`) / audit | `test/e2e/performance.spec.ts` TT-PERF-01 with both cards; `test/server/snapshot/process-audit.test.ts` › `cold Today page with the progress card and Recent activity: 0 CLI processes added, 2 git log` |
 | v0.2/v0.3 Today | characterization | `today.spec.ts`, `today-cards.spec.ts`, `notification-bell.spec.ts`, `held-gates.spec.ts` and `test/web/today/*` unchanged and green (no expectation loosened) |
@@ -365,13 +362,10 @@ them all (task-066's lesson, task-071 G9).
 | T-14.2 Reach the explanation with the keyboard | `test/e2e/today-progress.spec.ts` : `T-14.2 — …` |
 | T-15.1 Show the phase figure read-only on WingFoil 0.2.2 | `test/e2e/today-progress.spec.ts` : `T-15.1 — …` |
 | T-15.2 Show phase completion read-only too | `test/e2e/today-progress.spec.ts` : `T-15.2 — …` (two tests) |
-| T-08.1 Show the last 5 Memory events | `test/e2e/today-progress.spec.ts` : `T-08.1 — …` |
-| T-08.2 Add an event made outside the UI | `test/e2e/today-progress.spec.ts` : `T-08.2 — …` (`@live-refresh`) |
-| T-08.3 Leave out commits that are not Memory events | `test/e2e/today-progress.spec.ts` : `T-08.3 — …` |
 | X-10.4 Show the project completion in the tab title | `test/e2e/today-progress.spec.ts` : `X-10.4 — …` (two tests) |
 | C-04.1 Fall back to inferred values when ui.yaml is invalid | `test/e2e/today-progress.spec.ts` : `C-04.1 — …` |
 | X-06.4, X-09.1 on the new screens | `test/e2e/accessibility.spec.ts` over `SCREENS`: D65-16's three entries |
-| TT-PERF-01 with both cards (AC-3) | `test/e2e/performance.spec.ts` : `T-01.1, T-02.1 — Today renders within 2.0 s …` |
+| TT-PERF-01 with the progress card (AC-3) | `test/e2e/performance.spec.ts` : `T-01.1, T-02.1 — Today renders within 2.0 s …` |
 
 #### File layout
 
@@ -379,7 +373,6 @@ them all (task-066's lesson, task-071 G9).
   D65-8).
 - `web/src/today/ProgressCard.tsx` (new) — the scope, the figures, the tooltip, the notes, the
   announcement, the warning (D65-4 … D65-9).
-- `web/src/today/RecentActivity.tsx` (new) — D65-10.
 - `web/src/today/TodayView.tsx` — the two slots and the order (D65-3); `today.css` — the two cards.
 - `web/src/routes/today.tsx` — the slots, the completion title (D65-11).
 - `web/src/shell/page-title.ts` — `TITLES.projectCompletionView`, `useProjectTitle`'s completion.
@@ -387,7 +380,7 @@ them all (task-066's lesson, task-071 G9).
 - `web/src/api/queries.ts` — no new query; the comment of `memoryEventsQuery` names Today's
   `limit` 5.
 - Tests: `test/web/today/{progress-model.test.ts,progress-card.test.tsx,recent-activity.test.tsx}`
-  (new), `test/web/shell/page-title.test.tsx`, `test/e2e/today-progress.spec.ts` (new),
+  (new; `recent-activity.test.tsx` is task-080's), `test/web/shell/page-title.test.tsx`, `test/e2e/today-progress.spec.ts` (new),
   `test/e2e/support/screens.ts`, `test/e2e/performance.spec.ts`,
   `test/server/snapshot/process-audit.test.ts`, `test/harness/fixtures/progress.ts` and
   `test/harness/fixtures.test.ts` (`kanbanCompletion`, Q6 (a)).
@@ -465,3 +458,34 @@ About **1.7 active days**: red 0.65 (model and component tests 0.3, the e2e spec
 the harness helper 0.3, screens, `@perf` and the audit 0.05); green 0.6 (the card 0.35, *Recent
 activity* 0.1, the title 0.05, catalogue and CSS 0.1); refactor and docs 0.2; gates and the
 `gates.yml` runs 0.25. With Q1 (b): about 1.3 here, 0.4 in the new task.
+
+#### Decisions of the approver (2026-11-16)
+
+Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-v0.3-plan` W3-3):
+
+- **Q1 (b) — split.** task-080-recent-activity-on-today (added `8da8e400`, body `1b020829`,
+  submitted `cbc64d57`, on the phase branch) takes US-T-08's scenarios T-08.1 … T-08.3, the
+  *Recent activity* card (D65-10 as designed, `RecentActivity.tsx`, its unit test, its screen) and
+  its parts of AC-1, AC-3 and AC-4. This task keeps US-T-12 … US-T-15, US-X-10, C-04.1 and AC-1 …
+  AC-4 for the progress card, and D65-3's slots: `TodayView` takes the progress card and an
+  `activity` slot that task-080 fills, the last card of Today. The rows of T-08.x and the
+  `recent-activity.test.tsx` row left the test plan and the closure table; the e2e spec no longer
+  builds kanban copies for T-08.x (`prebuild` keeps `kanban` for C-04.1 and X-10.4).
+- **Q2 (b)** — "Iterated: task 1/4" and "Open: bug 1", the type as written; T-12.1 and T-13.2
+  amended by a dated note in `t/progress-card.feature` (and this task's AC, above).
+- **Q3 (b)** — greeting, progress card, *Your roles*, *Requires you*, *Waiting on others*.
+- **Q4 (a)** — the completion in the tab title on Today only.
+- **Q5 (a)** — task-080's (the event's full id).
+- **Q6 (a)** — `kanbanCompletion` in the harness.
+- **Q7 (a)** — an `unavailable` iterated or open-defects figure is not shown.
+- **Coordination with task-067 (its Q1 (a), approved).** The completion figure shared by Today and
+  Traceability is this task's, in a shared module `web/src/progress/` — its value, its bar, the
+  T-14.1 explanation on hover and keyboard focus as the accessible description — with the
+  read-only phase texts, under catalogue keys `progress.completion.*` and
+  `progress.phaseCompletion.*` (and `progress.phase.*` for the phase figure); D65-1, D65-6, D65-7
+  and D65-12 move those parts there from `web/src/today/progress.ts` and `today.progress.*`. The
+  card's own keys (scope, figures list, notes, updates, iterated, open defects, pending gates) stay
+  `today.progress.*`. task-067 wires its cards to the module after this merge: its API is kept small
+  and documented here at green. Today's private `Who` / `waitingWho` are left in place (task-081
+  extracts them after this merge).
+
