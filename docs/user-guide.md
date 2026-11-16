@@ -1,6 +1,6 @@
 # User guide — WingFoil UI v0.2
 
-**Version:** 0.43 · **Date:** 2026-11-16 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1; 0.29: held gates and the actor after an approve, unreleased v0.3 — task-069; 0.30: the files that are not elements named in the Memory list, WingFoil's reasons in a refusal toast, unreleased v0.3, and the WingFoil 0.2.2 limitation of a frontmatter that does not parse — task-070 / bug-024, bug-036; 0.31: a move into a state at its limit, unreleased v0.3 — task-073; 0.32: the Today cards' filters, 10 rows, short ids and entry dates, unreleased v0.3 — task-061; 0.33: the full time as the description of the date and of the row's link — its review round 1; 0.34: the element page, short ids in its address and the candidates of an ambiguous one, unreleased v0.3 — task-062; 0.35: every name the repository supplies shown safely, unreleased v0.3 — task-072 / bug-035; 0.36: a page of a restarted console recovers in place, unreleased v0.3 — task-063; 0.37: *Your roles* as one line of role tags, unreleased v0.3 — task-076; 0.38: the side panel over Today and the view of the bell, unreleased v0.3 — task-077; 0.39: the summary rendered as Markdown and *Open document*, unreleased v0.3 — task-078; 0.40: text after a comment kept, the summary that could not be loaded — its security review rounds 1–2; 0.41: *Configuration › Taxonomy* and *› Progress*, unreleased v0.3 — task-064; 0.42: the states of a bucket, the missing required references and the figure filter on the Memory list, unreleased v0.3 — task-066; 0.43: *Traceability*, unreleased v0.3 — task-067)
+**Version:** 0.46 · **Date:** 2026-11-16 (0.1: release v0.1; 0.2: bug-008 known limitation, release submit; 0.3: bug-008 wording; 0.4: bug-008 marked fixed after 0.1.0 — task-026; 0.5: *How to join*, unreleased v0.2 — task-035; 0.6: *Today*, unreleased v0.2 — task-036; 0.7: what runs during a clone, a local repository of another user, unreleased v0.2 — task-033 / bug-010, bug-013; 0.8: a local source git cannot read — task-033 review round 3; 0.9: *Deciding a gate*, unreleased v0.2 — task-037; 0.10: *Automatic sync with the remote*, unreleased v0.2 — task-034 / bug-014, its security reviews; 0.11: the notification bell and *Your roles* on Today, unreleased v0.2 — task-042; 0.12: *Submitting* and *After an action*, unreleased v0.2 — task-038; 0.13: *Git status in the sidebar*, unreleased v0.2 — task-039; 0.14: *UI settings*, unreleased v0.2 — task-041; 0.15: *Update* and *Push* in the sidebar, a URL pasted into an open tab, tool messages shown safely, unreleased v0.2 — task-040 / bug-016, bug-017; 0.16: release v0.2 user-docs — the guide describes v0.2 as a whole, known limitations of v0.2; 0.17: the focus back on the Today action after the element panel closes — bug-018, task-043; 0.18: every opener on Today and the "otherwise" rule — task-043 review rounds 1–2; 0.19: bug-019 known limitation — e2e-smoke; 0.20: release v0.2.0 — git tag and npm, release submit; 0.21: one row per directive in force, unreleased v0.3 — task-047 / bug-025; 0.22: the WingFoil 0.3 operations in the history, unreleased v0.3 — task-048 / bug-026; 0.23: the WingFoil 0.3 history labels marked unreleased — the v0.3 pre-step review; 0.24: the workflow tree, timeline, git tree, files, command palette and ingestion planned for v0.4 — release-planning v0.3, RP3-7; 0.25: bug-019 marked fixed in the unreleased v0.3 — task-057; 0.26: its entry rewrapped — task-057 review round 1; 0.27: commit texts and element titles shown safely, unreleased v0.3 — task-056 / bug-027; 0.28: the reject's reason among the fields, a backslash in a title — task-056 review round 1; 0.29: held gates and the actor after an approve, unreleased v0.3 — task-069; 0.30: the files that are not elements named in the Memory list, WingFoil's reasons in a refusal toast, unreleased v0.3, and the WingFoil 0.2.2 limitation of a frontmatter that does not parse — task-070 / bug-024, bug-036; 0.31: a move into a state at its limit, unreleased v0.3 — task-073; 0.32: the Today cards' filters, 10 rows, short ids and entry dates, unreleased v0.3 — task-061; 0.33: the full time as the description of the date and of the row's link — its review round 1; 0.34: the element page, short ids in its address and the candidates of an ambiguous one, unreleased v0.3 — task-062; 0.35: every name the repository supplies shown safely, unreleased v0.3 — task-072 / bug-035; 0.36: a page of a restarted console recovers in place, unreleased v0.3 — task-063; 0.37: *Your roles* as one line of role tags, unreleased v0.3 — task-076; 0.38: the side panel over Today and the view of the bell, unreleased v0.3 — task-077; 0.39: the summary rendered as Markdown and *Open document*, unreleased v0.3 — task-078; 0.40: text after a comment kept, the summary that could not be loaded — its security review rounds 1–2; 0.41: *Configuration › Taxonomy* and *› Progress*, unreleased v0.3 — task-064; 0.42: the states of a bucket, the missing required references and the figure filter on the Memory list, unreleased v0.3 — task-066; 0.43: *Use preset*, unreleased v0.3 — task-079; 0.44: *Recent activity* on Today, unreleased v0.3 — task-080; 0.45: the progress card on Today and the completion in the tab title, unreleased v0.3 — task-065; 0.46: *Traceability*, unreleased v0.3 — task-067)
 
 WingFoil UI v0.2 — **Unblock** — is a local console for WingFoil-governed projects: you open a
 project, see on **Today** what requires you, decide its gates and submit its work, and keep your
@@ -223,6 +223,24 @@ require you* — and names the role view (*Role view: approver*).
   *Show all (<n>)* and *Show fewer*. Each row names its element by its **short id** (*task-046*;
   the full id when the type's id has no number) and says when it entered its state (*since Sep 29,
   2026*; the full time is the accessible description of the date and of the row's link).
+- Unreleased (v0.3): the **Progress** card, right after the greeting, shows where the project
+  stands, from the server's figures (nothing is computed in the page). Its first line is the
+  **scope**: the current element of the type `.wingfoil/ui.yaml` names in `progress.scope` (e.g.
+  the most advanced release, *minor-v0.1* with its state pill — a link to its side panel), *No
+  current release* when none is under way, or *Whole project* without a scope. Then one row of
+  figures: **Project completion** (*25 %*, with a bar; hover it or reach it with the keyboard for
+  how it is computed — *Mean of reference completion over 2 references with at least 1 linked
+  element: US-M-01 50 %, US-S-01 0 %*), the **phase** and **phase completion** (read-only until a
+  later release: *Phase — needs WingFoil 0.3 (this project: 0.2.2)*, or *comes with a later WingFoil
+  UI release*), **Iterated: <type> 1/4**, **Open: <type> 1** and **Pending gates 3**. Each figure
+  opens the Memory list showing exactly its elements, with the figure as the active filter. In place
+  of the completion the card may say *Completion needs references — see Configuration › Taxonomy*
+  (no reference category declared) or *No references linked in minor-v0.2*; a project with no
+  iterated or defects type shows no such figure. Elements the server could not read are named in a
+  note. When `ui.yaml` cannot be used, *ui.yaml ignored: <its first problem>* is shown above the card
+  and the figures use the inferred values. A change in the repository updates the figures by itself;
+  screen readers hear the figures that changed. While the project completion is shown, the browser
+  tab title carries it on Today: *kanban · 40 % · Today — WingFoil UI*.
 - Changing the **Role view** changes the list; a change in the repository updates it by itself and
   screen readers hear the new count.
 - **Your roles** — when you hold several roles, a card between the greeting and Requires you gives
@@ -238,6 +256,15 @@ require you* — and names the role view (*Role view: approver*).
   you, each a link to the element panel — and **Updates** — the last 10 Memory events, newest
   first: the element, what happened and who did it, the transition and how long ago. *Open Today*
   goes to Today. The count follows every change, also an approval you make.
+- Unreleased (v0.3): **Recent activity**, the last card of Today, lists the last 5 Memory events,
+  newest first, one line each: the element's id — a link that opens the element in the side panel
+  over Today —, the transition (*pending → approved*) or *created* for a new element (the
+  operation's word, e.g. *amended*, when the event shows no transition), who did it (the approver of
+  an approval, a rejection or an amendment, else the author, as the bell's *Updates*) and how long
+  ago, the full date and time being the accessible description of the link. Commits that are not
+  Memory events are not listed. A change in the repository updates it by itself, silently; it has
+  its own loading line and error, and shows even when the rest of Today cannot be read. There is no
+  link to a Timeline yet (planned for v0.4).
 - When you are not in the team, Today shows Waiting on others only, with *You are not in this
   project's team —* **How to join**; with no git identity, or an ambiguous one, it points to the
   read-only notice of the header.
@@ -307,7 +334,8 @@ counts, which element is done — is the console server's.
   scope. *Whole project* lists every element, and also the requirements and features no element
   references (*No elements*). Without a current element the page is project-wide and the control is
   hidden.
-- **Figures.** *Project completion* over the scope shown, *Phase completion* (read-only until a
+- **Figures.** *Project completion* over the scope shown (its explanation, as on Today, on hover
+  and keyboard focus), *Phase completion* (read-only until a
   later release) and *Reference coverage* — the elements that carry every reference their type
   requires, project-wide, with the references without elements under *Whole project*. A figure the
   configuration cannot give says so, with a link to *Configuration › Taxonomy*.
@@ -722,8 +750,24 @@ from, are the server's.
   declare, a pattern outside the accepted rules — is ignored as a whole: both tabs show *ui.yaml
   ignored:* followed by the first problem (a YAML error names its line), and every value is
   *inferred*. Fix the file and the tabs follow at once, as for every change to the repository.
-- *Use preset*, which writes a `ui.yaml` for a project that has none, comes with a later task of
-  v0.3.
+- **Use preset** (*Taxonomy*, right after the tab's intro) writes a `ui.yaml` for a project that has
+  none, from one of the shipped presets: *Kanban* and *Scrum* (for projects made with `wingfoil init
+  --template Kanban` or `Scrum`) and *WingFoil sw-life-cycle* (for projects that copy WingFoil's own
+  configuration, the packs `base`, `software` and `methodology/scrum`). The dialog names the file,
+  `.wingfoil/ui.yaml`, and the commit it will make, `chore(ui): apply the <Preset> preset`; Confirm
+  writes the file and commits it **alone** — changes you had staged stay staged and out of that
+  commit. Escape or *Cancel* closes the dialog without writing anything. A toast names the commit
+  (and *pushed* when *Auto-push* is on); the commit is in the console's action log, and the tabs
+  then show every value of the preset as *declared*.
+  - It is **not shown** when the project already has a `ui.yaml` (valid or ignored), or to a user
+    who is not identified as one member of the team.
+  - It is **disabled, with the reason**, while WingFoil is outside the supported range, or while
+    your copy is behind its remote (*Blocked: your copy is 1 commit behind the remote — Update*:
+    *Update* brings it up to date), diverged or on no branch.
+  - The server checks everything again before writing: a refusal is a red toast — for example
+    *ui.yaml not written: type service is not declared in memory.yaml* when the preset maps a type
+    the project does not declare, or *ui.yaml not written: .wingfoil/ui.yaml already exists* when a
+    file appeared meanwhile (also one only staged or in the last commit). Nothing is written then.
 
 ## Themes, keyboard and accessibility
 
@@ -763,7 +807,9 @@ from, are the server's.
   console never edits a Memory file itself. One change runs at a time per repository; the console
   checks that the element is still in the state you saw (*This element changed since you opened
   it* otherwise) and has no local changes right before it runs WingFoil — see
-  [Known limitations](#known-limitations) for what happens in between.
+  [Known limitations](#known-limitations) for what happens in between. *Unreleased (v0.3):* the
+  one commit the console makes itself is *Use preset*'s, which writes only `.wingfoil/ui.yaml`
+  ([Taxonomy and progress](#taxonomy-and-progress-uiyaml)), never a Memory file.
 - **Git transports** (clone, *Fetch*, *Update*, *Push* and the automatic sync) use only the
   `https`, `http`, `ssh`, `git` and `file` transports, whatever `GIT_ALLOW_PROTOCOL` says in your
   environment, and git never prompts in a terminal. For *Fetch*, *Update*, *Push* and the

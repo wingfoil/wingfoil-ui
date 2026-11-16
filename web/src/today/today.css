@@ -286,3 +286,64 @@ span.today-summary-role {
   color: var(--color-text-muted);
   font-size: 12px;
 }
+
+/* task-065 (D65-3 … D65-8): the progress card — the card's frame of the other cards, but not the
+   class `today-card` (the specs locate Requires you and Waiting on others by it). */
+.today-progress {
+  overflow: hidden;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.today-progress-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0 16px 14px;
+}
+
+.today-progress-body > p {
+  margin: 0;
+}
+
+.today-progress-scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+  font-weight: 600;
+}
+
+.today-progress-scope-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.today-progress-scope-link:hover {
+  text-decoration: underline;
+}
+
+.today-progress-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-progress-figures > li {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.today-progress-note {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

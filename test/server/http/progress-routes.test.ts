@@ -28,6 +28,7 @@ import {
   copyFixture,
   draftRelease,
   installCliStub,
+  kanbanCompletion,
   SECOND_RELEASE,
   usePresetUiConfig,
   addReleaseLine,
@@ -138,7 +139,7 @@ const VARIANTS = {
   // spec-012 §2: an ignored ui.yaml.
   ignored: async (fx: Fixture) => commitUiYaml(fx, 'version: 1\nprogress: { mode: spiral }\n'),
 } satisfies Record<string, (fx: Fixture) => Promise<void>>;
-type Variant = keyof typeof VARIANTS | 'unknown';
+type Variant = keyof typeof VARIANTS | 'unknown' | 'kanbanCompletion';
 
 let ws: TempWorkspace;
 const variants = {} as Record<Variant, Fixture>;
@@ -155,6 +156,9 @@ beforeAll(async () => {
     await prepare(variants[name]);
   }
   variants.unknown = await buildFixture('unknown', { root: path.join(root, 'unknown') });
+  // task-065 X-10.4's Given (D65-14, Q6 (a)).
+  variants.kanbanCompletion = await buildFixture('kanban', { root: path.join(root, 'kanban') });
+  await kanbanCompletion(variants.kanbanCompletion);
 }, 900_000);
 
 afterEach(async () => {
@@ -333,6 +337,17 @@ describe('GET /api/p/:pid/progress — the figures on the fixtures (TT-STATE-08)
 
   it('TT-STATE-08 fit criterion (checker N-3): pre-packs states and the preset — pending gates 3', async () => {
     expect((await progress(await start('prePacks'))).figures.pendingGates.count).toBe(3);
+  }, 300_000);
+
+  it('task-065 X-10.4 Given (kanbanCompletion): the kanban fixture shows a project completion of 40 %', async () => {
+    const body = await progress(await start('kanbanCompletion'));
+    expect(body.ui).toEqual({ source: 'file' });
+    expect(body.figures.completion).toMatchObject({
+      state: 'shown',
+      percent: 40,
+      references: [{ id: 'US-01', done: 2, total: 5, percent: 40 }],
+      referencesCount: 1,
+    });
   }, 300_000);
 
   it('TT-STATE-08 fit criterion (checker N-3): pending gates 2 once bug-001 is triaged (a gate and a waiting state)', async () => {

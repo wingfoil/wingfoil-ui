@@ -5,12 +5,13 @@
  * reference patterns in file order with their origin — each key explained with an example. A
  * pattern is shown as served (`patterns[].match`, its backslashes kept, W1-18), never compiled here.
  * No category or type name is written in this file (REQ-ARC-05): they come from the data, and the
- * category list and its meanings from the catalogue.
+ * category list and its meanings from the catalogue. *Use preset* follows the intro (task-079, D79-3).
  */
 import type { UiConfig } from '@wingfoil-ui/contracts';
 import { useId, type ReactNode } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import { Origin, UiFrame } from './UiFrame.js';
+import { UsePreset } from './UsePreset.js';
 
 const TITLE = defineMessages({ taxonomy: { id: 'settings.taxonomy.title' } });
 
@@ -185,6 +186,7 @@ export function TaxonomyView({ pid }: { pid: string }): ReactNode {
           <p className="page-intro">
             <FormattedMessage id="settings.taxonomy.intro" values={{ code }} />
           </p>
+          <UsePreset pid={pid} ui={ui} />
           <Categories />
           <Types taxonomy={ui.taxonomy} />
           <Patterns patterns={ui.taxonomy.patterns} />

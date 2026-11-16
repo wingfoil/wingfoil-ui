@@ -621,3 +621,8 @@ every object `additionalProperties: false`, as the other API schemas.
   `?missing=refs` is ignored likewise (the address kept, no active filter) where the filter is not
   offered, and with a type selected the list waits for `/config` before applying it (task-066
   review rounds 1 and 2, 2026-11-15). No shape changes.
+- 2026-11-16 — clarified in task-065 (design D65-5, D65-6; decided by the approver, Q2 (b), Q7 (a),
+  plan `backlog-item-rel-v0.3-plan` W3-3). §3 the card names the iterated and open-defects figures
+  by their type as written, with the Memory list's figure labels — "Iterated: task 1/4", "Open: bug
+  1" (T-12.1 and T-13.2 amended; were "Tasks 1/4", "Open bugs 1"); an `unavailable` `iterated` is
+  not shown, as an `unavailable` `openDefects`. No shape changes.

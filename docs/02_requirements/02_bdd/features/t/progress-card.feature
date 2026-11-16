@@ -3,6 +3,9 @@ Feature: Progress card
   clickable; phase X of Y with WingFoil 0.3 (T2, M1, R5). Completion and iterated figures cover the
   current element of the `progress.scope` type (`ui.yaml` declares the type only; the element is
   derived); open bugs and pending gates cover the whole project.
+  2026-11-16 — amended in task-065 (Q2 (b), decided by the approver; plan backlog-item-rel-v0.3-plan
+  W3-3): the iterated and open-defects figures name their type as written, with the Memory list's
+  labels — "Iterated: task 1/4", "Open: bug 1" in T-12.1 and T-13.2 (were "Tasks 1/4", "Open bugs 1").
 
   Background:
     Given the console is running
@@ -15,7 +18,7 @@ Feature: Progress card
     Given the custom fixture with the sw-life-cycle preset is open
     When I open Today
     Then the progress card shows the scope "minor-v0.1" with its state "planning"
-    And it shows "Project completion 25 %", "Tasks 1/4", "Open bugs 1" and "Pending gates 3"
+    And it shows "Project completion 25 %", "Iterated: task 1/4", "Open: bug 1" and "Pending gates 3"
 
   @US-T-12 @v0.3 @edge @fx-custom
   Scenario: T-12.4 — Move the scope to the most advanced release
@@ -62,9 +65,9 @@ Feature: Progress card
     And the active filter reads "Pending gates"
 
   @US-T-13 @v0.3 @edge @fx-custom
-  Scenario: T-13.2 — Open the items behind "Tasks 1/4"
+  Scenario: T-13.2 — Open the items behind "Iterated: task 1/4"
     Given the custom fixture with the sw-life-cycle preset is open
-    When I select "Tasks 1/4" on the progress card
+    When I select "Iterated: task 1/4" on the progress card
     Then the Memory list shows the 4 tasks of release "v0.1", "task-002-memory-list" marked done
 
   @US-T-13 @v0.3 @edge @fx-custom

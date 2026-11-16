@@ -34,11 +34,13 @@ export function withGitNames<V extends Record<string, unknown>>(values: V): V {
 /** Props of {@link ErrorText}. */
 export interface ErrorTextProps {
   error: Pick<ApiError, 'code' | 'message' | 'detail'>;
+  /** The texts of the preset write (task-079, D79-8). */
+  variant?: 'preset';
 }
 
 /** The error's message, and the tool output when there is one. */
-export function ErrorText({ error }: ErrorTextProps): ReactNode {
-  const { descriptor, values, verbatim } = errorMessage(error);
+export function ErrorText({ error, variant }: ErrorTextProps): ReactNode {
+  const { descriptor, values, verbatim } = errorMessage(error, variant ? { variant } : {});
   return (
     <>
       <p>
