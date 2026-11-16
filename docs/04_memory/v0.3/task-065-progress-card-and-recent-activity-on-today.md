@@ -703,3 +703,7 @@ previous answer kept with its texts; a new version alone recomputes the texts si
 announced text is an element of its own in an `.intl-list`, the class the X-09.1 checker opts the
 `Intl` list separator in by (also on the completion's `.progress-references`).
 
+| Run | Commit | Trigger | Result |
+|-----|--------|---------|--------|
+| `43867050428` | `92467170` | push | cancelled by the dispatch below |
+| `43867050532` | `92467170` | dispatch, the same specs | **success**: checks, coverage (96.75 % statements, 91.92 % branches), contract, smoke, publish-smoke, e2e-chromium 213 + 212 passed, own specs 160 passed on Firefox and 160 on WebKit (T-14.1 and T-14.2 among them) |
