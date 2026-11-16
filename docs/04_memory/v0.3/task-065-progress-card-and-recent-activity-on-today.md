@@ -129,3 +129,339 @@ gates through the machine-free slot with the load and the slot wait in each log 
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-16)
+
+Read (dl-015): this task; the Execution Notes of task-059 (D59-2 the current element, D59-5 …
+D59-6 the figures, D59-12 the harness variants `addSecondRelease`, `draftRelease`,
+`setFrontmatterValue`), task-066 (D66-8 `progressQuery` and its key, D66-9 the figure codes and
+labels of `web/src/memory/figure.ts`, D66-7 the active filter and *Clear filter*, its e2e closure),
+task-064 (D64-6, Q4 (a): the shared `UiYamlWarning`; W3-2: no `role="note"`, found by
+`.ui-yaml-warning`), task-061 (D61-4 … D61-13: the cards, `CardRows`, the screens) and task-076
+(the one-line *Your roles*); task-036 and task-042 through task-061's notes (Today's layout and
+refresh, the bell's *Updates*, `page-title.ts`); `ux-reference.md` §4.1 (items 2 and 6, the v0.2,
+v0.2 summary and v0.3 blocks), §4.4 v0.3, §7; the prototype's Today (`docs/00_reference/prototype/`:
+the figures row — project completion, phase completion, "<type> completati" x/y, open bugs only
+when a defects type exists, pending gates —, the card *Recent activity* with its Timeline link, one
+line per event with its time on the right); spec-012 §2, §3, §6, §8, §10, §11; spec-008 §3, §4
+(`title.projectCompletionView`, the capability reason codes); spec-002 §1 (the events); the
+scenarios of `t/progress-card.feature`, `t/recent-activity.feature`, `c/ui-yaml.feature` C-04.1,
+`x/accessibility.feature` X-10.4 and `02_bdd/00_conventions.md` (*Variants*: the pre-packs
+states, the version-fake variant); the stage plan W3-1, W3-2; directives `definition-of-done` 1.5,
+`ux-consistency`, `accessibility`, `wingfoil-cli`, `claim-evidence`, `documentation`,
+`doc-versioning`. The code: `web/src/today/{TodayView.tsx,CardRows.tsx,RowParts.tsx,today.css}`,
+`web/src/routes/today.tsx`, `web/src/api/queries.ts` (`progressQuery`, `memoryEventsQuery`),
+`web/src/memory/figure.ts`, `web/src/shell/{UiYamlWarning.tsx,page-title.ts,NotificationBell.tsx,
+notifications.ts}`, `web/src/project/ProjectHeader.tsx` (the capability reasons),
+`web/src/repository/GitStatus.tsx` (React Aria `TooltipTrigger`), `contracts/src/progress.ts`;
+the tests `test/e2e/{today,today-cards,notification-bell,memory-filters,performance}.spec.ts`,
+`test/e2e/support/{screens,events}.ts`, `test/server/snapshot/process-audit.test.ts`,
+`test/server/http/progress-routes.test.ts`, `test/harness/fixtures/{builder,progress,variants}.ts`.
+
+No probe: the task changes no CLI call, git read or write and no route (no security probe,
+`definition-of-done` *Security probes*). T-08.2 and T-12.3 approve with the CLI outside the UI and
+X-10.4's Given commits on a copy (D65-14): those suites run under the strict-identity recipe of
+`test/README.md` *Fixtures* › *Git identity* (dl-011) in the self-check.
+
+#### Decisions (D65-n)
+
+- **D65-1 — The web renders, the server decides.** Every figure, scope, reference, reason and id
+  list is read from `GET /api/p/:pid/progress` as it comes (spec-003 §8, spec-012 *Consequences*);
+  the web computes no percentage, done state or scope and holds no type, state or category literal
+  (REQ-ARC-05). A pure module `web/src/today/progress.ts` turns the answer into the card's items —
+  for each figure its kind (`link` with its code, `reason`, or absent), its message descriptor and
+  arguments — so that the component and the page title read the same thing.
+- **D65-2 — One query, shared.** The card reads `progressQuery(pid)` of `web/src/api/queries.ts`
+  (key `['p', pid, 'progress']`, task-066 D66-8): no second query or key. On Today it is always
+  enabled (the plain Memory list still reads none, D66-8). *Recent activity* reads
+  `memoryEventsQuery(pid, 5)` (spec-012 §6, REQ-PERF-11: `?limit=5`) — an entry of its own beside
+  the bell's `limit` 10 (D31-6 keys the limit); the server serves both from one events read per
+  HEAD (the process audit below). Both keys sit under `['p', pid]`: the `repo` event refetches them
+  (T-12.3, T-08.2; spec-012 §8), no new event or poll.
+- **D65-3 — The layout (AC-1).** In the order of §4.1: the greeting, the shared `ui.yaml` warning
+  (D65-9), the **progress card**, *Your roles* (Q3), *Requires you*, *Waiting on others*, **Recent
+  activity** last; no *Next workflow step* (v0.4). The two new cards are their own components,
+  `ProgressCard.tsx` and `RecentActivity.tsx`, each with its own query, loading status and error:
+  a failed `/progress` or events read is an error inside its card (`ErrorText`, `role="alert"`),
+  never an empty card, and never hides the rest of Today; they render for every user, a member or
+  not (project data, not role data). `TodayView` takes them as two slots (`progress`,
+  `activity`) placed by `routes/today.tsx`, so the v0.2/v0.3 unit tests of `TodayView` keep their
+  props and mocks. They do not carry the class `today-card` (the existing specs locate *Requires
+  you* and *Waiting on others* by it, e.g. `today-cards.spec.ts`), but their own
+  (`today-progress`, `today-activity`) styled from the same tokens; the activity rows carry
+  `data-sha`, not `data-eid` (the opener restore of D77-7 scans `li[data-eid]`).
+- **D65-4 — The scope line.** A region "Progress" (`aria-labelledby` its heading) whose first line
+  is the scope: with a current element, its short id (else its id, task-057; `minor-v0.1` has no
+  number, so its id) in the mono id style, its title, its state pill with the server's `tone` —
+  the id and title a link that opens the element's side panel over Today (`panelLinkOptions`,
+  remembered as an opener like Today's rows); `current: null` with a `scope.type` → "No current
+  {type}" (the type as written, T-12.5); `scope.type: null` → "Whole project" (T-12.2, C-04.1). The
+  phase strip and the `flow` columns are not drawn (RP3-14 D2, recorded in §4.1 v0.3).
+- **D65-5 — The figures row.** One list "Figures" in the order of §4.1: project completion, phase,
+  phase completion, iterated x/y, open defects, pending gates. A `shown` figure is a link to
+  `/p/<pid>/memory?figure=<code>` (`completion`, `iterated`, `open-defects`, `pending-gates`, the
+  codes of `figure.ts`, reused) whose accessible name is its visible text, label then value —
+  "Project completion 25 %", "Pending gates 3" (the wording: Q2). `completion` `unavailable` shows
+  its reason's text in its place, not a link: `no-reference-categories` "Completion needs
+  references — see Configuration › Taxonomy" with "Configuration › Taxonomy" a link to
+  `/p/<pid>/configuration/taxonomy` (task-064, T-12.2); `no-linked-elements` "No references linked
+  in {scope}" ({scope} the current element's short id or id, T-12.6). `iterated` and `openDefects`
+  `unavailable` (no type) are not shown (spec-012 §3 "the figure is not shown"; the prototype; Q7).
+  `phase` and `phaseCompletion` are `read-only` texts, never links (D65-6). `pendingGates` is
+  always shown. Rows wrap at narrow widths inside the card (bug-044's page-level scroll is not
+  touched; the card's own width is checked at 400 px in its unit test).
+- **D65-6 — The read-only phase figures (US-T-15).** From the reason the server sends (the
+  capability `workflow-position`'s, spec-001 §6), one ICU `select` per figure:
+  `needs-version` → "Phase — needs WingFoil {minVersion} (this project: {version})" and "Phase
+  completion — needs WingFoil {minVersion}" (T-15.1, T-15.2's texts), `{version}` the project's
+  WingFoil version from the header Today already reads; `not-in-release` → "Phase — comes with a
+  later WingFoil UI release" / "Phase completion — comes with a later WingFoil UI release" (0.3.1,
+  T-15.2's own test); `unsupported-version` → "Phase — supported {min} to {max}"; `not-released`
+  → "Phase — in no released WingFoil yet". `minVersion` is shown without a zero patch ("0.3.0" →
+  "0.3", the scenarios' form, as S-08.3 writes it): a display helper `majorMinor` in
+  `progress.ts`, unit-tested; the header's own notice is not changed here.
+- **D65-7 — The completion explanation (US-T-14).** The completion link is the trigger of a React
+  Aria `TooltipTrigger`/`Tooltip` (the shared widget of `GitStatus.tsx`, directive
+  `ux-consistency`): it opens on hover and on keyboard focus, Escape closes it, and while open it is
+  the link's accessible description (React Aria's `aria-describedby`), so T-14.1 and T-14.2 read the
+  same element. Text: "Mean of reference completion over {count} references with at least 1 linked
+  element: {list}" with `{list}` = `intl.formatList` (`unit`, `narrow`: "US-M-01 50 %, US-S-01 0
+  %") of "{id} {percent} %" per reference in the server's order, then ", and {n} more" when
+  `referencesCount` exceeds the listed ones (spec-012 §3: at most 10) — one plural message with the
+  list as an argument, no concatenation (spec-008 §3). A reference id arrives escaped (K1) and is
+  shown as written.
+- **D65-8 — The notes and the refresh (AC-1).** Under the figures, `unreadable` and `capped` each
+  get a note when non-empty: "{count} element(s) could not be read: the figures leave them out —
+  {ids}" and "{count} element(s) were counted on their first 200 values only — {ids}" (every id,
+  `formatList`; task-066 D66-6's wording adapted). A `repo` refetch re-reads silently; when the
+  card's visible texts change (a signature of the items of D65-1), a polite status region "Progress
+  updates" announces "Progress updated: {figures}" with the changed figures' texts (e.g. "Pending
+  gates 2") — as Today's count (D36-11): the first read and a project switch are not announced.
+- **D65-9 — The `ui.yaml` warning (AC-2, US-C-04).** `UiYamlWarning` (task-064, key
+  `shell.uiYaml.ignored`) with `/progress`'s `ui` status, placed above the progress card; no new
+  key, no `role` (W3-2). C-04.1's spec finds it by `.ui-yaml-warning`.
+- **D65-10 — Recent activity (US-T-08).** A region "Recent activity" with the 5 events of the
+  answer, newest first as received (spec-004 §3; no re-sort). Each row: the element id as a link to
+  its side panel (the event's id as written — Q5), then the transition "{from} → {to}" (the
+  existing `element.history.transition`) or "created" for an `add` (`from` `null`), or, for an
+  event without a transition other than `add`, the operation's word ("amended", "edited outside a
+  WingFoil verb", …: a new `select`), then "· {name}" (`updateLine`'s name: the approver of an
+  approve, a reject or an amend, else the author — the bell's rule, reused from `notifications.ts`),
+  and its time as a `<time dateTime>` "{age} ago" (`today.age`) with the full date and time as its
+  accessible description (D61-8's pattern). Empty: "No Memory event yet"; loading and error as
+  D65-3. No link "Open the Timeline" (RP3-14 D8; recorded in §4.1 v0.3). Non-Memory commits are
+  not events (spec-002 §3): nothing to filter in the web (T-08.3).
+- **D65-11 — The tab title (US-X-10, X-10.4).** When the card shows the project completion
+  (`completion.state` `shown`), Today's title is `title.projectCompletionView` "{project} ·
+  {completion} % · {view} — WingFoil UI" (spec-008 §3, a new catalogue key) with the server's
+  `percent`; otherwise `title.projectView` as today (no percentage: unavailable, loading, failed).
+  `useProjectTitle` gains an optional completion argument; only Today passes it (Q4).
+- **D65-12 — Catalogue (spec-008, RP-43: additions only, no key changed or removed).** New keys:
+  `title.projectCompletionView`; under `today.progress.`: `title` ("Progress"), `figures`
+  ("Figures"), `loading`, `scope.whole`, `scope.none`, `completion`, `completion.noCategories`,
+  `completion.noLinked`, `completion.explanation`, `phase.readOnly`, `phaseCompletion.readOnly`,
+  `iterated`, `openDefects`, `pendingGates`, `notice.unreadable`, `notice.capped`, `updates.label`,
+  `updated`; under `today.activity.`: `title` ("Recent activity"), `loading`, `empty`, `created`,
+  `operation`, `author`, `ago`, `time`. The figure labels of the Memory list's active filter stay
+  task-066's (`memory.figure.*`, W3-1 Q2 (a)); the card's labels are equal to them in English
+  (Q2), in keys of their own because the card's carry the value.
+- **D65-13 — Accessibility.** Every link and the tooltip reachable by Tab with visible focus
+  (`expectFocusVisible`); the region headings are `h2` like the other cards; the figures are links
+  inside a labelled list; reason texts are plain text; axe 0 serious/critical in both themes on the
+  new screens (D65-16); no colour carries meaning alone (the state pill keeps its text).
+- **D65-14 — Fixtures for the e2e (RP3-16 P4).** T-12.1, T-13.x, T-14.x: copies of the custom
+  fixture with `usePresetUiConfig` (as `memory-filters.spec.ts`); T-12.4, T-12.6: plus
+  `addSecondRelease`; T-12.5: plus `draftRelease` (task-059 D59-12); T-12.3: plus
+  `usePrePacksStates`, Morgan's `memory approve bug-001-toast-overlap` through the harness's `cli`
+  outside the UI (its "Pending gates 3" on the pre-packs variant is not asserted by an API test of
+  task-059: the red run checks it first, and a different count stops the task with a note to the
+  approver); T-15.1, T-15.2: plus the version-fake variant `installCliStub(fx, { version: '0.2.2'
+  })` (the custom fixture is built on the packs from WingFoil 0.3.0, so "open on WingFoil 0.2.2" is
+  the fake), and the real 0.3.1 for the `not-in-release` test; T-12.2: the unknown fixture; T-08.x:
+  kanban copies, T-08.2 Morgan's `memory approve task-001-login-form` through `cli`, T-08.3
+  `commitFile(…, 'README.md', …, 'docs: fix a typo in README')`; C-04.1: a kanban copy with
+  `commitFile('.wingfoil/ui.yaml', …mode: spiral…)` as Alex; X-10.4: a kanban variant showing 40 %
+  (Q6) — a harness helper `kanbanCompletion(fixture)` in `test/harness/fixtures/progress.ts`
+  (a minimal `ui.yaml` mapping a reference pattern to `requirement`, one reference value on the 5
+  standard elements by `setFrontmatterValue`, `task-001-login-form` approved by Morgan with the CLI:
+  2 of 5 done = 40 %), its unit test in `test/harness/fixtures.test.ts`.
+- **D65-15 — Performance and processes (AC-3).** `performance.spec.ts` TT-PERF-01: the Today
+  view's `ready` waits also for the progress card's figures and *Recent activity*'s rows (both
+  cards rendered, no loading status), the budgets unchanged (p95 ≤ 2.0 s warm, ≤ 5.0 s first open;
+  asserted under `test:timing` only, the coordinator's run at the wave gate as task-059 Q7);
+  `test/server/snapshot/process-audit.test.ts` gains "cold Today page with the progress card and
+  Recent activity": `/today`, `/progress`, `/events/memory?limit=5` on a cold cache add 0 CLI
+  processes to the cold Today's (spec-012 §8) and no `git log` beyond its 2; warm, 0 processes.
+- **D65-16 — Screens (X-06.4, X-09.1; append-only).** Three entries: `today — progress card`
+  (the custom project of the screens console with `/progress` answered through `page.route` with
+  every figure shown, one `unreadable` and one `capped` id — the screens console has no preset and is
+  not changed, RP-43, task-066's pattern), `today — completion explanation open` (the same, the
+  tooltip opened by keyboard focus), `today — progress read-only and ui.yaml ignored` (`/progress`
+  answered with `ui.status` `ignored`, completion `no-reference-categories` and the phase figures
+  `needs-version`). The existing `today` entry is not changed; it now also shows the kanban card
+  ("Whole project") and *Recent activity*.
+- **D65-17 — Docs (AC-4).** `docs/user-guide.md` *Today* (the progress card, its figures and their
+  Memory list links, the explanation, the read-only phase figures, the warning, *Recent
+  activity*, the tab title), `CHANGELOG.md` *Unreleased* *Added*, `test/README.md` (the new spec
+  and helper), `ux-reference.md` §4.1 v0.3 (the refinements: the place of *Your roles*, the
+  figure wording, the read-only texts, the activity row; directive `ux-consistency`), and
+  `t/progress-card.feature` if Q2 (b) — each with its Version/Date (or dated note) bumped.
+
+#### Acceptance criteria: class and test plan
+
+Every scenario below is red-first (Today shows neither card nor the completion title before this
+task); the task's e2e spec is `test/e2e/today-progress.spec.ts` (new; `prebuild: ['custom',
+'unknown', 'kanban']`), one test per scenario titled with its id, asserting what the user sees.
+
+| AC / scenario | Class | Test (file › title) |
+|---------------|-------|---------------------|
+| T-12.1 | red-first | e2e › `T-12.1 — Show the figures of the current scope` (scope "minor-v0.1", pill "planning"; links "Project completion 25 %", "Tasks 1/4" or Q2's form, "Open bugs 1" or Q2's form, "Pending gates 3"; axe both themes) |
+| T-12.4 | red-first | e2e › `T-12.4 — Move the scope to the most advanced release` (`addSecondRelease`; "minor-v0.2", "in-development") |
+| T-12.5 | red-first | e2e › `T-12.5 — Say that no release is under way` (`draftRelease`; "No current release"; pending gates and open defects present, project-wide) |
+| T-12.6 | red-first | e2e › `T-12.6 — Say that no reference is linked in the current release` ("No references linked in minor-v0.2", no completion link) |
+| T-12.2 | red-first | e2e › `T-12.2 — Show whole-project figures without ui.yaml` (unknown; "Whole project", "Pending gates 1", the text and its link to Configuration › Taxonomy followed) |
+| T-12.3 | red-first | e2e › `T-12.3 — Update the figures after a decision` (`@live-refresh`, `refreshClock`; pre-packs + preset; CLI approve by Morgan; "Pending gates 2" without a reload; strict 5 s under `test:timing`) |
+| T-13.1 | red-first | e2e › `T-13.1 — Open the items behind "Pending gates"` (from Today by the keyboard; the Memory list shows exactly the 3 ids; active filter "Pending gates") |
+| T-13.2 | red-first | e2e › `T-13.2 — Open the items behind "Tasks 1/4"` (the 4 tasks of `v0.1`, `task-002-memory-list`'s pill in a done tone) |
+| T-13.3 | red-first | e2e › `T-13.3 — Clear a figure filter` (from "Pending gates 3", *Clear filter* → every non-archived element as the CLI lists them, no active filter) |
+| T-13.4 | characterization (task-066 built the rule) | e2e › `T-13.4 — Ignore an unknown figure code` (`?figure=bogus`: every non-archived element, no active filter) — a guard-removal check recorded in the notes |
+| T-14.1 | red-first | e2e › `T-14.1 — Explain the completion figure on hover` (the tooltip's exact text) |
+| T-14.2 | red-first | e2e › `T-14.2 — Reach the explanation with the keyboard` (Tab to the link, visible focus, the tooltip shown, `toHaveAccessibleDescription` the same text; Escape closes it) |
+| T-15.1 | red-first | e2e › `T-15.1 — Show the phase figure read-only on WingFoil 0.2.2` (version-fake 0.2.2; the exact text, not a link; "Project completion 25 %") |
+| T-15.2 | red-first | e2e › `T-15.2 — Show phase completion read-only too` (0.2.2) and `T-15.2 — the not-in-release text on WingFoil 0.3.1` (its own test) |
+| T-08.1 | red-first | e2e › `T-08.1 — Show the last 5 Memory events` (kanban; 5 rows, `dateTime` descending; each transition row "from → to" and "· <name>", each `add` row "created"; no link "Open the Timeline") |
+| T-08.2 | red-first | e2e › `T-08.2 — Add an event made outside the UI` (`@live-refresh`; CLI approve; the first row "task-001-login-form pending → approved · Morgan" within 5 s; strict under `test:timing`) |
+| T-08.3 | red-first | e2e › `T-08.3 — Leave out commits that are not Memory events` (the README commit not listed; 5 rows) |
+| X-10.4 | red-first | e2e › `X-10.4 — Show the project completion in the tab title` ("kanban · 40 % · Today — WingFoil UI") and `X-10.4 — no percentage when completion is not shown` (plain kanban: "kanban · Today — WingFoil UI") |
+| C-04.1 (AC-2) | red-first | e2e › `C-04.1 — Fall back to inferred values when ui.yaml is invalid` (`.ui-yaml-warning` exact text; scope "Whole project") |
+| AC-1 | red-first | `test/web/today/progress-model.test.ts` (each figure's item: shown → link and code, every `unavailable` and `read-only` reason → its text, iterated/open defects unavailable → absent, `majorMinor`, the explanation's "and n more" past 10, the signature); `test/web/today/progress-card.test.tsx` (the order of §4.1 with *Your roles*; a failed `/progress` → an error in the card, the rest of Today shown; loading status; the `unreadable`/`capped` notes; a refetch with the same texts not announced, a changed figure announced once; the scope link opens the side panel; no class `today-card`; the card within 400 px) |
+| T-08.x (unit) | red-first | `test/web/today/recent-activity.test.tsx` (the server's order kept; "created", a transition, an operation without a transition; the author rule; the time's description; empty, loading, error; no Timeline link) |
+| X-10.4 (unit) | red-first | `test/web/shell/page-title.test.tsx` (the completion title with a shown completion, `title.projectView` otherwise) |
+| AC-3 | red-first (`@perf`) / audit | `test/e2e/performance.spec.ts` TT-PERF-01 with both cards; `test/server/snapshot/process-audit.test.ts` › `cold Today page with the progress card and Recent activity: 0 CLI processes added, 2 git log` |
+| v0.2/v0.3 Today | characterization | `today.spec.ts`, `today-cards.spec.ts`, `notification-bell.spec.ts`, `held-gates.spec.ts` and `test/web/today/*` unchanged and green (no expectation loosened) |
+| Screens | red-first | `test/e2e/support/screens.ts`, D65-16's three entries, through `accessibility.spec.ts` |
+| AC-4 | docs | D65-17 |
+
+Own specs on the three engines: `today-progress.spec.ts`, `today.spec.ts`, `today-cards.spec.ts`,
+`notification-bell.spec.ts` (the changed screen) and `accessibility.spec.ts` (the new screens),
+named in a `gates.yml` dispatch (`-f specs=…`) when the push's own-spec selection does not take
+them all (task-066's lesson, task-071 G9).
+
+#### e2e closure (skeleton, filled at green)
+
+| Scenario | Spec file : test |
+|----------|------------------|
+| T-12.1 Show the figures of the current scope | `test/e2e/today-progress.spec.ts` : `T-12.1 — …` |
+| T-12.2 Show whole-project figures without ui.yaml | `test/e2e/today-progress.spec.ts` : `T-12.2 — …` |
+| T-12.3 Update the figures after a decision | `test/e2e/today-progress.spec.ts` : `T-12.3 — …` (`@live-refresh`) |
+| T-12.4 Move the scope to the most advanced release | `test/e2e/today-progress.spec.ts` : `T-12.4 — …` |
+| T-12.5 Say that no release is under way | `test/e2e/today-progress.spec.ts` : `T-12.5 — …` |
+| T-12.6 Say that no reference is linked in the current release | `test/e2e/today-progress.spec.ts` : `T-12.6 — …` |
+| T-13.1 Open the items behind "Pending gates" | `test/e2e/today-progress.spec.ts` : `T-13.1 — …` |
+| T-13.2 Open the items behind "Tasks 1/4" | `test/e2e/today-progress.spec.ts` : `T-13.2 — …` |
+| T-13.3 Clear a figure filter | `test/e2e/today-progress.spec.ts` : `T-13.3 — …` |
+| T-13.4 Ignore an unknown figure code | `test/e2e/today-progress.spec.ts` : `T-13.4 — …` |
+| T-14.1 Explain the completion figure on hover | `test/e2e/today-progress.spec.ts` : `T-14.1 — …` |
+| T-14.2 Reach the explanation with the keyboard | `test/e2e/today-progress.spec.ts` : `T-14.2 — …` |
+| T-15.1 Show the phase figure read-only on WingFoil 0.2.2 | `test/e2e/today-progress.spec.ts` : `T-15.1 — …` |
+| T-15.2 Show phase completion read-only too | `test/e2e/today-progress.spec.ts` : `T-15.2 — …` (two tests) |
+| T-08.1 Show the last 5 Memory events | `test/e2e/today-progress.spec.ts` : `T-08.1 — …` |
+| T-08.2 Add an event made outside the UI | `test/e2e/today-progress.spec.ts` : `T-08.2 — …` (`@live-refresh`) |
+| T-08.3 Leave out commits that are not Memory events | `test/e2e/today-progress.spec.ts` : `T-08.3 — …` |
+| X-10.4 Show the project completion in the tab title | `test/e2e/today-progress.spec.ts` : `X-10.4 — …` (two tests) |
+| C-04.1 Fall back to inferred values when ui.yaml is invalid | `test/e2e/today-progress.spec.ts` : `C-04.1 — …` |
+| X-06.4, X-09.1 on the new screens | `test/e2e/accessibility.spec.ts` over `SCREENS`: D65-16's three entries |
+| TT-PERF-01 with both cards (AC-3) | `test/e2e/performance.spec.ts` : `T-01.1, T-02.1 — Today renders within 2.0 s …` |
+
+#### File layout
+
+- `web/src/today/progress.ts` (new) — the card's items, `majorMinor`, the signature (D65-1, D65-6,
+  D65-8).
+- `web/src/today/ProgressCard.tsx` (new) — the scope, the figures, the tooltip, the notes, the
+  announcement, the warning (D65-4 … D65-9).
+- `web/src/today/RecentActivity.tsx` (new) — D65-10.
+- `web/src/today/TodayView.tsx` — the two slots and the order (D65-3); `today.css` — the two cards.
+- `web/src/routes/today.tsx` — the slots, the completion title (D65-11).
+- `web/src/shell/page-title.ts` — `TITLES.projectCompletionView`, `useProjectTitle`'s completion.
+- `web/src/i18n/en.json` — D65-12's keys (appended in place, sorted, no change to other keys).
+- `web/src/api/queries.ts` — no new query; the comment of `memoryEventsQuery` names Today's
+  `limit` 5.
+- Tests: `test/web/today/{progress-model.test.ts,progress-card.test.tsx,recent-activity.test.tsx}`
+  (new), `test/web/shell/page-title.test.tsx`, `test/e2e/today-progress.spec.ts` (new),
+  `test/e2e/support/screens.ts`, `test/e2e/performance.spec.ts`,
+  `test/server/snapshot/process-audit.test.ts`, `test/harness/fixtures/progress.ts` and
+  `test/harness/fixtures.test.ts` (`kanbanCompletion`, Q6 (a)).
+- Docs: D65-17.
+
+Merge hot spots with task-079 and task-067 (in parallel): `en.json`, `screens.ts`, `CHANGELOG.md`,
+`docs/user-guide.md`, `test/README.md`, `ux-reference.md` — additions only; no route is
+registered by this task.
+
+#### Spec gaps and Process Notes
+
+- No new tech-spec: the card renders spec-012 §3 and §6 as they stand; the title key is spec-008 §3's.
+- `ux-reference.md` §4.1 v0.3 does not place *Your roles* next to the card (AC-1 says it is
+  recorded at design with the approver, Q3), nor word the figures (Q2), the read-only texts beyond
+  the scenarios (D65-6) and the activity row (D65-10): recorded in §4.1 by this task.
+- spec-008 §3 keeps type names "as written"; T-12.1's "Tasks 1/4" and "Open bugs 1" would be made
+  from the type names `task` and `bug` (Q2).
+- spec-012 §3 says an `unavailable` `openDefects` is not shown and says nothing of the text of an
+  `unavailable` `iterated`; AC-1 says an `unavailable` figure shows its reason's text (Q7).
+
+#### Questions
+
+- **Q1 — Size (RP3-20 G2).** About 1.7 active days (below), above the one-day mark. (a) No split.
+  (b) Split by backlog item: a new task takes US-T-08 — *Recent activity* (T-08.1 … T-08.3,
+  `RecentActivity.tsx`, its unit test, its part of AC-3 and AC-4), about 0.4 day, after task-061 and
+  in parallel with this one (the two share only Today's slot, `en.json`, `today.css` and the docs);
+  this task keeps US-T-12 … US-T-15, US-X-10, AC-1 … AC-4, about 1.3 days. (c) Split by layer of
+  the card: the figures, scope and filters here (US-T-12, US-T-13, AC-1, AC-2), the explanation, the
+  read-only phases and the title (US-T-14, US-T-15, US-X-10) in a second task after this one — a
+  serial step on the same component. **Recommended (b):** *Recent activity* is independent (another
+  route, another feature file, no shared component), so the split shortens Wave 3 instead of
+  lengthening it; (c) only moves work behind this task.
+- **Q2 — The wording of the iterated and open-defects figures.** T-12.1 says "Tasks 1/4" and "Open
+  bugs 1"; the card knows the types only as `task` and `bug` (project data, shown as written,
+  spec-008 §3; REQ-ARC-05 keeps type names out of the catalogue). (a) A web rule that capitalises
+  and pluralises the type ("Tasks", "Bugs") — matches the scenarios, but builds a word from project
+  data and fails on irregular names ("story" → "Storys"). (b) The labels of task-066's active filter,
+  with the type as written: "Iterated: task 1/4", "Open: bug 1" (and "Project completion 25 %",
+  "Pending gates 3" unchanged) — the same concept with the same word on the card and on the Memory
+  list it opens (directive `ux-consistency`); T-12.1 and T-13.2's texts (and this task's AC) amended
+  with a dated note in `t/progress-card.feature`. (c) A closed UI vocabulary — "Iterated 1/4", "Open
+  defects 1" — without the type. **Recommended (b).**
+- **Q3 — The place of *Your roles* (AC-1).** (a) Greeting, *Your roles*, progress card, *Requires
+  you* (§4.1 lists both after the greeting, the roles first). (b) Greeting, progress card, *Your
+  roles*, *Requires you*: the role tags stay next to the card they count and switch (a switch moves
+  the focus to the *Requires you* heading, D42-6), the project-wide card first. **Recommended (b).**
+- **Q4 — Where the completion enters the tab title (X-10.4).** (a) On Today only, where the card
+  reads `/progress`. (b) On every project view (the X-10 format names the state segment for every
+  title), reading `/progress` from the project layout: one more read per state on every view,
+  against task-066 D66-8's choice that the plain Memory list reads none (TT-PERF-04, TT-PERF-05).
+  (c) On every view only when `/progress` is already cached — a title that depends on the path the
+  user took. **Recommended (a)**; (b) can come with v0.4's phase segment (X-10.5), which needs the
+  same read.
+- **Q5 — How a Recent activity row names its element.** (a) By the event's id (spec-012 §6 "the row
+  names the element by its id from the event"; T-08.2's "task-001-login-form pending → approved ·
+  Morgan"; no extra read). (b) By the short id when a row of Today's own answer holds it, else the
+  id — two forms in one list, and T-08.2's row would change form when the task leaves *Requires you*.
+  (c) By the short id for every row, Today reading `/elements` too (one more read per state; T-08.2's
+  text amended to "task-001 …"). **Recommended (a).**
+- **Q6 — X-10.4's Given "the progress card shows a project completion of 40 %".** (a) A real kanban
+  variant in the harness (D65-14 `kanbanCompletion`: a minimal `ui.yaml`, one reference on the 5
+  standard elements, `task-001-login-form` approved by Morgan: 2 of 5 done), so the title follows the
+  server's figure. (b) `/progress` answered with 40 % through `page.route` — quicker, but the title
+  then follows a stub, not the console. **Recommended (a).**
+- **Q7 — An `unavailable` iterated or open-defects figure.** (a) Not shown (spec-012 §3 for
+  `openDefects`, the prototype's "only when a defects type exists"; `iterated` alike); AC-1's
+  "shows its reason's text" read as the completion and phase figures. (b) Shown as text, "No
+  iterated type — see Configuration › Progress" / "No defects type — see Configuration › Progress",
+  and spec-012 §3 amended by a Process Note. **Recommended (a):** a missing figure on a project that
+  tracks no bugs is not a problem to point at.
+
+#### Estimate
+
+About **1.7 active days**: red 0.65 (model and component tests 0.3, the e2e spec with 21 tests and
+the harness helper 0.3, screens, `@perf` and the audit 0.05); green 0.6 (the card 0.35, *Recent
+activity* 0.1, the title 0.05, catalogue and CSS 0.1); refactor and docs 0.2; gates and the
+`gates.yml` runs 0.25. With Q1 (b): about 1.3 here, 0.4 in the new task.
