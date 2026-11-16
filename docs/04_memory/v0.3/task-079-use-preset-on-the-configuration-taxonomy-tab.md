@@ -314,23 +314,6 @@ lint`, `npm run format:check`, `npm run docs:api`, targeted `npx vitest run --ma
 dispatch whose `specs` are `use-preset.spec.ts accessibility.spec.ts` (task-071 G9: a change to
 `support/screens.ts` selects no spec); run ids, commits and results in these notes.
 
-#### e2e closure
-
-To be filled at green (scenario → file › test).
-
-| Scenario / AC | Test (file › title) |
-|---------------|---------------------|
-| C-02.1 | `test/e2e/use-preset.spec.ts` › "C-02.1 — …" |
-| C-02.2 | `test/e2e/use-preset.spec.ts` › "C-02.2 — …" |
-| C-02.3 | `test/e2e/use-preset.spec.ts` › "C-02.3 — …" |
-| C-02.4 | `test/e2e/use-preset.spec.ts` › "C-02.4 — …" |
-| C-02.5 | `test/e2e/use-preset.spec.ts` › "C-02.5 — …" |
-| C-03.1 | `test/e2e/use-preset.spec.ts` › "C-03.1 — …" (user-visible half; server half: task-060's `test/server/http/ui-config-preset.test.ts` › "C-03.1 — …") |
-| C-03.2 | `test/e2e/use-preset.spec.ts` › "C-03.2 — …" |
-| AC-1 (dialog, keyboard) | `test/e2e/use-preset.spec.ts` › "AC-1 — the dialog from the keyboard" |
-| D79-10 | `test/e2e/use-preset.spec.ts` › "D79-10 — …" |
-| X-06.4, X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › *configuration — use preset dialog*, *configuration — use preset blocked* |
-
 #### Size (RP3-20 G2)
 
 About **0.9 active day** (task-064's estimate for this part, re-checked on the merged code): the
@@ -395,3 +378,55 @@ that changed; Q3 (a) the *Use a preset* section right after the Taxonomy intro. 
   names). (3) The radios are named by their preset name alone (`aria-labelledby`), their *Made for*
   note being their description, so C-02.x choose "Kanban" by its name.
 - **Refactor**: none beyond the above.
+- **Fix after the first run** (`9700f98f`): run `43834349646` on `c4dce542` failed only on two tests
+  of this spec, on the three engines — C-02.2 expected `M  README.md`, but the kanban fixture has no
+  `README.md`, so the staged change is an addition (`A`), now accepted; C-02.4's press timed out,
+  Playwright waiting for an `aria-disabled` button to be enabled, so the press that must open nothing
+  is forced. No product change.
+
+#### e2e closure
+
+| Scenario / AC | Test (file › title) |
+|---------------|---------------------|
+| C-02.1 | `test/e2e/use-preset.spec.ts` › "C-02.1 — Apply the Kanban preset as one chore(ui) commit" |
+| C-02.2 | `test/e2e/use-preset.spec.ts` › "C-02.2 — Leave other staged changes out of the commit" |
+| C-02.3 | `test/e2e/use-preset.spec.ts` › "C-02.3 — Offer no preset when ui.yaml exists" |
+| C-02.4 | `test/e2e/use-preset.spec.ts` › "C-02.4 — Block the preset while the copy is behind" |
+| C-02.5 | `test/e2e/use-preset.spec.ts` › "C-02.5 — Offer no preset to a user who is not in the team" |
+| C-03.1 | `test/e2e/use-preset.spec.ts` › "C-03.1 — Refuse a preset that fails the schema" (the user-visible half, D79-12); the server half: `test/server/http/ui-config-preset.test.ts` › "C-03.1 — Refuse a preset that fails the schema: 422 ui-config-invalid, missing required key version, no file, HEAD unchanged" (task-060) |
+| C-03.2 | `test/e2e/use-preset.spec.ts` › "C-03.2 — Refuse a preset that maps a type the project does not declare" |
+| AC-1 (rule) | `test/web/configuration/preset-control.test.ts`; `use-preset.test.tsx` › "AC-1 — no Use preset when …", "C-02.4 — disabled while the copy is behind …", "AC-1 — disabled while the version is out of range …" |
+| AC-1 (dialog) | `test/e2e/use-preset.spec.ts` › "AC-1 — the dialog from the keyboard"; `use-preset.test.tsx` › the dialog, Cancel and Escape, the pending state (D79-5) |
+| AC-1 (toasts, refusal texts) | `use-preset.test.tsx` › "AC-1, C-02.1 — Confirm posts {preset} …", pushed / not pushed, one test per refusal code, no answer; `test/web/api/error-message.test.ts` › "task-079 D79-8 — …" (every code of the refusal schema) |
+| AC-1 (ids, subject) | `test/web/configuration/preset-ids.test.ts` |
+| D79-3 | `use-preset.test.tsx` › "D79-3 — the section "Use a preset" follows the intro, before the categories" |
+| D79-6 | `use-preset.test.tsx` › "D79-6 — Update in the reason updates the copy, then the focus goes to Use preset" |
+| D79-10 | `test/e2e/use-preset.spec.ts` › "D79-10 — at 400 px the section and the dialog scroll nothing sideways" |
+| X-06.4, X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › *configuration — use preset dialog*, *configuration — use preset blocked*; `use-preset.test.tsx` › "X-09.1 — …" (key build) |
+| AC-3 | `docs/user-guide.md` 0.42, `ux-reference.md` 1.24, `CHANGELOG.md`, spec-008 Process Note, `test/README.md` 0.93; `test/docs/public-text.test.ts` |
+| AC-4 | the approver's step (D79-15), after the merge |
+
+#### Gates (2026-11-16)
+
+- Local, on `9700f98f`: `npm run typecheck`, `npm run lint`, `npx prettier --check .`, `npm run
+  docs:api` clean; `npx vitest run --maxWorkers=2`, one file at a time: `test/web/configuration/
+  {preset-control (17), preset-ids (5), use-preset (22), taxonomy (9), progress (9)}`,
+  `test/web/api/error-message` (93), `test/web/element/{submit-footer (10), gate-footer (54)}`,
+  `test/web/api/writes` (17), `test/web/shell/toasts` (26), `test/web/i18n/{catalogue,
+  key-catalogue, key-rendering}` (5), `test/lint/{methodology-literals (73), catalogue-placeholders
+  (4), one-console-per-test (7)}`, `test/docs/public-text` (67), `test/governance` (25): all passed
+  (`workflow-diagnostics` reported spec-008's uncommitted edit before the commit, then passed);
+  `check_tasks.py v0.3` OK. No local suite touches git (the component tests stub the API).
+- `gates.yml`: push run `43834349646` on `c4dce542` — failure (the two tests above); push run
+  `43836772821` on `9700f98f` cancelled by the dispatch (one concurrency group per ref); dispatch
+  `43836807023` on `9700f98f` — checks, coverage, contract, e2e-chromium ×2, smoke, publish-smoke
+  green, own-specs refused its `specs` input (bare file names; the input takes `test/e2e/` paths);
+  dispatch `43840736563` on `9700f98f` with `specs` = `test/e2e/use-preset.spec.ts
+  test/e2e/accessibility.spec.ts` (task-071 G9: `support/screens.ts` selects no spec) — success after
+  one rerun of `e2e-chromium (2)`, whose first attempt failed only on
+  `session-recovery.spec.ts` › "X-02.3 — an exchange on another port leaves the page lost"
+  (expected 1, received 2; not touched by this task, green on that commit in `43836807023`): checks,
+  coverage, contract, e2e-chromium ×2, own specs (this spec and the accessibility spec with its two
+  new screens) on Firefox and WebKit, smoke, publish-smoke.
+- Strict identity (dl-011): the committing tests (C-02.1, C-02.2) ran on the CI runner, a fresh
+  account with no identity of its own (task-071), each fixture copy carrying its member's identity.
