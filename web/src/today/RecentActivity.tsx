@@ -10,8 +10,10 @@
  * age, the full time being the link's description (RowSince's pattern, D61-8). Its own loading
  * status and error (a failed read is never an empty card), shown whatever the state of Today's own
  * read (Q2 (a)). The `repo` event refetches it (its key sits under `['p', pid]`) silently. No link
- * "Open the Timeline" while the Timeline is v0.4 (RP3-14 D8); no opener is recorded, so the main
- * region takes the focus when the panel closes (Q3 (a), ux-reference §4.2).
+ * "Open the Timeline" while the Timeline is v0.4 (RP3-14 D8); a link forgets the panel's opener (as
+ * the bell), so the main region takes the focus when the panel closes (Q3 (a), ux-reference §4.2;
+ * review F-2). A row is keyed by its event's sha and id: one commit can be several events (spec-002
+ * §3 rule 1; review F-1).
  */
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
@@ -19,7 +21,7 @@ import { useId, type ReactNode } from 'react';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { memoryEventsQuery } from '../api/queries.js';
-import { panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
+import { forgetOpener, panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { updateLine, type UpdateLine } from '../shell/notifications.js';
 import { durationOf } from './model.js';
@@ -47,7 +49,7 @@ function ActivityRow({ line, now }: { line: UpdateLine; now: number }): ReactNod
   const descriptionId = useId();
   const age = durationOf(line.timestamp, now);
   return (
-    <li className="today-activity-row" data-sha={line.sha}>
+    <li className="today-activity-row" data-sha={line.sha} data-event-id={line.id}>
       <span className="today-activity-main">
         <FormattedMessage
           id="today.activity.by"
@@ -58,6 +60,10 @@ function ActivityRow({ line, now }: { line: UpdateLine; now: number }): ReactNod
                 className="today-activity-id"
                 {...panelLinkOptions(line.id, panelOpen)}
                 aria-describedby={descriptionId}
+                // No focus to return to (Q3 (a)): an earlier row's opener is forgotten (review F-2).
+                onClick={(event) => {
+                  forgetOpener(event);
+                }}
               >
                 {line.id}
               </Link>
@@ -118,7 +124,8 @@ export function RecentActivity({ pid }: { pid: string }): ReactNode {
     body = (
       <ul className="today-activity-rows">
         {events.data.events.map((event) => (
-          <ActivityRow key={event.sha} line={updateLine(event)} now={now} />
+          // One commit can be several events, one per id (spec-002 §3 rule 1): the key is both.
+          <ActivityRow key={`${event.sha}:${event.id}`} line={updateLine(event)} now={now} />
         ))}
       </ul>
     );
