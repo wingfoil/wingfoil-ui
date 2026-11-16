@@ -265,7 +265,10 @@ interface PageText {
   command: boolean;
   /** A field name of the element panel's References (`[data-element-view] dt.field-name`, D37-13). */
   fieldName: boolean;
-  /** Inside the completion explanation's list of references (`.progress-references`, task-065 D65-7). */
+  /**
+   * Inside a list of message elements joined by the catalogue locale's `Intl` list format
+   * (`.intl-list`: the completion's references, the progress card's announcement — task-065 D65-7).
+   */
   references: boolean;
 }
 
@@ -283,7 +286,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
       userAvatar: el?.closest('.current-user-avatar') != null,
       command: el?.closest('code.cli-command[translate="no"]') != null,
       fieldName: el?.closest('[data-element-view] dt.field-name') != null,
-      references: el?.closest('.progress-references') != null,
+      references: el?.closest('.intl-list') != null,
     });
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -433,8 +436,8 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
     if (dismiss && text === LIBRARY_DISMISS) continue;
     if (command && commands.has(text)) continue;
     if (fieldName && fieldNames.has(text)) continue;
-    // task-065 D65-7 (review round 1, F-3): the separators of the completion's list of references,
-    // the catalogue locale's `Intl` list format — there only, never a hand-joined text elsewhere.
+    // task-065 D65-7 (review round 1, F-3): the separators of a list of message elements marked
+    // `.intl-list`, the catalogue locale's `Intl` list format — there only, never a hand-joined text.
     if (references && LIST_SEPARATORS.has(text)) continue;
     bad.add(`${where}: ${text}`);
   }

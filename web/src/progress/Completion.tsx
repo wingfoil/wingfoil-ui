@@ -43,7 +43,7 @@ export function CompletionExplanation({ figure }: { figure: CompletionFigure }):
   const intl = useIntl();
   if (figure.state !== 'shown') return null;
   const list = (
-    <span className="progress-references">
+    <span className="progress-references intl-list">
       {intl.formatList(
         figure.references.map((r) => (
           <span key={r.id} className="progress-reference">

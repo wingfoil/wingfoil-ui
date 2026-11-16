@@ -224,20 +224,22 @@ export function ProgressCard({ pid, progress, projectVersion }: ProgressCardProp
   const data = progress.data;
   // D65-8: a read whose visible texts differ from the previous one's is announced (a new node each
   // time, keyed by a counter) with the new texts; a place that only disappeared is announced
-  // without a text (review round 1, F-2); the first read is not.
-  const previous = useRef<Map<string, string> | undefined>(undefined);
-  const [announcement, setAnnouncement] = useState<{ n: number; figures: string | null } | undefined>(undefined);
+  // without a text (review round 1, F-2); the first read is not, nor a text that changed only
+  // because the header's version arrived (the same answer, run 43863969804). Each announced text is
+  // an element of its own in an `.intl-list` (the X-09.1 key build reads each message alone).
+  const previous = useRef<{ data: Progress; texts: Map<string, string> } | undefined>(undefined);
+  const [announcement, setAnnouncement] = useState<{ n: number; figures: string[] | null } | undefined>(undefined);
   useEffect(() => {
     if (data === undefined) return;
     const texts = figureTexts(intl, data, projectVersion);
-    const before = previous.current;
-    previous.current = texts;
-    if (before === undefined) return;
+    const last = previous.current;
+    previous.current = { data, texts };
+    if (last === undefined || last.data === data) return;
+    const before = last.texts;
     const changed = [...texts].filter(([key, text]) => before.get(key) !== text).map(([, text]) => text);
     const gone = [...before.keys()].some((key) => !texts.has(key));
     if (changed.length === 0 && !gone) return;
-    const figures = changed.length === 0 ? null : intl.formatList(changed, { type: 'unit', style: 'short' });
-    setAnnouncement((a) => ({ n: (a?.n ?? 0) + 1, figures }));
+    setAnnouncement((a) => ({ n: (a?.n ?? 0) + 1, figures: changed.length === 0 ? null : changed }));
   }, [data, intl, projectVersion]);
   const error = progress.error;
   return (
@@ -275,7 +277,19 @@ export function ProgressCard({ pid, progress, projectVersion }: ProgressCardProp
               {announcement.figures === null ? (
                 <FormattedMessage id="today.progress.updatedNoFigure" />
               ) : (
-                <FormattedMessage id="today.progress.updated" values={{ figures: announcement.figures }} />
+                <FormattedMessage
+                  id="today.progress.updated"
+                  values={{
+                    figures: (
+                      <span className="intl-list">
+                        {intl.formatList(
+                          announcement.figures.map((text, i) => <span key={`${i}:${text}`}>{text}</span>),
+                          { type: 'unit', style: 'short' },
+                        )}
+                      </span>
+                    ),
+                  }}
+                />
               )}
             </span>
           )}
