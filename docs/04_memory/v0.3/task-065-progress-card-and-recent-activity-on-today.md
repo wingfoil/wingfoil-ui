@@ -707,3 +707,61 @@ announced text is an element of its own in an `.intl-list`, the class the X-09.1
 |-----|--------|---------|--------|
 | `43867050428` | `92467170` | push | cancelled by the dispatch below |
 | `43867050532` | `92467170` | dispatch, the same specs | **success**: checks, coverage (96.75 % statements, 91.92 % branches), contract, smoke, publish-smoke, e2e-chromium 213 + 212 passed, own specs 160 passed on Firefox and 160 on WebKit (T-14.1 and T-14.2 among them) |
+
+### review round 2 (2026-11-16)
+
+Independent reviewer, on `ae01d770` (fixes `11245a11` … `ae01d770` over round 1's `627b4467`; the full
+`git diff design/dev-loop_v0.3...HEAD` re-scanned). Evidence: `gh run view 43867050532` (dispatch
+on `92467170`; `ae01d770` changes only this file: every job green — checks, coverage, contract, both
+smokes, e2e-chromium 213 + 212, own specs 160 on Firefox and 160 on WebKit); `npx vitest run
+<file> --maxWorkers=2` on HEAD: `progress-card.test.tsx` 23 passed, `progress-tooltip.test.tsx` 2
+passed; the React Aria 1.21.1 sources (`useFocusVisible.mjs`: `pointermove` sets the `pointer`
+modality, so a pointer that moves on the page before resting on the link is what a user does).
+
+Guard removals, run by the reviewer on a scratch edit and reverted with `git checkout` (nothing
+committed):
+
+| Guard removed | Test that failed |
+|---------------|------------------|
+| The hand-wired `mouseenter`/`mouseleave` and controlled `isOpen` put back (round 1's code) | `progress-tooltip.test.tsx`: both tests (opens at once, not after React Aria's delay; reopens when the figure comes back) |
+| F-2's "a place that left" (`gone` forced `false`) | `progress-card.test.tsx` "announces a figure turned into its reason, a scope change, and a figure that left" |
+| The same-answer check (`last.data === data`) | `progress-card.test.tsx` "announces nothing when only the header's version arrives after the figures" |
+
+Round 1 findings:
+
+- **F-1 closed.** `Completion.tsx` has no hover handler of its own; `TooltipTrigger delay={300}`
+  uncontrolled; the trigger is not rendered while the figure is not shown, so it comes back closed.
+  The comment states the real cause. T-14.1 (e2e) moves the pointer first (`page.mouse.move`) and the
+  unit tests use `hoverAsPointerUser`, which models a real pointer user rather than forcing the
+  tooltip open. T-14.2 reaches the link with the keyboard (keyboard modality).
+- **F-2 closed.** The signature covers the scope line and its state, the completion or its reason,
+  both phase texts and the other figures. A place that left is announced. The rule is right: the
+  announcement compares one `/progress` answer with the previous one (React Query keeps the same
+  object for an equal refetch), and a projectVersion that arrives later only recomputes the stored
+  texts in silence.
+- **F-3 closed.** The "," literal is accepted only for a text node inside `.intl-list` (a
+  `references` flag, as `fieldName`), and no longer among the `Intl` renderings of every screen.
+  `a11y-support.spec.ts` (green in run `43867050532`) proves a hand-joined "," outside `.intl-list`
+  is flagged. `.intl-list` is used only by `Completion.tsx:46` and `ProgressCard.tsx:284`, both
+  `intl.formatList` outputs. Only the bare separator is accepted, never words, so an English text
+  inside the class is still flagged.
+- **F-4 closed.** spec-008 Process Note (2026-11-16) records the per-figure `select`, why, and the
+  `other`-branch risk, and names the `progress` area. `phaseValues` is shared by the text and the
+  announcement.
+- **F-5 closed.** Singular, loading-status and 400 px fit tests added (the fit in T-12.1, after the
+  axe scan).
+- **F-6 closed.** Exact text plus the no-link check.
+- **F-7 closed.** The explanation screen opens by keyboard focus (Shift, then `focus()`). The
+  read-only screen answers the header with 0.2.2, so its text is coherent.
+- F-8, F-9 unchanged, as advised.
+
+Docs: `test/README.md` 0.95 names `progress-tooltip.test.tsx` and the `.intl-list` rule. spec-008
+has no Version line; its dated note is the record. `today.progress.updatedNoFigure` was added in
+sorted place (lint green). Nothing new found that is a blocker, major or minor.
+
+**Verdict: PASS.**
+
+| # | Severity | File:line | Issue | Fix |
+|---|----------|-----------|-------|-----|
+| R2-1 | nit | `web/src/progress/PhaseReadOnly.tsx` (`version: projectVersion ?? ''`), `web/src/i18n/en.json` `progress.phase.readOnly` | Until the project header is read, a `needs-version` phase reads "Phase — needs WingFoil 0.3 (this project: )". The new header-race test (`progress-card.test.tsx`) shows that state on screen. Usually brief, since the project layout reads the header too. | A `needsVersion` branch without the parenthesis when the version is unknown (a nested `select` on a `hasVersion` argument), in a later pass. |
+| R2-2 | nit | `test/e2e/support/strings.ts` (`references && LIST_SEPARATORS.has(text)`) | `.intl-list` is opt-in by class: nothing checks that its content comes from `intl.formatList`, so a hand-joined list given the class would pass X-09.1. Today's two uses are correct and the class is documented in `test/README.md`. | Accept as is. Optionally a lint or unit check that `className` containing `intl-list` wraps an `intl.formatList` call. |
