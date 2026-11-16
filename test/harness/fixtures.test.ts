@@ -1,12 +1,14 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HEAVY_MS } from './load.js';
-import { binScript } from './cli.js';
+import { binScript, REPO_ROOT } from './cli.js';
 import {
   buildFixture,
   cliPackageDir,
+  copyGovernance,
   FIXTURE_KINDS,
   STANDARD_TEAM,
   type Fixture,
@@ -209,5 +211,36 @@ describe('custom fixture history', () => {
     const f = built.get('kanban')!;
     const { stdout } = await git(f.dir, ['log', '--format=%an|%s', '--grep', 'reject'], f.env);
     expect(stdout.trim()).toBe('Morgan|wf(task): reject task-002-password-reset [pending → draft]');
+  });
+});
+
+describe('custom fixture governance (task-082 AC-1)', () => {
+  it("AC-1 imports this repository's .wingfoil/ without its ui.yaml", async () => {
+    // The precondition: this repository holds a ui.yaml (the approver's preset commit 8451080a), so
+    // the assertion below cannot pass for want of a source file. It ties this test to that commit: a
+    // failure here means this repository no longer has a ui.yaml and the precondition must be
+    // updated, not the fix; the next test, on a temporary tree, stays the permanent guard.
+    expect(
+      existsSync(path.join(REPO_ROOT, '.wingfoil', 'ui.yaml')),
+      "precondition: this repository's .wingfoil/ui.yaml is gone - update this test (the next one guards copyGovernance)",
+    ).toBe(true);
+    const f = built.get('custom')!;
+    expect(existsSync(path.join(f.dir, '.wingfoil', 'ui.yaml'))).toBe(false);
+    expect((await git(f.dir, ['ls-files', '--', '.wingfoil/ui.yaml'], f.env)).stdout).toBe('');
+    // The rest of the governance is still imported.
+    expect(existsSync(path.join(f.dir, '.wingfoil', 'memory.yaml'))).toBe(true);
+  });
+
+  it('AC-1 skips the ui.yaml at the root of the copied folder only', async () => {
+    const source = path.join(root, 'governance-source', '.wingfoil');
+    await mkdir(path.join(source, 'presets'), { recursive: true });
+    await writeFile(path.join(source, 'ui.yaml'), 'root: true\n');
+    await writeFile(path.join(source, 'memory.yaml'), 'types: {}\n');
+    await writeFile(path.join(source, 'presets', 'ui.yaml'), 'nested: true\n');
+    const target = path.join(root, 'governance-target', '.wingfoil');
+    await copyGovernance(source, target);
+    expect(existsSync(path.join(target, 'ui.yaml'))).toBe(false);
+    expect(await readFile(path.join(target, 'memory.yaml'), 'utf8')).toBe('types: {}\n');
+    expect(await readFile(path.join(target, 'presets', 'ui.yaml'), 'utf8')).toBe('nested: true\n');
   });
 });
