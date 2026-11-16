@@ -573,3 +573,12 @@ Push run `43931535616` on `4fe9e886`: **success**, every job green — checks, c
 publish-smoke. Local before the push: typecheck, lint, format:check, docs:api clean;
 `check_tasks.py v0.3` OK; `npx vitest run test/governance test/docs/public-text.test.ts
 --maxWorkers=2`: 5 files passed.
+
+### Review round 3 (2026-11-16, PASS)
+
+PASS at `162b2464`: the four round-2 fixes verified, no regression (`npx vitest run
+test/web/traceability/view.test.tsx --maxWorkers=2` 38 passed, `test/web/today/progress-card.test.tsx`
+25 passed; typecheck and lint clean; run `43931535616` success). Two nits left as they are by the
+coordinator: the R2-2 test's "no React Aria warning" check is weak evidence (the role is asserted by
+`getByRole('img')`), and `ProgressCompletion` formats the figure label also where the link variant
+does not use it (harmless).
