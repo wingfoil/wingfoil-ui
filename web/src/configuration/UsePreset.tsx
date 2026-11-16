@@ -33,7 +33,8 @@ type FocusAfter = 'control' | 'main' | null;
 
 /** *Use preset* for project `pid`, whose served `ui` section is `ui`. */
 export function UsePreset({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode {
-  const header = useQuery(projectHeaderQuery(pid)).data;
+  const headerQuery = useQuery(projectHeaderQuery(pid));
+  const header = headerQuery.data;
   const control = presetControl(header, ui);
   const write = useUiPresetWrite();
   const pending = write.isPending;
@@ -43,6 +44,8 @@ export function UsePreset({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode
   const section = useRef<HTMLElement>(null);
   const focusAfter = useRef<FocusAfter>(null);
   const focusAfterUpdate = useRef(false);
+  // When the reason's *Update* succeeded: the first header read after it decides (review round 1 F-5).
+  const updateSucceededAt = useRef<number | undefined>(undefined);
   const headingId = useId();
   const reasonId = useId();
 
@@ -58,6 +61,13 @@ export function UsePreset({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode
 
   // D79-6: the reason's *Update* succeeded and its link is gone.
   useEffect(() => {
+    const since = updateSucceededAt.current;
+    if (since !== undefined && headerQuery.dataUpdatedAt >= since) {
+      updateSucceededAt.current = undefined;
+      // The copy still blocks after the update (diverged, or another reason): the request is dropped, so
+      // a later, unrelated enablement never moves the focus (review round 1 F-5).
+      if (control.kind !== 'enabled') focusAfterUpdate.current = false;
+    }
     if (!focusAfterUpdate.current || control.kind !== 'enabled') return;
     focusAfterUpdate.current = false;
     const active = document.activeElement;
@@ -93,10 +103,14 @@ export function UsePreset({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode
                   pid,
                   onStarted: () => {
                     focusAfterUpdate.current = true;
+                    updateSucceededAt.current = undefined;
                   },
-                  onSucceeded: () => {},
+                  onSucceeded: () => {
+                    updateSucceededAt.current = Date.now();
+                  },
                   onFailed: () => {
                     focusAfterUpdate.current = false;
+                    updateSucceededAt.current = undefined;
                   },
                 }}
               />
@@ -141,16 +155,15 @@ interface PresetDialogProps {
 
 /** The dialog: the three presets with what each is made for, the file and the commit, Confirm and Cancel. */
 function PresetDialog({ isOpen, isPending, choice, onChoose, onCancel, onConfirm }: PresetDialogProps): ReactNode {
-  const pending = isPending;
   const effectId = useId();
   const choiceId = useId();
   return (
     <ModalOverlay
       className="modal-overlay"
       isOpen={isOpen}
-      isKeyboardDismissDisabled={pending}
+      isKeyboardDismissDisabled={isPending}
       onOpenChange={(next) => {
-        if (!next && !pending) onCancel();
+        if (!next && !isPending) onCancel();
       }}
     >
       <Modal className="modal">
@@ -161,7 +174,7 @@ function PresetDialog({ isOpen, isPending, choice, onChoose, onCancel, onConfirm
           <RadioGroup
             className="preset-choices"
             value={choice}
-            isDisabled={pending}
+            isDisabled={isPending}
             onChange={(value) => onChoose(value as UiPresetId)}
           >
             <Label className="preset-legend">
@@ -202,15 +215,15 @@ function PresetDialog({ isOpen, isPending, choice, onChoose, onCancel, onConfirm
             </p>
           )}
           <p className="visually-hidden" role="status">
-            {pending && <FormattedMessage id="settings.preset.pending" />}
+            {isPending && <FormattedMessage id="settings.preset.pending" />}
           </p>
           <div className="dialog-actions">
-            <Button className="button" isDisabled={pending} onPress={onCancel}>
+            <Button className="button" isDisabled={isPending} onPress={onCancel}>
               <FormattedMessage id="common.action.cancel" />
             </Button>
             <Button
               className="button button-primary"
-              isDisabled={choice === null || pending}
+              isDisabled={choice === null || isPending}
               {...(choice !== null ? { 'aria-describedby': effectId } : {})}
               onPress={onConfirm}
             >

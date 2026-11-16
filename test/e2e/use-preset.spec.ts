@@ -96,7 +96,7 @@ test('C-02.2 — Leave other staged changes out of the commit', async ({ page, f
   expect(files.stdout.trim().split('\n')).toEqual(['.wingfoil/ui.yaml']);
   const status = await git(kanban.dir, ['status', '--porcelain', '--', 'README.md'], kanban.env);
   // Staged (added: the fixture has no README.md before) and not in the preset commit.
-  expect(status.stdout).toMatch(/^[AM] {2}README\.md\n$/);
+  expect(status.stdout).toBe('A  README.md\n');
 });
 
 test('C-02.3 — Offer no preset when ui.yaml exists', async ({ page, fixtures, consoles }) => {

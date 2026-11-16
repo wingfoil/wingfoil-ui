@@ -3,7 +3,8 @@
  * one read, `GET /config` (`projectConfigQuery`, its `ui` section, spec-012 §2), rendered as
  * served — the web never infers a value or an origin. The tab's section with its heading, the
  * ui.yaml warning at the top, then the tab's content; the read's error, or the `types` error when
- * `memory.yaml` cannot be read (no `ui` section), instead of the values; a loading status first.
+ * `memory.yaml` cannot be read (no `ui` section), instead of the values when nothing was read yet (a failed refetch keeps the data, task-079 F-4);
+ * a loading status first.
  */
 import { useQuery } from '@tanstack/react-query';
 import type { UiConfig, UiOrigin } from '@wingfoil-ui/contracts';
@@ -40,7 +41,9 @@ export function UiFrame({ pid, title, children }: UiFrameProps): ReactNode {
   const ui = config.data?.ui;
   const types = config.data?.types;
   let body: ReactNode;
-  if (config.error) {
+  // A failed read shows its error only with nothing read yet: a failed refetch keeps the tab — and a
+  // pending *Use preset* write with its dialog (task-079 review round 1 F-4) — on the data it has.
+  if (config.error && config.data === undefined) {
     const error =
       config.error instanceof ApiError ? config.error : new ApiError(0, 'internal', config.error.message, undefined);
     body = (

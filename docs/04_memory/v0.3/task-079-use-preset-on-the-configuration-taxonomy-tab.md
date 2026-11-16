@@ -215,7 +215,8 @@ ProgressView}.tsx`, `web/src/routes/configuration.tsx`, `web/src/shell/UiYamlWar
   commit)", `error.uiConfigInvalid` "ui.yaml not written: {failure}" (spec-008 §4 names both),
   `error.writeIncomplete.preset` "The preset was not applied completely: check {file} with git
   before trying again{commit, select, none {} other { — the commit {commit} was made}}" (Q2 (a) of
-  W3-1; a key with a variant has precedents, `shell.bell.toUnblock.empty`). Cancel reuses
+  W3-1; a key with a variant has precedents, `shell.bell.toUnblock.empty`); `settings.preset.legend`
+  "Preset" (the radio group's label, added at green — review round 1 F-8). Cancel reuses
   `common.action.cancel`.
 - **D79-10 — Accessibility (D64-16).** The section with an `h3`; the dialog labelled by its title,
   the radio group by its legend, Confirm described by the effect line; visible focus everywhere;
@@ -274,7 +275,7 @@ ProgressView}.tsx`, `web/src/routes/configuration.tsx`, `web/src/shell/UiYamlWar
 | `web/src/element/reason.tsx` (new), `ElementFooter.tsx`, `write-toast.tsx` | the shared reason and result parts (D79-6) |
 | `web/src/api/error-message.ts`, `web/src/shell/ErrorText.tsx` | two codes appended, the `preset` variant (D79-8) |
 | `web/src/i18n/en.json` | D79-9's keys, sorted place |
-| `test/web/configuration/preset-control.test.ts`, `use-preset.test.tsx`, `preset-ids.test.ts` (new), `data.ts`; `test/web/api/error-message.test.ts`; `test/web/api/ui-config.test.tsx` (new) | unit and component tests |
+| `test/web/configuration/preset-control.test.ts`, `use-preset.test.tsx`, `preset-ids.test.ts` (new); `test/web/api/error-message.test.ts`; `test/web/api/ui-config.test.tsx` (new, review round 1 F-1) | unit and component tests (`data.ts` needed no change: its `UI_INFERRED`, `UI_DECLARED` and `uiApi` serve the new tests) |
 | `test/e2e/use-preset.spec.ts` (new), `test/e2e/support/screens.ts` | the e2e; two `SCREENS` entries appended (D79-11) |
 | `docs/user-guide.md`, `docs/00_reference/ux-reference.md`, `CHANGELOG.md`, `docs/04_memory/design/specs/spec-008-message-catalogue.md` (Process Note), `test/README.md` | D79-13 |
 
@@ -365,9 +366,10 @@ that changed; Q3 (a) the *Use a preset* section right after the Taxonomy intro. 
   link moved from `ElementFooter.tsx`, `ReasonText`) and `WriteResultBody` in `write-toast.tsx`;
   `error-message.ts` (two codes, the `preset` variant) and `ErrorText`'s `variant`; the section in
   `TaxonomyView.tsx` after the intro; its styles in `configuration.css`; 15 catalogue keys in sorted
-  place. Docs (AC-3): `docs/user-guide.md` 0.42, `ux-reference.md` 1.24 (§4.11 *Use preset*),
+  place. Docs (AC-3): `docs/user-guide.md` 0.42, `ux-reference.md` 1.24 (§4.11 *Use preset*)
+  — renumbered 0.43 and 1.26 by the coordinator's merge of the phase branch `c4cb6a12` —,
   `CHANGELOG.md` *Unreleased* › *Added* (and task-060's line now names the control), spec-008's
-  Process Note, `test/README.md` 0.93.
+  Process Note, `test/README.md` 0.93 (0.94 after that merge; 0.95 at review round 1).
 - **Deviations from the design.** (1) `settings.preset.name` is the only `select` over the preset
   id (`{preset}` its camel-case selector, `other` shows it); `settings.preset.commit`,
   `.effect`, `.applied` and `.refused` take the name as a nested message (`{name}`), so the key
@@ -403,7 +405,10 @@ that changed; Q3 (a) the *Use a preset* section right after the Taxonomy intro. 
 | D79-6 | `use-preset.test.tsx` › "D79-6 — Update in the reason updates the copy, then the focus goes to Use preset" |
 | D79-10 | `test/e2e/use-preset.spec.ts` › "D79-10 — at 400 px the section and the dialog scroll nothing sideways" |
 | X-06.4, X-09.1 | `test/e2e/accessibility.spec.ts` over `SCREENS` › *configuration — use preset dialog*, *configuration — use preset blocked*; `use-preset.test.tsx` › "X-09.1 — …" (key build) |
-| AC-3 | `docs/user-guide.md` 0.42, `ux-reference.md` 1.24, `CHANGELOG.md`, spec-008 Process Note, `test/README.md` 0.93; `test/docs/public-text.test.ts` |
+| AC-3 | `docs/user-guide.md` 0.43, `ux-reference.md` 1.26, `CHANGELOG.md`, spec-008 Process Note, `test/README.md` 0.94 (0.95: review round 1 F-1) — the versions after the merge `c4cb6a12`; `test/docs/public-text.test.ts` |
+| D79-7, review round 1 F-1 | `test/web/api/ui-config.test.tsx` › "F-1 — the success toast is raised after the caller unmounted, and the project is read again", "F-1 — the refusal toast is raised after the caller unmounted, and the project is read again" |
+| D79-5, review round 1 F-4 | `use-preset.test.tsx` › "review round 1 F-4 — a /config refetch that fails while the write runs keeps the tab and the dialog" |
+| D79-6, review round 1 F-5 | `use-preset.test.tsx` › "review round 1 F-5 — an Update that leaves the copy blocking drops the focus request: …" |
 | AC-4 | the approver's step (D79-15), after the merge |
 
 #### Gates (2026-11-16)
@@ -473,3 +478,20 @@ fail), and C-02.4's forced press reaches the native button, whose handler ignore
 | F-6 | nit | `test/e2e/use-preset.spec.ts:98-99` | The regex accepts `M  README.md`, which the kanban fixture (no `README.md`) cannot produce; looser than the fact the comment states. | Assert `A  README.md\n` exactly. |
 | F-7 | nit | `test/web/configuration/use-preset.test.tsx:208` | The title says "(sticky)" but no assertion checks that the failed-push toast is sticky. | Assert the toast's sticky state (or drop the word from the title). |
 | F-8 | nit | `web/src/i18n/en.json:273`; `web/src/configuration/UsePreset.tsx:144` | `settings.preset.legend` is not in D79-9's key list (unrecorded); `const pending = isPending` is a needless alias. | List the key in D79-9 or the deviations; use `isPending` directly. |
+
+### review round 1 fixes (2026-11-16)
+
+| Finding | Change | Test |
+|---------|--------|------|
+| F-1 (major) — the hook test missing | `test/web/api/ui-config.test.tsx` (new): the request (path with the id encoded, method, body), the success and refusal toasts raised after the caller unmounted while the POST was held, `invalidateQueries({ queryKey: ['p', pid] })` on both outcomes, the sticky success toast of a failed push; the *Files* row corrected (`data.ts` needed no change) | guard removals (each edit of `web/src/api/ui-config.ts` reverted after its run, `npx vitest run --maxWorkers=2 test/web/api/ui-config.test.tsx`): `onSettled`'s invalidation removed → the two F-1 tests failed (2 of 4); the hook's own `onSuccess`/`onError` removed (the toasts left to no callback) → the two F-1 tests and the sticky one failed (3 of 4) |
+| F-2 (minor) — pre-merge versions cited | *Green* and the AC-3 row cite `docs/user-guide.md` 0.43, `ux-reference.md` 1.26, `test/README.md` 0.94 (0.95 now, for the new suite) — the merge `c4cb6a12`'s renumbering | — |
+| F-3 (minor) — no gate evidence on the merge | the runs below, on the new tip | — |
+| F-4 (minor) — a failing `/config` refetch unmounted the pending dialog | `UiFrame.tsx`: the read's error replaces the tab only when nothing was read yet; a failed refetch keeps the tab — and *Use preset* with its pending dialog — on the data it has (the next `repo` event or refetch reads again) | `use-preset.test.tsx` › "review round 1 F-4 — a /config refetch that fails while the write runs keeps the tab and the dialog" (fails with the old condition: guard removal); `taxonomy.test.tsx` F-2 (a failed first read shows its error) unchanged and green |
+| F-5 (nit) — the *Update* focus request outlived an update that left the copy blocking | `UsePreset.tsx`: `onSucceeded` records the time; the first header read after it drops the request when the control is still not enabled | `use-preset.test.tsx` › "review round 1 F-5 — an Update that leaves the copy blocking drops the focus request: a later enablement does not move the focus" (fails with the drop removed: guard removal) |
+| F-6 (nit) — the C-02.2 regex too loose | `use-preset.spec.ts`: `A  README.md\n` exactly | the e2e run below |
+| F-7 (nit) — "(sticky)" not asserted | `use-preset.test.tsx`: the failed push's toast in the store is `sticky` (and replaced the pushed one) | that test |
+| F-8 (nit) — `settings.preset.legend` unrecorded, the `pending` alias | D79-9 lists the key; `PresetDialog` uses `isPending` directly | — |
+
+Local, on the fixes: `npm run typecheck`, `npm run lint`, `npx prettier --check .` clean; `npx vitest
+run --maxWorkers=2`, one file at a time: `test/web/configuration/use-preset` (24),
+`taxonomy` (9), `progress` (9), `test/web/api/ui-config` (4): passed.

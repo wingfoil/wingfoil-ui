@@ -12,7 +12,7 @@ import { keyCatalogue } from '../../../web/scripts/catalogue.mjs';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
 import { resetSession } from '../../../web/src/session/session.js';
-import { resetToasts } from '../../../web/src/shell/toasts.js';
+import { getToasts, resetToasts } from '../../../web/src/shell/toasts.js';
 import { BASE, BO, header, OUTSIDER, PID } from '../dna/data.js';
 import { renderApp, type FakeApi } from '../shell/render.js';
 import { UI_DECLARED, UI_INFERRED, uiApi } from './data.js';
@@ -215,6 +215,10 @@ it('AC-1 — pushed, or "Not pushed — the commit stays local" with its reason 
   await userEvent.click(within(await choose('Scrum')).getByRole('button', { name: 'Confirm' }));
   await waitFor(() => expect(politeToasts().textContent).toContain('Not pushed — the commit stays local'));
   expect(politeToasts().textContent).toContain(en['error.pushTimeout']);
+  // Review round 1 F-7: the failed push's toast is sticky (it replaced the pushed one: one key per project).
+  expect(getToasts().filter((t) => t.key === `preset:${PID}`)).toEqual([
+    expect.objectContaining({ tone: 'success', sticky: true }),
+  ]);
 });
 
 /** One refusal per code of D64-13 / D79-8 and the text its toast shows. */
@@ -326,6 +330,67 @@ it('D79-6 — Update in the reason updates the copy, then the focus goes to Use 
     expect(screen.getByRole('button', { name: 'Use preset' }).getAttribute('aria-disabled')).toBeNull(),
   );
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Use preset' })));
+});
+
+it('review round 1 F-4 — a /config refetch that fails while the write runs keeps the tab and the dialog', async () => {
+  let answer: (r: Response) => void = () => {};
+  const api = uiApi(UI_INFERRED);
+  stub(api, { [PRESET]: () => new Promise<Response>((resolve) => (answer = resolve)) });
+  const { queryClient } = renderApp(PAGE);
+  const d = await choose('Kanban');
+  await userEvent.click(within(d).getByRole('button', { name: 'Confirm' }));
+  await waitFor(() => expect(within(d).getByRole('status').textContent).toBe('Applying the preset…'));
+  api[`${BASE}/config`] = { status: 500, body: { error: { code: 'internal', message: 'x' } } };
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() => expect(queryClient.getQueryState(['p', PID, 'config'])?.status).toBe('error'));
+  expect(screen.getByRole('dialog', { name: 'Use a preset' })).toBeTruthy();
+  // The tab is still rendered (hidden from assistive technology while the modal is open).
+  expect(screen.getByRole('table', { name: 'Types → categories', hidden: true })).toBeTruthy();
+  expect(document.querySelector('.config-error')).toBeNull();
+  answer(json(200, OK));
+  expect(await within(politeToasts()).findByText('Kanban preset applied')).toBeTruthy();
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(document.getElementById('main')));
+});
+
+it('review round 1 F-5 — an Update that leaves the copy blocking drops the focus request: a later enablement does not move the focus', async () => {
+  const api = uiApi(UI_INFERRED, { [BASE]: { status: 200, body: behindHeader(1) } });
+  const diverged = header(BO, 'r-dev');
+  diverged.repository = { ...diverged.repository, copy: 'diverged' };
+  const fetch = stub(api, {
+    [UPDATE]: () => {
+      api[BASE] = { status: 200, body: diverged };
+      return json(200, { repository: diverged.repository });
+    },
+  });
+  const { queryClient } = renderApp(PAGE);
+  const button = await openButton();
+  await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+  const description = document.getElementById(button.getAttribute('aria-describedby') ?? '') as HTMLElement;
+  await userEvent.click(within(description).getByRole('button', { name: 'Update' }));
+  await waitFor(() =>
+    expect(fetch.mock.calls.some((c) => String(c[0]) === UPDATE && (c[1] as RequestInit).method === 'POST')).toBe(true),
+  );
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() =>
+    expect(document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent).toBe(
+      'Blocked: your copy has diverged from the remote',
+    ),
+  );
+  (document.activeElement as HTMLElement | null)?.blur();
+  // Later the copy is in sync again (someone fixed it in a terminal): the focus stays where it was.
+  api[BASE] = { status: 200, body: header(BO, 'r-dev') };
+  await act(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['p', PID] });
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Use preset' }).getAttribute('aria-disabled')).toBeNull(),
+  );
+  expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'Use preset' }));
 });
 
 it('X-09.1 — every text of the section and the dialog comes from the catalogue (key build)', async () => {
