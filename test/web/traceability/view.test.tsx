@@ -265,7 +265,23 @@ describe('AC-1 — the page (D67-1, D67-7)', () => {
   });
 });
 
-describe('AC-1 — figures (D67-6; the completion and phase cards behind the Q1 seam)', () => {
+describe("AC-1 — figures (D67-6; the completion and phase cards from task-065's web/src/progress/, Q1 (a))", () => {
+  it('explains the completion on keyboard focus as its accessible description (T-14.2 text)', async () => {
+    stubApi(api());
+    const user = userEvent.setup();
+    await opened();
+    const link = within(screen.getByRole('region', { name: 'Figures' })).getByRole('link', {
+      name: 'Project completion 25 %',
+    });
+    while (document.activeElement !== link) await user.tab();
+    const tip = await screen.findByRole('tooltip');
+    expect(tip.textContent).toBe(
+      'Mean of reference completion over 2 references with at least 1 linked element: US-M-01 50 %, US-S-01 0 %',
+    );
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+  });
+
   it('shows the completion, the phase card and the coverage', async () => {
     stubApi(api());
     await opened();

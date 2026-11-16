@@ -490,3 +490,30 @@ their first run is the push run of `gates.yml`.
 `PhaseCompletionCard` (the seam) by `web/src/progress/`'s components, drop the four
 `traceability.seam.*` keys, and add the completion explanation's hover and focus (T-14.1, T-14.2
 texts on this page) to the AC-1 e2e test; then the gates again.
+
+### the Q1 wiring (2026-11-16, after task-065's merge)
+
+- `git merge design/dev-loop_v0.3` (tip `71e65b34`, task-065 merged `79f4c64b`). Conflicts, resolved
+  with the phase branch's entries first (W2-9, RP-43): `test/e2e/support/screens.ts` (task-079,
+  task-080 and task-065 entries, then this task's two); `CHANGELOG.md` *Unreleased* (task-080's and
+  task-065's entries, then this one); the version lines of `docs/00_reference/ux-reference.md`
+  (phase 1.29, this task's entry renumbered 1.30), `docs/user-guide.md` (phase 0.45, this task's
+  0.46) and `test/README.md` (phase 0.99, this task's 0.100), and the README's suite paragraph
+  (task-079, task-080, task-065, then task-067). `web/scripts/catalogue.mjs` `AREAS` merged by git
+  itself: `progress` (phase) and `traceability` (this task) both kept. The custom fixture now copies
+  `.wingfoil/` without `ui.yaml` (task-082): this task's tests add the preset with
+  `usePresetUiConfig` and R-01.7 wants no `ui.yaml`, so nothing relied on the repository's file.
+- `Figures.tsx`: the seam's two components replaced by `web/src/progress/`'s
+  `<ProgressCompletion pid figure scopeName />` (the figure, its bar and the explanation on hover and
+  keyboard focus, a link to the Memory list's figure filter) and `<PhaseReadOnly
+  figure="phaseCompletion" reason projectVersion />` (the header's WingFoil version, `null` until
+  read); the four `traceability.seam.*` keys removed. Tests: `view.test.tsx` "explains the completion
+  on keyboard focus as its accessible description"; `traceability.spec.ts` "AC-1 — the completion
+  explanation on hover and on keyboard focus (as T-14.1, T-14.2)".
+- **For the reviewer:** the shared completion is a link to `/p/<id>/memory?figure=completion`, whose
+  ids are `/progress`'s (the current scope, TQ-4 (a)). On Traceability with *Whole project* the
+  figure shown is the whole project's while the link lists the current scope's elements; spec-012
+  §3 defines the figure filter on `/progress` only. Not changed here (the API is task-065's): a
+  candidate finding.
+- `npx vitest run test/web/traceability test/web/i18n --maxWorkers=2`: 5 files, 42 passed.
+

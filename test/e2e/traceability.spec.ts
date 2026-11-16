@@ -207,6 +207,30 @@ test.describe('task-067 acceptance criteria', () => {
     await expect.poll(() => rowIds(page)).toEqual(['US-M-01']);
   });
 
+  test('AC-1 — the completion explanation on hover and on keyboard focus (as T-14.1, T-14.2)', async ({
+    page,
+    fixtures,
+    consoles,
+  }) => {
+    const explanation =
+      'Mean of reference completion over 2 references with at least 1 linked element: US-M-01 50 %, US-S-01 0 %';
+    const c = await consoles.start({ projects: [await customCopy(fixtures)] });
+    await openPage(page, c);
+    const link = page.getByRole('region', { name: 'Figures' }).getByRole('link', { name: 'Project completion 25 %' });
+    // A pointer user: the pointer moves on the page first (React Aria's modality, task-065 F-1).
+    await page.mouse.move(1, 1);
+    await link.hover();
+    await expect(page.getByRole('tooltip')).toHaveText(explanation);
+    await page.mouse.move(1, 1);
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+    await tabUntil(page, link);
+    await expectFocusVisible(link);
+    await expect(page.getByRole('tooltip')).toHaveText(explanation);
+    await expect(link).toHaveAccessibleDescription(explanation);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+  });
+
   test('AC-1 — chip tooltip on hover and on focus, closed with Escape', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await customCopy(fixtures)] });
     await openPage(page, c);

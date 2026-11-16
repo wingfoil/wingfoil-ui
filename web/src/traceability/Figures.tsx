@@ -3,15 +3,14 @@
  * project completion over the applied scope, phase completion read-only (RP3-14 D2) and reference
  * coverage, project-wide. Every number is the server's.
  *
- * **The Q1 seam** (decided by the approver 2026-11-16): the completion figure with its explanation
- * on hover and focus (T-14.1, T-14.2) and the phase read-only texts (T-15.x) are task-065's shared
- * module `web/src/progress/` (keys `progress.completion.*`, `progress.phaseCompletion.*`). Until it
- * is merged, {@link CompletionCard} and {@link PhaseCompletionCard} below render the figure's value
- * only, from the temporary keys `traceability.seam.*`; wiring them to that module replaces these two
- * components and drops those keys.
+ * The completion and phase completion cards are task-065's shared module `web/src/progress/`
+ * (task-067 Q1 (a), decided by the approver 2026-11-16): the completion with its explanation on hover
+ * and keyboard focus (T-14.1, T-14.2) and the phase read-only text (T-15.2).
  */
 import { Link } from '@tanstack/react-router';
-import type { ReadOnlyFigure, Traceability } from '@wingfoil-ui/contracts';
+import type { Traceability } from '@wingfoil-ui/contracts';
+import { ProgressCompletion } from '../progress/Completion.js';
+import { PhaseReadOnly } from '../progress/PhaseReadOnly.js';
 import type { ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 
@@ -35,49 +34,35 @@ function taxonomyLink(pid: string) {
   };
 }
 
-/** Q1 seam: the completion card until task-065's `web/src/progress/` is merged. */
+/** The completion card: task-065's shared figure over the applied scope (Q1 (a)). */
 function CompletionCard({ pid, answer }: { pid: string; answer: Traceability }): ReactNode {
-  const figure = answer.figures.completion;
   const current = answer.scope.applied === 'current' ? answer.scope.current : null;
   return (
     <div className="trace-card">
-      {figure.state === 'shown' ? (
-        <>
-          <p className="trace-card-value">
-            <FormattedMessage id="traceability.seam.completion" values={{ percent: figure.percent }} />
-          </p>
-          <Bar percent={figure.percent} />
-        </>
-      ) : figure.reason.code === 'no-reference-categories' ? (
-        <p className="trace-card-note">
-          <FormattedMessage id="traceability.seam.completionNeedsReferences" values={{ link: taxonomyLink(pid) }} />
-        </p>
-      ) : (
-        <p className="trace-card-note">
-          <FormattedMessage
-            id="traceability.seam.completionNoLinked"
-            values={{ scope: current ? (current.shortId ?? current.id) : '' }}
-          />
-        </p>
-      )}
+      <ProgressCompletion
+        pid={pid}
+        figure={answer.figures.completion}
+        scopeName={current ? (current.shortId ?? current.id) : null}
+      />
     </div>
   );
 }
 
-/** Q1 seam: the phase completion card (read-only, D2) until task-065's module is merged. */
-function PhaseCompletionCard({ figure }: { figure: ReadOnlyFigure }): ReactNode {
-  const reason = figure.reason;
+/** The phase completion card: read-only (D2), task-065's shared text (Q1 (a)). */
+function PhaseCompletionCard({
+  answer,
+  projectVersion,
+}: {
+  answer: Traceability;
+  projectVersion: string | null;
+}): ReactNode {
   return (
     <div className="trace-card">
-      <p className="trace-card-note">
-        <FormattedMessage
-          id="traceability.seam.phaseCompletion"
-          values={{
-            needsVersion: reason.code === 'needs-version' ? 'yes' : 'no',
-            minVersion: reason.code === 'needs-version' ? reason.minVersion : '',
-          }}
-        />
-      </p>
+      <PhaseReadOnly
+        figure="phaseCompletion"
+        reason={answer.figures.phaseCompletion.reason}
+        projectVersion={projectVersion}
+      />
     </div>
   );
 }
@@ -116,12 +101,21 @@ function CoverageCard({ pid, answer }: { pid: string; answer: Traceability }): R
 }
 
 /** The figures region. */
-export function Figures({ pid, answer }: { pid: string; answer: Traceability }): ReactNode {
+export function Figures({
+  pid,
+  answer,
+  projectVersion,
+}: {
+  pid: string;
+  answer: Traceability;
+  /** The project's WingFoil version (the header's), `null` when unknown. */
+  projectVersion: string | null;
+}): ReactNode {
   const intl = useIntl();
   return (
     <section className="trace-figures" aria-label={intl.formatMessage({ id: 'traceability.figures.label' })}>
       <CompletionCard pid={pid} answer={answer} />
-      <PhaseCompletionCard figure={answer.figures.phaseCompletion} />
+      <PhaseCompletionCard answer={answer} projectVersion={projectVersion} />
       <CoverageCard pid={pid} answer={answer} />
     </section>
   );

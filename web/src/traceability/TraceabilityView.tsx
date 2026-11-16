@@ -179,7 +179,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
             </Toggle>
           </Group>
         )}
-        <Figures pid={pid} answer={data} />
+        <Figures pid={pid} answer={data} projectVersion={header?.wingfoil.version ?? null} />
         {noFile && (
           <p className="trace-note">
             <span>
