@@ -11,7 +11,8 @@
  * - `unsupported-version` — "… — supported <min> to <max>"; `not-released` — "… — in no released
  *   WingFoil yet".
  *
- * API: `<PhaseReadOnly figure="phase" | "phaseCompletion" reason projectVersion />`; class
+ * API: `<PhaseReadOnly figure="phase" | "phaseCompletion" reason projectVersion />`,
+ * `phaseValues(reason, projectVersion)` for the same text elsewhere (an announcement); class
  * `progress-reason`.
  */
 import type { ApiCapabilityReason } from '@wingfoil-ui/contracts';
@@ -38,15 +39,27 @@ const CODES = {
   'not-released': 'notReleased',
 } as const satisfies Record<ApiCapabilityReason['code'], string>;
 
-/** The read-only text of a phase figure. */
-export function PhaseReadOnly({ figure, reason, projectVersion }: PhaseReadOnlyProps): ReactNode {
-  const values = {
+/**
+ * The arguments of the `progress.phase.readOnly` / `progress.phaseCompletion.readOnly` messages for
+ * `reason` (one `select` per figure, spec-008 §4's deviation recorded in its Process Notes: a code
+ * this table does not know falls into the `other` branch).
+ */
+export function phaseValues(
+  reason: ApiCapabilityReason,
+  projectVersion: string | null,
+): Record<'code' | 'minVersion' | 'version' | 'min' | 'max', string> {
+  return {
     code: CODES[reason.code],
     minVersion: reason.code === 'needs-version' ? majorMinor(reason.minVersion) : '',
     version: projectVersion ?? '',
     min: reason.code === 'unsupported-version' ? reason.range.min : '',
     max: reason.code === 'unsupported-version' ? reason.range.max : '',
   };
+}
+
+/** The read-only text of a phase figure. */
+export function PhaseReadOnly({ figure, reason, projectVersion }: PhaseReadOnlyProps): ReactNode {
+  const values = phaseValues(reason, projectVersion);
   return (
     <span className="progress-reason">
       {figure === 'phase' ? (

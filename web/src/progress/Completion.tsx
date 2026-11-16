@@ -19,7 +19,7 @@
  */
 import type { CompletionFigure } from '@wingfoil-ui/contracts';
 import { Link } from '@tanstack/react-router';
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Focusable, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import './progress.css';
@@ -64,9 +64,11 @@ export function CompletionExplanation({ figure }: { figure: CompletionFigure }):
 
 /** The completion figure: the link with its bar and explanation, or the reason in its place. */
 export function ProgressCompletion({ pid, figure, scopeName }: ProgressCompletionProps): ReactNode {
-  // React Aria's `Focusable` passes the trigger's focus handlers to the router link, not its hover
-  // ones: the pointer opens the tooltip here, keyboard focus and Escape stay React Aria's.
-  const [open, setOpen] = useState(false);
+  // Hover, keyboard focus, Escape, the delay and the one-open-tooltip rule are React Aria's alone:
+  // `Focusable` merges the trigger's handlers into the router link. A hover counts once React Aria's
+  // interaction modality is the pointer's (a pointer that moved on the page), then waits `delay`
+  // (review round 1, F-1). The trigger is not rendered while the figure is not shown, so a figure
+  // that comes back starts closed.
   if (figure.state !== 'shown') {
     return (
       <span className="progress-reason">
@@ -89,11 +91,9 @@ export function ProgressCompletion({ pid, figure, scopeName }: ProgressCompletio
   }
   return (
     <span className="progress-completion">
-      <TooltipTrigger delay={300} isOpen={open} onOpenChange={setOpen}>
+      <TooltipTrigger delay={300}>
         <Focusable>
           <Link
-            onMouseEnter={() => setOpen(true)}
-            onMouseLeave={() => setOpen(false)}
             className="progress-figure-link progress-completion-link"
             to="/p/$pid/memory"
             params={{ pid }}

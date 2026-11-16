@@ -265,6 +265,8 @@ interface PageText {
   command: boolean;
   /** A field name of the element panel's References (`[data-element-view] dt.field-name`, D37-13). */
   fieldName: boolean;
+  /** Inside the completion explanation's list of references (`.progress-references`, task-065 D65-7). */
+  references: boolean;
 }
 
 /** The texts of the page: text nodes and the name/description attributes of every element. */
@@ -281,6 +283,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
       userAvatar: el?.closest('.current-user-avatar') != null,
       command: el?.closest('code.cli-command[translate="no"]') != null,
       fieldName: el?.closest('[data-element-view] dt.field-name') != null,
+      references: el?.closest('.progress-references') != null,
     });
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -316,6 +319,7 @@ async function pageTexts(page: Page): Promise<PageText[]> {
       dismiss: false,
       command: false,
       fieldName: false,
+      references: false,
     });
     return out;
   });
@@ -366,10 +370,6 @@ async function intlRenderings(page: Page, data: Set<string>): Promise<Set<string
     const day = new Intl.DateTimeFormat('en', { dateStyle: 'medium' });
     const full = new Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'long' });
     for (const d of iso) out.push(day.format(new Date(d)), full.format(new Date(d)));
-    // task-065 D65-7: the separators of a list of message elements (the completion's references),
-    // the catalogue locale's `Intl` list format.
-    const list = new Intl.ListFormat('en', { type: 'unit', style: 'short' });
-    for (const part of list.formatToParts(['a', 'b', 'c'])) if (part.type === 'literal') out.push(part.value.trim());
     const rel = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
     for (const unit of ['second', 'minute', 'hour', 'day', 'week', 'month', 'year'] as const) {
       for (let v = -400; v <= 0; v++) out.push(rel.format(v, unit));
@@ -387,6 +387,14 @@ function joinCommands(data: Set<string>): Set<string> {
   }
   return out;
 }
+
+/** The trimmed literals of the `en` `Intl` list format (`unit`, `short`) — "," (task-065 D65-7). */
+const LIST_SEPARATORS: ReadonlySet<string> = new Set(
+  new Intl.ListFormat('en', { type: 'unit', style: 'short' })
+    .formatToParts(['a', 'b', 'c'])
+    .filter((p) => p.type === 'literal')
+    .map((p) => p.value.trim()),
+);
 
 /** Data strings longer than this are file contents (a document, an element body), not values. */
 const LONG_DATA = 200;
@@ -416,13 +424,18 @@ export async function textsOutsideCatalogue(page: Page, recorder: DataRecorder):
     isPathOfData(t) ||
     (content && sources.includes(flat(t)));
   const bad = new Set<string>();
-  for (const { text, where, content, avatar, userAvatar, dismiss, command, fieldName } of await pageTexts(page)) {
+  for (const { text, where, content, avatar, userAvatar, dismiss, command, fieldName, references } of await pageTexts(
+    page,
+  )) {
     if (isKeyText(text, (w) => words.has(w)) || isData(text, content)) continue;
     if (avatar && avatars.has(text)) continue;
     if (userAvatar && text === NO_INITIALS) continue;
     if (dismiss && text === LIBRARY_DISMISS) continue;
     if (command && commands.has(text)) continue;
     if (fieldName && fieldNames.has(text)) continue;
+    // task-065 D65-7 (review round 1, F-3): the separators of the completion's list of references,
+    // the catalogue locale's `Intl` list format — there only, never a hand-joined text elsewhere.
+    if (references && LIST_SEPARATORS.has(text)) continue;
     bad.add(`${where}: ${text}`);
   }
   // A text flagged may be data of an answer the recorder could not read: say so (bug-015).

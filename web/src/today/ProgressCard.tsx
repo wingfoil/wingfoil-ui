@@ -25,7 +25,7 @@ import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
 import { ProgressCompletion } from '../progress/Completion.js';
-import { PhaseReadOnly } from '../progress/PhaseReadOnly.js';
+import { PhaseReadOnly, phaseValues } from '../progress/PhaseReadOnly.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { UiYamlWarning } from '../shell/UiYamlWarning.js';
 import { cardFigures, scopeName, type CardFigure } from './progress.js';
@@ -69,15 +69,55 @@ function figureText(intl: IntlShape, figure: CardFigure): string {
   }
 }
 
-/** The visible text of each figure that can change between two reads, by figure. */
-function figureTexts(intl: IntlShape, progress: Progress): Map<string, string> {
-  const texts = new Map<string, string>();
+/** The text of the scope line: the current element (and its state), or "No current …", "Whole project". */
+function scopeTexts(intl: IntlShape, progress: Progress, texts: Map<string, string>): void {
+  const { type, current } = progress.scope;
+  if (current !== null) {
+    texts.set(
+      'scope',
+      joined(
+        intl.formatMessage(
+          { id: 'today.progress.scope.current' },
+          { id: current.shortId ?? current.id, title: current.title, mono: (chunks: string[]) => chunks.join('') },
+        ),
+      ),
+    );
+    texts.set('scopeState', current.status);
+  } else if (type !== null) texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.none' }, { type }));
+  else texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.whole' }));
+}
+
+/** The completion's text: the figure, or its reason in its place. */
+function completionText(intl: IntlShape, progress: Progress): string {
   const completion = progress.figures.completion;
   if (completion.state === 'shown')
-    texts.set(
-      'completion',
-      joined(intl.formatMessage({ id: 'progress.completion.figure' }, { percent: completion.percent, ...TEXT_TAGS })),
+    return joined(
+      intl.formatMessage({ id: 'progress.completion.figure' }, { percent: completion.percent, ...TEXT_TAGS }),
     );
+  return completion.reason.code === 'no-reference-categories'
+    ? joined(
+        intl.formatMessage({ id: 'progress.completion.noCategories' }, { link: (chunks: string[]) => chunks.join('') }),
+      )
+    : intl.formatMessage({ id: 'progress.completion.noLinked' }, { scope: scopeName(progress) ?? '' });
+}
+
+/**
+ * Every visible text of the card that can change between two reads, by place (review round 1,
+ * F-2): the scope line, the completion or its reason, the phase texts, the other figures.
+ */
+function figureTexts(intl: IntlShape, progress: Progress, projectVersion: string | null): Map<string, string> {
+  const texts = new Map<string, string>();
+  scopeTexts(intl, progress, texts);
+  texts.set('completion', completionText(intl, progress));
+  const { phase, phaseCompletion } = progress.figures;
+  texts.set('phase', intl.formatMessage({ id: 'progress.phase.readOnly' }, phaseValues(phase.reason, projectVersion)));
+  texts.set(
+    'phaseCompletion',
+    intl.formatMessage(
+      { id: 'progress.phaseCompletion.readOnly' },
+      phaseValues(phaseCompletion.reason, projectVersion),
+    ),
+  );
   for (const f of cardFigures(progress)) texts.set(f.code, figureText(intl, f));
   return texts;
 }
@@ -182,21 +222,23 @@ export function ProgressCard({ pid, progress, projectVersion }: ProgressCardProp
   const intl = useIntl();
   const titleId = useId();
   const data = progress.data;
-  // D65-8: a read whose figure texts differ from the previous one's is announced (a new node each
-  // time, keyed by a counter); the first read is not.
+  // D65-8: a read whose visible texts differ from the previous one's is announced (a new node each
+  // time, keyed by a counter) with the new texts; a place that only disappeared is announced
+  // without a text (review round 1, F-2); the first read is not.
   const previous = useRef<Map<string, string> | undefined>(undefined);
-  const [announcement, setAnnouncement] = useState<{ n: number; figures: string } | undefined>(undefined);
+  const [announcement, setAnnouncement] = useState<{ n: number; figures: string | null } | undefined>(undefined);
   useEffect(() => {
     if (data === undefined) return;
-    const texts = figureTexts(intl, data);
+    const texts = figureTexts(intl, data, projectVersion);
     const before = previous.current;
     previous.current = texts;
     if (before === undefined) return;
     const changed = [...texts].filter(([key, text]) => before.get(key) !== text).map(([, text]) => text);
-    if (changed.length === 0) return;
-    const figures = intl.formatList(changed, { type: 'unit', style: 'short' });
+    const gone = [...before.keys()].some((key) => !texts.has(key));
+    if (changed.length === 0 && !gone) return;
+    const figures = changed.length === 0 ? null : intl.formatList(changed, { type: 'unit', style: 'short' });
     setAnnouncement((a) => ({ n: (a?.n ?? 0) + 1, figures }));
-  }, [data, intl]);
+  }, [data, intl, projectVersion]);
   const error = progress.error;
   return (
     <>
@@ -230,7 +272,11 @@ export function ProgressCard({ pid, progress, projectVersion }: ProgressCardProp
         >
           {announcement && (
             <span key={announcement.n}>
-              <FormattedMessage id="today.progress.updated" values={{ figures: announcement.figures }} />
+              {announcement.figures === null ? (
+                <FormattedMessage id="today.progress.updatedNoFigure" />
+              ) : (
+                <FormattedMessage id="today.progress.updated" values={{ figures: announcement.figures }} />
+              )}
             </span>
           )}
         </div>

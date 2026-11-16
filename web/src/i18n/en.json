@@ -487,6 +487,7 @@
   "today.progress.scope.whole": "Whole project",
   "today.progress.title": "Progress",
   "today.progress.updated": "Progress updated: {figures}",
+  "today.progress.updatedNoFigure": "Progress updated",
   "today.progress.updates.label": "Progress updates",
   "today.reason.age": "{state} for {age}",
   "today.reason.undeclared": "Action required — state {state} is not declared for {type}",

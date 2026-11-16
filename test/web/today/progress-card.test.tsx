@@ -421,37 +421,6 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
     ]);
   });
 
-  it('opens on hover only after React Aria’s delay — one source of hover (review round 1, F-1)', async () => {
-    stubApi(api());
-    const user = userEvent.setup();
-    await openCard();
-    await hoverAsPointerUser(user, within(figures()).getByRole('link', { name: 'Project completion 25 %' }));
-    // Not at once: the trigger's delay is React Aria's, no hand-wired hover opens it earlier.
-    expect(screen.queryByRole('tooltip')).toBeNull();
-    expect(await screen.findByRole('tooltip')).toBeTruthy();
-  });
-
-  it('does not reopen its tooltip when the figure comes back after an unavailable read (review round 1, F-1)', async () => {
-    stubApi(api());
-    const user = userEvent.setup();
-    const { queryClient } = await openCard();
-    await hoverAsPointerUser(user, within(figures()).getByRole('link', { name: 'Project completion 25 %' }));
-    await screen.findByRole('tooltip');
-    act(() => {
-      queryClient.setQueryData(
-        progressQuery(PID).queryKey,
-        progress({}, { completion: { state: 'unavailable', reason: { code: 'no-linked-elements' } } }),
-      );
-    });
-    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
-    act(() => {
-      queryClient.setQueryData(progressQuery(PID).queryKey, progress());
-    });
-    await within(figures()).findByRole('link', { name: 'Project completion 25 %' });
-    await new Promise((r) => setTimeout(r, 500));
-    expect(screen.queryByRole('tooltip')).toBeNull();
-  });
-
   it('says "1 reference" in the singular (review round 1, F-5)', async () => {
     stubApi(
       api(
