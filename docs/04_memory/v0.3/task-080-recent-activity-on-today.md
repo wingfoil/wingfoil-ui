@@ -386,3 +386,39 @@ so the name was a text node of its own, and "Sam" alone is not data (the API's v
 transition and the name are one text node — in the key build "element.history.transition draft
 pending Sam", a key followed by data words, as the bell's `element.history.entry`. The visible row
 is unchanged (`npx vitest run test/web/today/recent-activity.test.tsx --maxWorkers=2` → 10 passed).
+
+`gates.yml` run **43855786755** (`workflow_dispatch`, scope `task`, on `415e9f9c`; `specs`
+`test/e2e/recent-activity.spec.ts test/e2e/today.spec.ts test/e2e/today-cards.spec.ts
+test/e2e/notification-bell.spec.ts test/e2e/side-panel.spec.ts test/e2e/accessibility.spec.ts` —
+the push's selection would take only the changed spec files; the push run 43855786984 was
+cancelled by the dispatch, same ref): **success** — `checks`, `contract`, `smoke`, `publish-smoke`
+passed; `coverage` passed, statements 96.73 %, lines 98.44 %, functions 97.51 %, branches 91.88 %
+(`coverage-totals.json` of the run); `e2e-chromium` 204 + 203 passed (the whole suite, the
+recent-activity spec and both new screens included); own specs **136 passed on Firefox, 136 on
+WebKit**.
+
+### refactor (2026-11-16)
+
+No structural change after green: one component, one CSS file, one prop. Final local checks on
+`415e9f9c` plus these notes: `npm run typecheck`, `npm run lint`, `npm run format:check` (all files
+use Prettier code style), `npm run docs:api` → clean; `python3 docs/03_backlog/X_tools/check_tasks.py
+v0.3` → OK; before each push `npx vitest run test/docs/public-text.test.ts --maxWorkers=2` → 67
+passed and `test/governance/*.test.ts` one at a time → 7, 5, 9, 4 passed; the git-touching suite
+`test/server/snapshot/process-audit.test.ts` under the strict-identity recipe (a `git` wrapper
+outside the repository first on the `PATH`, `-c user.useConfigOnly=true` plus the `set-head`
+emulation) → 5 passed. The e2e spec's git work (T-08.2's CLI approve, T-08.3's commit) runs on the
+`gates.yml` runner, which has no identity of its own (dl-011): green above.
+
+#### e2e closure
+
+| Scenario | Spec file : test |
+|----------|------------------|
+| T-08.1 Show the last 5 Memory events | `test/e2e/recent-activity.spec.ts` : `T-08.1 — Show the last 5 Memory events` |
+| T-08.2 Add an event made outside the UI | `test/e2e/recent-activity.spec.ts` : `T-08.2 — Add an event made outside the UI` (`@live-refresh`) |
+| T-08.3 Leave out commits that are not Memory events | `test/e2e/recent-activity.spec.ts` : `T-08.3 — Leave out commits that are not Memory events` |
+| X-06.4, X-09.1 on the card's screens | `test/e2e/accessibility.spec.ts` over `SCREENS`: `today — recent activity`, `today — recent activity, read failed` |
+| TT-PERF-01 with the card (AC-3) | `test/e2e/performance.spec.ts` : `T-01.1, T-02.1 — Today renders within 2.0 s …` (`@perf`: its budgets are asserted under `test:timing`, the coordinator's wave-gate run, as task-059 Q7) |
+
+Left for the coordinator: `test:timing` (TT-PERF-01 with the card, T-08.2's strict 5 s) at the wave
+gate; the merge with task-065 on `TodayView.tsx`, `routes/today.tsx`, `performance.spec.ts`
+(Today's `ready`), `process-audit.test.ts`, `en.json`, `screens.ts` and the docs (Q1 (a)).
