@@ -125,6 +125,7 @@ describe('AC-1 — the card on Today', () => {
       ),
     );
     await openCard();
+    await screen.findByRole('region', { name: 'Your roles' });
     const order = [
       screen.getByRole('heading', { level: 1 }),
       document.querySelector<HTMLElement>('.ui-yaml-warning')!,
@@ -142,9 +143,8 @@ describe('AC-1 — the card on Today', () => {
   it('names the current scope by its id, title and state pill, the id a link to its side panel (D65-4)', async () => {
     stubApi(api());
     await openCard();
-    const link = within(card()).getByRole('link', { name: /^minor-v0\.1/ });
+    const link = within(card()).getByRole('link', { name: 'minor-v0.1 Minor v0.1' });
     expect(link.getAttribute('href')).toBe(`/p/${PID}/today?panel=minor-v0.1`);
-    expect(within(card()).getByText('Minor v0.1')).toBeTruthy();
     expect(within(card()).getByText('planning').classList.contains('state-pill')).toBe(true);
   });
 
@@ -231,11 +231,18 @@ describe('AC-1 — the card on Today', () => {
   });
 
   it('shows a failed read as an error inside the card, the rest of Today still shown', async () => {
-    stubApi(api(null, { [PROGRESS]: { status: 502, body: { error: { code: 'read-error', message: 'x' } } } }));
+    stubApi(
+      api(null, {
+        [PROGRESS]: {
+          status: 502,
+          body: { error: { code: 'read-error', message: 'x', detail: { file: '.wingfoil/memory.yaml' } } },
+        },
+      }),
+    );
     renderApp(`/p/${PID}/today`);
     await waitFor(() => expect(within(card()).getByRole('alert')).toBeTruthy());
     expect(within(card()).queryByRole('list', { name: 'Figures' })).toBeNull();
-    expect(screen.getByRole('region', { name: 'Requires you' })).toBeTruthy();
+    expect(await screen.findByRole('region', { name: 'Requires you' })).toBeTruthy();
   });
 
   it('announces a changed figure once, politely, and not a refetch with the same figures', async () => {

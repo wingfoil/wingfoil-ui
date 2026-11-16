@@ -85,11 +85,44 @@ export async function setFrontmatterValue(fixture: Fixture, id: string, field: s
   await git(fixture.dir, ['commit', '-q', '-m', `docs: ${field} on ${id}`, '--', file], fixture.env);
 }
 
+/** The `ui.yaml` of {@link kanbanCompletion}: one reference pattern, categorised `requirement`. */
+export const KANBAN_COMPLETION_UI_YAML =
+  "version: 1\ntaxonomy:\n  patterns:\n    - { match: '^US-', category: requirement }\n";
+
+/** The kanban standard elements {@link kanbanCompletion} links to its reference. */
+const KANBAN_ELEMENTS = [
+  'task-001-login-form',
+  'task-002-password-reset',
+  'task-003-logout',
+  'task-004-session-timeout',
+  'bug-001-crash-on-save',
+] as const;
+
 /**
  * X-10.4's Given (task-065 D65-14, Q6 (a)): the kanban `fixture` showing a project completion of
- * 40 %. Red stub.
+ * 40 % — a minimal `ui.yaml` mapping the pattern `^US-` to `requirement` (committed alone), the value
+ * `US-01` in `ref` on the 5 standard elements (each committed outside the UI by the fixture's
+ * identity), and `task-001-login-form` approved by Morgan with the pinned CLI (dated after the
+ * fixture's commits): 2 of the 5 linked elements done (with `task-003-logout`) — 40 %. The identity
+ * of a copy is set afterwards (`actAs`), as the fixture builder leaves it.
  */
 export async function kanbanCompletion(fixture: Fixture): Promise<void> {
-  void fixture;
-  return Promise.resolve();
+  if (fixture.kind !== 'kanban') throw new Error(`kanbanCompletion is a kanban fixture variant, not ${fixture.kind}`);
+  await writeFile(path.join(fixture.dir, '.wingfoil', 'ui.yaml'), KANBAN_COMPLETION_UI_YAML);
+  await git(fixture.dir, ['add', '--', '.wingfoil/ui.yaml'], fixture.env);
+  await git(
+    fixture.dir,
+    ['commit', '-q', '-m', 'chore(ui): a reference pattern', '--', '.wingfoil/ui.yaml'],
+    fixture.env,
+  );
+  for (const id of KANBAN_ELEMENTS) await setFrontmatterValue(fixture, id, 'ref', 'US-01');
+  const p = new FixtureProject({
+    dir: fixture.dir,
+    cli: pinnedCli(),
+    cliVersion: pinnedVersion(),
+    now: new Date(fixture.now.getTime() + 30 * 60 * 1000),
+    env: fixture.env,
+  });
+  await p.approve('Morgan', 'task-001-login-form');
+  await p.as('Alex');
 }

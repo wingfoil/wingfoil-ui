@@ -35,7 +35,7 @@ function progress(over: Partial<Progress> = {}, figures: Partial<Progress['figur
 describe('cardFigures', () => {
   it('lists iterated, open defects and pending gates with their codes and the server values', () => {
     expect(cardFigures(progress())).toEqual([
-      { code: 'iterated', message: 'iterated', values: { type: 'kind-a', done: 1, total: 4 } },
+      { code: 'iterated', message: 'iterated', values: { type: 'kind-a', finished: 1, total: 4 } },
       { code: 'open-defects', message: 'openDefects', values: { type: 'kind-d', count: 1 } },
       { code: 'pending-gates', message: 'pendingGates', values: { count: 3 } },
     ]);

@@ -11,6 +11,7 @@ import { stopEventStream } from '../../../web/src/api/events.js';
 import { resetSession } from '../../../web/src/session/session.js';
 import { header } from '../project/header-data.js';
 import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js';
+import { progressAnswer } from './progress-data.js';
 
 const PID = 'p_a';
 const HEADER = `/api/p/${PID}`;
@@ -68,6 +69,8 @@ function api(over: FakeApi = {}): FakeApi {
     [`${HEADER}/role-view`]: { status: 204 },
     [`${TODAY}?view=developer`]: { status: 200, body: today('developer') },
     [`${TODAY}?view=approver`]: { status: 200, body: today('approver') },
+    // task-065: Today's progress card reads /progress.
+    ...progressAnswer(PID),
     ...over,
   };
 }

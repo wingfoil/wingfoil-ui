@@ -35,6 +35,8 @@ export const AREAS = [
   // task-041: Configuration › UI settings.
   'settings',
   'title',
+  // task-065 (task-067 Q1 (a)): the progress figures shared by Today and Traceability.
+  'progress',
   'error',
   'state',
   'a11y',
