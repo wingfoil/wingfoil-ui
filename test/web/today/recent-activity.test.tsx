@@ -7,6 +7,7 @@
 // Today's own read (Q2 (a)), the last card of Today, a silent refresh on a repository change.
 import type { MemoryEventEntry, MemoryEventsPage, ProjectHeader, Today } from '@wingfoil-ui/contracts';
 import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import { memoryEventsQuery } from '../../../web/src/api/queries.js';
@@ -246,4 +247,59 @@ it('re-reads on a repository change without announcing it (AC-2, D80-6)', async 
   expect(rowsOf(card())).toHaveLength(5);
   expect(screen.getByRole('status', { name: 'Today updates' }).textContent).toBe('');
   expect(card().querySelector('[role="status"], [aria-live]')).toBeNull();
+});
+
+// Review round 1, F-1: one commit can be several events (spec-002 §3 rule 1, a grouped subject: one
+// event per id, each with the commit's sha) — each is its own row, keyed by sha and id.
+it('lists two events of one commit as two rows, in order, across a re-read (review F-1)', async () => {
+  const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const grouped = 'b'.repeat(40);
+  const first = event({ sha: grouped, id: 'task-005-one', from: 'pending', to: 'approved' });
+  const second = event({ sha: grouped, id: 'task-006-two', from: 'pending', to: 'approved' });
+  const fake = api({ [EVENTS]: { status: 200, body: { events: [first, second], more: false } } });
+  stubApi(fake);
+  const { queryClient } = renderApp(`/p/${PID}/today`);
+  await waitFor(() => expect(rowsOf(card())).toHaveLength(2));
+  const newer = event({ sha: 'c'.repeat(40), id: 'task-007-three', operation: 'add', from: null, to: null });
+  fake[EVENTS] = { status: 200, body: { events: [newer, second, first], more: false } };
+  await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
+  await waitFor(() => expect(rowsOf(card())).toHaveLength(3));
+  expect(rowsOf(card()).map(lineOf)).toEqual([
+    'task-007-three created · Jordan',
+    'task-006-two pending → approved · Jordan',
+    'task-005-one pending → approved · Jordan',
+  ]);
+  // The sha and the id on each row (still no `data-eid`, D80-4).
+  expect(rowsOf(card()).map((li) => [li.dataset['sha'], li.dataset['eventId']])).toEqual([
+    ['c'.repeat(40), 'task-007-three'],
+    [grouped, 'task-006-two'],
+    [grouped, 'task-005-one'],
+  ]);
+  expect(card().querySelector('[data-eid]')).toBeNull();
+  const duplicateKeys = errors.mock.calls.filter((args) => String(args[0]).includes('same key'));
+  errors.mockRestore();
+  expect(duplicateKeys).toEqual([]);
+});
+
+// Review round 1, F-2: the side panel is not modal — opened from a Today row, then from a Recent
+// activity link, it closes to the main region (Q3 (a)), not to the earlier row.
+it('forgets an earlier row opener when a Recent activity link opens the panel (review F-2)', async () => {
+  const notFound = { status: 404, body: { error: { code: 'not-found', message: 'x' } } };
+  const element = (id: string): FakeApi => ({
+    [`/api/p/${PID}/elements/${id}`]: notFound,
+    [`/api/p/${PID}/elements/${id}/history`]: notFound,
+  });
+  stubApi(api({ ...element('task-002-reset'), ...element('task-001-login') }));
+  const user = userEvent.setup();
+  const { router } = renderApp(`/p/${PID}/today`);
+  await waitFor(() => expect(rowsOf(card())).toHaveLength(5));
+  const waitingLink = within(await screen.findByRole('region', { name: 'Waiting on others' })).getByRole('link');
+  await user.click(waitingLink);
+  await waitFor(() => expect(router.state.location.search).toEqual({ panel: 'task-002-reset' }));
+  await user.click(within(rowsOf(card())[0]!).getByRole('link', { name: 'task-001-login' }));
+  await waitFor(() => expect(router.state.location.search).toEqual({ panel: 'task-001-login' }));
+  await waitFor(() => expect(document.querySelector('[data-element-view]')).not.toBeNull());
+  await user.click(screen.getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(router.state.location.search).toEqual({}));
+  await waitFor(() => expect(document.activeElement?.id).toBe('main'));
 });
