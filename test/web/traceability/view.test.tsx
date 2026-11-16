@@ -536,3 +536,99 @@ describe('AC-1 — missing references and notices (D67-10, D67-12)', () => {
     expect(screen.getByText(/The repository history could not be read/)).toBeTruthy();
   });
 });
+
+describe('review round 1', () => {
+  it('F-1 — under Whole project the completion is no link to the figure filter, its explanation still on focus', async () => {
+    stubApi(api());
+    const user = userEvent.setup();
+    await opened(`${PAGE}?scope=project`);
+    const figures = screen.getByRole('region', { name: 'Figures' });
+    expect(within(figures).queryByRole('link', { name: /^Project completion/ })).toBeNull();
+    expect(figures.textContent).toContain('Project completion 25 %');
+    const trigger = figures.querySelector<HTMLElement>('.progress-completion-trigger');
+    expect(trigger).not.toBeNull();
+    while (document.activeElement !== trigger) await user.tab();
+    expect((await screen.findByRole('tooltip')).textContent).toContain(
+      'Mean of reference completion over 2 references',
+    );
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+  });
+
+  it('F-1 — on the release scope the completion keeps its link to the figure filter', async () => {
+    stubApi(api());
+    await opened();
+    const link = within(screen.getByRole('region', { name: 'Figures' })).getByRole('link', {
+      name: 'Project completion 25 %',
+    });
+    expect(link.getAttribute('href')).toBe(`/p/${PID}/memory?figure=completion`);
+  });
+
+  it('F-2 — no linked element: the current scope named, or "the project" with the whole project', async () => {
+    const noLinked = { state: 'unavailable' as const, reason: { code: 'no-linked-elements' as const } };
+    stubApi(
+      api({
+        [CURRENT]: { status: 200, body: answer({ figures: { ...answer().figures, completion: noLinked } }) },
+        [PROJECT]: {
+          status: 200,
+          body: answer({
+            scope: { ...answer().scope, applied: 'project' },
+            figures: { ...answer().figures, completion: noLinked },
+          }),
+        },
+      }),
+    );
+    await opened();
+    expect(screen.getByRole('region', { name: 'Figures' }).textContent).toContain('No references linked in minor-v0.1');
+    cleanup();
+    stopEventStream();
+    await opened(`${PAGE}?scope=project`);
+    expect(screen.getByRole('region', { name: 'Figures' }).textContent).toContain(
+      'No references linked in the project',
+    );
+  });
+
+  it('F-3 — the search field shows its placeholder', async () => {
+    stubApi(api());
+    await opened();
+    expect(screen.getByRole('searchbox', { name: 'Search references' }).getAttribute('placeholder')).toBe(
+      'Search references',
+    );
+  });
+
+  it('F-5 — a failed read of the other scope keeps the scope control and the focus on it', async () => {
+    stubApi(api({ [PROJECT]: { status: 502, body: { error: { code: 'read-error', message: 'x' } } } }));
+    const user = userEvent.setup();
+    await opened();
+    await user.click(
+      within(screen.getByRole('group', { name: 'Scope' })).getByRole('button', { name: 'Whole project' }),
+    );
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    const scope = screen.getByRole('group', { name: 'Scope' });
+    const whole = within(scope).getByRole('button', { name: 'Whole project' });
+    expect(whole.getAttribute('aria-pressed')).toBe('true');
+    expect(document.activeElement).toBe(whole);
+    await user.click(within(scope).getByRole('button', { name: 'minor-v0.1 (current release)' }));
+    await waitFor(() => expect(rowIds()).toEqual(['dl-001-first-decision', 'US-M-01', 'US-S-01']));
+  });
+
+  it('F-6 — typing fast keeps every key: the field and the address end with the whole text', async () => {
+    stubApi(api());
+    const user = userEvent.setup({ delay: null });
+    const { router } = await opened();
+    const field = screen.getByRole('searchbox', { name: 'Search references' });
+    await user.type(field, 'first decision');
+    expect((field as HTMLInputElement).value).toBe('first decision');
+    await waitFor(() => expect(router.state.location.search).toEqual({ q: 'first decision' }));
+    expect((field as HTMLInputElement).value).toBe('first decision');
+    await waitFor(() => expect(rowIds()).toEqual(['dl-001-first-decision']));
+  });
+
+  it('F-8 — a failed events read names what this page shows', async () => {
+    stubApi(api({ [CURRENT]: { status: 200, body: answer({ eventsError: { code: 'git-failed', message: 'x' } }) } }));
+    await opened();
+    expect(
+      screen.getByText('The repository history could not be read: the references and figures are shown without it.'),
+    ).toBeTruthy();
+  });
+});
