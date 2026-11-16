@@ -765,3 +765,17 @@ sorted place (lint green). Nothing new found that is a blocker, major or minor.
 |---|----------|-----------|-------|-----|
 | R2-1 | nit | `web/src/progress/PhaseReadOnly.tsx` (`version: projectVersion ?? ''`), `web/src/i18n/en.json` `progress.phase.readOnly` | Until the project header is read, a `needs-version` phase reads "Phase — needs WingFoil 0.3 (this project: )". The new header-race test (`progress-card.test.tsx`) shows that state on screen. Usually brief, since the project layout reads the header too. | A `needsVersion` branch without the parenthesis when the version is unknown (a nested `select` on a `hasVersion` argument), in a later pass. |
 | R2-2 | nit | `test/e2e/support/strings.ts` (`references && LIST_SEPARATORS.has(text)`) | `.intl-list` is opt-in by class: nothing checks that its content comes from `intl.formatList`, so a hand-joined list given the class would pass X-09.1. Today's two uses are correct and the class is documented in `test/README.md`. | Accept as is. Optionally a lint or unit check that `className` containing `intl-list` wraps an `intl.formatList` call. |
+
+### review round 2 fixes (2026-11-16)
+
+On top of the reviewer's `88826c7f`; no phase merge.
+
+| Finding | Change | Test |
+|---------|--------|------|
+| R2-1 (nit) "(this project: )" before the header is read | A `needs-version` phase text with no project version yet reads "Phase — needs WingFoil 0.3": a new catalogue key `progress.phase.readOnlyNoVersion` (appended, RP-43; the existing `select` unchanged), chosen by `phaseWithoutVersion` (`PhaseReadOnly.tsx`, also used by the card's announcement texts); once the header is read the text gains "(this project: <version>)", not announced (the `/progress` answer did not change) | `progress-card.test.tsx` "names no project version in the phase text until the header is read" (the header's answer held; failed first, red `test(task-065): red — no '(this project: )' …`) |
+| R2-2 (nit) `.intl-list` opt-in by class, its content not checked | No change, accepted as documented by the reviewer: the class is the opt-in for a list built with `intl.formatList` (its two uses, the completion's references and the card's announcement, are), recorded in `test/README.md` and in the checker's comment | — |
+
+Local (load about 8): `npm run typecheck`, `lint`, `format:check`, `docs:api` clean;
+`npx vitest run --maxWorkers=2` on `test/web/today/progress-card.test.tsx` 24 passed,
+`progress-tooltip.test.tsx` 2 passed, `test/web/i18n` 5 passed, `test/docs/public-text.test.ts`,
+`test/governance` green.

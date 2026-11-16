@@ -25,7 +25,7 @@ import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
 import { ProgressCompletion } from '../progress/Completion.js';
-import { PhaseReadOnly, phaseValues } from '../progress/PhaseReadOnly.js';
+import { PhaseReadOnly, phaseValues, phaseWithoutVersion } from '../progress/PhaseReadOnly.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { UiYamlWarning } from '../shell/UiYamlWarning.js';
 import { cardFigures, scopeName, type CardFigure } from './progress.js';
@@ -110,7 +110,13 @@ function figureTexts(intl: IntlShape, progress: Progress, projectVersion: string
   scopeTexts(intl, progress, texts);
   texts.set('completion', completionText(intl, progress));
   const { phase, phaseCompletion } = progress.figures;
-  texts.set('phase', intl.formatMessage({ id: 'progress.phase.readOnly' }, phaseValues(phase.reason, projectVersion)));
+  const values = phaseValues(phase.reason, projectVersion);
+  texts.set(
+    'phase',
+    phaseWithoutVersion(phase.reason, projectVersion)
+      ? intl.formatMessage({ id: 'progress.phase.readOnlyNoVersion' }, { minVersion: values.minVersion })
+      : intl.formatMessage({ id: 'progress.phase.readOnly' }, values),
+  );
   texts.set(
     'phaseCompletion',
     intl.formatMessage(

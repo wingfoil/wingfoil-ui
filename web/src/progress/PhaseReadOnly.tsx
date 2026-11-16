@@ -57,12 +57,22 @@ export function phaseValues(
   };
 }
 
+/**
+ * Whether the phase text names no project version: `needs-version` before the project header is
+ * read — "Phase — needs WingFoil 0.3", never "(this project: )" (review round 2, R2-1).
+ */
+export function phaseWithoutVersion(reason: ApiCapabilityReason, projectVersion: string | null): boolean {
+  return reason.code === 'needs-version' && projectVersion === null;
+}
+
 /** The read-only text of a phase figure. */
 export function PhaseReadOnly({ figure, reason, projectVersion }: PhaseReadOnlyProps): ReactNode {
   const values = phaseValues(reason, projectVersion);
   return (
     <span className="progress-reason">
-      {figure === 'phase' ? (
+      {figure === 'phase' && phaseWithoutVersion(reason, projectVersion) ? (
+        <FormattedMessage id="progress.phase.readOnlyNoVersion" values={{ minVersion: values.minVersion }} />
+      ) : figure === 'phase' ? (
         <FormattedMessage id="progress.phase.readOnly" values={values} />
       ) : (
         <FormattedMessage id="progress.phaseCompletion.readOnly" values={values} />

@@ -203,6 +203,7 @@
   "progress.completion.noLinked": "No references linked in {scope}",
   "progress.completion.reference": "{id} {percent} %",
   "progress.phase.readOnly": "{code, select, needsVersion {Phase — needs WingFoil {minVersion} (this project: {version})} notInRelease {Phase — comes with a later WingFoil UI release} unsupportedVersion {Phase — supported {min} to {max}} other {Phase — in no released WingFoil yet}}",
+  "progress.phase.readOnlyNoVersion": "Phase — needs WingFoil {minVersion}",
   "progress.phaseCompletion.readOnly": "{code, select, needsVersion {Phase completion — needs WingFoil {minVersion}} notInRelease {Phase completion — comes with a later WingFoil UI release} unsupportedVersion {Phase completion — supported {min} to {max}} other {Phase completion — in no released WingFoil yet}}",
   "projects.add.added": "{name} added",
   "projects.add.addedUnavailable": "{name} was added but is unavailable — {reason, select, folderNotFound {folder not found} notWingfoil {no .wingfoil/ folder} cliNotFound {WingFoil CLI not found} other {reason unknown}}",
