@@ -453,20 +453,23 @@ export const SCREENS: readonly Screen[] = [
     open: (page, c) => openProgressScreen(page, c, PROGRESS_SCREEN_BODY),
   },
   {
-    // task-065 (D65-7): the completion's explanation open.
+    // task-065 (D65-7, D65-16): the completion's explanation open by keyboard focus (a key pressed
+    // first: React Aria opens a tooltip on a focus it sees as the keyboard's).
     name: 'today — completion explanation open',
     open: async (page, c) => {
       await openProgressScreen(page, c, PROGRESS_SCREEN_BODY);
-      await page.locator('.progress-completion-link').hover();
+      await page.keyboard.press('Shift');
+      await page.locator('.progress-completion-link').focus();
       await expect(page.getByRole('tooltip')).toBeVisible();
       await expectSettled(page);
     },
   },
   {
     // task-065 (D65-5, D65-6, D65-9): the ui.yaml warning, the completion's reason and the phase
-    // figures read-only on WingFoil 0.2.2.
+    // figures read-only on WingFoil 0.2.2 — the project header answered with 0.2.2 too, so the phase
+    // text names the version it shows (review round 1, F-7).
     name: 'today — progress read-only and ui.yaml ignored',
-    open: (page, c) => openProgressScreen(page, c, PROGRESS_READ_ONLY_BODY),
+    open: (page, c) => openProgressScreen(page, c, PROGRESS_READ_ONLY_BODY, '0.2.2'),
   },
 ];
 
@@ -520,9 +523,19 @@ const PROGRESS_READ_ONLY_BODY = {
   capped: [],
 };
 
-/** Today of the custom project with `/progress` answered by `body` (task-065, D65-16). */
-async function openProgressScreen(page: Page, c: RunningConsole, body: unknown): Promise<void> {
+/**
+ * Today of the custom project with `/progress` answered by `body` and, with `version`, the project
+ * header's WingFoil version answered as `version` (task-065, D65-16).
+ */
+async function openProgressScreen(page: Page, c: RunningConsole, body: unknown, version?: string): Promise<void> {
   const pid = c.pids[1]!;
+  if (version !== undefined) {
+    await page.route(`**/api/p/${pid}`, async (route) => {
+      const response = await route.fetch();
+      const header = (await response.json()) as { wingfoil: Record<string, unknown> };
+      await route.fulfill({ response, json: { ...header, wingfoil: { ...header.wingfoil, text: version, version } } });
+    });
+  }
   await page.route(`**/api/p/${pid}/progress`, async (route) => {
     const response = await route.fetch();
     await route.fulfill({ response, json: body });

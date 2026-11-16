@@ -92,6 +92,15 @@ function api(body: Progress | null = progress(), over: FakeApi = {}): FakeApi {
 const card = () => screen.getByRole('region', { name: 'Progress' });
 const figures = () => within(card()).getByRole('list', { name: 'Figures' });
 
+/**
+ * Hover `el` as a pointer user does: the pointer moves on the page first, so React Aria's
+ * interaction modality is `pointer` when the hover starts (its tooltip counts no other hover).
+ */
+async function hoverAsPointerUser(user: ReturnType<typeof userEvent.setup>, el: HTMLElement): Promise<void> {
+  await user.pointer({ target: document.body });
+  await user.hover(el);
+}
+
 /** Open Today and wait for the progress card's figures. */
 async function openCard(): Promise<ReturnType<typeof renderApp>> {
   const app = renderApp(`/p/${PID}/today`);
@@ -262,6 +271,81 @@ describe('AC-1 — the card on Today', () => {
     });
     await waitFor(() => expect(status.textContent).toBe('Progress updated: Pending gates 2'));
   });
+
+  it('announces a figure turned into its reason, a scope change, and a figure that left (review round 1, F-2)', async () => {
+    stubApi(api());
+    const { queryClient } = await openCard();
+    const status = screen.getByRole('status', { name: 'Progress updates' });
+    act(() => {
+      queryClient.setQueryData(
+        progressQuery(PID).queryKey,
+        progress({}, { completion: { state: 'unavailable', reason: { code: 'no-linked-elements' } } }),
+      );
+    });
+    await waitFor(() => expect(status.textContent).toBe('Progress updated: No references linked in minor-v0.1'));
+    act(() => {
+      queryClient.setQueryData(
+        progressQuery(PID).queryKey,
+        progress(
+          {
+            scope: {
+              type: 'kind-r',
+              current: {
+                id: 'minor-v0.2',
+                title: 'Minor v0.2',
+                type: 'kind-r',
+                status: 'in-development',
+                tone: 'active',
+              },
+              basis: 'derived',
+            },
+          },
+          { completion: { state: 'unavailable', reason: { code: 'no-linked-elements' } } },
+        ),
+      );
+    });
+    await waitFor(() =>
+      expect(status.textContent).toBe(
+        'Progress updated: minor-v0.2 Minor v0.2, in-development, No references linked in minor-v0.2',
+      ),
+    );
+    act(() => {
+      queryClient.setQueryData(
+        progressQuery(PID).queryKey,
+        progress(
+          {
+            scope: {
+              type: 'kind-r',
+              current: {
+                id: 'minor-v0.2',
+                title: 'Minor v0.2',
+                type: 'kind-r',
+                status: 'in-development',
+                tone: 'active',
+              },
+              basis: 'derived',
+            },
+          },
+          {
+            completion: { state: 'unavailable', reason: { code: 'no-linked-elements' } },
+            iterated: { state: 'unavailable', reason: { code: 'no-iterates-type' } },
+          },
+        ),
+      );
+    });
+    await waitFor(() => expect(status.textContent).toBe('Progress updated'));
+  });
+
+  it('shows its loading status until /progress answers (review round 1, F-5)', async () => {
+    const fetch = stubApi(api(null));
+    const answer = fetch.getMockImplementation() as (url: string) => Promise<Response>;
+    fetch.mockImplementation((url: string) =>
+      url === PROGRESS ? new Promise<Response>(() => undefined) : answer(url),
+    );
+    renderApp(`/p/${PID}/today`);
+    await waitFor(() => expect(within(card()).getByText('Reading the progress…').getAttribute('role')).toBe('status'));
+    expect(within(card()).queryByRole('list', { name: 'Figures' })).toBeNull();
+  });
 });
 
 describe('US-T-15 — the read-only phase figures', () => {
@@ -317,7 +401,7 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
     const user = userEvent.setup();
     await openCard();
     const link = within(figures()).getByRole('link', { name: 'Project completion 25 %' });
-    await user.hover(link);
+    await hoverAsPointerUser(user, link);
     expect((await screen.findByRole('tooltip')).textContent).toBe(
       'Mean of reference completion over 2 references with at least 1 linked element: US-M-01 50 %, US-S-01 0 %',
     );
@@ -329,7 +413,7 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
     stubApi(api());
     const user = userEvent.setup();
     await openCard();
-    await user.hover(within(figures()).getByRole('link', { name: 'Project completion 25 %' }));
+    await hoverAsPointerUser(user, within(figures()).getByRole('link', { name: 'Project completion 25 %' }));
     const tooltip = await screen.findByRole('tooltip');
     expect([...tooltip.querySelectorAll('.progress-reference')].map((el) => el.textContent)).toEqual([
       'US-M-01 50 %',
@@ -337,7 +421,64 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
     ]);
   });
 
-  it('says "and <n> more" past the listed references, one reference in the singular', async () => {
+  it('opens on hover only after React Aria’s delay — one source of hover (review round 1, F-1)', async () => {
+    stubApi(api());
+    const user = userEvent.setup();
+    await openCard();
+    await hoverAsPointerUser(user, within(figures()).getByRole('link', { name: 'Project completion 25 %' }));
+    // Not at once: the trigger's delay is React Aria's, no hand-wired hover opens it earlier.
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(await screen.findByRole('tooltip')).toBeTruthy();
+  });
+
+  it('does not reopen its tooltip when the figure comes back after an unavailable read (review round 1, F-1)', async () => {
+    stubApi(api());
+    const user = userEvent.setup();
+    const { queryClient } = await openCard();
+    await hoverAsPointerUser(user, within(figures()).getByRole('link', { name: 'Project completion 25 %' }));
+    await screen.findByRole('tooltip');
+    act(() => {
+      queryClient.setQueryData(
+        progressQuery(PID).queryKey,
+        progress({}, { completion: { state: 'unavailable', reason: { code: 'no-linked-elements' } } }),
+      );
+    });
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    act(() => {
+      queryClient.setQueryData(progressQuery(PID).queryKey, progress());
+    });
+    await within(figures()).findByRole('link', { name: 'Project completion 25 %' });
+    await new Promise((r) => setTimeout(r, 500));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('says "1 reference" in the singular (review round 1, F-5)', async () => {
+    stubApi(
+      api(
+        progress(
+          {},
+          {
+            completion: {
+              state: 'shown',
+              value: 0.5,
+              percent: 50,
+              references: [{ id: 'US-M-01', done: 1, total: 2, percent: 50 }],
+              referencesCount: 1,
+              ids: ['k-001-a'],
+            },
+          },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    await openCard();
+    await hoverAsPointerUser(user, within(figures()).getByRole('link', { name: 'Project completion 50 %' }));
+    expect((await screen.findByRole('tooltip')).textContent).toBe(
+      'Mean of reference completion over 1 reference with at least 1 linked element: US-M-01 50 %',
+    );
+  });
+
+  it('says "and <n> more" past the listed references', async () => {
     const references = Array.from({ length: 10 }, (_, i) => ({
       id: `US-${String(i + 1).padStart(2, '0')}`,
       done: 1,

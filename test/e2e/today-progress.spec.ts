@@ -98,6 +98,19 @@ test.describe('US-T-12 — the progress card', () => {
       await expect(figure(page, name)).toBeVisible();
     }
     expect(await scanThemes(page)).toEqual([]);
+    // D65-5, review round 1 F-5: at 400 px the card's own parts wrap inside it (bug-044's page-level
+    // scroll is not this task's).
+    await page.setViewportSize({ width: 400, height: 800 });
+    for (const part of ['.today-progress', '.today-progress-scope', '.today-progress-figures']) {
+      const fits = await card(page)
+        .locator('xpath=ancestor-or-self::section')
+        .first()
+        .evaluate((section, selector) => {
+          const el = section.matches(selector) ? section : section.querySelector(selector);
+          return el !== null && el.scrollWidth <= el.clientWidth;
+        }, part);
+      expect(fits, part).toBe(true);
+    }
   });
 
   test('T-12.4 — Move the scope to the most advanced release', async ({ page, fixtures, consoles }) => {
@@ -220,6 +233,9 @@ test.describe('US-T-14 — the completion explained', () => {
   test('T-14.1 — Explain the completion figure on hover', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await presetCopy(fixtures)] });
     await openToday(page, c);
+    // A pointer user: the pointer moves on the page before it rests on the figure (React Aria counts
+    // a hover only once the interaction modality is the pointer's, review round 1 F-1).
+    await page.mouse.move(1, 1);
     await figure(page, 'Project completion 25 %').hover();
     await expect(page.getByRole('tooltip')).toHaveText(EXPLANATION);
   });
@@ -254,7 +270,9 @@ test.describe('US-T-15 — the phase figures read-only', () => {
   test('T-15.2 — Show phase completion read-only too', async ({ page, fixtures, consoles }) => {
     const c = await consoles.start({ projects: [await on022(fixtures)] });
     await openToday(page, c);
-    await expect(figures(page).getByText(/^Phase completion — needs WingFoil 0\.3/)).toBeVisible();
+    const phaseCompletion = figures(page).getByText('Phase completion — needs WingFoil 0.3', { exact: true });
+    await expect(phaseCompletion).toBeVisible();
+    await expect(phaseCompletion.locator('xpath=ancestor-or-self::a')).toHaveCount(0);
   });
 
   test('T-15.2 — the not-in-release text on WingFoil 0.3.1', async ({ page, fixtures, consoles }) => {

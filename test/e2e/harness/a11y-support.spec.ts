@@ -13,6 +13,16 @@ import {
 
 const data = (...strings: string[]): DataRecorder => ({ strings: async () => new Set(strings), reset: () => {} });
 
+test('X-09.1 check: the list separator only inside the completion explanation’s list (task-065, review round 1 F-3)', async ({
+  page,
+}) => {
+  await page.setContent(`<!doctype html><html lang="en"><body>
+    <span class="progress-references"><span class="progress-reference">progress.completion.reference US-M-01 50</span>, <span class="progress-reference">progress.completion.reference US-S-01 0</span></span>
+    <p class="joined"><span>shell.nav.dna</span>, <span>shell.nav.team</span></p>
+  </body></html>`);
+  expect(await textsOutsideCatalogue(page, data('US-M-01', 'US-S-01'))).toEqual(['p.joined: ,']);
+});
+
 test('X-09.1 check: flags English texts, accepts keys, data and derived data', async ({ page }) => {
   await page.setContent(`<!doctype html><html lang="en"><head><title>title.projects</title></head><body>
     <h1>shell.nav.dna</h1>
