@@ -413,6 +413,18 @@ export const SCREENS: readonly Screen[] = [
     name: 'element document — source',
     open: (page, c) => openDocumentScreen(page, c, 'source'),
   },
+  {
+    // task-064 (D64-4): Configuration › Taxonomy of the kanban project, every value inferred.
+    name: 'configuration — taxonomy',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/configuration/taxonomy`, (p) => p.locator('table.config-types')),
+  },
+  {
+    // task-064 (D64-5): Configuration › Progress of the custom project, every value inferred.
+    name: 'configuration — progress',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[1]}/configuration/progress`, (p) => p.locator('table.config-progress')),
+  },
 ];
 
 /** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
