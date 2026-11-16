@@ -95,7 +95,8 @@ test('C-02.2 — Leave other staged changes out of the commit', async ({ page, f
   const files = await git(kanban.dir, ['diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD'], kanban.env);
   expect(files.stdout.trim().split('\n')).toEqual(['.wingfoil/ui.yaml']);
   const status = await git(kanban.dir, ['status', '--porcelain', '--', 'README.md'], kanban.env);
-  expect(status.stdout).toBe('M  README.md\n');
+  // Staged (added: the fixture has no README.md before) and not in the preset commit.
+  expect(status.stdout).toMatch(/^[AM] {2}README\.md\n$/);
 });
 
 test('C-02.3 — Offer no preset when ui.yaml exists', async ({ page, fixtures, consoles }) => {
@@ -121,7 +122,8 @@ test('C-02.4 — Block the preset while the copy is behind', async ({ page, fixt
   await expect(usePreset(page)).toHaveAccessibleDescription(
     'Blocked: your copy is 1 commit behind the remote — Update',
   );
-  await usePreset(page).click();
+  // `force`: Playwright waits for an `aria-disabled` control to be enabled; a press must open nothing.
+  await usePreset(page).click({ force: true });
   await expect(dialog(page)).toHaveCount(0);
 });
 
