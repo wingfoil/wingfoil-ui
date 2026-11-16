@@ -489,3 +489,76 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   and documented here at green. Today's private `Who` / `waitingWho` are left in place (task-081
   extracts them after this merge).
 
+
+### red / green / refactor (2026-11-16)
+
+- **Split** (`454fd3ac`): the task file after Q1 (b), the answers above.
+- **Red** (`158aa5f7`): `test/e2e/today-progress.spec.ts` (new, one test per scenario of the
+  closure table below), `test/web/today/progress-card.test.tsx` (16 tests through the application),
+  `test/web/today/progress-model.test.ts`, `test/web/progress/version.test.ts`, the
+  `kanbanCompletion` test in `test/server/http/progress-routes.test.ts`, three `SCREENS` entries,
+  the process audit of Today with the card, the TT-PERF-01 note; stubs in
+  `web/src/progress/version.ts`, `web/src/today/progress.ts` and `kanbanCompletion` kept the
+  typecheck green. `npx vitest run <file> --maxWorkers=2`: `version.test.ts` 2 failed, 5 passed
+  (the 5 versions shown as written already hold); `progress-model.test.ts` 4 failed;
+  `progress-card.test.tsx` 16 failed.
+- **T-12.3's "Pending gates 3" on the pre-packs variant** is asserted by task-059's API test
+  (`progress-routes.test.ts`, "pending gates 2 once bug-001 is triaged", 3 before): D65-14's red
+  pre-check is met by that test.
+- **Green** (`a91b0161`): D65-1 … D65-11 as designed, with the approver's answers. Deviations:
+  - The shared module (task-067 Q1 (a)): `web/src/progress/Completion.tsx`
+    (`ProgressCompletion`, `useCompletionExplanation`), `PhaseReadOnly.tsx`, `version.ts`
+    (`majorMinor`), `progress.css`; catalogue keys `progress.completion.*`, `progress.phase.*`,
+    `progress.phaseCompletion.*` — a new area `progress` in `web/scripts/catalogue.mjs` `AREAS`
+    (spec-008 §2: "later releases add areas the same way"). The card's own keys are
+    `today.progress.*`, the title's `title.projectCompletionView`.
+  - The figure messages carry `label` and `value` tags in one message ("<label>Pending
+    gates</label> <value>{count}</value>"), so the visible text and the link's name are one message
+    (spec-008 §3, no concatenation); the scope link likewise (`today.progress.scope.current`,
+    "<mono>{id}</mono> {title}"). The iterated figure's argument is `finished` (the lint
+    REQ-ARC-05 refuses the key `done`).
+  - The scope link opens the side panel but is not remembered as an opener (Today's opener
+    restore scans its rows `li[data-eid]`): when the panel closes the focus goes to the main
+    region, Today's existing fallback.
+  - Today's other unit tests answer `/progress` (`test/web/today/progress-data.ts`): an unanswered
+    read put the card's error alert on the page, which `today.test.tsx` "shows the header error …"
+    and three `summary.test.tsx` refusal tests count; `today.test.tsx` "… reads Today for that view
+    only" now lists `/progress` with Today's two reads (the card's read, D65-2) — no expectation of
+    those tests loosened.
+  - `page-title.test.tsx` is unchanged: the completion title is tested through the application in
+    `progress-card.test.tsx` (X-10.4 describe).
+  - `kanbanCompletion` lives in `test/harness/fixtures/progress.ts` and is checked through the
+    route in `progress-routes.test.ts` (completion 40 %, `US-01` 2/5), not in a harness test of its
+    own.
+  - The progress card is shown with its own read whatever the state of Today's (task-080 Q2 (a),
+    the coordinator's note of 2026-11-16): the slot `progress` sits after `.today-head`, outside
+    Today's loading and error branches. task-080 adds its own `activity` slot.
+  - `docs/03_backlog/04_backlog/*.json` are not regenerated: `check_backlog.py` already reports them
+    behind a fresh build on the phase branch (SARD edits not built since `2607b5dc`); a rebuild
+    would carry those unrelated changes. Left to release-planning's next build.
+- Local checks (load about 10): `npm run typecheck`, `npm run lint` (with the catalogue check),
+  `npm run format:check`, `npm run docs:api` clean; `npx vitest run --maxWorkers=2` on
+  `test/web/today/` (each file), `test/web/progress`, `test/web/i18n`, `test/web/shell/page-title`,
+  `notification-bell`, `add-project`, `project-switcher`, `test/web/element/{side-panel,panel}`,
+  `test/web/routes`, `test/web/repository/git-status`, `test/web/memory` green;
+  `progress-routes.test.ts -t kanbanCompletion` 1 passed; `process-audit.test.ts -t "progress card"`
+  1 passed (a characterization: the server already adds no CLI process for `/progress`, task-059
+  AC-5; it guards the page's cost); `check_tasks.py v0.3` OK. No local
+  Playwright or coverage (the stage's working rules): those run on `gates.yml`.
+
+#### The shared module for task-067 (`web/src/progress/`)
+
+- `<ProgressCompletion pid figure scopeName />` — `figure` the `completion` of `/progress` or
+  `/traceability` (`CompletionFigure`), `scopeName` the current element's short id or id (`null`
+  without one, for `no-linked-elements`). Shown: a link "Project completion 25 %" to
+  `/p/<pid>/memory?figure=completion`, a decorative bar, the explanation as a React Aria tooltip
+  (hover and keyboard focus, Escape, the link's description while open). Unavailable: its reason's
+  text, `no-reference-categories` with a link to Configuration › Taxonomy.
+- `useCompletionExplanation(figure)` — the explanation's text, `undefined` when not shown.
+- `<PhaseReadOnly figure="phase" | "phaseCompletion" reason projectVersion />` — the read-only
+  text of the reason (`needs-version`, `not-in-release`, `unsupported-version`, `not-released`),
+  `projectVersion` the header's (`versionOf(header.wingfoil)`).
+- `majorMinor(version)` — "0.3.0" → "0.3", anything else as written.
+- Classes: `progress-completion`, `progress-completion-link`, `progress-figure-link`,
+  `progress-figure-label`, `progress-figure-value`, `progress-bar`, `progress-tooltip`,
+  `progress-reason`.
