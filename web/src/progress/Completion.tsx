@@ -13,7 +13,7 @@
  * - `unavailable`: its reason's text in its place, not a link — `no-reference-categories` with a
  *   link to Configuration › Taxonomy (T-12.2), `no-linked-elements` naming the scope (T-12.6).
  *
- * API: `<ProgressCompletion pid figure scopeName />`; `useCompletionExplanation(figure)` for a view
+ * API: `<ProgressCompletion pid figure scopeName />`; `<CompletionExplanation figure />` for a view
  * that shows the explanation elsewhere. Classes: `progress-completion`, `progress-completion-link`,
  * `progress-bar`, `progress-tooltip`, `progress-reason`.
  */
@@ -34,25 +34,36 @@ export interface ProgressCompletionProps {
   scopeName: string | null;
 }
 
-/** The explanation of a shown completion (T-14.1), or `undefined` for an unavailable one. */
-export function useCompletionExplanation(figure: CompletionFigure): string | undefined {
+/**
+ * The explanation of a shown completion (T-14.1), nothing for an unavailable one. Each reference is
+ * a message element of its own and the list's separators are the catalogue locale's `Intl` list
+ * format, so no message is formatted into another as text (spec-008 §3; the X-09.1 key build).
+ */
+export function CompletionExplanation({ figure }: { figure: CompletionFigure }): ReactNode {
   const intl = useIntl();
-  if (figure.state !== 'shown') return undefined;
-  const list = intl.formatList(
-    figure.references.map((r) =>
-      intl.formatMessage({ id: 'progress.completion.reference' }, { id: r.id, percent: r.percent }),
-    ),
-    { type: 'unit', style: 'short' },
+  if (figure.state !== 'shown') return null;
+  const list = (
+    <span className="progress-references">
+      {intl.formatList(
+        figure.references.map((r) => (
+          <span key={r.id} className="progress-reference">
+            <FormattedMessage id="progress.completion.reference" values={{ id: r.id, percent: r.percent }} />
+          </span>
+        )),
+        { type: 'unit', style: 'short' },
+      )}
+    </span>
   );
   const more = figure.referencesCount - figure.references.length;
-  return more > 0
-    ? intl.formatMessage({ id: 'progress.completion.explanationMore' }, { count: figure.referencesCount, list, more })
-    : intl.formatMessage({ id: 'progress.completion.explanation' }, { count: figure.referencesCount, list });
+  return more > 0 ? (
+    <FormattedMessage id="progress.completion.explanationMore" values={{ count: figure.referencesCount, list, more }} />
+  ) : (
+    <FormattedMessage id="progress.completion.explanation" values={{ count: figure.referencesCount, list }} />
+  );
 }
 
 /** The completion figure: the link with its bar and explanation, or the reason in its place. */
 export function ProgressCompletion({ pid, figure, scopeName }: ProgressCompletionProps): ReactNode {
-  const explanation = useCompletionExplanation(figure);
   // React Aria's `Focusable` passes the trigger's focus handlers to the router link, not its hover
   // ones: the pointer opens the tooltip here, keyboard focus and Escape stay React Aria's.
   const [open, setOpen] = useState(false);
@@ -99,7 +110,7 @@ export function ProgressCompletion({ pid, figure, scopeName }: ProgressCompletio
           </Link>
         </Focusable>
         <Tooltip className="progress-tooltip" placement="bottom">
-          {explanation}
+          <CompletionExplanation figure={figure} />
         </Tooltip>
       </TooltipTrigger>
       <span className="progress-bar" aria-hidden="true">

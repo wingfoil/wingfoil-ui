@@ -366,6 +366,10 @@ async function intlRenderings(page: Page, data: Set<string>): Promise<Set<string
     const day = new Intl.DateTimeFormat('en', { dateStyle: 'medium' });
     const full = new Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'long' });
     for (const d of iso) out.push(day.format(new Date(d)), full.format(new Date(d)));
+    // task-065 D65-7: the separators of a list of message elements (the completion's references),
+    // the catalogue locale's `Intl` list format.
+    const list = new Intl.ListFormat('en', { type: 'unit', style: 'short' });
+    for (const part of list.formatToParts(['a', 'b', 'c'])) if (part.type === 'literal') out.push(part.value.trim());
     const rel = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
     for (const unit of ['second', 'minute', 'hour', 'day', 'week', 'month', 'year'] as const) {
       for (let v = -400; v <= 0; v++) out.push(rel.format(v, unit));

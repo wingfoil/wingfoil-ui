@@ -507,7 +507,7 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   pre-check is met by that test.
 - **Green** (`a91b0161`): D65-1 … D65-11 as designed, with the approver's answers. Deviations:
   - The shared module (task-067 Q1 (a)): `web/src/progress/Completion.tsx`
-    (`ProgressCompletion`, `useCompletionExplanation`), `PhaseReadOnly.tsx`, `version.ts`
+    (`ProgressCompletion`, `CompletionExplanation`), `PhaseReadOnly.tsx`, `version.ts`
     (`majorMinor`), `progress.css`; catalogue keys `progress.completion.*`, `progress.phase.*`,
     `progress.phaseCompletion.*` — a new area `progress` in `web/scripts/catalogue.mjs` `AREAS`
     (spec-008 §2: "later releases add areas the same way"). The card's own keys are
@@ -554,7 +554,8 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   `/p/<pid>/memory?figure=completion`, a decorative bar, the explanation as a React Aria tooltip
   (hover and keyboard focus, Escape, the link's description while open). Unavailable: its reason's
   text, `no-reference-categories` with a link to Configuration › Taxonomy.
-- `useCompletionExplanation(figure)` — the explanation's text, `undefined` when not shown.
+- `<CompletionExplanation figure />` — the explanation, nothing when not shown (each reference a
+  message element of its own, the separators the `Intl` list format).
 - `<PhaseReadOnly figure="phase" | "phaseCompletion" reason projectVersion />` — the read-only
   text of the reason (`needs-version`, `not-in-release`, `unsupported-version`, `not-released`),
   `projectVersion` the header's (`versionOf(header.wingfoil)`).
@@ -574,3 +575,15 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   React Aria's `Focusable` passes the trigger's focus handlers to the router link but not its hover
   ones, so `ProgressCompletion` opens the tooltip on `mouseenter` and closes it on `mouseleave`
   (`TooltipTrigger` controlled; keyboard focus and Escape still React Aria's).
+
+  | Run | Commit | Trigger | Result |
+  |-----|--------|---------|--------|
+  | `43856098419` | `e1521202` | push | cancelled by the dispatch below |
+  | `43856118608` | `e1521202` | dispatch, the same specs | failure, one cause: the hover opens the tooltip now (T-14.1 and the screen's axe scan green), but X-09.1 on the *today — completion explanation open* screen flags the tooltip's text in the key build — each reference was formatted into the explanation as text ("progress.completion.reference US-M-01 50," is no key text); on the three engines; every other job green |
+
+  The fix, test first: `progress-card.test.tsx` "renders each reference of the explanation as its
+  own message element" (red `test(task-065): red — each reference …`); the explanation is the
+  component `CompletionExplanation` (was the string hook `useCompletionExplanation`): each
+  reference a `FormattedMessage` in its own `.progress-reference` element, the list's separators
+  the `en` `Intl` list format, which the X-09.1 checker now accepts among its `Intl` renderings
+  (`test/e2e/support/strings.ts`, as the dates and ages).
