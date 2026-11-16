@@ -62,3 +62,27 @@ vitest run <file> --maxWorkers=2` in the worktree; the heavy gates on `.github/w
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### Design (2026-11-16)
+
+- **Where the copy happens.** `importGovernance` (`test/harness/fixtures/builder.ts`) is the only
+  place that copies this repository's `.wingfoil/` into a fixture: `grep -rn "'.wingfoil'" test/`
+  finds no other `REPO_ROOT` copy (`test/server/http/projects.test.ts` copies a fixture's
+  `.wingfoil/`, not this repository's). The e2e fixtures use the same builder
+  (`test/e2e/support/fixtures.ts` imports `buildFixture`/`copyFixture` from
+  `test/harness/fixtures/index.js`), so one fix covers Vitest and Playwright.
+- **The change.** `importGovernance` copies the source `.wingfoil/` with a `cp` filter that skips
+  `ui.yaml` at the copy root only (`<source>/ui.yaml`); nested files of the same name and the
+  frozen pre-packs governance (`custom-governance-0.2/.wingfoil/`, no `ui.yaml`) are copied as
+  before. The filter is a small exported helper (`copyGovernance(source, target)`) so the
+  root-only rule has its own test on a temporary tree.
+- **Tests (AC-1).** In `test/harness/fixtures.test.ts`, a `custom fixture governance (task-082
+  AC-1)` block: the built custom fixture has no `.wingfoil/ui.yaml` and no tracked
+  `.wingfoil/ui.yaml` while `REPO_ROOT/.wingfoil/ui.yaml` exists (the precondition asserted, so the
+  test cannot pass vacuously); red before the fix. With the fix, a test of `copyGovernance` on a
+  temporary tree: root `ui.yaml` skipped, a nested `ui.yaml` and the other files copied.
+- **AC-2.** The failed suites run one file at a time with `npx vitest run <file> --maxWorkers=2`;
+  the heavy ones on `gates.yml` (`scope=task`).
+- **Docs (AC-3).** `test/README.md` *Fixtures* (the `custom` fixture's governance: this
+  repository's `.wingfoil/` without `ui.yaml`) and `docs/02_requirements/02_bdd/00_conventions.md`
+  (the `@fx-custom` row); Version/Date bumped; no `CHANGELOG.md` entry.
