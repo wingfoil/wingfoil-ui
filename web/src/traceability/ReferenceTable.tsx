@@ -12,7 +12,7 @@
  */
 import { Link } from '@tanstack/react-router';
 import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/contracts';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link as AriaLink, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Bar } from './Figures.js';
@@ -24,16 +24,32 @@ function StatePill({ element }: { element: TraceabilityElement }): ReactNode {
   return <span className={tone === undefined ? 'state-pill' : `state-pill tone-${tone}`}>{element.status}</span>;
 }
 
+/** The delay before a chip's tooltip opens, as the other tooltips of the console (`GitStatus`). */
+const HOVER_DELAY_MS = 300;
+
 /** One chip: a link to the element page with its tooltip. */
 function Chip({ pid, id, element }: { pid: string; id: string; element: TraceabilityElement | undefined }): ReactNode {
   const intl = useIntl();
   const short = element?.shortId ?? id;
   const tone = element?.descriptor?.tone;
+  // React Aria opens the tooltip on keyboard focus and closes it on blur and Escape; the trigger
+  // being a link, hover is not wired by the trigger itself, so the link's own hover opens it after
+  // the same delay (a controlled tooltip).
+  const [open, setOpen] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
   return (
-    <TooltipTrigger delay={300} closeDelay={0}>
-      {/* A React Aria link (navigating through the router, app.tsx), so the tooltip opens on hover
-          as on focus. */}
+    <TooltipTrigger delay={HOVER_DELAY_MS} closeDelay={0} isOpen={open} onOpenChange={setOpen}>
+      {/* A React Aria link: it navigates through the router (app.tsx `AriaRouterProvider`). */}
       <AriaLink
+        onHoverStart={() => {
+          window.clearTimeout(timer.current);
+          timer.current = window.setTimeout(() => setOpen(true), HOVER_DELAY_MS);
+        }}
+        onHoverEnd={() => {
+          window.clearTimeout(timer.current);
+          setOpen(false);
+        }}
         className={tone === undefined ? 'trace-chip' : `trace-chip tone-${tone}`}
         href={`/p/${encodeURIComponent(pid)}/e/${encodeURIComponent(id)}`}
         aria-label={intl.formatMessage(

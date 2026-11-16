@@ -490,6 +490,7 @@
   "today.waiting.roleNoMember": "Reserved to {role}",
   "today.waiting.title": "Waiting on others",
   "traceability.category.all": "All",
+  "traceability.category.allWithCount": "All, {count, plural, one {# reference} other {# references}}",
   "traceability.category.label": "Category",
   "traceability.chip.name": "{id} — {title} — {state}",
   "traceability.clear": "Clear filters",
@@ -529,6 +530,7 @@
   "traceability.search.label": "Search references",
   "traceability.status.label": "Status",
   "traceability.status.option": "{status, select, completed {Completed} partial {In progress} notStarted {Not started} noElements {No elements} all {All} other {All}}",
+  "traceability.status.withCount": "{status, select, completed {Completed} partial {In progress} notStarted {Not started} noElements {No elements} all {All} other {All}}, {count, plural, one {# reference} other {# references}}",
   "traceability.table.label": "References",
   "traceability.title": "Traceability",
   "traceability.updates.label": "Traceability updates"

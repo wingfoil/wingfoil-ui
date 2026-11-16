@@ -148,6 +148,8 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
     const offerPreset = data.ui.source === 'none' && header?.identity.kind === 'member';
     const count = (name: string, n: number): string =>
       intl.formatMessage({ id: 'traceability.filter.withCount' }, { name, count: n });
+    const statusLabel = (s: StatusFilter | 'all', n: number): string =>
+      intl.formatMessage({ id: 'traceability.status.withCount' }, { status: STATUS_SELECT[s], count: n });
     const statusName = (s: StatusFilter | 'all'): string =>
       intl.formatMessage({ id: 'traceability.status.option' }, { status: STATUS_SELECT[s] });
     body = (
@@ -244,7 +246,10 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
               <Group label={<FormattedMessage id="traceability.category.label" />}>
                 <Toggle
                   pressed={applied.category === undefined}
-                  label={count(intl.formatMessage({ id: 'traceability.category.all' }), data.references.length)}
+                  label={intl.formatMessage(
+                    { id: 'traceability.category.allWithCount' },
+                    { count: data.references.length },
+                  )}
                   onPress={() => go(withFilter({ category: undefined }))}
                 >
                   <FormattedMessage id="traceability.category.all" />
@@ -265,7 +270,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
               <Group label={<FormattedMessage id="traceability.status.label" />}>
                 <Toggle
                   pressed={applied.status === undefined}
-                  label={count(statusName('all'), inCategory.length)}
+                  label={statusLabel('all', inCategory.length)}
                   onPress={() => go(withFilter({ status: undefined }))}
                 >
                   {statusName('all')}
@@ -275,7 +280,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
                   <Toggle
                     key={s.value}
                     pressed={applied.status === s.value}
-                    label={count(statusName(s.value), s.count)}
+                    label={statusLabel(s.value, s.count)}
                     onPress={() => go(withFilter({ status: s.value }))}
                   >
                     {statusName(s.value)}

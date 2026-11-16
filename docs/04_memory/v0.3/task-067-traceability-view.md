@@ -467,3 +467,13 @@ their first run is the push run of `gates.yml`.
     messages now name them (`no {…}`, `all {All}`).
   - `npx vitest run test/web/traceability test/web/i18n/catalogue.test.ts --maxWorkers=2`: 3 files,
     38 passed.
+- Push run `43854502371` on the fix: the same two jobs red, two more findings:
+  - the hover tooltip still did not open: React Aria's tooltip trigger wires hover only into its
+    own `Button`; on a link it gives focus and Escape only. The chip's tooltip is now controlled
+    (`isOpen`/`onOpenChange`): React Aria opens it on keyboard focus and closes it on blur and
+    Escape, the link's own `onHoverStart`/`onHoverEnd` open it after 300 ms and close it.
+  - X-09.1 on "traceability — with the preset": the status buttons' names nested one formatted
+    message in another (`withCount` around `status.option`), which the key build renders as a key
+    inside an argument. Two messages of their own now: `traceability.status.withCount`,
+    `traceability.category.allWithCount`.
+  - `npx vitest run test/web/traceability test/web/i18n --maxWorkers=2`: 5 files, 41 passed.
