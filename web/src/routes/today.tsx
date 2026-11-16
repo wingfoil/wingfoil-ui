@@ -6,7 +6,8 @@
  * Reads: the project header (shared with the layout) for the role view, then `GET /today` for that
  * view (`todayQuery`, the key shared with the notification bell, D31-6). Both keys sit under
  * `['p', pid]`: the `repo` event refreshes Today (T-03.2, T-04.2); a role view change re-reads the
- * header, whose new `roleView` is a new Today key (T-02.3).
+ * header, whose new `roleView` is a new Today key (T-02.3). The last card, Recent activity, reads the
+ * last 5 Memory events itself (task-080, D80-3).
  *
  * v0.3 (task-065, D65-2, D65-11): `GET /progress` (`progressQuery`, the key the Memory list's figure
  * filter shares) for the progress card, read with Today's own; while its completion is shown, the
@@ -21,6 +22,7 @@ import { versionOf } from '../project/model.js';
 import { useProjectTitle } from '../shell/page-title.js';
 import { completionPercent } from '../today/progress.js';
 import { ProgressCard } from '../today/ProgressCard.js';
+import { RecentActivity } from '../today/RecentActivity.js';
 import { TodayView } from '../today/TodayView.js';
 import { NAV_ORDER } from './nav.js';
 import { projectRoute } from './project.js';
@@ -44,6 +46,7 @@ function TodayPage(): ReactNode {
       header={header}
       today={today}
       progress={<ProgressCard pid={pid} progress={progress} projectVersion={projectVersion} />}
+      activity={<RecentActivity pid={pid} />}
     />
   );
 }

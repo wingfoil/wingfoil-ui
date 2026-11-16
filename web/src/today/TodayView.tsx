@@ -58,6 +58,8 @@ export interface TodayViewProps {
   today: Read<Today> & Pick<UseQueryResult<Today>, 'isFetching'>;
   /** The progress card (task-065), after the greeting whatever the state of Today's read. */
   progress?: ReactNode;
+  /** The last card, Recent activity (task-080, D80-3): its own read, shown whatever Today's (Q2 (a)). */
+  activity?: ReactNode;
 }
 
 /** A failed read as an API error (a non-API failure renders as `internal`). */
@@ -236,7 +238,7 @@ function IdentitySentence({ header }: { header: ProjectHeader }): ReactNode {
 }
 
 /** Today of project `pid`. */
-export function TodayView({ pid, header, today, progress }: TodayViewProps): ReactNode {
+export function TodayView({ pid, header, today, progress, activity }: TodayViewProps): ReactNode {
   const intl = useIntl();
   const requiresId = useId();
   const waitingId = useId();
@@ -419,6 +421,7 @@ export function TodayView({ pid, header, today, progress }: TodayViewProps): Rea
           )}
         </>
       )}
+      {activity}
     </div>
   );
 }

@@ -446,6 +446,47 @@ export const SCREENS: readonly Screen[] = [
       project(page, c, `/p/${c.pids[0]}/memory?figure=pending-gates`, (p) => p.locator('.memory-active')),
   },
   {
+    // task-079 (D79-5, D79-11): the *Use a preset* dialog on the kanban project, a preset chosen, nothing
+    // confirmed (no commit on this shared console).
+    name: 'configuration — use preset dialog',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open'),
+      );
+      await page.locator('.preset-section .preset-open').click();
+      await page.locator('.preset-dialog label.preset-choice').first().click();
+      await expect(page.locator('.preset-dialog .preset-effect')).toBeVisible();
+    },
+  },
+  {
+    // task-079 (D79-2): *Use preset* disabled on the copy one commit behind, its reason with *Update*.
+    name: 'configuration — use preset blocked',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[4]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open[aria-disabled="true"]'),
+      ),
+  },
+  {
+    // task-080 (D80-11): Today as Morgan with its last card, Recent activity, read and in view.
+    name: 'today — recent activity',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-activity-row'));
+      await page.locator('.today-activity').scrollIntoViewIfNeeded();
+    },
+  },
+  {
+    // task-080 (D80-2, D80-11): the events read refused (500 through `page.route`): the card's alert,
+    // the rest of Today shown.
+    name: 'today — recent activity, read failed',
+    open: async (page, c) => {
+      await page.route(`**/api/p/${c.pids[0]}/events/memory?limit=5`, (route) =>
+        route.fulfill({ status: 500, json: { error: { code: 'internal', message: 'The events could not be read' } } }),
+      );
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-activity [role="alert"]'));
+      await page.locator('.today-activity').scrollIntoViewIfNeeded();
+    },
+  },
+  {
     // task-065 (D65-4 … D65-8, D65-16): Today's progress card on the custom project with every figure
     // shown and both notes — `/progress` answered through `page.route` (the screens console has no
     // preset and is not changed, RP-43).

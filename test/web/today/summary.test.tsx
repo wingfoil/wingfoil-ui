@@ -71,6 +71,8 @@ function api(over: FakeApi = {}): FakeApi {
     [`${TODAY}?view=approver`]: { status: 200, body: today('approver') },
     // task-065: Today's progress card reads /progress.
     ...progressAnswer(PID),
+    // task-080: Recent activity's own read (an unstubbed read is the card's error).
+    [`/api/p/${PID}/events/memory?limit=5`]: { status: 200, body: { events: [], more: false } },
     ...over,
   };
 }

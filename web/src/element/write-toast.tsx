@@ -12,6 +12,7 @@
  * Keyed by the element, so a new result replaces the previous one (D38-2).
  */
 import type { WriteResponse } from '@wingfoil-ui/contracts';
+import type { ReactNode } from 'react';
 import { FormattedMessage } from 'react-intl';
 import type { ApiError } from '../api/client.js';
 import type { ElementWriteVariables } from '../api/writes.js';
@@ -26,6 +27,50 @@ export function writeToastKey(v: Pick<ElementWriteVariables, 'pid' | 'eid'>): st
   return `write:${v.pid}:${v.eid}`;
 }
 
+/**
+ * The body of a write's result (D38-3, D38-4): one line per commit — the short hash and the subject —,
+ * "pushed", or the sticky "Not pushed — the commit stays local" and its reason. Shared by the
+ * element writes' toast and the preset write's (task-079, D79-6).
+ */
+export function WriteResultBody({ data }: { data: WriteResponse }): ReactNode {
+  const failed = data.push.status === 'failed';
+  return (
+    <>
+      {data.commits.length > 0 && (
+        <ul className="toast-commits">
+          {data.commits.map((c) => (
+            <li key={c.sha}>
+              <FormattedMessage
+                id="element.write.commit"
+                values={{ sha: <code>{c.sha.slice(0, SHORT_SHA)}</code>, subject: c.subject }}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      {data.push.status === 'pushed' && (
+        <p className="toast-pushed">
+          <FormattedMessage id="element.write.pushed" />
+        </p>
+      )}
+      {failed && (
+        <>
+          <p className="toast-attention">
+            <FormattedMessage id="element.write.notPushed" />
+          </p>
+          <ErrorText
+            error={
+              data.push.code === undefined && data.push.message !== undefined
+                ? { code: 'git-refused', message: data.push.message, detail: undefined }
+                : { code: data.push.code ?? 'internal', message: '', detail: undefined }
+            }
+          />
+        </>
+      )}
+    </>
+  );
+}
+
 /** The toast of a successful write. */
 export function writeSuccessToast(v: ElementWriteVariables, data: WriteResponse): ToastInput {
   const failed = data.push.status === 'failed';
@@ -34,41 +79,7 @@ export function writeSuccessToast(v: ElementWriteVariables, data: WriteResponse)
     tone: 'success',
     ...(failed ? { sticky: true } : {}),
     title: <FormattedMessage id="element.write.done" values={{ verb: v.verb, id: v.eid }} />,
-    body: (
-      <>
-        {data.commits.length > 0 && (
-          <ul className="toast-commits">
-            {data.commits.map((c) => (
-              <li key={c.sha}>
-                <FormattedMessage
-                  id="element.write.commit"
-                  values={{ sha: <code>{c.sha.slice(0, SHORT_SHA)}</code>, subject: c.subject }}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-        {data.push.status === 'pushed' && (
-          <p className="toast-pushed">
-            <FormattedMessage id="element.write.pushed" />
-          </p>
-        )}
-        {failed && (
-          <>
-            <p className="toast-attention">
-              <FormattedMessage id="element.write.notPushed" />
-            </p>
-            <ErrorText
-              error={
-                data.push.code === undefined && data.push.message !== undefined
-                  ? { code: 'git-refused', message: data.push.message, detail: undefined }
-                  : { code: data.push.code ?? 'internal', message: '', detail: undefined }
-              }
-            />
-          </>
-        )}
-      </>
-    ),
+    body: <WriteResultBody data={data} />,
   };
 }
 
