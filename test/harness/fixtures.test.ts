@@ -217,8 +217,13 @@ describe('custom fixture history', () => {
 describe('custom fixture governance (task-082 AC-1)', () => {
   it("AC-1 imports this repository's .wingfoil/ without its ui.yaml", async () => {
     // The precondition: this repository holds a ui.yaml (the approver's preset commit 8451080a), so
-    // the assertion below cannot pass for want of a source file.
-    expect(existsSync(path.join(REPO_ROOT, '.wingfoil', 'ui.yaml'))).toBe(true);
+    // the assertion below cannot pass for want of a source file. It ties this test to that commit: a
+    // failure here means this repository no longer has a ui.yaml and the precondition must be
+    // updated, not the fix; the next test, on a temporary tree, stays the permanent guard.
+    expect(
+      existsSync(path.join(REPO_ROOT, '.wingfoil', 'ui.yaml')),
+      "precondition: this repository's .wingfoil/ui.yaml is gone - update this test (the next one guards copyGovernance)",
+    ).toBe(true);
     const f = built.get('custom')!;
     expect(existsSync(path.join(f.dir, '.wingfoil', 'ui.yaml'))).toBe(false);
     expect((await git(f.dir, ['ls-files', '--', '.wingfoil/ui.yaml'], f.env)).stdout).toBe('');

@@ -198,7 +198,7 @@ export async function usePresetUiConfig(
  * one. Nested files of the same name are copied.
  */
 export async function copyGovernance(source: string, target: string): Promise<void> {
-  const rootUiYaml = path.join(source, 'ui.yaml');
+  const rootUiYaml = path.resolve(source, 'ui.yaml');
   await cp(source, target, { recursive: true, filter: (from) => path.resolve(from) !== rootUiYaml });
 }
 

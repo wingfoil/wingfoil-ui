@@ -111,8 +111,22 @@ vitest run <file> --maxWorkers=2` in the worktree; the heavy gates on `.github/w
 - `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`: 4 failures, all on this task's planning
   fields, not on this change — `module: "server"` where a governance task needs `module` governance
   with `ref: GOV`, and the *Backlog items* line `GOV (governance — a harness fix, bug-049)` split at
-  its comma (`GOV (governance — a harness fix`, `bug-049)` not found). Left to the coordinator.
+  its comma (`GOV (governance — a harness fix`, `bug-049)` not found). Left to the coordinator:
+  `902c465f` set `module: "governance"` and the *Backlog items* line without a comma; `check_tasks.py
+  v0.3` now prints OK (review round 1, item 1).
 - Heavy gates: run `43900914602` (`gates.yml`, `task` scope, started by the push of ``100c1a0e``;
   no `workflow_dispatch`, which would have cancelled it as the same ref) — `success`: checks,
   coverage, contract, smoke, publish-smoke, e2e-chromium (1) and (2), own-specs (firefox) and
-  (webkit) success; e2e-wave skipped (wave scope only).
+  (webkit) success; e2e-wave skipped (wave scope only). The suites of `43876696740` not run
+  locally are evidenced by its coverage job (`test:coverage`, `gh run view 43900914602 --log`):
+  `test/server/http/traceability-routes.test.ts` 25 tests, `test/server/http/held-gates-routes.test.ts`
+  4 tests, `test/contracts/held-gates-contract.test.ts` 1 test, all passed (review round 1, item 4).
+
+### Review round 1 (2026-11-16)
+
+PASS with fixes, all four applied (`npx vitest run test/harness/fixtures.test.ts --maxWorkers=2` 33 passed; typecheck, lint, format:check clean; `test/docs/public-text.test.ts` 67 passed): the `check_tasks.py` bullet completed (item 1); the precondition
+of the AC-1 fixture test keeps its check, with a comment and an assertion message saying a failure
+there means this repository's `ui.yaml` is gone and the test must be updated, while the
+temporary-tree test stays the permanent guard (item 2); `copyGovernance` compares against
+`path.resolve(source, 'ui.yaml')`, so a relative source works (item 3); the coverage-job evidence
+above (item 4).
