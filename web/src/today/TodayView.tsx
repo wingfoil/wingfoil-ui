@@ -23,6 +23,10 @@
  * v0.3 (task-077, spec-011 §2): the side panel opens over Today (`?panel=<id>`, `panelLinkOptions`),
  * so Today stays mounted — its filters and expansion too (task-061 Q3); when the panel closes, the
  * opener takes the focus back once Today is read again (`onPanelClosed`, D77-7).
+ *
+ * v0.3 (task-065, D65-3, Q3 (b)): the progress card is a slot (`progress`, placed by
+ * `routes/today.tsx`) right after the greeting, before *Your roles* — shown with its own read,
+ * whatever the state of Today's (task-080 Q2 (a)).
  */
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
@@ -52,6 +56,8 @@ export interface TodayViewProps {
   header: Read<ProjectHeader> & Pick<UseQueryResult<ProjectHeader>, 'dataUpdatedAt'>;
   /** `GET /today` for the header's role view; not started until the header is read. */
   today: Read<Today> & Pick<UseQueryResult<Today>, 'isFetching'>;
+  /** The progress card (task-065), after the greeting whatever the state of Today's read. */
+  progress?: ReactNode;
   /** The last card, Recent activity (task-080, D80-3): its own read, shown whatever Today's (Q2 (a)). */
   activity?: ReactNode;
 }
@@ -232,7 +238,7 @@ function IdentitySentence({ header }: { header: ProjectHeader }): ReactNode {
 }
 
 /** Today of project `pid`. */
-export function TodayView({ pid, header, today, activity }: TodayViewProps): ReactNode {
+export function TodayView({ pid, header, today, progress, activity }: TodayViewProps): ReactNode {
   const intl = useIntl();
   const requiresId = useId();
   const waitingId = useId();
@@ -358,6 +364,7 @@ export function TodayView({ pid, header, today, activity }: TodayViewProps): Rea
           </p>
         )}
       </div>
+      {progress}
       <div className="visually-hidden" role="status" aria-label={intl.formatMessage({ id: 'today.updates.label' })}>
         {announcement && (
           <span key={announcement.n}>

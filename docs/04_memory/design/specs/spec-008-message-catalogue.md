@@ -206,3 +206,14 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   `error.writeIncomplete` names a commit WingFoil made. The texts of §4's `ui-config-exists` and
   `ui-config-invalid` are `error.uiConfigExists` and `error.uiConfigInvalid` ("ui.yaml not written:
   {failure}"). No rule changes.
+- 2026-11-16 — clarified in task-065 (design D65-6; review round 1 F-4, the coordinator's OK). The
+  read-only phase figures of the progress card (and of Traceability, task-067) render the capability
+  reason of `workflow-position` with one ICU `select` per figure — `progress.phase.readOnly`,
+  `progress.phaseCompletion.readOnly`, the reason code as the select value (`needsVersion`,
+  `notInRelease`, `unsupportedVersion`, `notReleased`), its parameters as the arguments — instead of
+  §4's `<area>.reason.<code>` keys: the figure's name and the reason are one sentence ("Phase — needs
+  WingFoil 0.3 (this project: 0.2.2)"), so two keys per code would be needed anyway. Risk accepted: a
+  code added to spec-001 §6 later falls into the `other` branch ("… — in no released WingFoil yet")
+  until the select gains it; the web's code table (`web/src/progress/PhaseReadOnly.tsx`) is typed on
+  the contract's codes, so the typecheck names the place to change. The area `progress` holds the
+  figures shared by Today and Traceability (§2, "later releases add areas the same way").

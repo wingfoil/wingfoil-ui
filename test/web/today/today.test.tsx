@@ -14,6 +14,7 @@ import { queryKeys } from '../../../web/src/api/query-keys.js';
 import { resetSession } from '../../../web/src/session/session.js';
 import { header, riley } from '../project/header-data.js';
 import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js';
+import { progressAnswer } from './progress-data.js';
 
 const PID = 'p_a';
 const HEADER = `/api/p/${PID}`;
@@ -87,6 +88,8 @@ function api(over: FakeApi = {}): FakeApi {
     },
     [HEADER]: { status: 200, body: morgan() },
     [`${TODAY}?view=approver`]: { status: 200, body: MORGAN_TODAY },
+    // task-065: Today's progress card reads /progress.
+    ...progressAnswer(PID),
     // task-080: an unstubbed read would be the card's error (an alert of its own).
     [EVENTS]: { status: 200, body: { events: [], more: false } },
     ...over,
@@ -136,8 +139,9 @@ it('greets with the count and the role view, and reads Today for that view only 
   const { queryClient } = renderApp(`/p/${PID}/today`);
   await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
   expect(screen.getByText('Role view: approver')).toBeTruthy();
-  // Plus Recent activity's last 5 events, a read of its own (task-080).
-  expect(new Set(paths(fetch))).toEqual(new Set([HEADER, `${TODAY}?view=approver`, EVENTS]));
+  // task-065: with the progress card's read (`progressQuery`, D65-2); plus Recent activity's last 5
+  // events, a read of its own (task-080).
+  expect(new Set(paths(fetch))).toEqual(new Set([HEADER, `${TODAY}?view=approver`, `/api/p/${PID}/progress`, EVENTS]));
   // One cache entry per role view, shared with the bell (D31-6).
   expect(todayQuery(PID, 'approver').queryKey).toEqual(queryKeys.project(PID, 'today', { view: 'approver' }));
   expect(queryClient.getQueryData(todayQuery(PID, 'approver').queryKey)).toEqual(MORGAN_TODAY);

@@ -16,6 +16,7 @@ export const TITLES = defineMessages({
   projects: { id: 'title.projects' },
   projectElement: { id: 'title.projectElement' },
   projectView: { id: 'title.projectView' },
+  projectCompletionView: { id: 'title.projectCompletionView' },
   notFound: { id: 'title.notFound' },
   sessionLost: { id: 'title.sessionLost' },
 });
@@ -39,7 +40,15 @@ export function useProjectName(pid: string): string {
   return useQuery(projectsQuery()).data?.projects.find((p) => p.id === pid)?.name ?? pid;
 }
 
-/** Title a page of project `pid` "{project} · {view} — WingFoil UI" (`title.projectView`). */
-export function useProjectTitle(pid: string, view: string): void {
-  usePageTitle(TITLES.projectView, { project: useProjectName(pid), view });
+/**
+ * Title a page of project `pid` "{project} · {view} — WingFoil UI" (`title.projectView`); with the
+ * project completion of the progress card, "{project} · {completion} % · {view} — WingFoil UI"
+ * (`title.projectCompletionView`, X-10.4; only Today passes it, task-065 Q4 (a)).
+ */
+export function useProjectTitle(pid: string, view: string, completion?: number): void {
+  const project = useProjectName(pid);
+  usePageTitle(
+    completion === undefined ? TITLES.projectView : TITLES.projectCompletionView,
+    completion === undefined ? { project, view } : { project, view, completion: String(completion) },
+  );
 }

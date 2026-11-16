@@ -215,6 +215,9 @@ test.describe(`TT-PERF-04 — other views ${PERF_TAG}`, () => {
 // start page `/` (no project, no bell), opens the project switcher and presses Enter on the project's
 // row: the project opens on Today (T-01.1) and its read is sent after the key press. The measured path
 // includes opening the project (the header read): not directly comparable with task-036's numbers.
+// task-065 (AC-3, D65-15): Today also reads `/progress` for its progress card; a run ends only once
+// no loading status is left (`timeNavigation`'s rule), so the card's own "Reading the progress…"
+// keeps the timing running until its figures (or its error) are shown: the card is measured too.
 const TODAY: View = {
   scenario: 'T-01.1, T-02.1',
   name: 'Today',

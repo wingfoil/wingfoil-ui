@@ -13,6 +13,16 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   last 5 Memory events, newest first — the element's id as a link to its side panel, the transition
   or *created*, who did it and how long ago — refreshed by itself on every change of the
   repository; commits that are not Memory events are not listed. No link to a Timeline yet (v0.4).
+- **The progress card on Today** (task-065, US-T-12 … US-T-15, US-X-10 X-10.4, US-C-04 C-04.1;
+  spec-012 §3): after the greeting, the current scope (the most advanced element of the
+  `progress.scope` type, *No current <type>* or *Whole project*) with its state, then the project
+  completion with its bar and its explanation on hover and keyboard focus, the phase figures
+  read-only with their reason, *Iterated: <type> x/y*, *Open: <type> n* and *Pending gates n* — each
+  shown figure a link to the Memory list filtered on its elements. A completion that cannot be
+  computed says why (*Completion needs references — see Configuration › Taxonomy*, *No references
+  linked in <scope>*); an ignored `ui.yaml` is named above the card. The figures follow the
+  repository by themselves, a change announced to screen readers, and the tab title of Today carries
+  the project completion (*kanban · 40 % · Today — WingFoil UI*).
 - **Configuration › Taxonomy and › Progress** (task-064, US-C-01, US-C-04 C-04.2; spec-005 §1–§4,
   spec-012 §2): two tabs after *UI settings* show how the console reads the project's
   `.wingfoil/ui.yaml`, each value marked *declared*, *inferred* or *derived* as the server serves

@@ -486,7 +486,103 @@ export const SCREENS: readonly Screen[] = [
       await page.locator('.today-activity').scrollIntoViewIfNeeded();
     },
   },
+  {
+    // task-065 (D65-4 … D65-8, D65-16): Today's progress card on the custom project with every figure
+    // shown and both notes — `/progress` answered through `page.route` (the screens console has no
+    // preset and is not changed, RP-43).
+    name: 'today — progress card',
+    open: (page, c) => openProgressScreen(page, c, PROGRESS_SCREEN_BODY),
+  },
+  {
+    // task-065 (D65-7, D65-16): the completion's explanation open by keyboard focus (a key pressed
+    // first: React Aria opens a tooltip on a focus it sees as the keyboard's).
+    name: 'today — completion explanation open',
+    open: async (page, c) => {
+      await openProgressScreen(page, c, PROGRESS_SCREEN_BODY);
+      await page.keyboard.press('Shift');
+      await page.locator('.progress-completion-link').focus();
+      await expect(page.getByRole('tooltip')).toBeVisible();
+      await expectSettled(page);
+    },
+  },
+  {
+    // task-065 (D65-5, D65-6, D65-9): the ui.yaml warning, the completion's reason and the phase
+    // figures read-only on WingFoil 0.2.2 — the project header answered with 0.2.2 too, so the phase
+    // text names the version it shows (review round 1, F-7).
+    name: 'today — progress read-only and ui.yaml ignored',
+    open: (page, c) => openProgressScreen(page, c, PROGRESS_READ_ONLY_BODY, '0.2.2'),
+  },
 ];
+
+/** The `/progress` answer of the progress card screens (task-065, D65-16): every figure shown. */
+const PROGRESS_SCREEN_BODY = {
+  ui: { source: 'file' },
+  mode: 'sequence',
+  scope: {
+    type: 'release',
+    current: { id: 'minor-v0.1', title: 'Minor v0.1', type: 'release', status: 'planning', tone: 'active' },
+    basis: 'derived',
+  },
+  figures: {
+    completion: {
+      state: 'shown',
+      value: 0.25,
+      percent: 25,
+      references: [
+        { id: 'US-M-01', done: 1, total: 2, percent: 50 },
+        { id: 'US-S-01', done: 0, total: 1, percent: 0 },
+      ],
+      referencesCount: 2,
+      ids: ['task-001-cli-adapter'],
+    },
+    phase: { state: 'read-only', reason: { code: 'not-in-release' } },
+    phaseCompletion: { state: 'read-only', reason: { code: 'not-in-release' } },
+    iterated: { state: 'shown', type: 'task', done: 1, total: 4, ids: ['task-001-cli-adapter'], doneIds: [] },
+    openDefects: { state: 'shown', type: 'bug', count: 1, ids: ['bug-001-toast-overlap'] },
+    pendingGates: { state: 'shown', count: 3, ids: ['bug-001-toast-overlap'] },
+  },
+  unreadable: ['dl-002-use-fastify'],
+  capped: ['task-004-themes'],
+};
+
+/** The read-only variant (task-065, D65-16): the file ignored, no reference category, WingFoil 0.2.2. */
+const PROGRESS_READ_ONLY_BODY = {
+  ...PROGRESS_SCREEN_BODY,
+  ui: {
+    source: 'ignored',
+    warning: { code: 'ui-config-ignored', failure: 'progress.mode must be sequence or flow (found spiral)' },
+  },
+  mode: 'flow',
+  scope: { type: null, current: null, basis: null },
+  figures: {
+    ...PROGRESS_SCREEN_BODY.figures,
+    completion: { state: 'unavailable', reason: { code: 'no-reference-categories' } },
+    phase: { state: 'read-only', reason: { code: 'needs-version', minVersion: '0.3.0' } },
+    phaseCompletion: { state: 'read-only', reason: { code: 'needs-version', minVersion: '0.3.0' } },
+  },
+  unreadable: [],
+  capped: [],
+};
+
+/**
+ * Today of the custom project with `/progress` answered by `body` and, with `version`, the project
+ * header's WingFoil version answered as `version` (task-065, D65-16).
+ */
+async function openProgressScreen(page: Page, c: RunningConsole, body: unknown, version?: string): Promise<void> {
+  const pid = c.pids[1]!;
+  if (version !== undefined) {
+    await page.route(`**/api/p/${pid}`, async (route) => {
+      const response = await route.fetch();
+      const header = (await response.json()) as { wingfoil: Record<string, unknown> };
+      await route.fulfill({ response, json: { ...header, wingfoil: { ...header.wingfoil, text: version, version } } });
+    });
+  }
+  await page.route(`**/api/p/${pid}/progress`, async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: body });
+  });
+  await project(page, c, `/p/${pid}/today`, (p) => p.locator('.today-progress-figures'));
+}
 
 /** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
 const DOCUMENT_SCREEN_BODY = [
