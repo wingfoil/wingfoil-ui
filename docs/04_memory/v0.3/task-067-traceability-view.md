@@ -477,3 +477,16 @@ their first run is the push run of `gates.yml`.
     inside an argument. Two messages of their own now: `traceability.status.withCount`,
     `traceability.category.allWithCount`.
   - `npx vitest run test/web/traceability test/web/i18n --maxWorkers=2`: 5 files, 41 passed.
+- Push run `43858035541` on `69324079`: **success**, every job green — checks, coverage (statements
+  96.71 %), contract, e2e-chromium ×2 (the X-06.4 and X-09.1 screens included), own specs on
+  Firefox and WebKit (`traceability.spec.ts`, 13 passed on each), smoke, publish-smoke. The AC-5
+  timing test runs unasserted outside `test:timing`; its budget is the coordinator's `test:timing`
+  run at the wave gate (task-059 Q7 (a)).
+- Local on `69324079`: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run
+  docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run test/docs/public-text.test.ts
+  test/governance --maxWorkers=2`: 5 files passed.
+
+**Left for after task-065's merge (Q1 (a)):** replace `Figures.tsx`'s `CompletionCard` and
+`PhaseCompletionCard` (the seam) by `web/src/progress/`'s components, drop the four
+`traceability.seam.*` keys, and add the completion explanation's hover and focus (T-14.1, T-14.2
+texts on this page) to the AC-1 e2e test; then the gates again.
