@@ -29,6 +29,11 @@ inline detail with who must act, the section "Elements missing required referenc
 no-`ui.yaml` note. The web renders the server's references and figures and filters them over the
 answer; it computes no figure and no done state.
 
+The row toggle with its **inline detail** (who must act) and the page's **refresh** on `repo` are
+delivered by task-081-traceability-inline-detail-and-refresh (split at design, the approver
+2026-11-16, Q4 (b); `backlog-item-rel-v0.3-plan` W3-3): R-01.2, AC-1's and AC-3's detail parts and
+the former AC-4. This task leaves the table ready for a detail row.
+
 Decisions it carries: TQ-1 (b) every category a row; TQ-2 (c) the scope control, current by
 default, hidden without a current element; TQ-3 (a) references to archived elements not
 recognised; RP3-14 D9 — a pattern reference shows its id only (no hover card, no title, no source);
@@ -40,12 +45,12 @@ nothing on hover only).
 
 ## Acceptance Criteria
 
-- **US-R-01** — every `@v0.3` scenario (`r/traceability.feature`) passes in the task's e2e spec:
+- **US-R-01** — every `@v0.3` scenario (`r/traceability.feature`) but R-01.2 passes in the task's
+  e2e spec:
   - R-01.1 List references with their completion — "Project completion 25 %", "Reference coverage
     3/5", "US-M-01" 2 linked "50 % · 1/2", "US-S-01" 1 linked "0 % · 0/1";
-  - R-01.2 Show who must act on a reference's open elements — pre-packs variant: the detail of
-    "US-M-01" lists "task-002 · Memory list · done" and "task-003 · Element panel · backlog · Waiting
-    for the workflow engine";
+  - R-01.2 Show who must act on a reference's open elements — **delivered by
+    task-081-traceability-inline-detail-and-refresh** (the split, W3-3), whose e2e test closes it;
   - R-01.3 Filter references by status — "Completed": "No reference matches" and *Clear filters*;
   - R-01.4 Explain an empty traceability — unknown: "No references found — declare taxonomy patterns
     in ui.yaml";
@@ -61,7 +66,7 @@ nothing on hover only).
     `adr-001-local-server`, active filter "Missing required references" (task-066's filter);
   - R-01.9 Filter references by category — "requirement": exactly "US-M-01" and "US-S-01".
 - **AC-1 — The page.** As `ux-reference.md` §4.8 v0.3: route and sidebar entry; the filters
-  (`scope`, `category`, `status`, `q`) in the URL, the open row not; the table's three columns, an
+  (`scope`, `category`, `status`, `q`) in the URL (the open row, task-081's, not); the table's three columns, an
   element reference with its short id, title and state pill, its id a link to the element page; the
   chips (short id, tone, tooltip with full title, id and state on hover **and** focus); natural id
   order; the figures with the completion explanation on hover and focus (as T-14.1, T-14.2); the
@@ -70,14 +75,14 @@ nothing on hover only).
   task-054's item) passes in this task's spec: "ui.yaml ignored: progress.mode must be sequence or
   flow (found spiral)" and the note "No ui.yaml — only references to other Memory elements are
   recognised", with its links to *Use preset* (when offered) and Configuration › Taxonomy.
-- **AC-3 — Accessibility of §4.8.** A `<table>` with column headers; the row toggle a button with
-  `aria-expanded` / `aria-controls`, its detail the next row headed by the reference id; the scope,
+- **AC-3 — Accessibility of §4.8.** A `<table>` with column headers (the row toggle and its detail
+  row are task-081's, W3-3); the scope,
   category and status filters groups of toggle buttons (`aria-pressed`) with a visible label and the
   count in each name; the number of rows announced politely after a filter change; every bar with
   its text; chip names "task-002 — <title> — done"; tooltips open on focus and close with Escape;
   nothing reachable on hover only.
-- **AC-4 — Refresh.** On `repo` the page re-reads within 5 s (REQ-PERF-03); the open row stays
-  open while its reference exists; the focus does not move; a row-count change is not announced.
+- **AC-4 — moved** to task-081-traceability-inline-detail-and-refresh (the split, W3-3): the
+  refresh on `repo` with the open row kept, the focus not moved and no announcement.
 - **AC-5 — Performance.** Traceability renders with p95 ≤ 1.0 s warm on the `large` fixture with
   the preset (REQ-PERF-04 since TQ-6, `performance.spec.ts`, `test:timing`).
 - **AC-6 — Docs.** `docs/user-guide.md` (the Traceability page), `CHANGELOG.md` *Unreleased*;
@@ -203,18 +208,16 @@ git-touching: no strict-identity run.
   without elements"; `percent` null (total 0): "Reference coverage 0/0" and an empty bar;
   `no-requires`: "No type requires references — see Configuration › Taxonomy" (a link).
 - **D67-7 — The table.** A `<table>` with the column headers *Reference*, *Linked elements*,
-  *Completion*. *Reference*: the category tag (the `ui.yaml` code, data), the row toggle (a
-  `<button>` with a chevron, name "Details of <id>", `aria-expanded`, `aria-controls` the detail
-  row), then for a pattern reference its id as text only (no title, no tooltip, no `title`
+  *Completion*. *Reference*: the category tag (the `ui.yaml` code, data), then for a pattern reference its id as text only (no title, no tooltip, no `title`
   attribute: D9, R-01.6), for an element reference a link to its element page labelled with its
   short id, its title and its state pill (tone class + state name). *Linked elements*: one chip
   per element, every chip, wrapping — a link to `/p/<pid>/e/<encodeURIComponent(full id)>`
   labelled with its short id, class `tone-<tone>`, accessible name "<short id> — <title> —
   <state>" (AC-3), and a React Aria tooltip (`TooltipTrigger` + `Focusable` around the TanStack
   `Link`, as `GitStatus`'s) with the full title, full id and state, opening on hover and on focus,
-  closing with Escape. *Completion*: a bar and "50 % · 1/2"; "—" with no linked element. A click
-  anywhere on a row that is not a link or a chip toggles its detail too (mouse convenience; the
-  keyboard path is the button). The table sits in its own horizontally scrolling container, so at
+  closing with Escape. *Completion*: a bar and "50 % · 1/2"; "—" with no linked element. Rows
+  carry a stable key (`e:` or `p:` + id) and the *Reference* cell a slot, so task-081 adds the row
+  toggle and the detail row without reshaping the table (the split, W3-3). The table sits in its own horizontally scrolling container, so at
   400 px only that container scrolls (bug-044 is page-level and not touched; the width check is
   scoped to the page's own parts).
 - **D67-8 — Filters.** A search field (label "Search references"; case-insensitive substring of
@@ -228,18 +231,11 @@ git-touching: no strict-identity run.
   aria-pressed>` in a `role="group"` labelled by its visible label — not React Aria's
   `ToggleButtonGroup`, whose single selection renders radios, while §4.8 asks for `aria-pressed`.
   After a filter or search change, a polite status announces the rows shown ("2 references");
-  nothing is announced after a refresh (AC-4), as the Memory list keys its announcement to the
-  filter.
-- **D67-9 — The inline detail** (one open at a time). The next `<tr>`, `id` the toggle's
-  `aria-controls`, one cell spanning the three columns, headed by the reference id (`<h3>`): the
-  category; for an element reference its title, state pill and *Open* (its element page); the
-  completion "x/y"; each linked element as "<short id> · <title> · <state pill> · <who must
-  act>", a link to its element page — who must act from the row's `descriptor` with Today's
-  texts (§4.1, spec-003 §5: member, role, "Waiting for the workflow engine", a held gate's
-  reason), nothing for a `done` element. Today's private `Who` moves to
-  `web/src/today/WaitingWho.tsx` (exported, Today imports it back) and `waitingWho` takes
-  `Pick<TodayRow, 'descriptor'>` — a refactor whose characterization is Today's existing tests.
-  No description or source for a pattern reference (D9).
+  nothing is announced after a refresh, as the Memory list keys its announcement to the filter.
+  The status word in the address is the web's own: `completed`, `partial` (In progress),
+  `not-started`, `no-elements` (Q2 (a)).
+- **D67-9 — The inline detail — moved to task-081** (the split, W3-3), with the extraction of
+  Today's `Who` / `waitingWho`; no Today file is touched here.
 - **D67-10 — Missing references.** Under the table, shown when `figures.coverage` is `shown` (i.e.
   `taxonomy.requires` is not empty): the heading "Elements missing required references (<n>)",
   the link *Show in Memory* to `/p/<pid>/memory?missing=refs` (task-066 D66-2, W3-1), then one row
@@ -259,19 +255,17 @@ git-touching: no strict-identity run.
   list's: `unreadable` ("<n> elements could not be read: their references are not counted —
   <ids>"), `capped` ("<n> elements were indexed on their first 200 values only — <ids>"),
   `eventsError` ("The repository history could not be read: who must act may be incomplete").
-- **D67-13 — Refresh (AC-4).** On `repo` the query refetches (no new code: the key's prefix). The
-  open row is kept by its key (`e:` or `p:` + id) while a row with that key exists, else closed;
-  rows keyed the same way, so React keeps their DOM nodes and the focus is not moved; the row-count
-  announcement is tied to a filter change only (D67-8).
+- **D67-13 — Refresh — moved to task-081** (the split, W3-3). The query key's prefix already
+  makes `repo` refetch the page; keeping the open row and the focus is task-081's.
 - **D67-14 — Catalogue.** New keys in one block `traceability.*` plus `shell.nav.traceability`,
   inserted at their sorted places (the catalogue check requires sorting; additions only, RP-43);
   the state, category and status words reach messages as `select` values or data, never as
   literals in `web/` (REQ-ARC-05, Q2).
 - **D67-15 — Screens.** Two `SCREENS` entries appended (RP-43): "traceability" (the custom
   fixture of the screens console, no `ui.yaml`: the note, its element references or R-01.4's
-  empty text) and "traceability — detail open" — the screens console holds no preset (task-066's
+  empty text) and "traceability — with the preset" — the screens console holds no preset (task-066's
   note), so the answer comes through `page.route` (a sw-life-cycle-like body with pattern and
-  element references, a missing section and an open detail, as task-066's missing-references
+  element references and a missing section, as task-066's missing-references
   screen does). X-06.4 (axe, both themes) and X-09.1 (key build) then cover the page.
 - **D67-16 — Timing (AC-5).** One test appended to the `TT-PERF-03, TT-PERF-04` block of
   `performance.spec.ts`, as task-066's AC-4: the Traceability page on the large fixture with the
@@ -281,16 +275,15 @@ git-touching: no strict-identity run.
   is one shared tooltip moved to the hovered or focused chip (recorded if used).
 - **D67-17 — Docs (AC-6).** `docs/user-guide.md` a section "Traceability" after "Memory";
   `CHANGELOG.md` *Unreleased* › *Added*; `test/README.md` (the spec, the unit suites, the screens,
-  the timing test); `ux-reference.md` §4.8 v0.3 block only if Q2 (a) changes the status word in
-  the address — each Version/Date bumped on its first edit after a commit.
+  the timing test); `ux-reference.md` §4.8 v0.3 block records the address word `partial` (Q2
+  (a)) — each Version/Date bumped on its first edit after a commit.
 
 #### Acceptance criteria: red first or characterization
 
 All red first — the route, the page and its parts do not exist (the sidebar has no Traceability
-entry: `test/web/routes/nav.test.ts` only orders `NAV_ORDER`) — but two characterizations: Today's
-existing suites after `Who` and `waitingWho` move (D67-9: they stay green, no fabricated failure;
-a guard removal on the moved component recorded at refactor), and AC-2's warning component
-(`UiYamlWarning`, built by task-064: its placement on this page is red first, its text is not).
+entry: `test/web/routes/nav.test.ts` only orders `NAV_ORDER`) — but one characterization: AC-2's
+warning component (`UiYamlWarning`, built by task-064: its placement on this page is red first, its
+text is not).
 
 #### Test plan (AC and scenario → file › title)
 
@@ -301,7 +294,7 @@ what the user sees; the variants from the harness (`usePresetUiConfig`, `usePreP
 | AC / scenario | Test |
 |---------------|------|
 | R-01.1 | `traceability.spec.ts` › "R-01.1 — List references with their completion" (custom + preset, Casey) |
-| R-01.2 | › "R-01.2 — Show who must act on a reference's open elements" (pre-packs + preset) |
+| R-01.2 | task-081 (the split, W3-3) |
 | R-01.3 | › "R-01.3 — Filter references by status" ("Completed": "No reference matches", *Clear filters* restores the rows) |
 | R-01.4 | › "R-01.4 — Explain an empty traceability" (unknown) |
 | R-01.5 | › "R-01.5 — Show the rows outside the current release under the whole project" (`setFrontmatterValue` dl-001 `ref: US-S-09`) |
@@ -310,20 +303,19 @@ what the user sees; the variants from the harness (`usePresetUiConfig`, `usePreP
 | R-01.8 | › "R-01.8 — Open the elements missing required references in Memory" (exactly two rows, active filter) |
 | R-01.9 | › "R-01.9 — Filter references by category" |
 | AC-2 / C-04.3 | › "C-04.3 — Show the ui.yaml warning on Traceability" (kanban, Alex, committed `progress.mode: spiral`; warning by `.ui-yaml-warning`, the note, its Taxonomy link) |
-| AC-1 | › "AC-1 — filters in the address, back restores them, the open row not kept" and "AC-1 — chip tooltip on hover and focus, the completion explanation"; unit `test/web/traceability/model.test.ts` (search parse, ignored values, case-insensitive substring never a regex, counts, closed category order, status keys) and `view.test.tsx` (columns, element reference cell, chips, figures and their unavailable texts, empty states, error not empty, notices) |
-| AC-3 | › "AC-3 — the table by keyboard: toggle, detail headed by the id, Escape closes a tooltip"; unit `view.test.tsx` (`aria-expanded`/`aria-controls`, `aria-pressed` groups with counts in names, polite count after a filter change); X-06.4 and X-09.1 through the two `SCREENS` entries (`accessibility.spec.ts`, unchanged) |
-| AC-4 | › "AC-4 — a change outside the UI refreshes the page, the open row and the focus kept" (`@live-refresh`); unit `test/web/traceability/refresh.test.tsx` (open row kept or closed, no announcement on refetch, focus kept) |
+| AC-1 | › "AC-1 — filters in the address, back restores them" and "AC-1 — chip tooltip on hover and focus, the completion explanation"; unit `test/web/traceability/model.test.ts` (search parse, ignored values, case-insensitive substring never a regex, counts, closed category order, status keys) and `view.test.tsx` (columns, element reference cell, chips, figures and their unavailable texts, empty states, error not empty, notices) |
+| AC-3 | › "AC-3 — the page by keyboard: filters, chips, Escape closes a tooltip"; unit `view.test.tsx` (`aria-pressed` groups with counts in names, polite count after a filter change); X-06.4 and X-09.1 through the two `SCREENS` entries (`accessibility.spec.ts`, unchanged) |
+| AC-4 | task-081 (the split, W3-3) |
 | AC-5 | `performance.spec.ts` › "AC-5 (task-067) — Traceability renders within 1.0 s (p95, warm cache)" |
 | AC-6 | review of the docs; `test/docs/public-text.test.ts` |
 | 400 px (own parts) | › "AC-1 — at 400 px only the table's container scrolls" (Chromium) |
-| D67-9 refactor | `test/web/today/*` unchanged and green; `test/web/today/waiting-who.test.tsx` for the moved component |
 
 #### e2e closure
 
 | Scenario | Spec file : test |
 |----------|------------------|
 | R-01.1 | `test/e2e/traceability.spec.ts` : (to fill at green) |
-| R-01.2 | `test/e2e/traceability.spec.ts` : |
+| R-01.2 | closed by task-081-traceability-inline-detail-and-refresh |
 | R-01.3 | `test/e2e/traceability.spec.ts` : |
 | R-01.4 | `test/e2e/traceability.spec.ts` : |
 | R-01.5 | `test/e2e/traceability.spec.ts` : |
@@ -337,14 +329,12 @@ what the user sees; the variants from the harness (`usePresetUiConfig`, `usePreP
 
 New: `web/src/routes/traceability.tsx`; `web/src/traceability/TraceabilityView.tsx`,
 `Figures.tsx`, `ReferenceTable.tsx`, `MissingSection.tsx`, `model.ts`, `traceability.css`;
-`web/src/today/WaitingWho.tsx` (D67-9); `test/web/traceability/model.test.ts`, `view.test.tsx`,
-`refresh.test.tsx`; `test/web/today/waiting-who.test.tsx`; `test/e2e/traceability.spec.ts`.
+`test/web/traceability/model.test.ts`, `view.test.tsx`; `test/e2e/traceability.spec.ts`.
 Changed: `web/src/routes/tree.ts` (one line), `web/src/i18n/en.json` (additions),
-`web/src/today/model.ts` (`waitingWho`'s parameter), `web/src/today/TodayView.tsx` (imports
-`WaitingWho`), `test/e2e/support/screens.ts` (two entries), `test/e2e/performance.spec.ts` (one
-test), `docs/user-guide.md`, `CHANGELOG.md`, `test/README.md`, possibly `ux-reference.md` (Q2).
-Per Q1, the completion figure either from task-065's module or a new
-`web/src/progress/CompletionFigure.tsx`. No server, contract or spec file.
+`test/e2e/support/screens.ts` (two entries), `test/e2e/performance.spec.ts` (one test),
+`docs/user-guide.md`, `CHANGELOG.md`, `test/README.md`, `docs/00_reference/ux-reference.md` (Q2).
+The completion and phase cards from task-065's `web/src/progress/` (Q1 (a)). No Today file, no
+server, contract or spec file (the split, Q2 (a)).
 
 #### Size (RP3-20 G2)
 
@@ -396,3 +386,23 @@ review buffer 0.15. Above one day: a split is proposed (Q4).
   extraction) and AC-4, about 0.7 day, after task-067 and after task-065 (which edits
   `TodayView.tsx`). **Recommended (b)**: the detail is additive to a working table, the cut is
   clean, and it moves the only edit of a file task-065 owns after task-065's merge.
+
+#### Decisions of the approver (2026-11-16)
+
+Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-v0.3-plan` W3-3):
+
+- **Q4 (b) — the split.** task-081-traceability-inline-detail-and-refresh (added `0f13a136`, body
+  `1b020829`, submitted `97fc5b8e`, after this task and task-065) takes R-01.2, the row toggle and
+  its detail with who must act (AC-1's and AC-3's detail parts), D67-9's extraction of Today's
+  `Who` / `waitingWho` and the former AC-4 (refresh, D67-13). This task keeps US-R-01 with the other
+  scenarios, C-04.3, AC-1 … AC-3 but the detail, AC-5 and AC-6; it touches no Today file and leaves
+  the table ready for a detail row (D67-7). The size estimate above becomes about 1.6 active days.
+- **Q1 (a)** — task-065 owns the shared completion figure in `web/src/progress/`, keys
+  `progress.completion.*` and `progress.phaseCompletion.*`; this task builds everything else first
+  and wires its completion and phase cards to that module after task-065 is merged into the phase
+  branch (until then the two cards sit behind one seam in `Figures.tsx`).
+- **Q2 (a)** — no literal and no server change: the address word `partial`, the status key and the
+  category order derived from the contract types, a unit test against the schema lists;
+  `ux-reference.md` §4.8 records the address word.
+- **Q3 (a)** — *Use preset* is a link to Configuration › Taxonomy, shown only without `ui.yaml`
+  (`ui.source` `none`) and with the user identified in the team.
