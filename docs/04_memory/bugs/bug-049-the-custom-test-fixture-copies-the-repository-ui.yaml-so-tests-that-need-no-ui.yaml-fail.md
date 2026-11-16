@@ -3,12 +3,12 @@ id: bug-049-the-custom-test-fixture-copies-the-repository-ui.yaml-so-tests-that-
 type: bug
 title: "The custom test fixture copies the repository ui.yaml so tests that need no ui.yaml fail"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "high"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "server"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,32 +17,51 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The test harness's `custom` fixture copies this repository's whole `.wingfoil/` folder
+(`importGovernance`, `test/harness/fixtures/builder.ts`), so since the approver's preset commit
+`8451080a` (`chore(ui): apply the WingFoil sw-life-cycle preset`, which added `.wingfoil/ui.yaml`)
+every `custom` fixture already holds a `ui.yaml`: the variant "with the sw-life-cycle preset"
+(`usePresetUiConfig`) can no longer commit it, and the tests that need a project without `ui.yaml`
+see one. The heavy gates fail on the phase branch `design/dev-loop_v0.3` and on every branch that
+contains `8451080a`.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Check out `design/dev-loop_v0.3` at `b6131430` or later (it contains `8451080a`).
+2. Run `npx vitest run test/contracts/ui-config-fixtures.test.ts --maxWorkers=2`, or dispatch
+   `.github/workflows/gates.yml` with `scope=task`.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The `custom` fixture is this repository's governance without a `ui.yaml`, whatever this
+repository's own `.wingfoil/` holds; `usePresetUiConfig` adds the preset as one commit; the
+suites are green as they were before `8451080a`.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`usePresetUiConfig` fails with `git commit … -- .wingfoil/ui.yaml exited with 1 … nothing to
+commit, working tree clean`, and assertions that expect no `ui.yaml` get one (`expected { kind:
+'text', … } to deeply equal { kind: 'absent' }`).
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+Gates run `43876696740` (workflow_dispatch, `scope=task`, on task-065's merge of the phase branch
+`13bd3ca1`, 2026-11-16): coverage, contract, e2e-chromium (both shards) and own-specs (webkit)
+failed; `gh run view 43876696740 --log-failed` shows the `nothing to commit` error 138 times.
+Failed in coverage (5 of 5105 tests, 8 files): `test/contracts/ui-config-fixtures.test.ts` AC-7
+(3 tests), `test/server/http/ui-config-preset.test.ts` C-02.3, `test/server/reads/project-reads.test.ts`
+TT-ARC-04 (custom), and in setup `held-gates-contract`, `held-gates-routes`, `progress-routes`,
+`traceability-routes` and `ui-config-route`. The last green run before the merge, `43873215271`
+(task-080, `1b2236d9`), did not contain `8451080a`.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+High: it blocks every merge into the phase branch and the Wave 3 gate; no product or user effect
+(the harness only). Fix direction: `importGovernance` copies `.wingfoil/` without `ui.yaml` (a
+`cp` filter), plus a harness test that the `custom` fixture has no `ui.yaml` while this
+repository has one. `8451080a` is kept by the approver's choice (2026-11-16, "Gate 1: b"); the
+fix is in the harness, not a revert. Recorded by the approver's choice (2026-11-16, "a") through
+`bug-ingest-1-22-plan`.
 
 ## Triage & Execution Notes
 
