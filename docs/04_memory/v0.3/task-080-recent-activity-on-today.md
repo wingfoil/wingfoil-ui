@@ -4,35 +4,85 @@ type: task
 title: "Recent activity on Today"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
+priority: "medium"           # optional — high | medium | low
+tags: ["v0.3", "governance", "web", "today"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts, then submit/approve along its machine; no `bug.sync_state` since the packs adoption
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-061-today-with-role-tags-filters-entry-dates-and-short-ids"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The **Recent activity** card on Today, split from
+task-065-progress-card-and-recent-activity-on-today at its design (the approver, 2026-11-16,
+task-065 Q1 (b); `backlog-item-rel-v0.3-plan` W3-3; RP3-20 G2: task-065 was about 1.7 active days):
+task-065 keeps the progress card (US-T-12 … US-T-15, US-X-10, C-04.1); this task adds T5's Recent
+activity, the last 5 Memory events from the server (`GET /api/p/:pid/events/memory?limit=5`,
+spec-012 §6), the last card of Today (`ux-reference.md` §4.1 item 6 and its v0.3 block). It runs in
+parallel with task-065; the web renders the events, never computes one (spec-003 §8).
+
+Decisions it carries: RP3-14 D8 — no "Open the Timeline" link while R6 is in v0.4 (T-08.1 amended);
+REQ-PERF-11 — Recent activity lists 5 events; task-065's Q5 (a) (the approver, 2026-11-16) — a row
+names its element by the event's full id, as T-08.2's text, with no extra read.
+
+**Backlog items:** GOV (governance — Recent activity split from task-065: its US-T-08; US-T-08
+stays listed by task-065, whose scenarios T-08.1 … T-08.3 this task's e2e spec closes; task-065
+cites them as delivered here)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+The criteria are task-065's as they stood before the split (`7b9f8b5a`), for Recent activity only;
+its design (`b3e12c64`, D65-2, D65-3, D65-9 for this card) and the approver's answers Q3 (b) and
+Q5 (a) (2026-11-16) apply.
+
+- **AC-1 — US-T-08.** Every `@v0.3` scenario (`t/recent-activity.feature`) passes in the task's
+  e2e spec:
+  - T-08.1 Show the last 5 Memory events — newest first; time, element, "from → to" and author, or
+    "created"; no link "Open the Timeline";
+  - T-08.2 Add an event made outside the UI — "task-001-login-form pending → approved · Morgan"
+    first within 5 s;
+  - T-08.3 Leave out commits that are not Memory events — "docs: fix a typo in README" not listed.
+- **AC-2 — The card.** The last card of Today, after *Waiting on others* (`ux-reference.md` §4.1,
+  task-065's order with Q3 (b)); 5 events in server order, the element id a link to its side panel,
+  the author by the bell's rule, the time with its full date as description; its own loading state
+  and error (a failed read is an error, never an empty card); a refresh on `repo` re-reads and is
+  not announced.
+- **AC-3 — Performance.** TT-PERF-01 (REQ-PERF-01, Today p95 ≤ 2.0 s warm, ≤ 5.0 s first open)
+  still holds with the card in `test/e2e/performance.spec.ts` and in `test:timing`.
+- **AC-4 — Docs.** `docs/user-guide.md` (Today's Recent activity), `CHANGELOG.md` *Unreleased*,
+  `test/README.md` for new suites; Version/Date bumped.
+
+Screen: `docs/00_reference/ux-reference.md` §4.1 (item 6, the v0.3 block) and the prototype
+(`docs/00_reference/prototype/`, Today's *Attività recente*), deviations only as recorded (directive
+`ux-consistency`): no Timeline link (D8).
+Accessibility bar: every screen and action of the task operable from the keyboard with visible
+focus; axe-core 0 serious/critical violations in both themes; every string from the message
+catalogue (`web/src/i18n/en.json`, spec-008; X-09.1). Cross-cutting: one e2e spec for the task, one
+test (or `describe`) per scenario titled with the scenario id, assertions on what the user sees;
+the card's screen added to `SCREENS` (`test/e2e/support/screens.ts`); catalogue, `SCREENS` and route
+registration changes append-only (RP-43); the Execution Notes carry an `e2e closure` table, scenario
+→ spec file : test, for every scenario this task closes.
+Gates: the checks of `CLAUDE.md` (heavy gates on `.github/workflows/gates.yml`: `test:coverage`,
+`test:e2e:chromium`, the task's own specs on Firefox and WebKit), `check_tasks.py v0.3`, with
+commands and results in the Execution Notes. T-08.2 commits through a CLI approve outside the UI:
+its spec runs under the strict-identity recipe of `test/README.md` *Fixtures* › *Git identity*
+(dl-011), on the `gates.yml` runner.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- Today's files are shared with task-065, built in parallel: the card goes into `TodayView` as its
+  own slot (task-065's D65-3), its rows use `data-sha` and not `data-eid`, and it does not use the
+  class `.today-card`; whichever task merges second takes the other's layout on merge (W2-9).
+- Read at design: `ux-reference.md` §4.1; spec-012 §6; spec-002 §1, §3 (the events); spec-008;
+  REQ-PERF-11; task-065's design (`b3e12c64`) and Execution Notes; task-042 (the bell's events and
+  author rule) and task-036 (Today's layout and refresh).
 
 ## Execution Notes
 
