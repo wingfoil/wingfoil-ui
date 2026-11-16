@@ -625,3 +625,44 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
 | TT-PERF-01 with the progress card (AC-3) | `test/e2e/performance.spec.ts` : `T-01.1, T-02.1 — Today renders within 2.0 s (p95, warm cache), the first open within 5.0 s` |
 
 T-08.1 … T-08.3 (US-T-08) are closed by task-080's e2e spec (W3-3).
+
+### review round 1 (2026-11-16)
+
+Independent reviewer (reviewer role), on `1f7a5785` (`git diff design/dev-loop_v0.3...HEAD`; the
+commits after `2e67dfec` are docs and the phase branch merge, no code). Read: this task, directive
+`definition-of-done` and the directives it names, `ux-reference.md` §4.1 v0.3, spec-012 §3, spec-008
+§2 to §4, `t/progress-card.feature`. Evidence: `gh run view 43858975709` (dispatch on `2e67dfec`,
+every job green: checks, coverage, contract, both smokes, e2e-chromium 212 + 212, own specs 150 on
+Firefox and 150 on WebKit); `npx vitest run test/web/today/progress-card.test.tsx
+test/web/today/progress-model.test.ts test/web/progress/version.test.ts --maxWorkers=2` 29 passed;
+the React Aria 1.21.1 sources in `node_modules` (`react-aria-components/dist/private/Tooltip.mjs`,
+`react-aria/dist/private/interactions/useFocusable.mjs`,
+`react-aria/dist/private/tooltip/useTooltipTrigger.mjs`).
+
+Holds: `web/src/today/progress.ts` only maps the answer (no type, state or category literal; the
+`finished` argument passes REQ-ARC-05's lint); every shown figure links to `?figure=<code>` with
+`figure.ts`'s codes, the reasons and the phase texts are never links, an `unavailable` iterated or
+open-defects figure is left out (Q7 (a)); a failed read is an alert in the card, never an empty card;
+the card is a slot after `.today-head`, outside Today's loading and error branches, and leaves room
+for task-080's `activity` slot; the completion title on Today only (Q4 (a)); catalogue keys and
+`SCREENS` appended only (RP-43; `AREAS` is read with `includes`, its order is not significant); the
+other Today unit tests answer `/progress` without loosening an expectation (`today.test.tsx`'s read
+set is still exact, now with `/progress`); `kanbanCompletion` is deterministic (the fixture's dates,
+`now` + 30 min for the approve); the process audit asserts that `/progress` adds no CLI process to
+the cold Today and none warm; Version/Date bumped (`ux-reference.md` 1.26, `docs/user-guide.md`
+0.43, `test/README.md` 0.94), the feature file and spec-012 amended by dated notes; repository
+strings rendered as text only; no local path or other project name in the diff.
+
+**Verdict: PASS** — no blocker or major; the minors below are for the next pass or a follow-up.
+
+| # | Severity | File:line | Issue | Fix |
+|---|----------|-----------|-------|-----|
+| F-1 | minor | `web/src/progress/Completion.tsx:67-69`, `:95-96`; Execution Notes *Gates* (the hover fix) | The stated cause is not what the library does: React Aria's `TooltipTrigger` hands its whole `triggerProps` (hover handlers included) to `FocusableProvider`, and `Focusable` merges them into the router link (`useFocusable.mjs` `useFocusableContext`). The tooltip did not open on hover because `useTooltipTrigger`'s `onHoverStart` counts a hover only when the last interaction modality is `pointer` (none on a freshly opened page) and then waits `delay` 300 ms. So two sets of hover handlers now run on the link, and the hand-wired `mouseenter` bypasses the library's modality guard, its delay and its one-open-tooltip registry (`state.open` is never called on hover); `open` is also kept across a `shown` → `unavailable` → `shown` refetch (the `useState` sits above the early return), so a figure coming back while `open` was true reappears with its tooltip open. | Correct the comment and the note (claim-evidence); either keep the hand-wired hover and reset `open` when the figure is not shown (or key the trigger by the figure state), or set the modality on pointer move instead of duplicating the handlers. |
+| F-2 | minor | `web/src/today/ProgressCard.tsx:73-85`, `:195` | The announcement compares only the keys present in the new read: a figure that disappears or turns into a reason (completion 25 % → "No references linked in …"; iterated or open defects becoming unavailable) and a scope change are not announced, though the visible figures changed (AC-1 "not announced unless the figures change", D65-8 "when the card's visible texts change"). The phase and reason texts are not in the signature either. | Build the signature over every visible figure text (reasons and phase texts included, and the scope line) and announce the new texts of every key whose text differs or that appeared or disappeared; add a unit test (shown → unavailable announced). |
+| F-3 | minor | `test/e2e/support/strings.ts:369-372` | The X-09.1 checker now accepts "," (the trimmed `Intl` `unit`/`short` literal) as a known text on every screen, both as a whole text node and as a word after a key. A component that joins two messages with a hand-written `{', '}` in JSX — the concatenation spec-008 §3 forbids — now passes X-09.1 anywhere, not only inside the completion's list. | Accept the list literal only for a text node whose parent is inside `.progress-references` (as the other flags of `pageTexts`, e.g. `fieldName`), or only between two `.progress-reference` siblings. |
+| F-4 | minor | `web/src/i18n/en.json:205-206`, `web/src/progress/PhaseReadOnly.tsx` | spec-008 §4 renders a capability reason code "as `<area>.reason.` + the code, with the parameters as the arguments"; the phase figures use one `select` message per figure (`progress.phase.readOnly`, `progress.phaseCompletion.readOnly`) whose `other` branch also catches any future code as "in no released WingFoil yet". D65-6 chose this at design, but the departure from spec-008 §4 is not in *Spec gaps and Process Notes*. | Record it as a spec-008 clarification (dated note) or move to `progress.reason.<code>` keys; at least add the gap line. |
+| F-5 | minor | `test/web/today/progress-card.test.tsx:340`; Execution Notes test plan (AC-1 row) | The test titled "… one reference in the singular" asserts no singular case; the plan's "loading status" and "the card within 400 px" (D65-5 "checked at 400 px in its unit test") have no test, and the deviation is not recorded. | Add a `referencesCount: 1` assertion ("over 1 reference …"), a loading-status assertion and the 400 px width check, or record their removal as deviations. |
+| F-6 | nit | `test/e2e/today-progress.spec.ts:257` | T-15.2 on 0.2.2 matches `/^Phase completion — needs WingFoil 0\.3/`, a prefix: "… 0.3.0" or "… 0.3 (this project: 0.2.2)" would pass, and it does not check the text is not a link (T-15.1 does). | `getByText('Phase completion — needs WingFoil 0.3', { exact: true })` plus the no-link check. |
+| F-7 | nit | `test/e2e/support/screens.ts:455-462`, `:505` | *today — completion explanation open* opens the tooltip by hover, not "by keyboard focus" as D65-16 designed (not recorded); *today — progress read-only and ui.yaml ignored* claims "WingFoil 0.2.2" but the screens console's custom project is on the pinned 0.3.1, so it renders "needs WingFoil 0.3 (this project: 0.3.1)" — an incoherent text in a reference screen. | Record the hover choice (or focus the link); fix the comment, or stub the version so the text is coherent. |
+| F-8 | nit | `docs/04_memory/design/specs/spec-012-project-state-views-api.md:213-215`; `docs/03_backlog/04_backlog/backlog.json` | spec-012 §3's body still gives "Tasks 1/4" and "Open bugs 1" as the card's wording (the dated note at the end amends it, the project's pattern); the generated backlog still carries the old T-12.1 and T-13.2 texts. The backlog is a build artefact that names its sources' versions and is already known to be behind (Execution Notes, `check_backlog.py`), so no claim is false today. | Leave to release-planning's next backlog build, as recorded; optionally mark the two §3 examples "(amended 2026-11-16)". |
+| F-9 | nit | `web/src/progress/Completion.tsx:57` | "and {more} more" is `referencesCount - references.length` computed in the web (spec-003 §8 "the web never computes a figure"). It is a display remainder, approved in D65-7, not a figure. | None needed; a server `moreCount` would remove it if spec-012 §3 is revised. |
