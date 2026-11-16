@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { isPathSyntaxId } from '../element/queries.js';
 import '../memory/memory.css';
+import { selectorOf } from './selector.js';
 import { Origin, UiFrame } from './UiFrame.js';
 
 const TITLE = defineMessages({ progress: { id: 'settings.progress.title' } });
@@ -51,11 +52,6 @@ const KEYS = {
 } satisfies Record<string, { name: MessageDescriptor; meaning: MessageDescriptor; allowed: MessageDescriptor }>;
 
 const code = (chunks: ReactNode[]) => <code>{chunks}</code>;
-
-/** A value as an ICU `select` key: `when-references-done` → `whenReferencesDone` (ICU keys hold no `-`). */
-function selectorOf(value: string): string {
-  return value.replace(/-(\w)/g, (_m, c: string) => c.toUpperCase());
-}
 
 /** "None": a key with no value. */
 function None(): ReactNode {

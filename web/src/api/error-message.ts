@@ -57,8 +57,19 @@ const MESSAGES = defineMessages({
   // task-037, D37-11: a governed write that did not finish (W2-1, W2-4, W2-5); `detail.file`,
   // optional `detail.commit`.
   'write-incomplete': { id: 'error.writeIncomplete' },
+  // task-060 (spec-005 §5, spec-008 §4): the preset write's own codes; their texts are task-079's (D79-8).
+  'ui-config-exists': { id: 'error.uiConfigExists' },
+  'ui-config-invalid': { id: 'error.uiConfigInvalid' },
   // Client-side: no answer at all (W3-12).
   unreachable: { id: 'error.unreachable' },
+});
+
+/**
+ * The texts of a write the console makes itself (task-079, D79-8; Q2 (a) of W3-1): `write-incomplete` of
+ * the preset write names no WingFoil commit.
+ */
+const PRESET_VARIANTS: Partial<Record<keyof typeof MESSAGES, MessageDescriptor>> = defineMessages({
+  'write-incomplete': { id: 'error.writeIncomplete.preset' },
 });
 
 /** An error code the catalogue renders. */
@@ -86,6 +97,8 @@ export interface ErrorRendering {
 export interface ErrorMessageOptions {
   /** Joins a list argument in the locale's conjunction format (default: `Intl.ListFormat` of `en`). */
   formatList?: (items: string[]) => string;
+  /** `preset`: the texts of the preset write (`write-incomplete`, task-079 D79-8); default: the element writes'. */
+  variant?: 'preset';
 }
 
 const EN_LIST = new Intl.ListFormat('en', { style: 'long', type: 'conjunction' });
@@ -124,7 +137,7 @@ export function errorMessage(
     values['commit'] ??= 'none';
   }
   return {
-    descriptor: MESSAGES[code],
+    descriptor: (options.variant === 'preset' ? PRESET_VARIANTS[code] : undefined) ?? MESSAGES[code],
     values,
     ...(VERBATIM.has(code)
       ? { verbatim: [error.message, ...(code === 'cli-refused' ? reasons(error.detail) : [])].join('\n') }
