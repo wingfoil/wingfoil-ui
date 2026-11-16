@@ -5,7 +5,7 @@ title: "The custom test fixture copies the repository ui.yaml so tests that need
 status: resolved          # auto-set by wingfoil; memory.submit → open
 severity: "high"           # REQUIRED — critical | high | medium | low
 release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
+release: "v0.3"            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: "server"             # optional — server | web | contracts
 wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
@@ -71,3 +71,10 @@ fix is in the harness, not a revert. Recorded by the approver's choice (2026-11-
        live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
        Execution Notes section) — this section only needs a pointer plus anything that doesn't
        belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+
+- close note (2026-11-16): fixed by task-082 (`done` `c32b5378`), merged into the phase branch in
+  `9626a60f`; resolved by the approver (`32a84b06`). `importGovernance` copies `.wingfoil/`
+  through `copyGovernance`, which skips only the top-level `ui.yaml`
+  (`test/harness/fixtures/builder.ts`); `test/harness/fixtures.test.ts` › "custom fixture
+  governance (task-082 AC-1)" asserts it while this repository has a `ui.yaml`; gates run
+  `43906744475` green. It closes with Wave 3's merge into `main`.
