@@ -516,3 +516,52 @@ Before the push: `npx vitest run test/docs/public-text.test.ts --maxWorkers=2` �
 **43866705935** on `cab04005`: **success** — `checks`, `coverage`, `contract`, `smoke`,
 `publish-smoke` passed; `e2e-chromium` 204 + 203 passed; own specs (`recent-activity.spec.ts`)
 3 passed on Firefox, 3 on WebKit — R2-2's exact date check included.
+
+### checker (2026-11-16)
+
+Pre-submit checker, independent of the developer and the reviewers, on `88187b5d` (`git var
+GIT_AUTHOR_IDENT` → the agent's identity). **Verdict: READY** for `memory submit` (`in-progress →
+in-review`); no blocking finding.
+
+Checked:
+
+- **AC-1:** the e2e closure table names three tests that exist — `grep -n "test("
+  test/e2e/recent-activity.spec.ts` → `T-08.1 — Show the last 5 Memory events` (l. 64), `T-08.2 —
+  Add an event made outside the UI` (l. 109, `LIVE_REFRESH_TAG`), `T-08.3 — Leave out commits that
+  are not Memory events` (l. 138), under `describe('US-T-08 — Recent activity')`.
+- **AC-2:** `RecentActivity.tsx` as the last child of `TodayView` (`activity` prop, one line), its
+  own loading, alert and empty states, the `${sha}:${id}` key, `forgetOpener`; `npx vitest run
+  test/web/today/recent-activity.test.tsx --maxWorkers=2` → 12 passed.
+- **AC-3:** honestly left to the wave gate — TT-PERF-01's `ready` includes the card, its budgets
+  asserted only under `test:timing`, recorded as the coordinator's run; not claimed as passed.
+- **AC-4:** `docs/user-guide.md` 0.42 → 0.43, `ux-reference.md` 1.25 → 1.26 (§4.1 v0.3 *Recent
+  activity*), `test/README.md` 0.93 → 0.94, `CHANGELOG.md` *Unreleased* › *Added*; each doc edited in
+  one commit only (`185e8901`), so one bump each (`doc-versioning`).
+- **Runs** (`gh run view <id> --json conclusion,headSha,event`): 43852819196 `failure` on `185e8901`
+  (the X-09.1 failure recorded and fixed); 43855786755 `success` on `415e9f9c` (dispatch);
+  43859584782 `success` on `eaa288d1` (push); 43859584238 `success` on `eaa288d1` (dispatch);
+  43866705935 `success` on `cab04005` (push) — as stated in the notes. `eaa288d1 → cab04005` changes
+  only tests and these notes (`git diff --stat`).
+- **Append-only (RP-43)** against `design/dev-loop_v0.3`: `en.json` six `today.activity.*` keys added,
+  none changed; `SCREENS` two entries appended at the end; no route registered. The stubs in
+  `today.test.tsx` / `summary.test.tsx` add the `?limit=5` answer only.
+- **dl-005:** no local path or other project name in `git diff design/dev-loop_v0.3...HEAD`;
+  `npx vitest run test/docs/public-text.test.ts --maxWorkers=2` → 67 passed.
+- **Local gates on `88187b5d`:** `npm run typecheck`, `npm run lint`, `npm run format:check` → clean;
+  `npm run -s docs:api` → passed, tree clean after it; `python3 -I docs/03_backlog/X_tools/check_tasks.py
+  v0.3` → "36 tasks · 16 backlog items · 16 listed", OK; `test/governance/*.test.ts` one at a time →
+  7, 5, 9, 4 passed (load average 6.9).
+- **Strict identity (dl-011):** `process-audit.test.ts` under the recipe at refactor; no git-touching
+  suite changed after (`eaa288d1`, `cab04005` touch the component, its unit suite and the e2e spec,
+  whose git work runs on the `gates.yml` runner).
+- **Reviews:** round 1 FAIL (F-1 major, F-2 minor fixed test first, F-3 nit accepted), round 2 PASS
+  (guard removals for F-1, F-2; R2-1, R2-2 nits fixed); every finding has a disposition.
+  `web/src/shell/NotificationBell.tsx` untouched (`git diff --name-only design/dev-loop_v0.3...HEAD`).
+
+Findings (none blocking):
+
+| # | Severity | Finding |
+|---|----------|---------|
+| C-1 | observation | After the round 1 product fix (`eaa288d1`: key, `data-event-id`, `onClick`), the own specs on Firefox and WebKit re-ran for `recent-activity`, `today`, `side-panel` (43859584238) but not `accessibility.spec.ts`, `today-cards.spec.ts`, `notification-bell.spec.ts`, last green there on `415e9f9c` (43855786755); Chromium ran the whole suite on `eaa288d1` and `cab04005`. The change adds no style or text; the wave gate's three-engine `test:e2e` covers it. |
+| C-2 | observation | The phase branch has moved to `42aecfa5` (the workflow finalize of task-065 only) since the merge at `6b55c1ed`; `git merge-tree --write-tree HEAD design/dev-loop_v0.3` → no conflict. The task-065 merge on the shared hunks (Q1 (a)) stays with the coordinator. |
+| C-3 | observation | The duplicate React key of the bell (`NotificationBell.tsx`, review F-1) is a separate item for the approver, not this task's. |
