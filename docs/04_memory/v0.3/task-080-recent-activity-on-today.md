@@ -297,3 +297,39 @@ task-065, task-067, task-079: `en.json`, `screens.ts`, `CHANGELOG.md`, `docs/use
 About **0.5 active day**: red 0.2 (the unit suite 0.08, the e2e spec with `cliAs` 0.08, screens,
 `@perf` line and the audit 0.04); green 0.1 (the component and its CSS 0.06, catalogue and slot
 0.04); refactor and docs 0.1; gates and the `gates.yml` runs 0.1.
+
+#### Decisions of the approver (2026-11-16)
+
+Relayed by the coordinator, quoted: "tutto come consigliato":
+
+- **Q1 (a)** — this task adds the `activity` slot to `TodayView`; task-065 adds only `progress`;
+  the coordinator resolves the few shared lines at merge.
+- **Q2 (a)** — the card is always shown with its own read, whatever the state of Today's read.
+- **Q3 (a)** — the main region takes the focus after a side panel opened from an activity link
+  closes.
+
+### red (2026-11-16)
+
+Tests written before the code (`npm ci` first in the worktree):
+
+- `test/web/today/recent-activity.test.tsx` (new, 10 tests): `npx vitest run
+  test/web/today/recent-activity.test.tsx --maxWorkers=2` → **10 failed** (no region "Recent
+  activity" on Today; load average 10.95 at the start). The `amend` and `park` rows check the
+  operation's word (`MemoryEventEntry['operation']` has no `other`: the catalogue select keeps
+  `other` only as ICU's required fallback).
+- `test/e2e/recent-activity.spec.ts` (new: T-08.1, T-08.2, T-08.3): red by construction — every
+  test waits for `li.today-activity-row`, which no code renders before green; not run locally (no
+  local Playwright), run on `gates.yml` at green.
+- `test/e2e/support/events.ts` `cliAs(fixture, name, args)`: the member's name and email as
+  `GIT_AUTHOR_*`/`GIT_COMMITTER_*` of the one CLI process — the identity WingFoil 0.3.1 resolves
+  first (`node_modules/wingfoil/dist/core/git-identity.js`: "`GIT_AUTHOR_EMAIL`, then `author.*`,
+  then `user.*`"), simpler than D80-12's `GIT_CONFIG_*` and one of the explicit forms `test/README.md`
+  *Git identity* names; T-08.2 also asserts the copy's `user.email` is still Casey's. Whether the
+  approve resolves Morgan is shown by T-08.2's "· Morgan" on the runner (green below).
+- `test/e2e/support/screens.ts`: D80-11's two entries (red: no `.today-activity-row`, no
+  `.today-activity [role="alert"]`).
+- `test/e2e/performance.spec.ts`: Today's `ready` is `.today:has(.today-row) .today-activity-row`.
+- `test/server/snapshot/process-audit.test.ts` › `cold Today page with Recent activity: …`:
+  characterization — `npx vitest run test/server/snapshot/process-audit.test.ts -t "Recent activity"
+  --maxWorkers=2` → 1 passed before any code (the server is unchanged); its guard-removal check is
+  recorded at green.

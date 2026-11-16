@@ -445,6 +445,26 @@ export const SCREENS: readonly Screen[] = [
     open: (page, c) =>
       project(page, c, `/p/${c.pids[0]}/memory?figure=pending-gates`, (p) => p.locator('.memory-active')),
   },
+  {
+    // task-080 (D80-11): Today as Morgan with its last card, Recent activity, read and in view.
+    name: 'today — recent activity',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-activity-row'));
+      await page.locator('.today-activity').scrollIntoViewIfNeeded();
+    },
+  },
+  {
+    // task-080 (D80-2, D80-11): the events read refused (500 through `page.route`): the card's alert,
+    // the rest of Today shown.
+    name: 'today — recent activity, read failed',
+    open: async (page, c) => {
+      await page.route(`**/api/p/${c.pids[0]}/events/memory?limit=5`, (route) =>
+        route.fulfill({ status: 500, json: { error: { code: 'internal', message: 'The events could not be read' } } }),
+      );
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-activity [role="alert"]'));
+      await page.locator('.today-activity').scrollIntoViewIfNeeded();
+    },
+  },
 ];
 
 /** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
