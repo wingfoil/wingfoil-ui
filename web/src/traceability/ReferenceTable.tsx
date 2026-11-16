@@ -13,7 +13,7 @@
 import { Link } from '@tanstack/react-router';
 import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
-import { Focusable, Tooltip, TooltipTrigger } from 'react-aria-components';
+import { Link as AriaLink, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Bar } from './Figures.js';
 import { referenceKey } from './model.js';
@@ -31,19 +31,18 @@ function Chip({ pid, id, element }: { pid: string; id: string; element: Traceabi
   const tone = element?.descriptor?.tone;
   return (
     <TooltipTrigger delay={300} closeDelay={0}>
-      <Focusable>
-        <Link
-          className={tone === undefined ? 'trace-chip' : `trace-chip tone-${tone}`}
-          to="/p/$pid/e/$eid"
-          params={{ pid, eid: id }}
-          aria-label={intl.formatMessage(
-            { id: 'traceability.chip.name' },
-            { id: short, title: element?.title ?? id, state: element?.status ?? '' },
-          )}
-        >
-          {short}
-        </Link>
-      </Focusable>
+      {/* A React Aria link (navigating through the router, app.tsx), so the tooltip opens on hover
+          as on focus. */}
+      <AriaLink
+        className={tone === undefined ? 'trace-chip' : `trace-chip tone-${tone}`}
+        href={`/p/${encodeURIComponent(pid)}/e/${encodeURIComponent(id)}`}
+        aria-label={intl.formatMessage(
+          { id: 'traceability.chip.name' },
+          { id: short, title: element?.title ?? id, state: element?.status ?? '' },
+        )}
+      >
+        {short}
+      </AriaLink>
       <Tooltip className="trace-tooltip" placement="top">
         <span className="trace-tooltip-title">{element?.title ?? id}</span>
         <span className="trace-tooltip-id">{id}</span>

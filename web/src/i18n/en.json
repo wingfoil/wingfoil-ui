@@ -525,10 +525,10 @@
   "traceability.seam.completion": "Project completion {percent} %",
   "traceability.seam.completionNeedsReferences": "Completion needs references — <link>see Configuration › Taxonomy</link>",
   "traceability.seam.completionNoLinked": "No references linked in {scope}",
-  "traceability.seam.phaseCompletion": "Phase completion — {needsVersion, select, yes {needs WingFoil {minVersion}} other {read-only in this release}}",
+  "traceability.seam.phaseCompletion": "Phase completion — {needsVersion, select, yes {needs WingFoil {minVersion}} no {read-only in this release} other {read-only in this release}}",
   "traceability.search.label": "Search references",
   "traceability.status.label": "Status",
-  "traceability.status.option": "{status, select, completed {Completed} partial {In progress} notStarted {Not started} noElements {No elements} other {All}}",
+  "traceability.status.option": "{status, select, completed {Completed} partial {In progress} notStarted {Not started} noElements {No elements} all {All} other {All}}",
   "traceability.table.label": "References",
   "traceability.title": "Traceability",
   "traceability.updates.label": "Traceability updates"

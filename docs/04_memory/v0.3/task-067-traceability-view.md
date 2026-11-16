@@ -446,3 +446,24 @@ their first run is the push run of `gates.yml`.
 - Docs: `docs/user-guide.md` 0.43 (*Traceability*), `CHANGELOG.md` *Unreleased* › *Added*,
   `ux-reference.md` 1.26 (§4.8 the address's status words, Q2 (a)), `test/README.md` 0.94.
 
+
+### refactor (2026-11-16)
+
+- Local on `550fdc1f`: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run
+  docs:api` clean; `npx vitest run test/web/i18n test/web/routes/nav.test.ts
+  test/docs/public-text.test.ts test/lint/methodology-literals.test.ts test/web/traceability
+  --maxWorkers=2`: 8 files, 186 passed; `npx vitest run test/governance
+  test/docs/public-text.test.ts --maxWorkers=2`: 5 files, 92 passed; `check_tasks.py v0.3`: OK.
+- `gates.yml` push run `43851706493` on `550fdc1f`: checks, coverage, contract, smoke and
+  publish-smoke green; red on two findings, fixed test first where a test was missing:
+  - "AC-1 — chip tooltip on hover and on focus" failed on the three engines: the tooltip never
+    opened on hover. React Aria's `Focusable` around the router's `Link` gives the trigger focus,
+    not hover; the chip is now React Aria's `Link` (it navigates through the router,
+    `web/src/app.tsx` `AriaRouterProvider`, its `href` built with `encodeURIComponent` as
+    `documentHref`). The unit test only covered focus (jsdom has no hover): the e2e test is the
+    guard.
+  - X-09.1 on both new screens: a `select` value the key build renders must be one of the message's
+    own options — `no` (phase reason) and `all` (status) were reached through `other`. The two
+    messages now name them (`no {…}`, `all {All}`).
+  - `npx vitest run test/web/traceability test/web/i18n/catalogue.test.ts --maxWorkers=2`: 3 files,
+    38 passed.
