@@ -5,7 +5,7 @@ title: "Custom test fixture without the repository ui.yaml"              # REQUI
 status: in-progress          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
 sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: "server"             # optional — server | web | contracts (dna.yaml modules)
+module: "governance"             # optional — server | web | contracts (dna.yaml modules)
 priority: "high"           # optional — high | medium | low
 tags: ["v0.3", "governance", "test-harness"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
@@ -27,7 +27,7 @@ branch (gates run `43876696740`, on task-065's merge of the phase branch `13bd3c
 Wave 3 by the approver's choice (2026-11-16, "a"; `backlog-item-rel-v0.3-plan` W3-4), before
 task-065's merge; task-065 and task-067 merge the phase branch after it.
 
-**Backlog items:** GOV (governance — a harness fix, bug-049)
+**Backlog items:** GOV (governance — the harness fix of bug-049)
 
 ## Acceptance Criteria
 
