@@ -462,3 +462,17 @@ Each finding fixed test first: the two tests committed failing (`1b7468c2`), the
 | F-3 (nit) — a future author date reads "N … ago" | No change: `durationOf`'s absolute age is the existing rule shared with Today's rows (`web/src/today/model.ts`) | — |
 
 `npx vitest run test/web/today/recent-activity.test.tsx --maxWorkers=2` → 12 passed.
+
+Local on `eaa288d1`: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`
+→ clean; `npx vitest run test/docs/public-text.test.ts --maxWorkers=2` → 67 passed;
+`test/governance/*.test.ts` one at a time → 7, 5, 9, 4 passed (`workflow-diagnostics` reports
+`W_UNCOMMITTED_INPUTS` for this file until it is committed, as expected).
+
+`gates.yml` on `eaa288d1`, both **success**:
+
+- push run **43859584782**: `checks`, `coverage`, `contract`, `smoke`, `publish-smoke` passed;
+  `e2e-chromium` 204 + 203 passed; own specs (the push's selection, `recent-activity.spec.ts`,
+  `performance.spec.ts`) 3 passed on Firefox, 3 on WebKit;
+- dispatch run **43859584238** (`specs` `test/e2e/recent-activity.spec.ts test/e2e/today.spec.ts
+  test/e2e/side-panel.spec.ts`): every job passed; `e2e-chromium` 204 + 203 passed; own specs
+  **31 passed on Firefox, 31 on WebKit**.
