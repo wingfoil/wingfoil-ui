@@ -560,3 +560,40 @@ Local, on `4cfd93e5`: `npm run typecheck`, `npm run lint`, `npx prettier --check
 run --maxWorkers=2 test/docs/public-text.test.ts` (67) and `test/governance` (25) passed. Push run
 `43854094788` on `4cfd93e5`: success — checks, coverage, contract, e2e-chromium ×2, own specs on
 Firefox and WebKit, smoke, publish-smoke.
+
+### checker (2026-11-16)
+
+Independent pre-submit check (neither developer nor reviewer), on `fe7dbb3c` (notes only over
+`4cfd93e5`), against `definition-of-done` (*refactor*, *Where the gates run*, *review*),
+`claim-evidence`, `documentation`, `doc-versioning`, `testing` and `CLAUDE.md`. Ran:
+`git var GIT_AUTHOR_IDENT` (the agent's identity); `npm run typecheck`, `npm run lint`, `npm run
+format:check`, `npm run -s docs:api`: clean, `git status --short` empty after them;
+`npx vitest run test/docs/public-text.test.ts --maxWorkers=2` (67) and `test/governance` (25):
+passed; `python3 -I docs/03_backlog/X_tools/check_tasks.py v0.3`: OK (34 tasks). `gh run view
+<id> --json conclusion,headSha`: `43840736563` (dispatch, `9700f98f`), `43847040848` (`c4cb6a12`),
+`43850280471` (`4d1e8f8e`), `43854094788` (`4cfd93e5`, jobs checks, contract, coverage,
+e2e-chromium ×2, smoke, publish-smoke, own-specs Firefox and WebKit success, e2e-wave skipped):
+all `success` on the stated commits.
+
+- **AC-1, AC-2:** the e2e closure maps C-02.1 … C-02.5, C-03.1, C-03.2 to titles that exist verbatim
+  in `test/e2e/use-preset.spec.ts` (grep: lines 68, 85, 102, 111, 117, 130, 155), plus the
+  keyboard and 400 px tests (169, 188); green on the three engines in the runs above.
+- **AC-3:** `docs/user-guide.md` 0.43, `ux-reference.md` 1.27 (1.26 §4.11 *Use preset*, 1.27
+  review round 2 R2-2), `test/README.md` 0.95 (0.94, 0.95), `CHANGELOG.md` *Unreleased* › *Added*,
+  spec-008 Process Note (2026-11-16): each history entry follows task-066's 0.42 / 1.25 / 0.93
+  after the merge `c4cb6a12` (W2-9), no gap or duplicate.
+- **AC-4:** handed to the approver (D79-15, after the merge), not done by an agent.
+- **RP-43, dl-005:** against `design/dev-loop_v0.3`, `web/src/i18n/en.json` (15 keys) and
+  `test/e2e/support/screens.ts` (two entries) have additions only; no route, server or contract
+  change; no local path in the changed files. The phase branch's commits since the merge
+  (task-080, task-081, the plan) touch none of this task's files.
+- **Reviews:** round 1 FAIL (F-1 major, F-2 … F-4 minor, F-5 … F-8 nits), each disposed with its
+  change and test (guard removals for F-1, F-4, F-5); round 2 PASS (R2-1, R2-2 nits), both fixed in
+  `4cfd93e5`.
+
+**Verdict: READY** for `memory submit` (in-progress → in-review).
+
+| id | what | where | fix |
+|----|------|-------|-----|
+| C-1 | nit — `accessibility.spec.ts` (the two new `SCREENS`) ran on Firefox and WebKit only in dispatch `43840736563` on `9700f98f`; the later push runs' own specs selected `use-preset.spec.ts` alone (log of `43854094788`: "playwright test --project=firefox … test/e2e/use-preset.spec.ts"), the accessibility spec on Chromium only. The later changes (`4d1e8f8e`, `4cfd93e5`) change no markup of the two screens | *Gates*, *Runs of round 1* | none before submit; the wave gate's three-engine `test:e2e` covers it |
+| C-2 | nit — the round 2 fixes' local line omits `docs:api` | *review round 2 fixes* | none: run by this check on `fe7dbb3c`, clean |
