@@ -548,3 +548,10 @@ radio's focus is visible through `base.css`'s `[data-focus-visible]` rule.
 |----|----------|-----------|---------------|-------------------|
 | R2-1 | nit | `web/src/configuration/UiFrame.tsx:6` | The edited header comment is one overlong line and now reads as if the `types` error, too, shows only "when nothing was read yet"; only the read's error has that condition (`:46`), the `types` error still replaces the values whenever the data has no `ui` (`:53`). | Rewrap the comment and attach the "nothing read yet" qualifier to the read's error alone. |
 | R2-2 | nit | `web/src/configuration/UiFrame.tsx:46` | Since F-4, Taxonomy and Progress keep showing the last data after a failed refetch with no sign that it is stale (task-064's tabs, not only the preset). Consistent with the switcher's pattern and the next `repo` event reads again, so acceptable, but it is a behaviour change of task-064's screens recorded only in this task. | None required; optionally a line in ux-reference §4.11's v0.3 block. |
+
+### review round 2 fixes (2026-11-16)
+
+| Finding | Change |
+|---------|--------|
+| R2-1 (nit) — `UiFrame.tsx`'s header comment put the "nothing read yet" qualifier on the `types` error too | rewrapped: instead of the values, the read's error when nothing was read yet (a failed refetch keeps the data read), or the `types` error when `memory.yaml` cannot be read |
+| R2-2 (nit) — ux-reference silent on the kept data | `ux-reference.md` 1.27: the §4.11 v0.3 Taxonomy and Progress block says a failed read shows its error only when nothing was read yet, both tabs keeping the last data read after a failed refetch (and a pending *Use preset* its dialog) |
