@@ -312,6 +312,19 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
     await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
   });
 
+  it('opens on hover and closes when the pointer leaves (T-14.1; gates run 43853390662: no tooltip on hover)', async () => {
+    stubApi(api());
+    const user = userEvent.setup();
+    await openCard();
+    const link = within(figures()).getByRole('link', { name: 'Project completion 25 %' });
+    await user.hover(link);
+    expect((await screen.findByRole('tooltip')).textContent).toBe(
+      'Mean of reference completion over 2 references with at least 1 linked element: US-M-01 50 %, US-S-01 0 %',
+    );
+    await user.unhover(link);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+  });
+
   it('says "and <n> more" past the listed references, one reference in the singular', async () => {
     const references = Array.from({ length: 10 }, (_, i) => ({
       id: `US-${String(i + 1).padStart(2, '0')}`,
