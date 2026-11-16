@@ -587,3 +587,41 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
   reference a `FormattedMessage` in its own `.progress-reference` element, the list's separators
   the `en` `Intl` list format, which the X-09.1 checker now accepts among its `Intl` renderings
   (`test/e2e/support/strings.ts`, as the dates and ages).
+
+  | Run | Commit | Trigger | Result |
+  |-----|--------|---------|--------|
+  | `43858975395` | `2e67dfec` | push | cancelled by the dispatch below |
+  | `43858975709` | `2e67dfec` | dispatch, `specs` = `test/e2e/today-progress.spec.ts`, `today.spec.ts`, `today-cards.spec.ts`, `notification-bell.spec.ts`, `accessibility.spec.ts`, `memory-filters.spec.ts` | **success**: checks, coverage (96.74 % statements, 91.92 % branches), contract, smoke, publish-smoke, e2e-chromium 212 + 212 passed, own specs 150 passed on Firefox and 150 on WebKit |
+
+- **Strict identity (dl-011):** T-12.3's CLI approve and the Given commits (`kanbanCompletion`,
+  `commitFile`) ran on the runner in the e2e jobs above (Playwright does not run locally, the
+  stage's working rules); `kanbanCompletion` also ran locally through `progress-routes.test.ts`.
+- **AC-3** (`@perf`): its budgets are asserted only under `test:timing`, the coordinator's run at
+  the wave gate; the default e2e run printed TT-PERF-01 Today p95 108 ms warm, first open 1272 ms
+  (run `43856118608`, e2e-chromium (2), load average about 6 on 4 cores).
+- Not done here: the phase branch is merged by the coordinator after `workflow finalize`.
+
+#### e2e closure (task-065)
+
+| Scenario | Spec file : test |
+|----------|------------------|
+| T-12.1 Show the figures of the current scope | `test/e2e/today-progress.spec.ts` : `T-12.1 — Show the figures of the current scope` |
+| T-12.2 Show whole-project figures without ui.yaml | `test/e2e/today-progress.spec.ts` : `T-12.2 — Show whole-project figures without ui.yaml` |
+| T-12.3 Update the figures after a decision | `test/e2e/today-progress.spec.ts` : `T-12.3 — Update the figures after a decision` (`@live-refresh`; strict 5 s under `test:timing`) |
+| T-12.4 Move the scope to the most advanced release | `test/e2e/today-progress.spec.ts` : `T-12.4 — Move the scope to the most advanced release` |
+| T-12.5 Say that no release is under way | `test/e2e/today-progress.spec.ts` : `T-12.5 — Say that no release is under way` |
+| T-12.6 Say that no reference is linked in the current release | `test/e2e/today-progress.spec.ts` : `T-12.6 — Say that no reference is linked in the current release` |
+| T-13.1 Open the items behind "Pending gates" | `test/e2e/today-progress.spec.ts` : `T-13.1 — Open the items behind "Pending gates"` |
+| T-13.2 Open the items behind "Iterated: task 1/4" | `test/e2e/today-progress.spec.ts` : `T-13.2 — Open the items behind "Iterated: task 1/4"` |
+| T-13.3 Clear a figure filter | `test/e2e/today-progress.spec.ts` : `T-13.3 — Clear a figure filter` |
+| T-13.4 Ignore an unknown figure code | `test/e2e/today-progress.spec.ts` : `T-13.4 — Ignore an unknown figure code` (characterization: task-066 built the rule) |
+| T-14.1 Explain the completion figure on hover | `test/e2e/today-progress.spec.ts` : `T-14.1 — Explain the completion figure on hover` |
+| T-14.2 Reach the explanation with the keyboard | `test/e2e/today-progress.spec.ts` : `T-14.2 — Reach the explanation with the keyboard` |
+| T-15.1 Show the phase figure read-only on WingFoil 0.2.2 | `test/e2e/today-progress.spec.ts` : `T-15.1 — Show the phase figure read-only on WingFoil 0.2.2` |
+| T-15.2 Show phase completion read-only too | `test/e2e/today-progress.spec.ts` : `T-15.2 — Show phase completion read-only too` and `T-15.2 — the not-in-release text on WingFoil 0.3.1` |
+| X-10.4 Show the project completion in the tab title | `test/e2e/today-progress.spec.ts` : `X-10.4 — Show the project completion in the tab title` and `X-10.4 — no percentage when completion is not shown` |
+| C-04.1 Fall back to inferred values when ui.yaml is invalid | `test/e2e/today-progress.spec.ts` : `C-04.1 — Fall back to inferred values when ui.yaml is invalid` |
+| X-06.4, X-09.1 on the new screens | `test/e2e/accessibility.spec.ts` over `SCREENS`: `today — progress card`, `today — completion explanation open`, `today — progress read-only and ui.yaml ignored` |
+| TT-PERF-01 with the progress card (AC-3) | `test/e2e/performance.spec.ts` : `T-01.1, T-02.1 — Today renders within 2.0 s (p95, warm cache), the first open within 5.0 s` |
+
+T-08.1 … T-08.3 (US-T-08) are closed by task-080's e2e spec (W3-3).
