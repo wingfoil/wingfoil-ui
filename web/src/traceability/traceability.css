@@ -1,0 +1,316 @@
+/*
+ * The Traceability page (ux-reference §4.8 v0.3, the prototype's *Tracciabilità* view): figure
+ * cards, filter groups, the references table with its chips, the missing-references section.
+ * Colours only through the tokens of tokens.css; state colours through tones.css (data).
+ */
+.trace-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.trace-group-label {
+  margin-right: var(--space-1);
+  color: var(--color-text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.trace-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--color-divider);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.trace-toggle:hover {
+  background: var(--color-surface-2);
+}
+
+.trace-toggle[aria-pressed='true'] {
+  border-color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.trace-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.trace-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.trace-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.trace-card p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.trace-card-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.trace-card-note {
+  color: var(--color-text-2);
+  font-size: 13px;
+}
+
+.trace-bar {
+  display: block;
+  position: relative;
+  min-width: 48px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--color-surface-2);
+}
+
+.trace-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--color-primary);
+}
+
+.trace-note,
+.trace-notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.trace-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+}
+
+.trace-notice {
+  background: var(--tone-human-bg);
+  color: var(--tone-human-fg);
+}
+
+.trace-notices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.trace-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.trace-search {
+  max-width: 360px;
+}
+
+.trace-empty {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px dashed var(--color-divider);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-2);
+  text-align: center;
+}
+
+.trace-empty p {
+  margin: 0 0 var(--space-2);
+}
+
+/* Only the table scrolls sideways on a narrow window (D67-7). */
+.trace-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+}
+
+.trace-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.trace-table th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  font-weight: 600;
+  text-align: left;
+}
+
+.trace-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: top;
+}
+
+.trace-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.trace-ref {
+  min-width: 160px;
+}
+
+.trace-category {
+  margin-right: var(--space-2);
+}
+
+.trace-ref-id {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.trace-ref-element {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trace-ref-title {
+  color: var(--color-text-2);
+  overflow-wrap: anywhere;
+}
+
+.trace-linked {
+  min-width: 140px;
+}
+
+.trace-chip {
+  display: inline-block;
+  margin: 0 4px 4px 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.trace-chip:not([class*='tone-']) {
+  background: var(--color-surface-2);
+  color: var(--color-text-2);
+}
+
+.trace-chip:focus-visible,
+.trace-toggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.trace-completion {
+  min-width: 110px;
+  white-space: nowrap;
+}
+
+.trace-completion .trace-bar {
+  margin-bottom: 4px;
+}
+
+.trace-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 320px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: var(--shadow-popover);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.trace-tooltip-id {
+  font-family: var(--font-mono);
+}
+
+.trace-tooltip-state {
+  color: var(--color-text-2);
+}
+
+.trace-missing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.trace-missing-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.trace-section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.trace-missing-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trace-missing-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-divider);
+  color: var(--color-text);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.trace-missing-row:hover {
+  background: var(--color-surface-2);
+}
+
+.trace-missing-id {
+  font-family: var(--font-mono);
+}
+
+.trace-missing-title {
+  overflow-wrap: anywhere;
+}
+
+.trace-missing-needs {
+  color: var(--color-text-2);
+}

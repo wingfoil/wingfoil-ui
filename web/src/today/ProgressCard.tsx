@@ -98,7 +98,14 @@ function completionText(intl: IntlShape, progress: Progress): string {
     ? joined(
         intl.formatMessage({ id: 'progress.completion.noCategories' }, { link: (chunks: string[]) => chunks.join('') }),
       )
-    : intl.formatMessage({ id: 'progress.completion.noLinked' }, { scope: scopeName(progress) ?? '' });
+    : scopeNameText(intl, scopeName(progress));
+}
+
+/** The no-linked-elements text: the scope named, or the project (task-067 review round 2, R2-1). */
+function scopeNameText(intl: IntlShape, scope: string | null): string {
+  return scope === null
+    ? intl.formatMessage({ id: 'progress.completion.noLinkedProject' })
+    : intl.formatMessage({ id: 'progress.completion.noLinked' }, { scope });
 }
 
 /**

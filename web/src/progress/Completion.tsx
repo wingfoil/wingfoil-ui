@@ -13,7 +13,7 @@
  * - `unavailable`: its reason's text in its place, not a link — `no-reference-categories` with a
  *   link to Configuration › Taxonomy (T-12.2), `no-linked-elements` naming the scope (T-12.6).
  *
- * API: `<ProgressCompletion pid figure scopeName />`; `<CompletionExplanation figure />` for a view
+ * API: `<ProgressCompletion pid figure scopeName linkToFilter? />`; `<CompletionExplanation figure />` for a view
  * that shows the explanation elsewhere. Classes: `progress-completion`, `progress-completion-link`,
  * `progress-bar`, `progress-tooltip`, `progress-reason`.
  */
@@ -30,8 +30,18 @@ export interface ProgressCompletionProps {
   pid: string;
   /** The `completion` figure as the server sent it. */
   figure: CompletionFigure;
-  /** The scope in texts (the current element's short id, else its id) — for `no-linked-elements`. */
+  /**
+   * The scope in texts (the current element's short id, else its id) — for `no-linked-elements`;
+   * `null` names the whole project (task-067 review round 1, F-2).
+   */
   scopeName: string | null;
+  /**
+   * The shown figure as a link to the Memory list's figure filter (default). `false` renders it as a
+   * focusable tooltip trigger without the link: the filter lists `/progress`'s current scope, so a
+   * view showing another scope's figure (Traceability's *Whole project*) must not link it
+   * (task-067 review round 1, F-1).
+   */
+  linkToFilter?: boolean;
 }
 
 /**
@@ -63,7 +73,13 @@ export function CompletionExplanation({ figure }: { figure: CompletionFigure }):
 }
 
 /** The completion figure: the link with its bar and explanation, or the reason in its place. */
-export function ProgressCompletion({ pid, figure, scopeName }: ProgressCompletionProps): ReactNode {
+export function ProgressCompletion({
+  pid,
+  figure,
+  scopeName,
+  linkToFilter = true,
+}: ProgressCompletionProps): ReactNode {
+  const intl = useIntl();
   // Hover, keyboard focus, Escape, the delay and the one-open-tooltip rule are React Aria's alone:
   // `Focusable` merges the trigger's handlers into the router link. A hover counts once React Aria's
   // interaction modality is the pointer's (a pointer that moved on the page), then waits `delay`
@@ -83,31 +99,54 @@ export function ProgressCompletion({ pid, figure, scopeName }: ProgressCompletio
               ),
             }}
           />
+        ) : scopeName === null ? (
+          <FormattedMessage id="progress.completion.noLinkedProject" />
         ) : (
-          <FormattedMessage id="progress.completion.noLinked" values={{ scope: scopeName ?? '' }} />
+          <FormattedMessage id="progress.completion.noLinked" values={{ scope: scopeName }} />
         )}
       </span>
     );
   }
+  const formatted: string | string[] = intl.formatMessage(
+    { id: 'progress.completion.figure' },
+    {
+      percent: figure.percent,
+      label: (chunks: string[]) => chunks.join(''),
+      value: (chunks: string[]) => chunks.join(''),
+    },
+  );
+  const figureLabel = Array.isArray(formatted) ? formatted.join('') : formatted;
+  const figureText = (
+    <FormattedMessage
+      id="progress.completion.figure"
+      values={{
+        percent: figure.percent,
+        label: (chunks: ReactNode[]) => <span className="progress-figure-label">{chunks}</span>,
+        value: (chunks: ReactNode[]) => <span className="progress-figure-value">{chunks}</span>,
+      }}
+    />
+  );
   return (
     <span className="progress-completion">
       <TooltipTrigger delay={300}>
         <Focusable>
-          <Link
-            className="progress-figure-link progress-completion-link"
-            to="/p/$pid/memory"
-            params={{ pid }}
-            search={{ figure: 'completion' }}
-          >
-            <FormattedMessage
-              id="progress.completion.figure"
-              values={{
-                percent: figure.percent,
-                label: (chunks: ReactNode[]) => <span className="progress-figure-label">{chunks}</span>,
-                value: (chunks: ReactNode[]) => <span className="progress-figure-value">{chunks}</span>,
-              }}
-            />
-          </Link>
+          {linkToFilter ? (
+            <Link
+              className="progress-figure-link progress-completion-link"
+              to="/p/$pid/memory"
+              params={{ pid }}
+              search={{ figure: 'completion' }}
+            >
+              {figureText}
+            </Link>
+          ) : (
+            // An image named by the figure's text (an interactive ARIA role for React Aria's
+            // `Focusable`; the tooltip is its accessible description while open — review round 2,
+            // R2-2).
+            <span className="progress-completion-trigger" role="img" aria-label={figureLabel} tabIndex={0}>
+              {figureText}
+            </span>
+          )}
         </Focusable>
         <Tooltip className="progress-tooltip" placement="bottom">
           <CompletionExplanation figure={figure} />

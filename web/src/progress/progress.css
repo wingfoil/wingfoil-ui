@@ -12,6 +12,21 @@
   text-decoration: none;
 }
 
+.progress-completion-trigger {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+/* The completion without its link (task-067 review round 1, F-1): a tooltip trigger, focusable. */
+.progress-completion-trigger:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .progress-figure-link:hover .progress-figure-label {
   text-decoration: underline;
 }

@@ -473,6 +473,45 @@ test.describe(`TT-PERF-03, TT-PERF-04 — progress and missing references ${PERF
     if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
   });
 
+  // task-067 AC-5 (REQ-PERF-04 since TQ-6 (a), D67-16): the Traceability page on the preset copy,
+  // reached from Documentation by the sidebar, its table rendered with its chips.
+  test('AC-5 (task-067) — Traceability renders within 1.0 s (p95, warm cache)', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const dir = testInfo.outputPath('large-traceability');
+    await cp(large.dir, dir, { recursive: true });
+    const copy = { ...large, dir };
+    await usePresetUiConfig(copy);
+    const c = await consoles.start({ projects: [copy] });
+    const view: View = {
+      scenario: 'R-01.1',
+      name: 'Traceability',
+      from: (pid) => `/p/${pid}/docs`,
+      target: (page) => nav(page, 'Traceability'),
+      ready: '.trace-table tr[data-ref] .trace-chip',
+      reads: (pid) => `/api/p/${pid}/traceability`,
+    };
+    const times: number[] = [];
+    let warmUp = 0;
+    for (let i = 0; i <= PERF_RUNS; i++) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        const ms = await run(page, c, view);
+        if (i === 0) warmUp = ms;
+        else times.push(ms);
+      } finally {
+        await context.close();
+      }
+    }
+    reportRuns('Traceability with the preset', warmUp, times);
+    expect(times).toHaveLength(PERF_RUNS);
+    if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
+  });
+
   test('AC-7 — a commit outside the UI reaches /progress and the /elements flags within 5 s', async ({
     browser,
     large,

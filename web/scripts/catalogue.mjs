@@ -41,6 +41,8 @@ export const AREAS = [
   'state',
   'a11y',
   'common',
+  // task-067: Traceability (spec-008 §2, an area added the same way).
+  'traceability',
 ];
 
 /**
