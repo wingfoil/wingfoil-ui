@@ -171,6 +171,28 @@ describe('Today and the Memory events (task-031)', () => {
     expect(after.state).toBe(next.key);
     expect(runner.spawned.filter((r) => r.args.includes('log')).length).toBe(logs + 2);
   });
+
+  // task-080 (D80-10, spec-012 §8): Today's Recent activity reads `?limit=5`, the bell `?limit=10`;
+  // one parse of the events per HEAD serves every limit (spec-002 §4).
+  it('cold Today page with Recent activity: /events/memory?limit=5 adds 0 CLI processes and no git log; warm, 0 processes', async () => {
+    const { fx, pid, standIn, runner } = await fresh(3_600_000);
+    await git(fx.dir, ['config', 'user.email', 'alex@example.test'], fx.env);
+    runner.spawned.length = 0;
+    expect((await standIn.get(`/api/p/${pid}/today`)).status).toBe(200);
+    const commands = runner.wingfoilCommands().length;
+    const logs = runner.spawned.filter((r) => r.args.includes('log')).length;
+    expect(logs).toBe(2);
+    const five = await standIn.get(`/api/p/${pid}/events/memory?limit=5`);
+    expect(five.status).toBe(200);
+    expect((five.body as { events: unknown[] }).events).toHaveLength(5);
+    expect(runner.wingfoilCommands()).toHaveLength(commands);
+    expect(runner.spawned.filter((r) => r.args.includes('log'))).toHaveLength(logs);
+
+    const before = runner.spawned.length;
+    expect((await standIn.get(`/api/p/${pid}/events/memory?limit=5`)).body).toEqual(five.body);
+    expect((await standIn.get(`/api/p/${pid}/events/memory?limit=10`)).status).toBe(200);
+    expect(runner.spawned.length).toBe(before);
+  });
 });
 
 /** Every entry of `dir` (name, type, size, mtime) and the SHA-256 of every file: `.git` unchanged. */

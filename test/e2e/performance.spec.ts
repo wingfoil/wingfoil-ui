@@ -223,7 +223,8 @@ const TODAY: View = {
     await openSwitcher(page);
   },
   target: (p) => rows(p).first(),
-  ready: '.today-row',
+  // task-080 (D80-10): Today's rows and Recent activity's, both rendered.
+  ready: '.today:has(.today-row) .today-activity-row',
   reads: (pid) => `/api/p/${pid}/today`,
 };
 

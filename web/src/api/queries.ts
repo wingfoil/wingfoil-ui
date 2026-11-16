@@ -115,7 +115,8 @@ export function todayQuery(pid: string, view: string | null) {
 /**
  * `GET /api/p/:pid/events/memory?limit=<n>`: the last `limit` Memory events, newest first (spec-004
  * §3) — the notification bell's *Updates* (task-042, `limit` 10, TT-PERF-11), read only while its
- * panel is open (D42-2). Key fixed by D31-6.
+ * panel is open (D42-2) — and Today's *Recent activity* (task-080, `limit` 5, REQ-PERF-11), always
+ * read on Today. One entry per `limit`; key fixed by D31-6.
  */
 export function memoryEventsQuery(pid: string, limit: number) {
   return queryOptions({
