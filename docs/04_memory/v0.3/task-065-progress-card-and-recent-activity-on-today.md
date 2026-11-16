@@ -562,3 +562,15 @@ Relayed by the coordinator, quoted: "tutto come consigliato" (`backlog-item-rel-
 - Classes: `progress-completion`, `progress-completion-link`, `progress-figure-link`,
   `progress-figure-label`, `progress-figure-value`, `progress-bar`, `progress-tooltip`,
   `progress-reason`.
+- **Gates on `gates.yml`** (task scope, W1-11):
+
+  | Run | Commit | Trigger | Result |
+  |-----|--------|---------|--------|
+  | `43853363838` | `9c35a311` (docs) | push | cancelled by the dispatch below (same concurrency group) |
+  | `43853390662` | `9c35a311` | dispatch, `specs` = `today-progress`, `today`, `today-cards`, `notification-bell`, `accessibility`, `memory-filters` | failure, one cause: the completion tooltip does not open on **hover** in a browser — T-14.1, the *today — completion explanation open* screen (X-06.4, X-09.1) and `no-commit.spec.ts` AC-5.1 (which walks `SCREENS`), on the three engines; every other test green (own specs 147 passed on Firefox and WebKit, e2e-chromium 210 + 147 passed); checks, coverage, contract, both smokes green |
+
+  The fix, test first: `progress-card.test.tsx` "opens on hover and closes when the pointer
+  leaves" failed in jsdom too (red `test(task-065): red — the completion tooltip opens on hover`);
+  React Aria's `Focusable` passes the trigger's focus handlers to the router link but not its hover
+  ones, so `ProgressCompletion` opens the tooltip on `mouseenter` and closes it on `mouseleave`
+  (`TooltipTrigger` controlled; keyboard focus and Escape still React Aria's).
