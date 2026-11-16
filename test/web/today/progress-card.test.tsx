@@ -361,6 +361,15 @@ describe('AC-1 — the card on Today', () => {
     expect(status.textContent).toBe('');
   });
 
+  it('names no project version in the phase text until the header is read (review round 2, R2-1)', async () => {
+    const fetch = stubApi(api());
+    const answer = fetch.getMockImplementation() as (url: string) => Promise<Response>;
+    fetch.mockImplementation((url: string) => (url === HEADER ? new Promise<Response>(() => undefined) : answer(url)));
+    renderApp(`/p/${PID}/today`);
+    await waitFor(() => expect(within(card()).queryByRole('list', { name: 'Figures' })).not.toBeNull());
+    expect(within(figures()).getAllByRole('listitem')[1]!.textContent).toBe('Phase — needs WingFoil 0.3');
+  });
+
   it('marks the announced texts as a list of message elements (`.intl-list`, X-09.1)', async () => {
     stubApi(api());
     const { queryClient } = await openCard();
