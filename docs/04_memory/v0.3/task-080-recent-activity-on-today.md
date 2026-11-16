@@ -92,3 +92,208 @@ its spec runs under the strict-identity recipe of `test/README.md` *Fixtures* �
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-16)
+
+Read (dl-015): this task; task-061's Execution Notes (its `depends_on`: D61-4 … D61-10, the cards,
+`CardRows`, `RowParts.tsx` and D61-8's full-time description); task-065's design and the
+approver's answers on it (`b3e12c64`, `454fd3ac` on its branch: D65-2, D65-3, D65-10, D65-12,
+D65-15, D65-16, Q1 (b), Q3 (b), Q5 (a)); task-036 (D36-9 TT-PERF-01, D36-11 the announcement),
+task-042 (D42-2 *Updates* read only while the bell's panel is open, D42-3 the last 10 events, the
+author rule of `updateLine`) and task-031 (D31-6 the query keys); `ux-reference.md` §4.1 (item 6,
+the v0.2 and v0.3 blocks), §4.2 (the focus after the panel closes, its "otherwise" rule);
+the prototype's Today through task-065's notes (one line per event, its time on the right);
+spec-012 §6, §8; spec-004 §3; spec-002 §1, §3; spec-008 §3; REQ-PERF-11; `t/recent-activity.feature`;
+`test/README.md` *Fixtures* › *Git identity* (dl-011); directives `definition-of-done` 1.5,
+`ux-consistency`, `accessibility`, `wingfoil-cli`, `claim-evidence`, `documentation`,
+`doc-versioning`. The code: `web/src/today/{TodayView.tsx,RowParts.tsx,model.ts,today.css}`,
+`web/src/routes/today.tsx`, `web/src/api/queries.ts` (`memoryEventsQuery`),
+`web/src/shell/{notifications.ts,NotificationBell.tsx}`, `web/src/element/side-panel.ts`,
+`server/src/http/project-routes.ts` (`memoryEventsOf`), `contracts/src/today.ts`
+(`MemoryEventEntry`, `MemoryEventsPage`); the tests `test/server/http/today-routes.test.ts`
+(`GET /api/p/:pid/events/memory`), `test/server/snapshot/process-audit.test.ts` (*Today and the
+Memory events*), `test/web/shell/{render.tsx,notification-bell.test.tsx}`,
+`test/web/today/{today,summary}.test.tsx`, `test/e2e/{today,notification-bell,performance}.spec.ts`,
+`test/e2e/support/{events,identity,screens}.ts`, `test/harness/fixtures/builder.ts` (the kanban
+history).
+
+No probe and no new tech-spec: the task changes no CLI call, git read or write and no route
+(`definition-of-done` *Security probes*); the card renders `GET /api/p/:pid/events/memory?limit=5`
+as spec-012 §6 and spec-004 §3 define it, already served and tested (`today-routes.test.ts` ›
+`GET /api/p/:pid/events/memory`, task-031). T-08.2 approves with the CLI and T-08.3 commits outside
+the UI: the spec runs under the strict-identity recipe of `test/README.md` *Fixtures* › *Git
+identity* (dl-011) on the `gates.yml` runner.
+
+#### Decisions (D80-n)
+
+- **D80-1 — The web renders, the server decides.** The card shows the events of
+  `memoryEventsQuery(pid, 5)` (key `['p', pid, 'events', 'memory', { limit: 5 }]`, beside the bell's
+  `limit` 10, D31-6; task-065 D65-2) in the order received (spec-004 §3: newest first, git order),
+  never re-sorted or filtered: non-Memory commits are not events (spec-002 §3, T-08.3), so the web
+  has nothing to leave out. No new query factory; the comment of `memoryEventsQuery` names Today's
+  `limit` 5 (REQ-PERF-11). The read is always enabled on Today (unlike the bell's, D42-2).
+- **D80-2 — Its own component, its own states (AC-2).** `web/src/today/RecentActivity.tsx` (new),
+  a `section` "Recent activity" (`aria-labelledby` its `h2`, the heading styled by the shared
+  `.today-card-title`) with the class `today-activity` — not `today-card` (task-065 D65-3: the
+  existing specs locate *Requires you* and *Waiting on others* by it). Loading: "Reading recent
+  activity…" (`role="status"`, so `expectSettled` waits for it); a failed read: `ErrorText` in a
+  `role="alert"` inside the card, never the empty text; empty: "No Memory event yet". It renders
+  for every user, member or not (project data). Styles in its own `recent-activity.css` from the
+  shared tokens (no change to `today.css`, a merge hot spot with task-065).
+- **D80-3 — The slot (merge with task-065).** `TodayView` gains one optional prop,
+  `activity?: ReactNode` (the name of D65-3), rendered as the **last child** of the page, after the
+  block of the Today read — so it shows while Today loads and when Today's read fails, as its own
+  read (Q2). `routes/today.tsx` passes `<RecentActivity pid={pid} />`. The existing unit tests of
+  `TodayView` keep their props. Whichever of task-065 and this task merges second takes the
+  other's lines (W2-9): the prop, its JSX line and the route's line are the only shared hunks (Q1).
+- **D80-4 — The row (T-08.1, T-08.2; Q5 (a) of task-065).** One `li` per event with `data-sha`
+  (not `data-eid`: Today's opener restore scans `li[data-eid]`, D77-7), its main line reading
+  exactly "<id> <what> · <name>" and its time on the right:
+  - `<id>`: the event's full id as written, a link opening the element's side panel over Today
+    (`panelLinkOptions(id, panelOpen)`, as the Waiting on others rows); no type tag, no short id
+    (spec-012 §6, Q5 (a));
+  - `<what>`: "{from} → {to}" (the existing `element.history.transition`) when the event has both;
+    otherwise the operation's word from a new `select`, `today.activity.operation` — "created" for
+    `add`, "amended", "moved with a linked element", …, "edited outside a WingFoil verb" for
+    `other`, the words of `element.history.entry` without "by {name}" (same concept, same word);
+  - `<name>`: `updateLine(event).name` — the approver of an approve, a reject or an amend, else the
+    author (the bell's rule, `notifications.ts`, reused, not copied); joined by `today.activity.by`
+    "{what} · {name}" (one message, the parts as elements: no concatenation, spec-008 §3);
+  - the time: a `<time dateTime>` "{age} ago" (`today.activity.ago` around `today.age`, the age by
+    `durationOf` of `model.ts`) counted from the read's `dataUpdatedAt`, with the full date and time
+    (`dateStyle: 'full', timeStyle: 'long'`) in a hidden element that the link names in its
+    `aria-describedby` — RowSince's pattern (D61-8, task-061 review F-3), so the description is
+    reachable from the focusable link.
+  A long id wraps inside the row (`overflow-wrap: anywhere`); the card wraps at narrow widths
+  (bug-044's page-level scroll is not touched).
+- **D80-5 — No Timeline link.** None, while R6 is in v0.4 (RP3-14 D8, recorded in `ux-reference.md`
+  §4.1 v0.3); the T-08.1 test asserts it absent.
+- **D80-6 — The refresh (AC-2, T-08.2).** The key sits under `['p', pid]`: the `repo` event
+  refetches it (spec-012 §8), no new event and no poll. A refetch re-renders the rows silently: no
+  live region, and Today's "Today updates" region is not touched (it announces Requires you only,
+  D36-11).
+- **D80-7 — The focus after the panel closes (Q3).** A Recent activity link records no opener: on
+  close the main region takes the focus (`ux-reference.md` §4.2 v0.2 "another link", task-077's
+  `onPanelClosed` path unchanged).
+- **D80-8 — Catalogue (spec-008, RP-43: additions only, after `today.actionLabel`, sorted).**
+  `today.activity.title` "Recent activity", `today.activity.loading` "Reading recent activity…",
+  `today.activity.empty` "No Memory event yet", `today.activity.operation` (the `select` of D80-4),
+  `today.activity.by` "{what} · {name}", `today.activity.ago` "{age} ago". No key changed or removed;
+  the full date has no key (an `Intl` format, as RowSince).
+- **D80-9 — Accessibility.** Each id link reachable by Tab with visible focus, in DOM order after
+  *Waiting on others* (the tab order before the card is unchanged); the heading an `h2` like the
+  other cards; axe 0 serious/critical in both themes on the card's screens (D80-11); no colour
+  carries meaning alone.
+- **D80-10 — Performance and processes (AC-3).** `performance.spec.ts` TT-PERF-01: Today's `ready`
+  becomes `.today:has(.today-row) .today-activity-row` (both the rows of Today and of the card
+  rendered), the budgets unchanged (p95 ≤ 2.0 s warm, ≤ 5.0 s first open; asserted under
+  `test:timing` only, the coordinator's run at the wave gate). `process-audit.test.ts` gains, in
+  *Today and the Memory events*, "cold Today page with Recent activity: `/events/memory?limit=5`
+  adds 0 CLI processes and no git log; warm, 0 processes" — the events of a HEAD are one parse
+  shared by every `limit` (spec-002 §4); a characterization (the server is unchanged), its
+  guard-removal failure recorded at green.
+- **D80-11 — Screens (X-06.4, X-09.1; append-only).** Two entries at the end of `SCREENS`:
+  `today — recent activity` (the screens console's kanban as Morgan, ready on
+  `.today-activity-row`, the card scrolled into view) and `today — recent activity, read failed`
+  (the events read answered 500 through `page.route`, the card's alert shown). The existing `today`
+  entry is not changed; its `expectSettled` now also waits for the card.
+- **D80-12 — Fixtures for the e2e (RP3-16 P4).** Kanban copies with `actAs(fx, 'Casey')` (the
+  Background). T-08.1: the kanban history as built — newest first `bug-001-crash-on-save` submit
+  (Sam), its `add` (Sam), `task-004-session-timeout` `add` (Jordan), `task-003-logout` approve
+  (Morgan), its submit (Jordan): three transitions and two creations; the states are written in the
+  test as `memory history` prints them on the fixture (checked at red). T-08.2: Morgan's `memory
+  approve task-001-login-form --reason …` through a new helper `cliAs(fixture, name, args)` in
+  `test/e2e/support/events.ts`, which runs the pinned CLI with `user.name`/`user.email` of the
+  member for that process only (`GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_n`/`GIT_CONFIG_VALUE_n`), so the
+  copy's own identity — the console's user, Casey — is untouched; the red run checks that the
+  approve resolves Morgan (else the helper approves in a second clone as Morgan and the copy pulls
+  it, outside the UI, recorded in the notes). T-08.3: `commitFile(fx, 'README.md', …, 'docs: fix a
+  typo in README')` before the console starts.
+- **D80-13 — Docs (AC-4).** `docs/user-guide.md` *Today* (Recent activity: what a row says, the
+  link, the refresh, no Timeline link yet), `CHANGELOG.md` *Unreleased* *Added*, `test/README.md`
+  (the new spec, `cliAs`, the unit suite), `ux-reference.md` §4.1 v0.3 (the row form of D80-4, the
+  empty and error texts, the card's place last — the refinements, directive `ux-consistency`), each
+  with its Version/Date bumped.
+
+#### Acceptance criteria: class and test plan
+
+Every row below is red-first (Today shows no Recent activity before this task) unless marked; the
+task's e2e spec is `test/e2e/recent-activity.spec.ts` (new; `prebuild: ['kanban']`), one test per
+scenario titled with its id, asserting what the user sees.
+
+| AC / scenario | Class | Test (file › title) |
+|---------------|-------|---------------------|
+| T-08.1 (AC-1, AC-2) | red-first | e2e › `T-08.1 — Show the last 5 Memory events` (5 rows; each main line's exact text in order, e.g. "bug-001-crash-on-save created · Sam"; each row a `<time>` "… ago" and its link's accessible description the full date; no link "Open the Timeline" in the card; the card after *Waiting on others*; the first id link by keyboard opens its side panel; at 400 px the card has no horizontal overflow) |
+| T-08.2 (AC-1, AC-2) | red-first | e2e › `T-08.2 — Add an event made outside the UI` (`@live-refresh`, `refreshClock`; `cliAs(fx, 'Morgan', ['memory', 'approve', 'task-001-login-form', …])` through `mutateAndWait` on `repo`; the first row reads "task-001-login-form pending → approved · Morgan" within the clock; still 5 rows; strict 5 s under `test:timing`) |
+| T-08.3 (AC-1) | red-first | e2e › `T-08.3 — Leave out commits that are not Memory events` (README committed last; 5 rows, none reads "docs: fix a typo in README"; the first row is still `bug-001-crash-on-save`'s, not HEAD's sha) |
+| AC-2 (unit) | red-first | `test/web/today/recent-activity.test.tsx` (new; the app through `renderApp` with `stubApi`): rows in the answer's order even when not sorted by time; transition, "created", the operation word of an `amend` and of an `other`; the approver's name on an approve, the author's otherwise; `data-sha`, no `data-eid`, no class `today-card`; the link's `?panel=<id>`; the time's `dateTime` and the description; loading status; a 500 → an alert in the card and the rest of Today shown; a Today read that fails → the card still shown; empty → "No Memory event yet"; the card the last section; a `repo` invalidation with a new first event → the new row, nothing in "Today updates" |
+| AC-3 | red-first (`@perf`) / characterization | `test/e2e/performance.spec.ts` TT-PERF-01 with the card in `ready` (D80-10); `test/server/snapshot/process-audit.test.ts` › `cold Today page with Recent activity: …` (guard-removal recorded) |
+| v0.2/v0.3 Today | characterization | `today.spec.ts`, `today-cards.spec.ts`, `notification-bell.spec.ts`, `held-gates.spec.ts`, `side-panel.spec.ts` and `test/web/today/*`, `test/web/shell/notification-bell.test.tsx` green with no expectation loosened; the app-level unit tests that assert on alerts or requests (`summary.test.tsx` "no alert", found at red) add the `?limit=5` answer to their stub — an unstubbed read is a 404, which the card shows as an error, as it should |
+| Screens | red-first | `test/e2e/support/screens.ts`, D80-11's two entries, through `accessibility.spec.ts` |
+| AC-4 | docs | D80-13 |
+
+Own specs on the three engines: `recent-activity.spec.ts`, `today.spec.ts`, `today-cards.spec.ts`,
+`notification-bell.spec.ts`, `side-panel.spec.ts` and `accessibility.spec.ts`, named in a
+`gates.yml` dispatch (`-f specs=…`) when the push's own-spec selection does not take them all
+(task-066's lesson, task-071 G9).
+
+#### e2e closure (skeleton, filled at green)
+
+| Scenario | Spec file : test |
+|----------|------------------|
+| T-08.1 Show the last 5 Memory events | `test/e2e/recent-activity.spec.ts` : `T-08.1 — Show the last 5 Memory events` |
+| T-08.2 Add an event made outside the UI | `test/e2e/recent-activity.spec.ts` : `T-08.2 — Add an event made outside the UI` (`@live-refresh`) |
+| T-08.3 Leave out commits that are not Memory events | `test/e2e/recent-activity.spec.ts` : `T-08.3 — Leave out commits that are not Memory events` |
+| X-06.4, X-09.1 on the card's screens | `test/e2e/accessibility.spec.ts` over `SCREENS`: D80-11's two entries |
+| TT-PERF-01 with the card (AC-3) | `test/e2e/performance.spec.ts` : `T-01.1, T-02.1 — Today renders within 2.0 s …` |
+
+#### File layout
+
+- `web/src/today/RecentActivity.tsx` (new) and `web/src/today/recent-activity.css` (new) — D80-2,
+  D80-4 … D80-7.
+- `web/src/today/TodayView.tsx` — the `activity` prop and its line (D80-3); nothing else.
+- `web/src/routes/today.tsx` — `activity={<RecentActivity pid={pid} />}` (D80-3).
+- `web/src/api/queries.ts` — the comment of `memoryEventsQuery` only (D80-1).
+- `web/src/i18n/en.json` — D80-8's keys, appended in place.
+- Tests: `test/web/today/recent-activity.test.tsx` (new), `test/e2e/recent-activity.spec.ts` (new),
+  `test/e2e/support/events.ts` (`cliAs`), `test/e2e/support/screens.ts`,
+  `test/e2e/performance.spec.ts`, `test/server/snapshot/process-audit.test.ts`, stub additions in
+  the app-level unit tests found at red.
+- Docs: D80-13.
+
+Merge hot spots with task-065 (in parallel): `TodayView.tsx` (the `activity` prop, D80-3),
+`routes/today.tsx`, `performance.spec.ts` (Today's `ready`), `process-audit.test.ts`, and with
+task-065, task-067, task-079: `en.json`, `screens.ts`, `CHANGELOG.md`, `docs/user-guide.md`,
+`test/README.md`, `ux-reference.md` — additions only; no route is registered.
+
+#### Spec gaps and Process Notes
+
+- None blocking. spec-012 §6 and spec-004 §3 cover the read; REQ-PERF-11's "with a link to the
+  rest" does not apply to Recent activity while the Timeline is v0.4 (RP3-14 D8, already recorded in
+  `ux-reference.md` §4.1 v0.3).
+- A reject or a sync shows its transition, not its verb ("in-review → in-progress · Morgan"): the
+  scenarios' row form ("from → to" and the author); the verb is in the side panel's history.
+
+#### Questions
+
+- **Q1 — Who adds the `activity` slot to `TodayView`.** (a) This task adds the optional
+  `activity?: ReactNode` (D65-3's name) as the page's last child and fills it from
+  `routes/today.tsx`; task-065 adds its `progress` slot only, and the second to merge resolves the
+  few shared lines (W2-9). (b) This task waits for task-065's merge and fills the slot task-065
+  adds — a serial step that removes the conflict but makes this task wait for the progress card.
+  **Recommended (a):** the two tasks stay parallel; the conflict is three lines.
+- **Q2 — Recent activity while Today's own read loads or has failed.** (a) Shown always, after the
+  Today block: it is a read of its own with its own loading and error (D80-2), as a failed card
+  never hides the rest of Today (D65-3). (b) Shown only once Today is read, inside its block after
+  *Waiting on others*. **Recommended (a)**; task-065 may place its progress card alike — a note for
+  its developer, not a change to its design.
+- **Q3 — The focus after a side panel opened from a Recent activity link closes.** (a) The main
+  region (§4.2 v0.2 "another link"; no opener recorded, D80-7). (b) Back to the link — a new opener
+  kind keyed by the row's sha, since an element may appear in several rows. **Recommended (a):**
+  §4.2 as it stands; (b) can come with the Timeline (v0.4), which lists events too.
+
+#### Estimate
+
+About **0.5 active day**: red 0.2 (the unit suite 0.08, the e2e spec with `cliAs` 0.08, screens,
+`@perf` line and the audit 0.04); green 0.1 (the component and its CSS 0.06, catalogue and slot
+0.04); refactor and docs 0.1; gates and the `gates.yml` runs 0.1.
