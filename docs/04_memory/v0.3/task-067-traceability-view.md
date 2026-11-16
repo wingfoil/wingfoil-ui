@@ -551,3 +551,19 @@ Push run `43925965015` on `d8831bc3`: **success**, every job green — checks, c
 publish-smoke. Local before the push: typecheck, lint, format:check, docs:api clean;
 `check_tasks.py v0.3` OK; `npx vitest run test/governance test/docs/public-text.test.ts
 --maxWorkers=2`: 5 files passed.
+
+### Review round 2 (2026-11-16, PASS with fixes)
+
+Red first: `5a7c2df7` — R2-1 (`test/web/today/progress-card.test.tsx`), R2-2, R2-3, R2-4
+(`test/web/traceability/view.test.tsx` › "review round 2") seen failing.
+
+| Finding | Outcome | Test |
+|---------|---------|------|
+| R2-1 (minor) — Today reaches `no-linked-elements` with no current element (flow mode, no `progress.scope`, no candidate), and its change announcement read "No references linked in " | `web/src/today/ProgressCard.tsx` `completionText` uses `progress.completion.noLinkedProject` when `scopeName(progress)` is `null` — a one-line consequence of F-2 in task-065's file (v0.3 not shipped) | `progress-card.test.tsx` "announces a no-linked completion with no current element as the project (task-067 review round 2, R2-1)" |
+| R2-2 (minor a11y) — the non-link trigger was a generic `<span tabIndex={0}>` inside React Aria's `Focusable` | `role="img"` with `aria-label` the figure's text ("Project completion 25 %", from the catalogue); the tooltip stays its accessible description while open | "R2-2 — the completion without its link is an image named by the figure, no React Aria warning" (the role, `aria-describedby` the tooltip, no `Focusable` warning on `console.warn`/`console.error`) |
+| R2-3 (minor) — `keepPreviousData` carried the previous project's answer across a project switch (the route is not remounted), and F-5's last answer kept its scope control above the next project's error | `placeholderData` keeps the previous answer only when its query key names the same project; the last answer is stored with its project and used only for it | "R2-3 — a project switch carries nothing of the previous project, its failed read included" |
+| R2-4 (nit) — the ui.yaml warning rendered from the current answer only | rendered from the answer shown (the last one of this project), so it stays with the scope control above a failed scope read | "R2-4 — the ui.yaml warning stays with the scope control above a failed scope read" |
+
+`npx vitest run test/web/traceability/view.test.tsx --maxWorkers=2`: 38 passed; `npx vitest run
+test/web/today/progress-card.test.tsx test/web/today/progress-tooltip.test.tsx
+test/web/i18n/catalogue.test.ts --maxWorkers=2`: 3 files, 29 passed.

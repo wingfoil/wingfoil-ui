@@ -79,6 +79,7 @@ export function ProgressCompletion({
   scopeName,
   linkToFilter = true,
 }: ProgressCompletionProps): ReactNode {
+  const intl = useIntl();
   // Hover, keyboard focus, Escape, the delay and the one-open-tooltip rule are React Aria's alone:
   // `Focusable` merges the trigger's handlers into the router link. A hover counts once React Aria's
   // interaction modality is the pointer's (a pointer that moved on the page), then waits `delay`
@@ -106,6 +107,15 @@ export function ProgressCompletion({
       </span>
     );
   }
+  const formatted: string | string[] = intl.formatMessage(
+    { id: 'progress.completion.figure' },
+    {
+      percent: figure.percent,
+      label: (chunks: string[]) => chunks.join(''),
+      value: (chunks: string[]) => chunks.join(''),
+    },
+  );
+  const figureLabel = Array.isArray(formatted) ? formatted.join('') : formatted;
   const figureText = (
     <FormattedMessage
       id="progress.completion.figure"
@@ -130,7 +140,10 @@ export function ProgressCompletion({
               {figureText}
             </Link>
           ) : (
-            <span className="progress-completion-trigger" tabIndex={0}>
+            // An image named by the figure's text (an interactive ARIA role for React Aria's
+            // `Focusable`; the tooltip is its accessible description while open — review round 2,
+            // R2-2).
+            <span className="progress-completion-trigger" role="img" aria-label={figureLabel} tabIndex={0}>
               {figureText}
             </span>
           )}

@@ -138,9 +138,11 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
 
   // The last answer read, so that a failed read of the other scope keeps the scope control (and the
   // focus on it) above its error (review round 1, F-5).
-  const [lastAnswer, setLastAnswer] = useState<Traceability | undefined>(undefined);
-  if (data !== undefined && data !== lastAnswer) setLastAnswer(data);
-  const shown = data ?? lastAnswer;
+  // Kept per project: another project's answer never shows above this one's error (R2-3).
+  const [lastAnswer, setLastAnswer] = useState<{ pid: string; answer: Traceability } | undefined>(undefined);
+  if (data !== undefined && (lastAnswer?.pid !== pid || lastAnswer.answer !== data))
+    setLastAnswer({ pid, answer: data });
+  const shown = data ?? (lastAnswer?.pid === pid ? lastAnswer.answer : undefined);
   const current = shown?.scope.current ?? null;
   const scopeElement = current
     ? { element: current.shortId ?? current.id, type: shown?.scope.type ?? current.type }
@@ -318,7 +320,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
           </span>
         )}
       </div>
-      {data && <UiYamlWarning status={data.ui} />}
+      {shown && <UiYamlWarning status={shown.ui} />}
       {scopeElement !== undefined && (
         <Group label={<FormattedMessage id="traceability.scope.label" />} className="trace-scope">
           <Toggle

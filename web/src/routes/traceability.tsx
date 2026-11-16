@@ -6,7 +6,7 @@
  * Reads `GET /traceability?scope=current|project` (spec-012 §4) under `['p', pid]`, so the `repo`
  * event refreshes it, and the project header the shell already holds (the *Use preset* link, Q3).
  */
-import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 import { createRoute } from '@tanstack/react-router';
 import type { Traceability, TraceabilityScope } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
@@ -42,10 +42,11 @@ function TraceabilityPage(): ReactNode {
   const filters = traceabilitySearch(traceabilityRoute.useSearch());
   const intl = useIntl();
   useProjectTitle(pid, intl.formatMessage(LABELS.traceability));
-  // A scope change keeps the previous answer on screen until the new one arrives (D67-3).
+  // A scope change keeps the previous answer on screen until the new one arrives (D67-3) — within
+  // the same project only: the route is not remounted when `pid` changes (review round 2, R2-3).
   const answer = useQuery({
     ...traceabilityQuery(pid, filters.scope ?? 'current'),
-    placeholderData: keepPreviousData,
+    placeholderData: (previous, previousQuery) => (previousQuery?.queryKey[1] === pid ? previous : undefined),
   });
   const header = useQuery(projectHeaderQuery(pid));
   return <TraceabilityView pid={pid} filters={filters} answer={answer} header={header.data} />;
