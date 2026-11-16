@@ -87,6 +87,9 @@ const SPEC_004: Record<string, Record<string, unknown>[]> = {
   'config-in-worktree': [{}],
   // task-032 W2-1, W2-4, W2-5 (write.refusal.schema.json); its text is task-037's (D37-11).
   'write-incomplete': [{ file: 'docs/x.md' }, { file: 'docs/x.md', commit: 'a'.repeat(40) }],
+  // task-060 (spec-005 §5, spec-008 §4): the preset write's own codes; their texts are task-079's (D79-8).
+  'ui-config-exists': [{}],
+  'ui-config-invalid': [{ failure: 'missing required key version' }],
 };
 /** Client-side code (W3-12): no answer at all. */
 const CLIENT: Record<string, Record<string, unknown>[]> = { unreachable: [{}] };
@@ -200,4 +203,57 @@ it('write-incomplete: the commit selector is `none` when the write left no commi
     commit: sha,
   });
   expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'f' })).verbatim).toBeUndefined();
+});
+
+/** Every code of the preset write's refusal schema (`ui-config.preset.refusal.schema.json`, task-060). */
+function presetRefusalCodes(): string[] {
+  const schema = JSON.parse(
+    readFileSync(path.join(REPO_ROOT, 'contracts', 'api', 'ui-config.preset.refusal.schema.json'), 'utf8'),
+  ) as { properties: { error: { oneOf: Schema[] } } };
+  return schema.properties.error.oneOf.flatMap((b) => {
+    const code = b.properties!['code']!;
+    return code.enum ?? [code.const as string];
+  });
+}
+
+it('task-079 D79-8 — every code of the preset refusal schema renders its own message with the preset variant', () => {
+  const codes = presetRefusalCodes();
+  expect(codes).toEqual(expect.arrayContaining(['ui-config-exists', 'ui-config-invalid', 'write-incomplete']));
+  for (const code of codes) {
+    const id = errorMessage(new ApiError(422, code, 'x', undefined), { variant: 'preset' }).descriptor.id as string;
+    if (code !== 'internal') expect(id, code).not.toBe('error.internal');
+    expect(catalogue[id], code).toBeDefined();
+  }
+});
+
+it('task-079 D79-8, Q2 (a) of W3-1 — write-incomplete of the preset write has its own text, with and without the commit', () => {
+  const without = errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: '.wingfoil/ui.yaml' }), {
+    variant: 'preset',
+  });
+  expect(without.descriptor.id).toBe('error.writeIncomplete.preset');
+  expect(without.values).toEqual({ file: '.wingfoil/ui.yaml', commit: 'none' });
+  const sha = 'b'.repeat(40);
+  const withCommit = errorMessage(
+    new ApiError(500, 'write-incomplete', 'x', { file: '.wingfoil/ui.yaml', commit: sha }),
+    {
+      variant: 'preset',
+    },
+  );
+  expect(withCommit.values).toEqual({ file: '.wingfoil/ui.yaml', commit: sha });
+  for (const arg of messageArguments(catalogue['error.writeIncomplete.preset']!).args) {
+    expect(without.values).toHaveProperty(arg);
+  }
+  // Without the variant the element writes keep their text.
+  expect(errorMessage(new ApiError(500, 'write-incomplete', 'x', { file: 'docs/x.md' })).descriptor.id).toBe(
+    'error.writeIncomplete',
+  );
+});
+
+it('task-079 — ui-config-invalid names the failure as written (C-03.1, C-03.2)', () => {
+  const m = errorMessage(
+    new ApiError(422, 'ui-config-invalid', 'x', { failure: 'type service is not declared in memory.yaml' }),
+  );
+  expect(m.descriptor.id).toBe('error.uiConfigInvalid');
+  expect(m.values).toEqual({ failure: 'type service is not declared in memory.yaml' });
+  expect(catalogue['error.uiConfigInvalid']).toBe('ui.yaml not written: {failure}');
 });

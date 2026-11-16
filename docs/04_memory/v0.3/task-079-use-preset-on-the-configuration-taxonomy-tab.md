@@ -358,3 +358,10 @@ it).
   looking for "how do I get a ui.yaml" starts; (b) at the end of the tab, after *Reference patterns*
   (D64-4 as written before the split), below about two screens of explanations and tables.
   **Recommended (a).**
+
+#### Decisions of the approver (2026-11-16)
+
+Relayed by the coordinator, quoted: "tutto come consigliato" — Q1 (a) the web constant
+`PRESET_IDS`, kept equal to the request schema's enum and `UI_PRESET_NAMES` by tests; Q2 (a) the
+dialog stays open while it is open or the write is pending, the server's refusal explaining a state
+that changed; Q3 (a) the *Use a preset* section right after the Taxonomy intro. No split.

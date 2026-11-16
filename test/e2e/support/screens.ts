@@ -425,6 +425,27 @@ export const SCREENS: readonly Screen[] = [
     open: (page, c) =>
       project(page, c, `/p/${c.pids[1]}/configuration/progress`, (p) => p.locator('table.config-progress')),
   },
+  {
+    // task-079 (D79-5, D79-11): the *Use a preset* dialog on the kanban project, a preset chosen, nothing
+    // confirmed (no commit on this shared console).
+    name: 'configuration — use preset dialog',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open'),
+      );
+      await page.locator('.preset-section .preset-open').click();
+      await page.locator('.preset-dialog label.preset-choice').first().click();
+      await expect(page.locator('.preset-dialog .preset-effect')).toBeVisible();
+    },
+  },
+  {
+    // task-079 (D79-2): *Use preset* disabled on the copy one commit behind, its reason with *Update*.
+    name: 'configuration — use preset blocked',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[4]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open[aria-disabled="true"]'),
+      ),
+  },
 ];
 
 /** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
