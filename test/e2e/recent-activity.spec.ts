@@ -70,7 +70,15 @@ test.describe('US-T-08 — Recent activity', () => {
     for (const row of await rows(page).all()) {
       await expect(row.locator('time')).toHaveText(/ ago$/);
       await expect(row.locator('time')).toHaveAttribute('datetime', /^\d{4}-\d{2}-\d{2}T/);
-      await expect(row.getByRole('link')).toHaveAccessibleDescription(/\d{4}/);
+      // The row's own date in full, as the browser formats its `datetime` in `en` (review round 2, R2-2).
+      const full = await row
+        .locator('time')
+        .evaluate((el) =>
+          new Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'long' }).format(
+            new Date(el.getAttribute('datetime') ?? ''),
+          ),
+        );
+      await expect(row.getByRole('link')).toHaveAccessibleDescription(full);
     }
     // No link to the Timeline while R6 is in v0.4 (RP3-14 D8).
     await expect(card(page).getByRole('link', { name: /timeline/i })).toHaveCount(0);

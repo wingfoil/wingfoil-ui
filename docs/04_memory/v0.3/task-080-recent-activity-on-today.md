@@ -501,3 +501,12 @@ Independent reviewer (reviewer role) on `639302d1` (fixes `1b7468c2`, `eaa288d1`
 |---|----------|-----------|-------|-----|
 | R2-1 | nit | `test/web/today/recent-activity.test.tsx` (F-1 test, `vi.spyOn(console, 'error')`) | The spy is restored only at the end of the test: if an assertion before `errors.mockRestore()` fails, `console.error` stays muted for the file's later tests (no `vi.restoreAllMocks()` in `afterEach`). | Restore in `afterEach` (`vi.restoreAllMocks()`) or in a `try`/`finally`. |
 | R2-2 | nit | `test/e2e/recent-activity.spec.ts:93` | T-08.1's description check `toHaveAccessibleDescription(/\d{4}/)` accepts any text with four digits; the exact full date is checked only in the unit suite. | Optional: match the weekday and year of the row's `datetime`, or leave to the unit test. |
+
+### review round 2 fixes (2026-11-16)
+
+| Finding | Change | Test |
+|---------|--------|------|
+| R2-1 (nit) — the F-1 test's `console.error` spy restored only at its end | `test/web/today/recent-activity.test.tsx`: `vi.restoreAllMocks()` in `afterEach`, so a spy never outlives its test | `npx vitest run test/web/today/recent-activity.test.tsx --maxWorkers=2` → 12 passed |
+| R2-2 (nit) — T-08.1's description check accepted any four digits | `test/e2e/recent-activity.spec.ts`: each row's link description is checked equal to its own `datetime` formatted in the browser with `Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'long' })` — the format of the card (D80-4) | T-08.1 on the push run (below) |
+
+Local: `npm run typecheck`, `npm run lint`, `npm run format:check` → clean.

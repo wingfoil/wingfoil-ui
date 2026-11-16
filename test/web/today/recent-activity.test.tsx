@@ -129,6 +129,9 @@ afterEach(() => {
   cleanup();
   stopEventStream();
   vi.unstubAllGlobals();
+  // A spy (the F-1 test's `console.error`) never outlives its test, even when an assertion fails
+  // before the test restores it (review round 2, R2-1).
+  vi.restoreAllMocks();
 });
 
 it('lists the events in the answer’s order: transition, created or the operation, and the name (T-08.1, D80-4)', async () => {
