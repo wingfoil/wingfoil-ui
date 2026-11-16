@@ -153,6 +153,16 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   nothing is added to the address; a page of a console started without `--port` cannot reconnect
   (another port is another origin), as the notice says.
 
+- **More filters on the Memory list** (task-066, US-M-02, US-M-03, US-M-04; spec-012 §3, §5): with
+  *All types*, a selected bucket lists the states of its elements, which narrow it to one state
+  (`?bucket=waiting&state=open`); *Missing required references* with its count, shown whenever
+  `ui.yaml` `taxonomy.requires` names a type (0 when nothing is missing), lists the elements the
+  console flags (`?missing=refs`), each marked **missing refs** wherever it is listed, its
+  description naming the missing categories, and a note names the element files that could not be
+  checked; `?figure=<code>` lists the elements behind a figure of the progress card
+  (`completion`, `iterated`, `open-defects`, `pending-gates`), the ids never in the address. An
+  active filter is named under the filters with *Clear filter*.
+
 ### Changed
 
 - **Close and Escape on an element opened from its address** (task-062, spec-011 §2) go to the

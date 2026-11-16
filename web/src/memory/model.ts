@@ -114,21 +114,72 @@ export function bucketFilters(elements: readonly ListedElement[]): BucketFilter[
   return BUCKET_FILTERS.map((b) => ({ ...b, count: counts.get(b.key) ?? 0 }));
 }
 
+/**
+ * The states of one bucket with *All types* (task-066 D66-3, N7): each state name found on the
+ * elements of that bucket once, with its count and the tone of its elements — the types in the type
+ * filters' order, each type's `sequence` first, then the states its elements hold outside it.
+ */
+export function bucketStateFilters(
+  types: MemoryYaml | undefined,
+  elements: readonly ListedElement[],
+  bucket: string,
+): StateFilter[] {
+  const inBucket = elements.filter((e) => bucketKeyOf(e.descriptor?.bucket) === bucket);
+  const order: string[] = [];
+  for (const { type } of typeFilters(types, inBucket)) {
+    const ofType = inBucket.filter((e) => e.type === type);
+    for (const s of stateFilters(types?.types[type]?.states?.sequence, ofType)) {
+      if (s.count > 0 && !order.includes(s.state)) order.push(s.state);
+    }
+  }
+  return order.map((state) => {
+    const tone = inBucket.find((e) => e.status === state && e.descriptor)?.descriptor?.tone;
+    return { state, count: inBucket.filter((e) => e.status === state).length, ...(tone ? { tone } : {}) };
+  });
+}
+
+/**
+ * The elements of the selection (every type, or `type`) that the server flags as missing a required
+ * reference (`missingCategories`, spec-012 §5; task-066 D66-4).
+ */
+export function missingCount(elements: readonly ListedElement[], type: string | undefined): number {
+  return elements.filter((e) => (type === undefined || e.type === type) && e.missingCategories !== undefined).length;
+}
+
+/** The value of the URL's `missing` parameter: the elements missing a required reference (task-066 D66-13). */
+export const MISSING_REFS = 'refs';
+
 /** The filters of the list (the URL's search parameters). */
 export interface ListFilters {
   type?: string;
   state?: string;
   bucket?: string;
+  missing?: typeof MISSING_REFS;
+  /** A figure code of the progress card (`figure.ts`), alone in the URL. */
+  figure?: string;
 }
 
-/** The elements of `elements` that pass `filters`: a type and its state, or (all types) a bucket. */
-export function filterRows(elements: readonly ListedElement[], filters: ListFilters): ListedElement[] {
-  const { type, state, bucket } = filters;
-  if (type !== undefined) {
-    return elements.filter((e) => e.type === type && (state === undefined || e.status === state));
+/**
+ * The elements of `elements` that pass `filters`: with `ids` (a figure's, task-066 D66-9) those
+ * whose full id is in it; else a type and its state, or (all types) a bucket and its state; the
+ * missing-references filter instead of the state (D66-4). The list's order is kept.
+ */
+export function filterRows(
+  elements: readonly ListedElement[],
+  filters: ListFilters,
+  ids?: ReadonlySet<string>,
+): ListedElement[] {
+  if (ids !== undefined) return elements.filter((e) => ids.has(e.id));
+  const { type, state, bucket, missing } = filters;
+  const ofType = type === undefined ? [...elements] : elements.filter((e) => e.type === type);
+  if (missing !== undefined) return ofType.filter((e) => e.missingCategories !== undefined);
+  if (type !== undefined) return ofType.filter((e) => state === undefined || e.status === state);
+  if (bucket !== undefined) {
+    return elements.filter(
+      (e) => bucketKeyOf(e.descriptor?.bucket) === bucket && (state === undefined || e.status === state),
+    );
   }
-  if (bucket !== undefined) return elements.filter((e) => bucketKeyOf(e.descriptor?.bucket) === bucket);
-  return [...elements];
+  return ofType;
 }
 
 /** A relative age: a negative value (in the past) and its unit, for `Intl.RelativeTimeFormat`. */

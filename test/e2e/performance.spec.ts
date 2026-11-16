@@ -436,6 +436,39 @@ test.describe(`TT-PERF-03, TT-PERF-04 — progress and missing references ${PERF
     }
   });
 
+  // task-066 AC-4 (REQ-PERF-04, TT-PERF-04 with `requires` set; D66-14): the Memory list screen on the
+  // preset copy, reached from Documentation by the sidebar as M-01.1's view, its rows and the filter
+  // "Missing required references" rendered.
+  test('AC-4 (task-066) — the Memory list with requires renders within 1.0 s (p95, warm cache)', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const dir = testInfo.outputPath('large-memory');
+    await cp(large.dir, dir, { recursive: true });
+    const copy = { ...large, dir };
+    await usePresetUiConfig(copy);
+    const c = await consoles.start({ projects: [copy] });
+    const view: View = { ...VIEWS[0]!, ready: '.filter-refs .filter-link' };
+    const times: number[] = [];
+    let warmUp = 0;
+    for (let i = 0; i <= PERF_RUNS; i++) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        const ms = await run(page, c, view);
+        if (i === 0) warmUp = ms;
+        else times.push(ms);
+      } finally {
+        await context.close();
+      }
+    }
+    reportRuns('Memory list with requires', warmUp, times);
+    expect(times).toHaveLength(PERF_RUNS);
+    if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
+  });
+
   test('AC-7 — a commit outside the UI reaches /progress and the /elements flags within 5 s', async ({
     browser,
     large,

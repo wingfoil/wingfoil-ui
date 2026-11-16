@@ -612,3 +612,12 @@ every object `additionalProperties: false`, as the other API schemas.
   `progress.schema.json` `definitions.completion`; draft-07 has no `unevaluatedProperties`, so the
   traceability item names each row property by `$ref` plus `done` and `inScope`, and carries no
   `missingCategories` (the `missing` section holds them). No other shape changes.
+- 2026-11-14 — clarified in task-066 (design D66-2, D66-4, D66-9, D66-13; decided by the approver,
+  Q1 (a), plan `backlog-item-rel-v0.3-plan` W3-1). §5 the Memory list's filter "Missing required
+  references" has the address `/p/<pid>/memory?missing=refs` (with `type` kept when a type is
+  selected); the Traceability view's *Show in Memory* (R-01.8, task-067) opens it. §3 *Figure
+  filters*: a known `figure` clears every other parameter of the address, an unknown code is
+  ignored as if absent, and the web reads `/progress` only while a known code is in the address.
+  `?missing=refs` is ignored likewise (the address kept, no active filter) where the filter is not
+  offered, and with a type selected the list waits for `/config` before applying it (task-066
+  review rounds 1 and 2, 2026-11-15). No shape changes.

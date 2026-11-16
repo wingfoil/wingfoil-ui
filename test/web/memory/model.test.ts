@@ -1,6 +1,7 @@
 // task-017 — pure helpers of the Memory list (web/src/memory/model.ts): type filters from
 // `memory.yaml` with counts, state filters (the type's states, or the buckets of the descriptor),
-// filtering, bucket labels from the catalogue (no bucket code written in web/).
+// filtering, bucket labels from the catalogue (no bucket code written in web/). task-066 — the
+// states of a bucket (N7), the missing-references filter (M2), the figure ids and the URL's precedence.
 import type { ActionDescriptor, Bucket, ListedElement, MemoryYaml } from '@wingfoil-ui/contracts';
 import { describe, expect, it } from 'vitest';
 import en from '../../../web/src/i18n/en.json' with { type: 'json' };
@@ -9,10 +10,14 @@ import {
   BUCKET_FILTERS,
   bucketFilters,
   bucketKeyOf,
+  bucketStateFilters,
   filterRows,
+  MISSING_REFS,
+  missingCount,
   stateFilters,
   typeFilters,
 } from '../../../web/src/memory/model.js';
+import { memorySearch } from '../../../web/src/routes/memory.js';
 
 function descriptor(type: string, status: string, bucket: Bucket | undefined, tone = 'neutral'): ActionDescriptor {
   return {
@@ -151,5 +156,79 @@ describe('ageOf', () => {
   });
   it('treats a time in the future as now', () => {
     expect(ageOf('2026-10-08T10:00:00Z', now)).toEqual({ value: -0, unit: 'second' });
+  });
+});
+
+// task-066 — the states of a bucket (N7, AC-1), the missing-references filter (AC-2), the figure ids
+// (AC-3) and the URL (D66-2): `memorySearch` is the route's validation (the address itself is kept).
+const FLAGGED = (e: ListedElement): ListedElement => ({ ...e, missingCategories: ['requirement'] });
+const MIXED = [
+  el('z1', 'zeta', 's1', 'waiting', 'neutral'),
+  el('a0', 'alpha', 'a1', 'waiting', 'neutral'),
+  el('u2', 'stray', 'x9', 'waiting', 'neutral'),
+  el('z4', 'zeta', 's1', 'waiting', 'neutral'),
+  el('u3', 'stray', 'x8', 'waiting', 'neutral'),
+  FLAGGED(el('z2', 'zeta', 's2', 'to-approve', 'human')),
+  FLAGGED(el('a1', 'alpha', 'a2', 'done', 'done')),
+  el('m1', 'mu', 'a1', 'waiting', 'active'),
+];
+
+describe('bucketStateFilters (task-066 AC-1)', () => {
+  it('lists the states of a bucket by name with counts: types in type-filter order, each in sequence order, undeclared after', () => {
+    expect(bucketStateFilters(TYPES, MIXED, 'waiting').map((s) => [s.state, s.count, s.tone])).toEqual([
+      ['s1', 2, 'neutral'],
+      ['a1', 2, 'neutral'],
+      ['x9', 1, 'neutral'],
+      ['x8', 1, 'neutral'],
+    ]);
+  });
+  it('gives a state shared by two types one entry, and a bucket with no element no state', () => {
+    expect(bucketStateFilters(TYPES, MIXED, 'waiting').filter((s) => s.state === 'a1')).toHaveLength(1);
+    expect(bucketStateFilters(TYPES, MIXED, 'inProgress')).toEqual([]);
+  });
+  it('without type definitions, lists the states in order of appearance', () => {
+    expect(bucketStateFilters(undefined, MIXED, 'waiting').map((s) => s.state)).toEqual(['s1', 'a1', 'x9', 'x8']);
+  });
+});
+
+describe('filterRows (task-066)', () => {
+  it('narrows a bucket to one of its states (AC-1)', () => {
+    expect(filterRows(MIXED, { bucket: 'waiting', state: 'a1' }).map((e) => e.id)).toEqual(['a0', 'm1']);
+    expect(filterRows(MIXED, { bucket: 'waiting', state: 'none' })).toEqual([]);
+  });
+  it('lists the elements the server flags, of the selected type when one is (AC-2)', () => {
+    expect(filterRows(MIXED, { missing: MISSING_REFS }).map((e) => e.id)).toEqual(['z2', 'a1']);
+    expect(filterRows(MIXED, { type: 'alpha', missing: MISSING_REFS }).map((e) => e.id)).toEqual(['a1']);
+  });
+  it('keeps the elements whose full id is in a figure, in the list order (AC-3)', () => {
+    expect(filterRows(MIXED, {}, new Set(['a1', 'z1', 'z'])).map((e) => e.id)).toEqual(['z1', 'a1']);
+  });
+});
+
+describe('missingCount (task-066 AC-2)', () => {
+  it('counts the flagged elements of the selection, 0 included', () => {
+    expect(missingCount(MIXED, undefined)).toBe(2);
+    expect(missingCount(MIXED, 'zeta')).toBe(1);
+    expect(missingCount(MIXED, 'mu')).toBe(0);
+  });
+});
+
+describe('memorySearch (task-066 D66-2)', () => {
+  it('keeps a known figure alone and drops an unknown one', () => {
+    expect(memorySearch({ figure: 'pending-gates', type: 'zeta', bucket: 'done', missing: 'refs' })).toEqual({
+      figure: 'pending-gates',
+    });
+    expect(memorySearch({ figure: 'bogus' })).toEqual({});
+    expect(memorySearch({ figure: 'phase', type: 'zeta' })).toEqual({ type: 'zeta' });
+  });
+  it('keeps a bucket and its state, and drops a state with neither type nor bucket', () => {
+    expect(memorySearch({ bucket: 'waiting', state: 's1' })).toEqual({ bucket: 'waiting', state: 's1' });
+    expect(memorySearch({ state: 's1' })).toEqual({});
+    expect(memorySearch({ type: 'zeta', state: 's1', bucket: 'done' })).toEqual({ type: 'zeta', state: 's1' });
+  });
+  it('keeps missing=refs with the type, over a state or a bucket; drops any other value', () => {
+    expect(memorySearch({ missing: 'refs', bucket: 'waiting', state: 's1' })).toEqual({ missing: 'refs' });
+    expect(memorySearch({ missing: 'refs', type: 'zeta', state: 's1' })).toEqual({ type: 'zeta', missing: 'refs' });
+    expect(memorySearch({ missing: 'yes', bucket: 'done' })).toEqual({ bucket: 'done' });
   });
 });
