@@ -476,3 +476,28 @@ Local on `eaa288d1`: `npm run typecheck`, `npm run lint`, `npm run format:check`
 - dispatch run **43859584238** (`specs` `test/e2e/recent-activity.spec.ts test/e2e/today.spec.ts
   test/e2e/side-panel.spec.ts`): every job passed; `e2e-chromium` 204 + 203 passed; own specs
   **31 passed on Firefox, 31 on WebKit**.
+
+### review round 2 (2026-11-16)
+
+Independent reviewer (reviewer role) on `639302d1` (fixes `1b7468c2`, `eaa288d1`; full diff
+`git diff design/dev-loop_v0.3...HEAD` re-scanned). **Verdict: PASS** (nits only).
+
+- **F-1 closed.** The row's key is `${sha}:${id}` and the `li` carries `data-event-id` beside
+  `data-sha`, still no `data-eid`. Guard removal by the reviewer (key back to `event.sha`, file
+  restored with `git checkout`): `npx vitest run test/web/today/recent-activity.test.tsx
+  --maxWorkers=2` → 1 failed, "lists two events of one commit as two rows … (review F-1)",
+  "expected […] to have a length of 3 but got 4"; restored → 12 passed. The bell's key
+  (`web/src/shell/NotificationBell.tsx:241`) is left to the coordinator, as stated.
+- **F-2 closed.** The id link calls `forgetOpener(event)` before the router's navigation (a
+  modified or middle click keeps the opener, `followedHere`), as the bell. Guard removal by the
+  reviewer (the call removed, file restored): same command → 1 failed, "forgets an earlier row
+  opener … (review F-2)", "expected '' to be 'main'"; restored → 12 passed.
+- **F-3** accepted as Today's existing rule (no change), as recorded.
+- The fixes add no product change beyond the key, the attribute and the `onClick`; `gh run view
+  43859584782` → `success` on `eaa288d1`, every job passed (`e2e-wave` skipped, push scope);
+  `639302d1` changes only these notes.
+
+| # | Severity | File:line | Issue | Fix |
+|---|----------|-----------|-------|-----|
+| R2-1 | nit | `test/web/today/recent-activity.test.tsx` (F-1 test, `vi.spyOn(console, 'error')`) | The spy is restored only at the end of the test: if an assertion before `errors.mockRestore()` fails, `console.error` stays muted for the file's later tests (no `vi.restoreAllMocks()` in `afterEach`). | Restore in `afterEach` (`vi.restoreAllMocks()`) or in a `try`/`finally`. |
+| R2-2 | nit | `test/e2e/recent-activity.spec.ts:93` | T-08.1's description check `toHaveAccessibleDescription(/\d{4}/)` accepts any text with four digits; the exact full date is checked only in the unit suite. | Optional: match the weekday and year of the row's `datetime`, or leave to the unit test. |
