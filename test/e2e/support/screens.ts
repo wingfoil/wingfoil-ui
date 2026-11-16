@@ -446,6 +446,27 @@ export const SCREENS: readonly Screen[] = [
       project(page, c, `/p/${c.pids[0]}/memory?figure=pending-gates`, (p) => p.locator('.memory-active')),
   },
   {
+    // task-079 (D79-5, D79-11): the *Use a preset* dialog on the kanban project, a preset chosen, nothing
+    // confirmed (no commit on this shared console).
+    name: 'configuration — use preset dialog',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open'),
+      );
+      await page.locator('.preset-section .preset-open').click();
+      await page.locator('.preset-dialog label.preset-choice').first().click();
+      await expect(page.locator('.preset-dialog .preset-effect')).toBeVisible();
+    },
+  },
+  {
+    // task-079 (D79-2): *Use preset* disabled on the copy one commit behind, its reason with *Update*.
+    name: 'configuration — use preset blocked',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[4]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open[aria-disabled="true"]'),
+      ),
+  },
+  {
     // task-080 (D80-11): Today as Morgan with its last card, Recent activity, read and in view.
     name: 'today — recent activity',
     open: async (page, c) => {

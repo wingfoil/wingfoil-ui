@@ -197,3 +197,12 @@ catalogue and its arguments (`warnings: [{ key, args }]` of `GET /api/server`, s
   be done", "Waits for 2 referencing elements to be done" (S-24.6); `held-by-config` is
   `element.reason.heldByConfig`, its text unchanged; both keys are shared by the gate footer and
   Today's *Waiting on others* row. Recorded by the coordinator's OK on the design (W2-5).
+- 2026-11-16 — refined in task-079 (minor-v0.3, Wave 3; its D79-8, D79-9; decided by the approver,
+  `backlog-item-rel-v0.3-plan` W3-1 Q2 (a)): §4 a route may render an error code from a variant of
+  its key, inside §2's `<area>.<item>.<variant>` scheme, when the code's text does not fit the write
+  that answers it — the preset write (spec-005 §5) renders `write-incomplete` from
+  `error.writeIncomplete.preset`, "The preset was not applied completely: check {file} with git
+  before trying again" (and " — the commit {commit} was made" when `detail.commit` is sent), since
+  `error.writeIncomplete` names a commit WingFoil made. The texts of §4's `ui-config-exists` and
+  `ui-config-invalid` are `error.uiConfigExists` and `error.uiConfigInvalid` ("ui.yaml not written:
+  {failure}"). No rule changes.
