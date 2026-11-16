@@ -555,3 +555,8 @@ radio's focus is visible through `base.css`'s `[data-focus-visible]` rule.
 |---------|--------|
 | R2-1 (nit) — `UiFrame.tsx`'s header comment put the "nothing read yet" qualifier on the `types` error too | rewrapped: instead of the values, the read's error when nothing was read yet (a failed refetch keeps the data read), or the `types` error when `memory.yaml` cannot be read |
 | R2-2 (nit) — ux-reference silent on the kept data | `ux-reference.md` 1.27: the §4.11 v0.3 Taxonomy and Progress block says a failed read shows its error only when nothing was read yet, both tabs keeping the last data read after a failed refetch (and a pending *Use preset* its dialog) |
+
+Local, on `4cfd93e5`: `npm run typecheck`, `npm run lint`, `npx prettier --check .` clean; `npx vitest
+run --maxWorkers=2 test/docs/public-text.test.ts` (67) and `test/governance` (25) passed. Push run
+`43854094788` on `4cfd93e5`: success — checks, coverage, contract, e2e-chromium ×2, own specs on
+Firefox and WebKit, smoke, publish-smoke.
