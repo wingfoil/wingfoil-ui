@@ -9,7 +9,7 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { ProjectHeader, Traceability, UiCategory } from '@wingfoil-ui/contracts';
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { QueryError } from '../docs/QueryError.js';
 import { UiYamlWarning } from '../shell/UiYamlWarning.js';
@@ -34,6 +34,9 @@ const STATUS_SELECT: Record<StatusFilter | 'all', string> = {
   'not-started': 'notStarted',
   'no-elements': 'noElements',
 };
+
+/** The pause after the last filter or search change before the row count is announced (F-7). */
+const ANNOUNCE_PAUSE_MS = 500;
 
 /** Props of {@link TraceabilityView}. */
 export interface TraceabilityViewProps {
@@ -112,21 +115,37 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
   const elements = useMemo(() => new Map((data?.elements ?? []).map((e) => [e.id, e])), [data]);
   const rows = useMemo(() => (data ? visibleReferences(data, filters) : []), [data, filters]);
 
-  // The number of rows is announced after a filter or search change, never after a refresh (D67-8).
-  // The first filters seen announce nothing; each new filter key, once its answer is there, renders
-  // one new node in the polite region (keyed by a counter). A refresh keeps the key: nothing.
+  // The number of rows is announced after a filter or search change, never after a refresh (D67-8),
+  // and only after a pause, so typing announces once (review round 1, F-7). The first filters seen
+  // announce nothing; each new filter key, once its answer is there and the pause is over, renders one
+  // new node in the polite region (keyed by a counter). A refresh keeps the key: nothing.
   const filterKey = JSON.stringify(filters);
   const settled = data !== undefined && !answer.isPlaceholderData;
   const [announced, setAnnounced] = useState<{ key: string; n: number; count?: number }>({ key: filterKey, n: 0 });
-  if (settled && announced.key !== filterKey) {
-    setAnnounced({ key: filterKey, n: announced.n + 1, count: rows.length });
-  }
+  useEffect(() => {
+    if (!settled || announced.key === filterKey) return;
+    const timer = window.setTimeout(() => {
+      setAnnounced((a) => ({ key: filterKey, n: a.n + 1, count: rows.length }));
+    }, ANNOUNCE_PAUSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [settled, filterKey, rows.length, announced.key]);
   const announcement = announced.key === filterKey ? announced.count : undefined;
 
   const clear = (): void => {
     go(filters.scope ? { scope: filters.scope } : {});
     searchRef.current?.focus();
   };
+
+  // The last answer read, so that a failed read of the other scope keeps the scope control (and the
+  // focus on it) above its error (review round 1, F-5).
+  const [lastAnswer, setLastAnswer] = useState<Traceability | undefined>(undefined);
+  if (data !== undefined && data !== lastAnswer) setLastAnswer(data);
+  const shown = data ?? lastAnswer;
+  const current = shown?.scope.current ?? null;
+  const scopeElement = current
+    ? { element: current.shortId ?? current.id, type: shown?.scope.type ?? current.type }
+    : undefined;
+  const wholeProject = filters.scope === 'project';
 
   let body: ReactNode;
   if (answer.error && !data) {
@@ -143,7 +162,6 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
     const categories = categoryFacets(data.references);
     const statuses = statusFacets(data.references, applied.category, project);
     const inCategory = data.references.filter((r) => applied.category === undefined || r.category === applied.category);
-    const current = data.scope.current;
     const noFile = data.ui.source !== 'file';
     const offerPreset = data.ui.source === 'none' && header?.identity.kind === 'member';
     const count = (name: string, n: number): string =>
@@ -154,31 +172,6 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
       intl.formatMessage({ id: 'traceability.status.option' }, { status: STATUS_SELECT[s] });
     body = (
       <>
-        <UiYamlWarning status={data.ui} />
-        {current !== null && (
-          <Group label={<FormattedMessage id="traceability.scope.label" />} className="trace-scope">
-            <Toggle
-              pressed={!project}
-              label={intl.formatMessage(
-                { id: 'traceability.scope.current' },
-                { element: current.shortId ?? current.id, type: data.scope.type ?? current.type },
-              )}
-              onPress={() => go(withFilter({ scope: undefined }))}
-            >
-              <FormattedMessage
-                id="traceability.scope.current"
-                values={{ element: current.shortId ?? current.id, type: data.scope.type ?? current.type }}
-              />
-            </Toggle>
-            <Toggle
-              pressed={project}
-              label={intl.formatMessage({ id: 'traceability.scope.project' })}
-              onPress={() => go(withFilter({ scope: 'project' }))}
-            >
-              <FormattedMessage id="traceability.scope.project" />
-            </Toggle>
-          </Group>
-        )}
         <Figures pid={pid} answer={data} projectVersion={header?.wingfoil.version ?? null} />
         {noFile && (
           <p className="trace-note">
@@ -236,6 +229,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
                 type="search"
                 className="field-input trace-search"
                 aria-label={intl.formatMessage({ id: 'traceability.search.label' })}
+                placeholder={intl.formatMessage({ id: 'traceability.search.label' })}
                 value={q}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -324,6 +318,25 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
           </span>
         )}
       </div>
+      {data && <UiYamlWarning status={data.ui} />}
+      {scopeElement !== undefined && (
+        <Group label={<FormattedMessage id="traceability.scope.label" />} className="trace-scope">
+          <Toggle
+            pressed={!wholeProject}
+            label={intl.formatMessage({ id: 'traceability.scope.current' }, scopeElement)}
+            onPress={() => go(withFilter({ scope: undefined }))}
+          >
+            <FormattedMessage id="traceability.scope.current" values={scopeElement} />
+          </Toggle>
+          <Toggle
+            pressed={wholeProject}
+            label={intl.formatMessage({ id: 'traceability.scope.project' })}
+            onPress={() => go(withFilter({ scope: 'project' }))}
+          >
+            <FormattedMessage id="traceability.scope.project" />
+          </Toggle>
+        </Group>
+      )}
       {body}
     </div>
   );

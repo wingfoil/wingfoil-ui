@@ -624,6 +624,23 @@ describe('review round 1', () => {
     await waitFor(() => expect(rowIds()).toEqual(['dl-001-first-decision']));
   });
 
+  it('F-7 — typing announces the row count once, after a pause', async () => {
+    stubApi(api());
+    // A typist's pace: each key settles (the address, the rows) before the next one.
+    const user = userEvent.setup({ delay: 80 });
+    await opened();
+    const status = screen.getByRole('status', { name: 'Traceability updates' });
+    const seen: string[] = [];
+    const observer = new MutationObserver(() => {
+      if (status.textContent) seen.push(status.textContent);
+    });
+    observer.observe(status, { childList: true, subtree: true, characterData: true });
+    await user.type(screen.getByRole('searchbox', { name: 'Search references' }), 'first');
+    await waitFor(() => expect(status.textContent).toBe('1 reference'));
+    observer.disconnect();
+    expect(seen).toEqual(['1 reference']);
+  });
+
   it('F-8 — a failed events read names what this page shows', async () => {
     stubApi(api({ [CURRENT]: { status: 200, body: answer({ eventsError: { code: 'git-failed', message: 'x' } }) } }));
     await opened();

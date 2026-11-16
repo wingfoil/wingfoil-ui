@@ -43,6 +43,7 @@ function CompletionCard({ pid, answer }: { pid: string; answer: Traceability }):
         pid={pid}
         figure={answer.figures.completion}
         scopeName={current ? (current.shortId ?? current.id) : null}
+        linkToFilter={answer.scope.applied === 'current'}
       />
     </div>
   );

@@ -303,12 +303,12 @@ what the user sees; the variants from the harness (`usePresetUiConfig`, `usePreP
 | R-01.8 | › "R-01.8 — Open the elements missing required references in Memory" (exactly two rows, active filter) |
 | R-01.9 | › "R-01.9 — Filter references by category" |
 | AC-2 / C-04.3 | › "C-04.3 — Show the ui.yaml warning on Traceability" (kanban, Alex, committed `progress.mode: spiral`; warning by `.ui-yaml-warning`, the note, its Taxonomy link) |
-| AC-1 | › "AC-1 — filters in the address, back restores them" and "AC-1 — chip tooltip on hover and focus, the completion explanation"; unit `test/web/traceability/model.test.ts` (search parse, ignored values, case-insensitive substring never a regex, counts, closed category order, status keys) and `view.test.tsx` (columns, element reference cell, chips, figures and their unavailable texts, empty states, error not empty, notices) |
-| AC-3 | › "AC-3 — the page by keyboard: filters, chips, Escape closes a tooltip"; unit `view.test.tsx` (`aria-pressed` groups with counts in names, polite count after a filter change); X-06.4 and X-09.1 through the two `SCREENS` entries (`accessibility.spec.ts`, unchanged) |
+| AC-1 | › "AC-1 — filters in the address, back restores them", "AC-1 — the completion explanation on hover and on keyboard focus (as T-14.1, T-14.2)" and "AC-1 — chip tooltip on hover and on focus, closed with Escape"; unit `test/web/traceability/model.test.ts` (search parse, ignored values, case-insensitive substring never a regex, counts, closed category order, status keys) and `view.test.tsx` (columns, element reference cell, chips, figures and their unavailable texts, empty states, error not empty, notices) |
+| AC-3 | › "AC-3 — the filters by keyboard, toggle buttons with counts, the rows announced politely"; unit `view.test.tsx` (`aria-pressed` groups with counts in names, polite count after a filter change); X-06.4 and X-09.1 through the two `SCREENS` entries (`accessibility.spec.ts`, unchanged) |
 | AC-4 | task-081 (the split, W3-3) |
 | AC-5 | `performance.spec.ts` › "AC-5 (task-067) — Traceability renders within 1.0 s (p95, warm cache)" |
 | AC-6 | review of the docs; `test/docs/public-text.test.ts` |
-| 400 px (own parts) | › "AC-1 — at 400 px only the table's container scrolls" (Chromium) |
+| 400 px (own parts) | › "AC-1 — at 400 px only the table container scrolls sideways" (every engine) |
 
 #### e2e closure
 
@@ -522,3 +522,27 @@ texts on this page) to the AC-1 e2e test; then the gates again.
   passed on each), smoke, publish-smoke. Local before the push: `npm run typecheck`, `npm run lint`,
   `npm run format:check`, `npm run docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run
   test/docs/public-text.test.ts test/governance --maxWorkers=2`: 5 files passed.
+
+### Review round 1 (2026-11-16, PASS with fixes)
+
+Red first: `7bd693ef` (F-1, F-2, F-3, F-5, F-8 seen failing with `npx vitest run
+test/web/traceability/view.test.tsx --maxWorkers=2 -t "review round 1"`: 5 failed, 2 passed — the
+F-1 "link kept on the release scope" test and F-6, below).
+
+| Finding | Outcome | Test |
+|---------|---------|------|
+| F-1 (major) — under *Whole project* the completion linked to `/memory?figure=completion`, the current release's elements | `web/src/progress/Completion.tsx` gains `linkToFilter?: boolean` (default `true`, Today unchanged): `false` renders the figure as a focusable tooltip trigger (`.progress-completion-trigger`, its focus ring in `progress.css`) without the link; `Figures.tsx` passes `answer.scope.applied === 'current'`. Touches task-065's module: the same component serves both views, and v0.3 is not shipped | `view.test.tsx` "F-1 — under Whole project the completion is no link …" (red), "F-1 — on the release scope the completion keeps its link …" (characterization); Today's `progress-card.test.tsx` unchanged and green; `traceability.spec.ts` R-01.5 asserts no completion link after *Whole project* |
+| F-2 (minor) — `progress.completion.noLinked` formatted with an empty scope ("No references linked in ") | `progress.completion.noLinkedProject` "No references linked in the project" when `scopeName` is `null`, in the shared component (task-065's module, as F-1). Today's own announcement text (`ProgressCard.tsx`, `completionText`) still formats `noLinked` with `''`; on Today `no-linked-elements` comes with a current element, so it is not reached there — left to task-065's owner as a note | `view.test.tsx` "F-2 — no linked element: the current scope named, or \"the project\" …" (red) |
+| F-3 (minor a11y) — the search field had no visible label | a catalogue placeholder, the label's text, as Team's search | "F-3 — the search field shows its placeholder" (red) |
+| F-4 (minor a11y) — a chip's tooltip closes when the pointer moves onto it (WCAG 1.4.13, hoverable) | not changed (the reviewer's instruction): a known limitation shared with the completion tooltip — the same text is reachable by keyboard focus and stays until Escape or blur. Candidate for the retrospective and v0.4 (a hoverable tooltip in the shared progress module and the chips alike) | — |
+| F-5 (minor) — a failed read of the other scope unmounted the scope control | the last answer read is kept (state adjusted while rendering) and the scope group is rendered above the body, from it, its pressed state from the address; the error replaces only the body, so the focus stays on the pressed button | "F-5 — a failed read of the other scope keeps the scope control and the focus on it" (red) |
+| F-6 (minor) — the search's local state against the address | not reproduced: typing 14 characters with `userEvent.setup({ delay: null })` keeps every key, the field and the address end with the whole text; F-7's test types at 80 ms a key with the same result. No change | "F-6 — typing fast keeps every key …" (passes before and after, the evidence) |
+| F-7 (nit) — the row count announced at every keystroke | announced 500 ms after the last filter or search change (`ANNOUNCE_PAUSE_MS`, a timer in an effect) | "F-7 — typing announces the row count once, after a pause" — written with the fix; guard removal (`ANNOUNCE_PAUSE_MS = 0`) fails it with four announcements, recorded |
+| F-8 (nit) — `traceability.notice.eventsError` named who must act (task-081's) | "The repository history could not be read: the references and figures are shown without it." | "F-8 — a failed events read names what this page shows" (red) |
+| F-9 (nit) — test-plan titles and a long `test/README.md` line | the AC-1, AC-3 and 400 px rows of the test plan now carry the real titles of `traceability.spec.ts`; the README lines this task wrote are wrapped at 100 columns — the long ones left are the one-line `Version` header and the commands table, both the file's convention | — |
+| F-10 — AC-5 | stays open until the coordinator's `test:timing` run at the wave gate (task-059 Q7 (a)): in `test:e2e:chromium` the "AC-5 (task-067)" timing test runs unasserted | — |
+
+`npx vitest run test/web/traceability/view.test.tsx --maxWorkers=2`: 35 passed; `npx vitest run
+test/web/today/progress-card.test.tsx test/web/today/progress-tooltip.test.tsx
+test/web/i18n/catalogue.test.ts --maxWorkers=2`: 3 files, 28 passed.
+

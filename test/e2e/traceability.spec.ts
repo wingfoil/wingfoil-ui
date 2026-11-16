@@ -109,6 +109,10 @@ test.describe('US-R-01 — traceability', () => {
     await scope.getByRole('button', { name: 'Whole project' }).click();
     await expect(chips(row(page, 'US-S-09'))).toHaveText(['dl-001'], { timeout: COLD_READ_MS });
     await expect(page).toHaveURL(/scope=project/);
+    // Review round 1 F-1: the whole project's completion is no link to the current scope's filter.
+    const figures = page.getByRole('region', { name: 'Figures' });
+    await expect(figures.locator('.progress-completion-trigger')).toBeVisible();
+    await expect(figures.getByRole('link', { name: /^Project completion/ })).toHaveCount(0);
   });
 
   test('R-01.6 — Show a pattern reference by its id only', async ({ page, fixtures, consoles }) => {
