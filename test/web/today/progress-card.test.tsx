@@ -336,6 +336,44 @@ describe('AC-1 — the card on Today', () => {
     await waitFor(() => expect(status.textContent).toBe('Progress updated'));
   });
 
+  it('announces nothing when only the header’s version arrives after the figures (gates run 43863969804)', async () => {
+    // The progress read answers before the project header: the phase text gains "(this project:
+    // 0.2.2)" once the header is read — not a change of the figures.
+    const fetch = stubApi(api());
+    const answer = fetch.getMockImplementation() as (url: string) => Promise<Response>;
+    let release: () => void = () => undefined;
+    const header = new Promise<void>((r) => {
+      release = r;
+    });
+    fetch.mockImplementation(async (url: string) => {
+      if (url === HEADER) await header;
+      return answer(url);
+    });
+    renderApp(`/p/${PID}/today`);
+    await waitFor(() => expect(within(card()).queryByRole('list', { name: 'Figures' })).not.toBeNull());
+    const status = screen.getByRole('status', { name: 'Progress updates' });
+    release();
+    await waitFor(() =>
+      expect(within(figures()).getAllByRole('listitem')[1]!.textContent).toBe(
+        'Phase — needs WingFoil 0.3 (this project: 0.2.2)',
+      ),
+    );
+    expect(status.textContent).toBe('');
+  });
+
+  it('marks the announced texts as a list of message elements (`.intl-list`, X-09.1)', async () => {
+    stubApi(api());
+    const { queryClient } = await openCard();
+    act(() => {
+      queryClient.setQueryData(
+        progressQuery(PID).queryKey,
+        progress({}, { pendingGates: { state: 'shown', count: 2, ids: ['g-001-x'] } }),
+      );
+    });
+    const status = screen.getByRole('status', { name: 'Progress updates' });
+    await waitFor(() => expect(status.querySelector('.intl-list')?.textContent).toBe('Pending gates 2'));
+  });
+
   it('shows its loading status until /progress answers (review round 1, F-5)', async () => {
     const fetch = stubApi(api(null));
     const answer = fetch.getMockImplementation() as (url: string) => Promise<Response>;
