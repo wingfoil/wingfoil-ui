@@ -112,3 +112,7 @@ vitest run <file> --maxWorkers=2` in the worktree; the heavy gates on `.github/w
   fields, not on this change — `module: "server"` where a governance task needs `module` governance
   with `ref: GOV`, and the *Backlog items* line `GOV (governance — a harness fix, bug-049)` split at
   its comma (`GOV (governance — a harness fix`, `bug-049)` not found). Left to the coordinator.
+- Heavy gates: run `43900914602` (`gates.yml`, `task` scope, started by the push of ``100c1a0e``;
+  no `workflow_dispatch`, which would have cancelled it as the same ref) — `success`: checks,
+  coverage, contract, smoke, publish-smoke, e2e-chromium (1) and (2), own-specs (firefox) and
+  (webkit) success; e2e-wave skipped (wave scope only).
