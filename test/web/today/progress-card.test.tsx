@@ -336,6 +336,23 @@ describe('AC-1 — the card on Today', () => {
     await waitFor(() => expect(status.textContent).toBe('Progress updated'));
   });
 
+  it('announces a no-linked completion with no current element as the project (task-067 review round 2, R2-1)', async () => {
+    stubApi(api());
+    const { queryClient } = await openCard();
+    const status = screen.getByRole('status', { name: 'Progress updates' });
+    act(() => {
+      queryClient.setQueryData(
+        progressQuery(PID).queryKey,
+        progress(
+          { scope: { type: null, current: null, basis: null } },
+          { completion: { state: 'unavailable', reason: { code: 'no-linked-elements' } } },
+        ),
+      );
+    });
+    await waitFor(() => expect(status.textContent).toContain('No references linked in the project'));
+    expect(status.textContent).not.toMatch(/linked in ,|linked in $/);
+  });
+
   it('announces nothing when only the header’s version arrives after the figures (gates run 43863969804)', async () => {
     // The progress read answers before the project header: the phase text gains "(this project:
     // 0.2.2)" once the header is read — not a change of the figures.

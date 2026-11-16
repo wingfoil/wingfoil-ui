@@ -649,3 +649,70 @@ describe('review round 1', () => {
     ).toBeTruthy();
   });
 });
+
+describe('review round 2', () => {
+  it('R2-2 — the completion without its link is an image named by the figure, no React Aria warning', async () => {
+    const warn = vi.spyOn(console, 'warn');
+    const error = vi.spyOn(console, 'error');
+    stubApi(api());
+    const user = userEvent.setup();
+    await opened(`${PAGE}?scope=project`);
+    const figure = within(screen.getByRole('region', { name: 'Figures' })).getByRole('img', {
+      name: 'Project completion 25 %',
+    });
+    while (document.activeElement !== figure) await user.tab();
+    const tip = await screen.findByRole('tooltip');
+    expect(figure.getAttribute('aria-describedby')).toBe(tip.id);
+    await user.keyboard('{Escape}');
+    const messages = [...warn.mock.calls, ...error.mock.calls].map((c) => String(c[0]));
+    expect(messages.filter((m) => /Focusable|interactive ARIA role/.test(m))).toEqual([]);
+    warn.mockRestore();
+    error.mockRestore();
+  });
+
+  it('R2-3 — a project switch carries nothing of the previous project, its failed read included', async () => {
+    const OTHER = 'p_two';
+    stubApi({
+      ...api(),
+      '/api/projects': {
+        status: 200,
+        body: {
+          projects: [
+            { id: PID, name: 'demo', path: '/x', remote: null, availability: 'available' },
+            { id: OTHER, name: 'two', path: '/y', remote: null, availability: 'available' },
+          ],
+        },
+      },
+      [`/api/p/${OTHER}`]: { status: 200, body: { ...header(BO), id: OTHER, name: 'two' } },
+      [`/api/p/${OTHER}/traceability?scope=current`]: {
+        status: 502,
+        body: { error: { code: 'read-error', message: 'x' } },
+      },
+    });
+    const { router } = await opened();
+    await router.navigate({ to: '/p/$pid/traceability', params: { pid: OTHER } });
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByRole('table', { name: 'References' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Scope' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Figures' })).toBeNull();
+  });
+
+  it('R2-4 — the ui.yaml warning stays with the scope control above a failed scope read', async () => {
+    const ignored = {
+      ui: { source: 'ignored' as const, warning: { code: 'ui-config-ignored' as const, failure: 'bad file' } },
+    };
+    stubApi(
+      api({
+        [CURRENT]: { status: 200, body: answer(ignored) },
+        [PROJECT]: { status: 502, body: { error: { code: 'read-error', message: 'x' } } },
+      }),
+    );
+    const user = userEvent.setup();
+    const { container } = await opened();
+    await user.click(
+      within(screen.getByRole('group', { name: 'Scope' })).getByRole('button', { name: 'Whole project' }),
+    );
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(container.querySelector('.ui-yaml-warning')?.textContent).toBe('ui.yaml ignored: bad file');
+  });
+});
