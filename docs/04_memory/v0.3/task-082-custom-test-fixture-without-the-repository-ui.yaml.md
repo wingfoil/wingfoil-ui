@@ -4,12 +4,12 @@ type: task
 title: "Custom test fixture without the repository ui.yaml"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+sprint: "sprint-001"             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "server"             # optional — server | web | contracts (dna.yaml modules)
+priority: "high"           # optional — high | medium | low
+tags: ["v0.3", "governance", "test-harness"]               # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-049-the-custom-test-fixture-copies-the-repository-ui.yaml-so-tests-that-need-no-ui.yaml-fail"]                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -20,19 +20,39 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The fix of bug-049: the `custom` fixture of the test harness copies this repository's whole
+`.wingfoil/` (`importGovernance`, `test/harness/fixtures/builder.ts`), so since the approver's
+preset commit `8451080a` it carries `.wingfoil/ui.yaml` and the heavy gates fail on the phase
+branch (gates run `43876696740`, on task-065's merge of the phase branch `13bd3ca1`). Added in
+Wave 3 by the approver's choice (2026-11-16, "a"; `backlog-item-rel-v0.3-plan` W3-4), before
+task-065's merge; task-065 and task-067 merge the phase branch after it.
+
+**Backlog items:** GOV (governance — a harness fix, bug-049)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — No ui.yaml in the custom fixture.** The `custom` fixture has no `.wingfoil/ui.yaml`
+  whatever this repository's `.wingfoil/` holds: `importGovernance` copies `.wingfoil/` without
+  `ui.yaml` (the pre-packs governance unchanged); a harness test asserts it while this repository
+  has a `ui.yaml` (red before the fix).
+- **AC-2 — The failed suites green.** The suites that failed in `43876696740` are green with no
+  expectation loosened: `test/contracts/ui-config-fixtures.test.ts` AC-7,
+  `test/server/http/ui-config-preset.test.ts` C-02.3, `test/server/reads/project-reads.test.ts`
+  TT-ARC-04, the held-gates, progress, traceability and ui-config route suites, contract,
+  e2e-chromium and the own specs; the gates run on the task branch green.
+- **AC-3 — Docs.** `test/README.md` (the `custom` fixture: this repository's governance without
+  `ui.yaml`) and any requirement document that describes the fixture; Version/Date bumped; no
+  `CHANGELOG.md` entry (no user-visible change).
+
+Gates: `npm run typecheck`, `npm run lint`, `npm run format:check`, the changed suites by `npx
+vitest run <file> --maxWorkers=2` in the worktree; the heavy gates on `.github/workflows/gates.yml`
+(`scope=task`); `check_tasks.py v0.3`; commands and results in the Execution Notes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- No product code changes; this repository's `.wingfoil/` is not touched (`8451080a` kept by the
+  approver's choice, "Gate 1: b").
+- A `cp` filter on `ui.yaml` at the copy root only; nothing else excluded.
 
 ## Execution Notes
 
