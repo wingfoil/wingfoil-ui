@@ -68,6 +68,8 @@ function api(over: FakeApi = {}): FakeApi {
     [`${HEADER}/role-view`]: { status: 204 },
     [`${TODAY}?view=developer`]: { status: 200, body: today('developer') },
     [`${TODAY}?view=approver`]: { status: 200, body: today('approver') },
+    // task-080: Recent activity's own read (an unstubbed read is the card's error).
+    [`/api/p/${PID}/events/memory?limit=5`]: { status: 200, body: { events: [], more: false } },
     ...over,
   };
 }

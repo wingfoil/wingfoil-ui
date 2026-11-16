@@ -177,6 +177,7 @@ it('is the last card of Today, after Waiting on others (AC-2)', async () => {
   stubApi(api());
   renderApp(`/p/${PID}/today`);
   await waitFor(() => expect(rowsOf(card())).toHaveLength(5));
+  await screen.findByRole('region', { name: 'Waiting on others' });
   const sections = [...document.querySelectorAll<HTMLElement>('.today section')];
   expect(sections.at(-1)).toBe(card());
   expect(sections.at(-2)).toBe(screen.getByRole('region', { name: 'Waiting on others' }));
@@ -196,7 +197,7 @@ it('shows a failed read as an error inside the card, the rest of Today shown (AC
   const alert = await within(await screen.findByRole('region', { name: 'Recent activity' })).findByRole('alert');
   expect(alert).toBeTruthy();
   expect(screen.queryByText('No Memory event yet')).toBeNull();
-  expect(screen.getByRole('region', { name: 'Waiting on others' })).toBeTruthy();
+  expect(await screen.findByRole('region', { name: 'Waiting on others' })).toBeTruthy();
   expect(screen.getByRole('heading', { level: 1, name: 'Morgan, nothing requires you' })).toBeTruthy();
 });
 
@@ -212,7 +213,9 @@ it('is shown whatever Today’s own read: a refused Today (Q2 (a))', async () =>
   stubApi(api({ [TODAY]: failed }));
   renderApp(`/p/${PID}/today`);
   await waitFor(() => expect(rowsOf(card())).toHaveLength(5));
-  expect(document.querySelectorAll('.today [role="alert"]')).toHaveLength(1);
+  // Today's own error, outside the card, and the card's rows.
+  await waitFor(() => expect(document.querySelectorAll('.today [role="alert"]')).toHaveLength(1));
+  expect(card().querySelector('[role="alert"]')).toBeNull();
 });
 
 it('reads the last 5 events with its own key, beside the bell’s 10 (D80-1)', async () => {

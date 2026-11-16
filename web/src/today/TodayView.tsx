@@ -52,6 +52,8 @@ export interface TodayViewProps {
   header: Read<ProjectHeader> & Pick<UseQueryResult<ProjectHeader>, 'dataUpdatedAt'>;
   /** `GET /today` for the header's role view; not started until the header is read. */
   today: Read<Today> & Pick<UseQueryResult<Today>, 'isFetching'>;
+  /** The last card, Recent activity (task-080, D80-3): its own read, shown whatever Today's (Q2 (a)). */
+  activity?: ReactNode;
 }
 
 /** A failed read as an API error (a non-API failure renders as `internal`). */
@@ -230,7 +232,7 @@ function IdentitySentence({ header }: { header: ProjectHeader }): ReactNode {
 }
 
 /** Today of project `pid`. */
-export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
+export function TodayView({ pid, header, today, activity }: TodayViewProps): ReactNode {
   const intl = useIntl();
   const requiresId = useId();
   const waitingId = useId();
@@ -412,6 +414,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
           )}
         </>
       )}
+      {activity}
     </div>
   );
 }

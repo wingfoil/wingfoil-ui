@@ -333,3 +333,41 @@ Tests written before the code (`npm ci` first in the worktree):
   characterization — `npx vitest run test/server/snapshot/process-audit.test.ts -t "Recent activity"
   --maxWorkers=2` → 1 passed before any code (the server is unchanged); its guard-removal check is
   recorded at green.
+
+### green (2026-11-16)
+
+Code: `web/src/today/RecentActivity.tsx` and `recent-activity.css` (new), the `activity` prop and
+its one line in `TodayView.tsx`, `routes/today.tsx`, the comment of `memoryEventsQuery`, six
+`today.activity.*` keys in `en.json`. Deviations from the design:
+
+- **D80-4 / D80-8:** `today.activity.by` is "{id} {what} · {name}", the id link one of its elements,
+  instead of "{what} · {name}" after the link and a literal space — ESLint's
+  `formatjs/no-literal-string-in-jsx` refuses the space, and one message for the whole line is
+  spec-008 §3's rule anyway. The row's text is unchanged.
+- **D80-12:** `cliAs` sets `GIT_AUTHOR_*`/`GIT_COMMITTER_*` (red, above), not `GIT_CONFIG_*`.
+- The app-level Today suites stub the `?limit=5` read: `test/web/today/today.test.tsx` (its default
+  `api()`; "reads Today for that view only" now expects the three reads, header, Today and the
+  events — an exact set extended by the new read, not loosened) and `summary.test.tsx` (its default
+  `api()`); without the stub, 2 + 3 tests failed on the card's 404 alert (the second alert, or no
+  alert expected).
+
+Local results (load average 15–18 during the runs):
+
+- `npx vitest run test/web/today/recent-activity.test.tsx --maxWorkers=2` → 10 passed;
+- `npx vitest run <file> --maxWorkers=2`, one file at a time: `test/web/today/{today,summary,cards,
+  title-text}.test.tsx` → 28, 9, 13, 1 passed; `test/web/element/{side-panel,submit-footer,panel,
+  gate-footer}.test.tsx` → 30, 10, 23, 54; `test/web/repository/sidebar.test.tsx` 1;
+  `test/web/project/{how-to-join,project-header}.test.tsx` 19, 22;
+  `test/web/directives/directives.test.tsx` 12; `test/web/team/team.test.tsx` 7;
+  `test/web/shell/{shell,project-switcher,add-project,notification-bell}.test.tsx` 15, 21, 34, 16;
+  `test/web/routes/nav.test.ts` 5 — all passed;
+- the audit's guard removal: with both the per-HEAD share (`Snapshot.memoryEvents`' key check) and
+  the per-state memo of `eventLog` removed from `server/src/snapshot/snapshot.ts`, `npx vitest run
+  test/server/snapshot/process-audit.test.ts -t "Recent activity" --maxWorkers=2` → 1 failed
+  ("expected [ Array(4) ] to have a length of 2": the `?limit=5` read ran `git log` again); with the
+  first only removed it still passed (the per-state memo serves it); restored, no diff in `server/`;
+- `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` → clean;
+  `python3 docs/03_backlog/X_tools/check_tasks.py v0.3` → "36 tasks · 16 backlog items · 16 listed
+  OK".
+
+The e2e spec, the screens and the heavy gates run on `gates.yml` (below).

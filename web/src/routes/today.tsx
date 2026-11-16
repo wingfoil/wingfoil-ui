@@ -6,7 +6,8 @@
  * Reads: the project header (shared with the layout) for the role view, then `GET /today` for that
  * view (`todayQuery`, the key shared with the notification bell, D31-6). Both keys sit under
  * `['p', pid]`: the `repo` event refreshes Today (T-03.2, T-04.2); a role view change re-reads the
- * header, whose new `roleView` is a new Today key (T-02.3).
+ * header, whose new `roleView` is a new Today key (T-02.3). The last card, Recent activity, reads the
+ * last 5 Memory events itself (task-080, D80-3).
  */
 import { useQuery } from '@tanstack/react-query';
 import { createRoute, redirect } from '@tanstack/react-router';
@@ -14,6 +15,7 @@ import type { ReactNode } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { projectHeaderQuery, todayQuery } from '../api/queries.js';
 import { useProjectTitle } from '../shell/page-title.js';
+import { RecentActivity } from '../today/RecentActivity.js';
 import { TodayView } from '../today/TodayView.js';
 import { NAV_ORDER } from './nav.js';
 import { projectRoute } from './project.js';
@@ -28,7 +30,7 @@ function TodayPage(): ReactNode {
   // The role view of the header (`null`: no `?view=`, D31-5); read once the header is known.
   const today = useQuery({ ...todayQuery(pid, header.data?.roleView ?? null), enabled: header.data !== undefined });
   // Keyed by the project: the layout is not remounted on a `$pid` change (review F1).
-  return <TodayView key={pid} pid={pid} header={header} today={today} />;
+  return <TodayView key={pid} pid={pid} header={header} today={today} activity={<RecentActivity pid={pid} />} />;
 }
 
 /** `/p/$pid/today`: Today. */

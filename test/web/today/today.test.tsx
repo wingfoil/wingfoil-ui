@@ -18,6 +18,8 @@ import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js
 const PID = 'p_a';
 const HEADER = `/api/p/${PID}`;
 const TODAY = `/api/p/${PID}/today`;
+/** Recent activity's own read on Today (task-080, D80-1). */
+const EVENTS = `/api/p/${PID}/events/memory?limit=5`;
 const DAYS_3 = new Date(Date.now() - 3 * 86_400_000 - 600_000).toISOString();
 
 function morgan(roleView = 'approver'): ProjectHeader {
@@ -85,6 +87,8 @@ function api(over: FakeApi = {}): FakeApi {
     },
     [HEADER]: { status: 200, body: morgan() },
     [`${TODAY}?view=approver`]: { status: 200, body: MORGAN_TODAY },
+    // task-080: an unstubbed read would be the card's error (an alert of its own).
+    [EVENTS]: { status: 200, body: { events: [], more: false } },
     ...over,
   };
 }
@@ -132,7 +136,8 @@ it('greets with the count and the role view, and reads Today for that view only 
   const { queryClient } = renderApp(`/p/${PID}/today`);
   await screen.findByRole('heading', { level: 1, name: 'Morgan, 2 things require you' });
   expect(screen.getByText('Role view: approver')).toBeTruthy();
-  expect(new Set(paths(fetch))).toEqual(new Set([HEADER, `${TODAY}?view=approver`]));
+  // Plus Recent activity's last 5 events, a read of its own (task-080).
+  expect(new Set(paths(fetch))).toEqual(new Set([HEADER, `${TODAY}?view=approver`, EVENTS]));
   // One cache entry per role view, shared with the bell (D31-6).
   expect(todayQuery(PID, 'approver').queryKey).toEqual(queryKeys.project(PID, 'today', { view: 'approver' }));
   expect(queryClient.getQueryData(todayQuery(PID, 'approver').queryKey)).toEqual(MORGAN_TODAY);

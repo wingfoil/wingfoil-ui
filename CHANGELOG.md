@@ -9,6 +9,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **Recent activity on Today** (task-080, US-T-08; spec-012 §6): the last card of Today lists the
+  last 5 Memory events, newest first — the element's id as a link to its side panel, the transition
+  or *created*, who did it and how long ago — refreshed by itself on every change of the
+  repository; commits that are not Memory events are not listed. No link to a Timeline yet (v0.4).
 - **Configuration › Taxonomy and › Progress** (task-064, US-C-01, US-C-04 C-04.2; spec-005 §1–§4,
   spec-012 §2): two tabs after *UI settings* show how the console reads the project's
   `.wingfoil/ui.yaml`, each value marked *declared*, *inferred* or *derived* as the server serves
