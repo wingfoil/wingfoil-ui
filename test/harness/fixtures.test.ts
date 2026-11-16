@@ -1,9 +1,10 @@
+import { existsSync } from 'node:fs';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HEAVY_MS } from './load.js';
-import { binScript } from './cli.js';
+import { binScript, REPO_ROOT } from './cli.js';
 import {
   buildFixture,
   cliPackageDir,
@@ -209,5 +210,18 @@ describe('custom fixture history', () => {
     const f = built.get('kanban')!;
     const { stdout } = await git(f.dir, ['log', '--format=%an|%s', '--grep', 'reject'], f.env);
     expect(stdout.trim()).toBe('Morgan|wf(task): reject task-002-password-reset [pending → draft]');
+  });
+});
+
+describe('custom fixture governance (task-082 AC-1)', () => {
+  it('AC-1 imports this repository\'s .wingfoil/ without its ui.yaml', async () => {
+    // The precondition: this repository holds a ui.yaml (the approver's preset commit 8451080a), so
+    // the assertion below cannot pass for want of a source file.
+    expect(existsSync(path.join(REPO_ROOT, '.wingfoil', 'ui.yaml'))).toBe(true);
+    const f = built.get('custom')!;
+    expect(existsSync(path.join(f.dir, '.wingfoil', 'ui.yaml'))).toBe(false);
+    expect((await git(f.dir, ['ls-files', '--', '.wingfoil/ui.yaml'], f.env)).stdout).toBe('');
+    // The rest of the governance is still imported.
+    expect(existsSync(path.join(f.dir, '.wingfoil', 'memory.yaml'))).toBe(true);
   });
 });

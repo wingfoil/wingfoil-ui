@@ -86,3 +86,10 @@ vitest run <file> --maxWorkers=2` in the worktree; the heavy gates on `.github/w
 - **Docs (AC-3).** `test/README.md` *Fixtures* (the `custom` fixture's governance: this
   repository's `.wingfoil/` without `ui.yaml`) and `docs/02_requirements/02_bdd/00_conventions.md`
   (the `@fx-custom` row); Version/Date bumped; no `CHANGELOG.md` entry.
+
+### Red (2026-11-16)
+
+- `test/harness/fixtures.test.ts` *custom fixture governance (task-082 AC-1)*: `npx vitest run
+  test/harness/fixtures.test.ts --maxWorkers=2 -t "task-082"` → 1 failed, 31 skipped: `AssertionError:
+  expected true to be false` at the `existsSync(<fixture>/.wingfoil/ui.yaml)` line (the precondition
+  `REPO_ROOT/.wingfoil/ui.yaml` exists passed first).
