@@ -504,3 +504,47 @@ Runs of round 1 (`gates.yml`):
 - push run `43850280471` on the fixes `4d1e8f8e`: success — checks, coverage, contract,
   e2e-chromium ×2, own specs (`test/e2e/use-preset.spec.ts`, selected by the push: "playwright test
   --project=firefox … test/e2e/use-preset.spec.ts", and the same on WebKit), smoke, publish-smoke.
+
+### review round 2 (2026-11-16)
+
+Same independent reviewer, on `1155215f` (fixes `4d1e8f8e`, notes `1155215f`). Ran: `git var
+GIT_AUTHOR_IDENT` (the agent's identity); `npx vitest run --maxWorkers=2`, one file at a time —
+`test/web/api/ui-config` (4), `test/web/configuration/use-preset` (24), `taxonomy` (9), `progress`
+(9), `test/docs/public-text` (67): all passed; `gh run view 43850280471`: success on `4d1e8f8e`
+(checks, coverage, contract, e2e-chromium ×2, own specs on Firefox and WebKit, smoke,
+publish-smoke; `e2e-wave` skipped as for a push); `1155215f` changes these notes only.
+
+Guard removals, each a temporary edit reverted with `git checkout -- <file>` right after its run
+(the tree clean before and after):
+
+- F-1: `onSettled`'s `invalidateQueries` removed from `web/src/api/ui-config.ts` → the two F-1 tests
+  of `test/web/api/ui-config.test.tsx` failed (2 of 4); the hook's own `onSuccess`/`onError` removed
+  → 3 of 4 failed.
+- F-4: `UiFrame.tsx`'s condition back to `if (config.error)` → "review round 1 F-4 — a /config refetch
+  that fails while the write runs keeps the tab and the dialog" failed (1 of 24).
+- F-5: the drop `if (control.kind !== 'enabled') focusAfterUpdate.current = false;` removed from
+  `UsePreset.tsx` → "review round 1 F-5 — an Update that leaves the copy blocking drops the focus
+  request …" failed (1 of 24).
+
+Each finding of round 1 is closed: F-1 (the hook test exists and guards the unmount toasts and the
+invalidation; the *Files* row corrected), F-2 (the AC-3 row and *Green* cite 0.43, 1.26, 0.94/0.95),
+F-3 (runs `43847040848` on the merge and `43850280471` on the fixes recorded, own specs selected
+`use-preset.spec.ts` on Firefox and WebKit), F-4, F-5 (above), F-6 (`A  README.md\n` exactly), F-7
+(the store's toast asserted `sticky`), F-8 (the key listed in D79-9, the alias gone).
+
+New code re-checked. F-4: the read's error now replaces the tab only when nothing was read; the
+`types`-error branch is unchanged, the first-read error still shows (`taxonomy.test.tsx` green), and
+keeping stale data on a failed refetch is the pattern `ProjectSwitcher.tsx:94` already uses. F-5:
+`useGitOperation`'s own `onSuccess` sets the header (`setQueryData`) before `UpdateLink` calls
+`onSucceeded`, so the first header read at or after the recorded time is the update's own answer:
+an in-sync answer still moves the focus to *Use preset* (the D79-6 test green), a still-blocking one
+drops the request. The full diff re-scanned (the rule, the dialog, the toasts, the extractions, the
+catalogue, `SCREENS`, the docs, the security points of round 1): nothing new above a nit; the
+radio's focus is visible through `base.css`'s `[data-focus-visible]` rule.
+
+**Verdict: PASS** (nits only).
+
+| id | severity | file:line | what is wrong | what would fix it |
+|----|----------|-----------|---------------|-------------------|
+| R2-1 | nit | `web/src/configuration/UiFrame.tsx:6` | The edited header comment is one overlong line and now reads as if the `types` error, too, shows only "when nothing was read yet"; only the read's error has that condition (`:46`), the `types` error still replaces the values whenever the data has no `ui` (`:53`). | Rewrap the comment and attach the "nothing read yet" qualifier to the read's error alone. |
+| R2-2 | nit | `web/src/configuration/UiFrame.tsx:46` | Since F-4, Taxonomy and Progress keep showing the last data after a failed refetch with no sign that it is stale (task-064's tabs, not only the preset). Consistent with the switcher's pattern and the next `repo` event reads again, so acceptable, but it is a behaviour change of task-064's screens recorded only in this task. | None required; optionally a line in ux-reference §4.11's v0.3 block. |
