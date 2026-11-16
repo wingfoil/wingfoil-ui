@@ -1,0 +1,52 @@
+version: 1
+taxonomy:
+  categories:
+    task: work
+    bug: defect
+    adr: decision
+    decision-log: decision
+    tech-spec: spec
+    release: release
+    service: external
+  patterns:
+    - match: ^(REQ|US)-
+      category: requirement
+    - match: ^(P\d|Journey)
+      category: feature
+    - match: ^(minor|patch)-v|^rl-
+      category: release
+  requires:
+    task:
+      - requirement
+    adr:
+      - requirement
+    tech-spec:
+      - requirement
+progress:
+  mode: sequence
+  scope:
+    type: release
+  phases:
+    - sprint-planning
+    - development
+    - plan-release
+    - release
+    - sprint-review
+    - retrospective
+    - close
+  iterates: task
+  defects: bug
+holds:
+  release:
+    releasing:
+      approve: never
+  release-line:
+    active:
+      approve: when-references-done
+artifacts:
+  - path: dist/wingfoil-{version}.tgz
+    phase: release
+  - path: https://www.npmjs.com/package/wingfoil/v/{version}
+    phase: release
+  - path: reports/{release}/e2e-smoke.md
+    phase: release
