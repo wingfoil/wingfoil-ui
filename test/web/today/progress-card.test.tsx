@@ -325,6 +325,18 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
     await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
   });
 
+  it('renders each reference of the explanation as its own message element (X-09.1; gates run 43856118608)', async () => {
+    stubApi(api());
+    const user = userEvent.setup();
+    await openCard();
+    await user.hover(within(figures()).getByRole('link', { name: 'Project completion 25 %' }));
+    const tooltip = await screen.findByRole('tooltip');
+    expect([...tooltip.querySelectorAll('.progress-reference')].map((el) => el.textContent)).toEqual([
+      'US-M-01 50 %',
+      'US-S-01 0 %',
+    ]);
+  });
+
   it('says "and <n> more" past the listed references, one reference in the singular', async () => {
     const references = Array.from({ length: 10 }, (_, i) => ({
       id: `US-${String(i + 1).padStart(2, '0')}`,
