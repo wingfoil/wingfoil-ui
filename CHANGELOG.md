@@ -18,6 +18,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   link to its page, `phases`, `iterates`, `defects` and the held gates, each with its meaning and
   allowed values. A file the console cannot use is named at the top of both tabs, "ui.yaml
   ignored:" and its first problem, and every value is then *inferred*.
+- **Use preset on Configuration › Taxonomy** (task-079, US-C-02, US-C-03; spec-005 §5): for a
+  project with no `.wingfoil/ui.yaml`, *Use a preset* right after the tab's intro offers *Kanban*,
+  *Scrum* and *WingFoil sw-life-cycle*; the dialog names the file and the commit it will make,
+  `chore(ui): apply the <Preset> preset`, and Confirm writes it alone — other staged changes stay
+  staged. A toast names the commit (and whether it was pushed); a refusal is a red toast with its
+  reason, such as "ui.yaml not written: type service is not declared in memory.yaml". The control is
+  not shown when a `ui.yaml` exists or to a user who is not in the team, and is disabled with the
+  reason while the copy is behind (with *Update*), diverged or detached, or WingFoil is outside the
+  supported range.
 - **The element's document** (task-078, US-G-03, US-G-08): the summary of an element is its body's
   first paragraph rendered as Markdown, and *Open document* opens the whole body in a dialog,
   rendered or as its source, on the element page and in the side panel alike. The rendering is the
@@ -143,7 +152,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   on and announced to the other pages. It refuses when `ui.yaml` already exists anywhere (the
   working tree, the index or HEAD), when the user is not in the team, when the copy is behind,
   diverged or detached, and when the preset does not fit the project (`ui.yaml not written: type
-  service is not declared in memory.yaml`); it never overwrites a file. Nothing shows it yet.
+  service is not declared in memory.yaml`); it never overwrites a file. *Use preset* on
+  Configuration › Taxonomy shows it (task-079).
 
 - **A page of a restarted console recovers in place** (task-063, US-X-02 X-02.3; adr-003 D6, D7;
   spec-004 §2): when the console was stopped and started again on the same port (`--port`), a page

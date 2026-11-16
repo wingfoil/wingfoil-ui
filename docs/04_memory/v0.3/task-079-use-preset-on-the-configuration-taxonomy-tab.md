@@ -365,3 +365,33 @@ Relayed by the coordinator, quoted: "tutto come consigliato" — Q1 (a) the web 
 `PRESET_IDS`, kept equal to the request schema's enum and `UI_PRESET_NAMES` by tests; Q2 (a) the
 dialog stays open while it is open or the write is pending, the server's refusal explaining a state
 that changed; Q3 (a) the *Use a preset* section right after the Taxonomy intro. No split.
+
+### red / green / refactor (2026-11-16)
+
+- **Red** (`8cd47e8e`): `test/web/configuration/preset-control.test.ts`, `preset-ids.test.ts`,
+  `use-preset.test.tsx`, the preset cases of `test/web/api/error-message.test.ts` (the two codes in
+  its table, the refusal schema's codes with the variant, `write-incomplete`'s preset text), the e2e
+  spec `test/e2e/use-preset.spec.ts` and two `SCREENS` entries. `npx vitest run --maxWorkers=2` file
+  by file: `preset-control` and `preset-ids` failed on the missing module; `error-message` 6 failed
+  (the two codes unknown, the variant); `use-preset` 20 of 22 failed (no section, no button; the two
+  "not shown" cases passed — the absence was already true, characterization).
+- **Green**: `web/src/configuration/preset-control.ts` (`PRESET_IDS`, `presetControl`),
+  `UsePreset.tsx` (the section, the button, the dialog), `preset-toast.tsx` (the toasts,
+  `PresetName`), `selector.ts` (`selectorOf` moved from `ProgressView.tsx`); `web/src/api/ui-config.ts`
+  (`postUiPreset`, `useUiPresetWrite`); `web/src/element/reason.tsx` (the reasons and the *Update*
+  link moved from `ElementFooter.tsx`, `ReasonText`) and `WriteResultBody` in `write-toast.tsx`;
+  `error-message.ts` (two codes, the `preset` variant) and `ErrorText`'s `variant`; the section in
+  `TaxonomyView.tsx` after the intro; its styles in `configuration.css`; 15 catalogue keys in sorted
+  place. Docs (AC-3): `docs/user-guide.md` 0.42, `ux-reference.md` 1.24 (§4.11 *Use preset*),
+  `CHANGELOG.md` *Unreleased* › *Added* (and task-060's line now names the control), spec-008's
+  Process Note, `test/README.md` 0.93.
+- **Deviations from the design.** (1) `settings.preset.name` is the only `select` over the preset
+  id (`{preset}` its camel-case selector, `other` shows it); `settings.preset.commit`,
+  `.effect`, `.applied` and `.refused` take the name as a nested message (`{name}`), so the key
+  build shows keys and select options only (X-09.1 accepts a nested key, not an id the page did not
+  read) — `preset-ids.test.ts` renders the name, then the subject from it, against the server's.
+  Its unknown-id case was adjusted in green accordingly. (2) The dialog's props are `isOpen` and
+  `isPending`: the REQ-ARC-05 rule reports the property names `open` and `pending` (fixture state
+  names). (3) The radios are named by their preset name alone (`aria-labelledby`), their *Made for*
+  note being their description, so C-02.x choose "Kanban" by its name.
+- **Refactor**: none beyond the above.

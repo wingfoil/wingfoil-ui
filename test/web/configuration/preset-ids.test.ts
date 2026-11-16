@@ -23,11 +23,11 @@ it('PRESET_IDS equals the request schema’s enum and the server’s UI_PRESET_N
 });
 
 it.each([...UI_PRESET_NAMES])('%s: the name is the server’s label, the subject the server’s commit', (id) => {
-  const preset = selectorOf(id);
-  expect(intl.formatMessage({ id: 'settings.preset.name' }, { preset, id })).toBe(UI_PRESETS[id].label);
-  expect(intl.formatMessage({ id: 'settings.preset.commit' }, { preset, id })).toBe(presetCommitSubject(id));
+  const name = intl.formatMessage({ id: 'settings.preset.name' }, { preset: selectorOf(id) });
+  expect(name).toBe(UI_PRESETS[id].label);
+  expect(intl.formatMessage({ id: 'settings.preset.commit' }, { name })).toBe(presetCommitSubject(id));
 });
 
-it('an unknown id renders as written (the select’s other case)', () => {
-  expect(intl.formatMessage({ id: 'settings.preset.name' }, { preset: 'zz', id: 'zz' })).toBe('zz');
+it('an unknown id renders as given (the select’s other case)', () => {
+  expect(intl.formatMessage({ id: 'settings.preset.name' }, { preset: 'zz' })).toBe('zz');
 });
