@@ -191,11 +191,25 @@ export async function usePresetUiConfig(
   await git(fixture.dir, ['commit', '-q', '-m', presetCommitSubject(preset), '--', '.wingfoil/ui.yaml'], fixture.env);
 }
 
-/** Custom fixture: this repository's `.wingfoil/` ({@link customGovernance}) and `docs/01_vision/`. */
+/**
+ * Copy a `.wingfoil/` folder into a fixture without the `ui.yaml` at its root (task-082, bug-049):
+ * the custom fixture starts with no UI configuration whatever this repository's `.wingfoil/` holds
+ * — the variant *the custom fixture with the sw-life-cycle preset* ({@link usePresetUiConfig}) adds
+ * one. Nested files of the same name are copied.
+ */
+export async function copyGovernance(source: string, target: string): Promise<void> {
+  const rootUiYaml = path.join(source, 'ui.yaml');
+  await cp(source, target, { recursive: true, filter: (from) => path.resolve(from) !== rootUiYaml });
+}
+
+/**
+ * Custom fixture: this repository's `.wingfoil/` ({@link customGovernance}) without its `ui.yaml`
+ * ({@link copyGovernance}) and `docs/01_vision/`.
+ */
 async function importGovernance(project: FixtureProject): Promise<void> {
   const source =
     customGovernance(project.options.cliVersion) === 'packs' ? path.join(REPO_ROOT, '.wingfoil') : PRE_PACKS_GOVERNANCE;
-  await cp(source, path.join(project.dir, '.wingfoil'), { recursive: true });
+  await copyGovernance(source, path.join(project.dir, '.wingfoil'));
   await cp(path.join(REPO_ROOT, 'docs', '01_vision'), path.join(project.dir, 'docs', '01_vision'), { recursive: true });
   await project.commitAll('chore(wingfoil): import the WingFoil UI governance (.wingfoil/, docs/01_vision/)', 'setup');
 }

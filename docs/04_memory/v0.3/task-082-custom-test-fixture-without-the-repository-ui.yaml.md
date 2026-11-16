@@ -93,3 +93,22 @@ vitest run <file> --maxWorkers=2` in the worktree; the heavy gates on `.github/w
   test/harness/fixtures.test.ts --maxWorkers=2 -t "task-082"` → 1 failed, 31 skipped: `AssertionError:
   expected true to be false` at the `existsSync(<fixture>/.wingfoil/ui.yaml)` line (the precondition
   `REPO_ROOT/.wingfoil/ui.yaml` exists passed first).
+
+### Green and refactor (2026-11-16)
+
+- `copyGovernance(source, target)` in `test/harness/fixtures/builder.ts`: `cp` with a filter that
+  skips `<source>/ui.yaml` only; `importGovernance` uses it for both governance sources. A second
+  test in *custom fixture governance* checks the root-only rule on a temporary tree (root `ui.yaml`
+  skipped, `presets/ui.yaml` and `memory.yaml` copied).
+- One file at a time, `npx vitest run <file> --maxWorkers=2`: `test/harness/fixtures.test.ts` 33
+  passed; `test/contracts/ui-config-fixtures.test.ts` 8 passed; `test/server/http/ui-config-preset.test.ts`
+  41 passed; `test/server/reads/project-reads.test.ts` 9 passed; `test/server/http/ui-config-route.test.ts`
+  19 passed; `test/server/http/progress-routes.test.ts` 36 passed; `test/docs/public-text.test.ts`
+  67 passed. No expectation changed.
+- `npm run typecheck`, `npm run lint`, `npm run format:check`: clean.
+- Docs (AC-3): `test/README.md` 0.97 (*Fixtures*, the custom fixture's governance) and
+  `docs/02_requirements/02_bdd/00_conventions.md` 0.13 (the `@fx-custom` row); no `CHANGELOG.md` entry.
+- `python3 docs/03_backlog/X_tools/check_tasks.py v0.3`: 4 failures, all on this task's planning
+  fields, not on this change — `module: "server"` where a governance task needs `module` governance
+  with `ref: GOV`, and the *Backlog items* line `GOV (governance — a harness fix, bug-049)` split at
+  its comma (`GOV (governance — a harness fix`, `bug-049)` not found). Left to the coordinator.
