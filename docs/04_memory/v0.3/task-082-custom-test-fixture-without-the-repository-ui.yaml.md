@@ -130,3 +130,14 @@ there means this repository's `ui.yaml` is gone and the test must be updated, wh
 temporary-tree test stays the permanent guard (item 2); `copyGovernance` compares against
 `path.resolve(source, 'ui.yaml')`, so a relative source works (item 3); the coverage-job evidence
 above (item 4).
+
+Gates run `43906744475` (push of `ff048acd`; `43905060328` on `ec0a7b88` cancelled by it) —
+`success`: checks, coverage, contract, smoke, publish-smoke, e2e-chromium (1) and (2), own-specs
+(firefox) and (webkit) success; e2e-wave skipped (wave scope only).
+
+### Review round 2 (2026-11-16)
+
+PASS at `ff048acd`: the four round-1 fixes verified, nothing broken by them
+(`npx vitest run test/harness/fixtures.test.ts --maxWorkers=2` 33 passed; typecheck, eslint and
+prettier clean; `gh run view 43906744475` success). One nit, the run of `ff048acd` not recorded,
+closed by this entry.
