@@ -784,3 +784,51 @@ Local (load about 8): `npm run typecheck`, `lint`, `format:check`, `docs:api` cl
 |-----|--------|---------|--------|
 | `43870830022` | `fc1fb9b1` | push | cancelled by the dispatch below |
 | `43870830599` | `fc1fb9b1` | dispatch, the same specs (with `test/e2e/harness/a11y-support.spec.ts`) | **success**: checks, coverage (96.75 % statements, 91.93 % branches), contract, smoke, publish-smoke, e2e-chromium 213 + 212 passed, own specs 160 passed on Firefox and 160 on WebKit |
+
+### checker (2026-11-16)
+
+Independent pre-submit check (not the developer, not the reviewer) on `c33b25ca`, against directive
+`definition-of-done`, `claim-evidence`, `documentation`, `doc-versioning`, `testing` and
+`CLAUDE.md`. `git var GIT_AUTHOR_IDENT`: the agent identity. Append-only judged against the
+merge-base `42aecfa5` (the phase branch has since gained task-079 and task-080).
+
+Evidence, run here:
+
+- `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run -s docs:api`: clean, the
+  tree clean after `docs:api`; `python3 -I docs/03_backlog/X_tools/check_tasks.py v0.3`: OK (36
+  tasks, 16 backlog items).
+- `npx vitest run <file> --maxWorkers=2`: `test/docs/public-text.test.ts` 67 passed,
+  `test/governance` 25 passed, `test/web/today/progress-card.test.tsx` 24, `progress-tooltip.test.tsx`
+  2, `progress-model.test.ts` 4, `test/web/progress/version.test.ts` 7 passed.
+- Strict identity (dl-011): `test/server/http/progress-routes.test.ts` (with `kanbanCompletion`'s
+  commits and Morgan's CLI approve) 37 passed with a `git` wrapper first on the `PATH` running
+  `git -c user.useConfigOnly=true` and the `remote set-head -a` step (`test/README.md` *Fixtures* ›
+  *Git identity*), outside the repository; T-12.3's approve and the e2e Given commits ran on the CI
+  runner (runs below), the precedent of task-064 and task-066.
+- `gh run view <id> --json conclusion,headSha`: `43870830599` success on `fc1fb9b1`, `43867050532`
+  success on `92467170`, `43858975709` success on `2e67dfec` (dispatches); `c33b25ca` changes only
+  this file after `fc1fb9b1`.
+- `grep` of `test/e2e/today-progress.spec.ts`: every title of the e2e closure table exists —
+  T-12.1 … T-12.6, T-13.1 … T-13.4, T-14.1, T-14.2, T-15.1, T-15.2 (two), X-10.4 (two), C-04.1;
+  T-08.x recorded as task-080's.
+- `git diff 42aecfa5 HEAD`: no removed line in `web/src/i18n/en.json`, `test/e2e/support/screens.ts`
+  or `web/scripts/catalogue.mjs` (RP-43); `web/src/routes/today.tsx` changes the page component
+  only, its `createRoute` registrations unchanged; no local path or other project name in the
+  added lines (dl-005).
+- Docs: `docs/user-guide.md` 0.43, `ux-reference.md` 1.26 (§4.1 v0.3), `test/README.md` 0.94 and
+  0.95, `CHANGELOG.md` *[Unreleased]* (the progress card, no *Recent activity* described as
+  shipped), the dated notes in `t/progress-card.feature` (T-12.1, T-13.2), spec-012 and spec-008;
+  the stale `docs/03_backlog/04_backlog/*.json` recorded as not regenerated (green notes, F-8).
+- AC-3 and T-12.3's strict 5 s left to `test:timing` at the wave gate, stated honestly (the
+  default run's TT-PERF-01 printout quoted as information, not as the gate).
+- Review rounds 1 and 2 recorded with their verdicts (PASS, PASS) and a disposition for each of
+  F-1 … F-9, R2-1, R2-2; the gates re-run green after each fix round.
+
+Findings (none blocks the submit):
+
+| # | Severity | Where | Finding |
+|---|----------|-------|---------|
+| C-1 | nit | *The shared module for task-067* | The documented API predates the review rounds: it omits the exports `phaseValues` and `phaseWithoutVersion` of `PhaseReadOnly.tsx` (used by the card's announcement), that `projectVersion` may be `null` (then "Phase — needs WingFoil 0.3", no parenthesis, R2-1), and the classes `progress-reference(s)` and `intl-list` (the X-09.1 opt-in). task-067 can read them in the module; worth a line when it wires its cards. |
+| C-2 | nit | Execution Notes layout | The green run's *Gates on `gates.yml`*, *Strict identity*, *AC-3* bullets and the e2e closure sit under the heading *The shared module for task-067*, as a bullet of it; the content is complete, only the heading nesting misleads. |
+
+**Verdict: READY** for `memory submit` (in-progress → in-review).
