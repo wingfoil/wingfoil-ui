@@ -597,3 +597,12 @@ all `success` on the stated commits.
 |----|------|-------|-----|
 | C-1 | nit — `accessibility.spec.ts` (the two new `SCREENS`) ran on Firefox and WebKit only in dispatch `43840736563` on `9700f98f`; the later push runs' own specs selected `use-preset.spec.ts` alone (log of `43854094788`: "playwright test --project=firefox … test/e2e/use-preset.spec.ts"), the accessibility spec on Chromium only. The later changes (`4d1e8f8e`, `4cfd93e5`) change no markup of the two screens | *Gates*, *Runs of round 1* | none before submit; the wave gate's three-engine `test:e2e` covers it |
 | C-2 | nit — the round 2 fixes' local line omits `docs:api` | *review round 2 fixes* | none: run by this check on `fe7dbb3c`, clean |
+
+### AC-4 — dogfooding (2026-11-16)
+
+The approver applied the WingFoil sw-life-cycle preset to this repository from a console the
+approver started (D79-15), after task-079's merge into `design/dev-loop_v0.3` (`0e0702ea`):
+`8451080a` `chore(ui): apply the WingFoil sw-life-cycle preset`, author the approver;
+`git show --stat 8451080a` lists one path, `.wingfoil/ui.yaml` (52 lines added). The approver chose
+to record it as AC-4's own step rather than as a `governance-evolution` run (2026-11-16, "Gate 1:
+b"), `backlog-item-rel-v0.3-plan` W3-4.
