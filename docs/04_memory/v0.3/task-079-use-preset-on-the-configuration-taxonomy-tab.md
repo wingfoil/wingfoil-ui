@@ -430,3 +430,46 @@ that changed; Q3 (a) the *Use a preset* section right after the Taxonomy intro. 
   new screens) on Firefox and WebKit, smoke, publish-smoke.
 - Strict identity (dl-011): the committing tests (C-02.1, C-02.2) ran on the CI runner, a fresh
   account with no identity of its own (task-071), each fixture copy carrying its member's identity.
+
+### review round 1 (2026-11-16)
+
+Independent adversarial reviewer (reviewer role, security lens), on `c4cb6a12` (the phase branch
+merged in); the diff `git diff design/dev-loop_v0.3...HEAD`. Read: this task, `definition-of-done`
+and the directives it names, spec-005 §5, spec-003 §6, spec-004 §3–§6, spec-008, ux-reference
+§4.11, §5, `server/src/http/ui-config-preset.ts`, `server/src/writes/preset.ts`,
+`server/src/ui-config/effective.ts`, `contracts/api/ui-config.preset.refusal.schema.json`,
+`c/ui-yaml.feature`. Ran: `git var GIT_AUTHOR_IDENT` (the agent's identity); `npx vitest run
+--maxWorkers=2`, one file at a time — `test/web/configuration/preset-control` (17),
+`preset-ids` (5), `use-preset` (22), `test/web/api/error-message` (93),
+`test/lint/methodology-literals` (73): all passed. `gh run list` on the branch: push run
+`43847040848` on `c4cb6a12` in progress at the time of this review.
+
+Checked and found sound: every code of the refusal schema has a text other than `internal`'s
+(`error-message.test.ts`, D79-8), the preset `write-incomplete` variant, and the toasts' titles; the
+rule follows spec-003 §6 (identity hides, then version, then copy; `local-changes` replaced by the
+hidden-when-`source`-is-not-`none` rule), matching the server's rows 5–8; a `ui.yaml` present only in
+the index or at HEAD reads `source: none` (`effective.ts` reads the working tree) and is left to the
+server's `ui-config-exists`, whose text exists (Q5 (a)); the D79-6 extractions are a verbatim move
+(`reason.tsx`, `WriteResultBody`), the footer still uses `ReasonLink.Provider` and `reasonMessage`;
+React Aria's focus restore only acts when the focus is on `<body>`, so D79-5's focus target wins; no
+untrusted text is rendered as markup (`failure` and `git-refused` go through ICU values or
+`ErrorText`'s verbatim block), the preset id only comes from `PRESET_IDS`, the `pid` is
+URI-encoded and the server validates the enum and re-checks identity, version, file and copy under
+its lock; catalogue, `SCREENS` and en.json changes are appended in place (RP-43); docs carry no
+local path or other project name. The two e2e fixes of `9700f98f` do not weaken their scenarios:
+C-02.2 still proves `README.md` is staged and outside the preset commit (an empty status would
+fail), and C-02.4's forced press reaches the native button, whose handler ignores it while
+`aria-disabled`, the dialog's absence asserted after it.
+
+**Verdict: FAIL** (one major).
+
+| id | severity | file:line | what is wrong | what would fix it |
+|----|----------|-----------|---------------|-------------------|
+| F-1 | major | `web/src/api/ui-config.ts:33-37`; this task's *Files* row (`test/web/api/ui-config.test.tsx` (new), `data.ts`) and test-plan row *AC-1 success* | The planned `test/web/api/ui-config.test.tsx` (the request, the hook's callbacks after an unmount — D38-11, D79-7) does not exist and `data.ts` was not touched, with no deviation recorded; the *Files* table and the test plan still claim them. Nothing tests that the toast is raised when the dialog's component is gone, nor the `onSettled` invalidation of `['p', pid]`: the component tests invalidate by hand (`use-preset.test.tsx:296`, `:323`), so removing `onSettled` or moving the toasts to `mutate`'s per-call callbacks keeps every test green. | Add the planned hook test (POST path and body; success and refusal toasts raised after the caller unmounts; `invalidateQueries` on `['p', pid]` on both outcomes), with its guard-removal failure recorded, or record a deviation the approver accepts; correct the *Files* table. |
+| F-2 | minor | this task, *red / green / refactor* › *Green* (line 368) and *e2e closure* › AC-3 (line 406) | The versions cited are pre-merge: `docs/user-guide.md` 0.42, `ux-reference.md` 1.24, `test/README.md` 0.93; after `c4cb6a12` task-079's entries are 0.43, 1.26 and 0.94 (0.42/1.24/0.93 are now task-066's). A claim pointing at the wrong evidence (`claim-evidence`). | Cite 0.43, 1.26, 0.94 (the merge renumbering, as the merge commit says). |
+| F-3 | minor | this task, *Gates (2026-11-16)* | All gate evidence is on `9700f98f`; the head under review is the merge `c4cb6a12`, which brings task-066's web code, SCREENS entries and catalogue keys into the same files (`screens.ts`, `en.json`). Run `43847040848` on it had not finished when reviewed. | Record that run's id, commit and result (and a `use-preset.spec.ts accessibility.spec.ts` own-specs dispatch on the merge, as task-071 G9 requires for a `support/screens.ts` change) before `memory submit`. |
+| F-4 | minor | `web/src/configuration/UiFrame.tsx:43`, `web/src/configuration/UsePreset.tsx:1-20` (D79-5) | D79-5 says the dialog and the pending write outlive a refetch, but a `/config` refetch that fails while the write is pending (TanStack keeps `data` and sets `error`) makes `UiFrame` render the error instead of the tab, unmounting `UsePreset`: the dialog vanishes mid-write and the focus falls on `<body>` (the hook's toast still shows). Not in the tests. | Either keep `UsePreset` mounted outside the error branch (or render the error only when there is no `data`), or record the limit in the D79-5 text and ux-reference §4.11; a component test with a failing refetch while pending. |
+| F-5 | nit | `web/src/configuration/UsePreset.tsx:94-100` | `focusAfterUpdate` is cleared on failure and on reaching `enabled`, not on a successful *Update* that leaves the control disabled (still diverged, version out of range): a later unrelated enablement then moves the focus to *Use preset* if it is on `<body>` or in the section. | Clear the flag in `onSucceeded` once the refetch settles, or compare against the reason that was shown. |
+| F-6 | nit | `test/e2e/use-preset.spec.ts:98-99` | The regex accepts `M  README.md`, which the kanban fixture (no `README.md`) cannot produce; looser than the fact the comment states. | Assert `A  README.md\n` exactly. |
+| F-7 | nit | `test/web/configuration/use-preset.test.tsx:208` | The title says "(sticky)" but no assertion checks that the failed-push toast is sticky. | Assert the toast's sticky state (or drop the word from the title). |
+| F-8 | nit | `web/src/i18n/en.json:273`; `web/src/configuration/UsePreset.tsx:144` | `settings.preset.legend` is not in D79-9's key list (unrecorded); `const pending = isPending` is a needless alias. | List the key in D79-9 or the deviations; use `isPending` directly. |
