@@ -118,3 +118,281 @@ gates through the machine-free slot with the load and the slot wait in each log 
      - design: tech-specs found missing/needing revision (dev-loop/design safety net).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-16)
+
+Read (dl-015): this task; the Execution Notes of task-059 (D59-1 … D59-15, the harness steps
+`addSecondRelease`, `setFrontmatterValue`), task-074 (D74-1 … D74-10, Q1 `inScope`, the R-01 API
+tests), task-062 (the element page in the main region, `/p/<pid>/e/<full id>`), task-066 (D66-2
+`?missing=refs`, the active filter "Missing required references", `MissingRefsBadge`, D66-14's
+render timing) and task-064 (D64-4, D64-6, the F-9 deviations: no contract constant, no
+`role="note"`); spec-012 §1 … §11 and its Process Notes, spec-005 §2 … §5, spec-011 §1 … §2,
+spec-003 §4, §5, §7, spec-008; `ux-reference.md` §4.8 (all, with TQ-1 … TQ-4), §4.1, §4.4 v0.3,
+§6, §7; the feature `r/traceability.feature` and C-04.3 of `c/ui-yaml.feature`; plan
+`backlog-item-rel-v0.3-plan` W3-1, W3-2; directives `definition-of-done` 1.5, `ux-consistency`,
+`accessibility`, `wingfoil-cli`, `claim-evidence`, `documentation`, `doc-versioning`. The merged
+code it builds on (`7b9f8b5a`): `contracts/src/traceability.ts`, `web/src/routes/memory.tsx`,
+`tree.ts`, `nav.ts` (`NAV_ORDER.traceability` already 30), `web/src/memory/MemoryList.tsx`,
+`MissingRefsBadge.tsx`, `web/src/shell/UiYamlWarning.tsx`, `web/src/today/model.ts`
+(`waitingWho`), `TodayView.tsx` (`Who`), `web/src/repository/GitStatus.tsx` (React Aria
+`TooltipTrigger`), `lint/methodology-literals.js` and `test/lint/methodology-literals.test.ts`,
+`test/e2e/support/screens.ts`, `test/e2e/performance.spec.ts` (task-074 AC-5, task-066 AC-4).
+
+No new tech-spec: the page consumes spec-012 §4 (approved) as it stands; the screen is §4.8.
+No security probe (no write, no git access, no CLI process: one read route, `scope` an enum). Not
+git-touching: no strict-identity run.
+
+#### Gaps found at design
+
+- **G1 — REQ-ARC-05 and two API words.** `lint/methodology-literals.js` reports two words the web
+  needs: the status `in-progress` (a fixture state) and the category `release` (a fixture type) —
+  checked with `methodologyNames()` (of the four statuses and eight categories only those two
+  collide). The server keeps them in `server/src/presets/api.ts`; the web has no such exemption
+  (`test/lint/methodology-literals.test.ts` asserts "only server/src/presets/ is exempt"), and the
+  contracts package exports types only (task-064 F-9). §4.8 asks for the categories "in the closed
+  order of §6" and a status filter keyed by the four statuses. → Q2.
+- **G2 — The completion explanation is Today's too.** AC-1 asks for "the same explanation as
+  Today's on hover and focus (T-14.1, T-14.2)"; T-14.x and the phase read-only texts (T-15.x) are
+  task-065's scenarios, built in parallel. One component, two builders. → Q1.
+- **G3 — *Use preset* is task-079's** (parallel). The no-`ui.yaml` note links to it "when offered"
+  (spec-005 §5: hidden with a `ui.yaml` or for a user not in the team). → Q3.
+- **G4 — Who must act is a private component of Today** (`TodayView.tsx` `Who`, `waitingWho(row:
+  TodayRow)`); the detail needs the same texts from a `/traceability` element row (`descriptor`
+  only). Extracting it touches `TodayView.tsx`, which task-065 edits. → D67-9, and Q4 (the split)
+  moves it after task-065's merge.
+
+#### Decisions (D67-n)
+
+- **D67-1 — Route and module.** `web/src/routes/traceability.tsx`: `path: 'traceability'` under
+  `projectRoute`, `staticData.nav` `{ group: 'work', order: NAV_ORDER.traceability, label:
+  shell.nav.traceability }`, `validateSearch: traceabilitySearch`, the page title
+  "Traceability" (`useProjectTitle`); one line appended to `PROJECT_ROUTES` (RP-43). Its query
+  factory in the route file: `traceabilityQuery(pid, scope)`, key `queryKeys.project(pid,
+  'traceability', { scope })` — under `['p', pid]`, so `repo` refreshes it (spec-012 §8). The
+  view in `web/src/traceability/` (`TraceabilityView.tsx`, `Figures.tsx`, `ReferenceTable.tsx`,
+  `MissingSection.tsx`, `model.ts`, `traceability.css`).
+- **D67-2 — The address.** `scope` (`project`, else absent = current), `category`, `status`, `q`
+  in the URL, as the Memory list's (`memorySearch`); the open row is component state, never in the
+  URL. A filter change navigates with `replace: false` (back restores it, W3-23), the search field
+  with `replace: true` (one entry per search, not per keystroke). A `category` the answer does not
+  list, `status=no-elements` with the current scope, or an unknown value is ignored (the button
+  *All* shown pressed), as `?missing=refs` is where it is not offered (`ux-reference.md` 1.25).
+- **D67-3 — The read.** One query, `GET /traceability?scope=current|project` (no other read for the
+  page but the project header the shell already holds, for Q3's identity rule). A scope change keeps
+  the previous answer on screen (`placeholderData: keepPreviousData`) with the table `aria-busy`
+  until the new one arrives, so the scope control is not unmounted and the focus stays on it. A
+  failed read renders `QueryError` (`web/src/docs/QueryError.tsx`), never an empty state; with no
+  answer yet, "Loading traceability…" in a `role="status"` paragraph (as the Memory list).
+- **D67-4 — Rendering only.** The web renders the server's references, figures, `done`, `status`,
+  `percent` and order as they come (spec-012 §4); it computes no figure, no done state and no
+  order of rows or chips (natural id order is the server's). Filtering and counting over the
+  answer are its only computations (§4.8 *Filters*). Every repository string is React text, never
+  HTML; a pattern reference is never a link (spec-012 §9).
+- **D67-5 — Scope control (TQ-2 (c)).** Above the figures, shown when `scope.current` is not null:
+  a group (visible label "Scope") of two toggle buttons, "<current> (current <type>)" — the
+  current element's `shortId ?? id` and `scope.type` (escaped by the server) — and "Whole project",
+  `aria-pressed` on the applied one. Hidden otherwise (the page is project-wide).
+- **D67-6 — Figures (three cards, the prototype's).** *Project completion* — shown: "Project
+  completion 25 %", a bar with its text, and the explanation (T-14.1's text) on hover **and** focus
+  as the card's accessible description (Q1 says whose component); `no-reference-categories`:
+  "Completion needs references — see Configuration › Taxonomy" (a link to
+  `/p/<pid>/configuration/taxonomy`); `no-linked-elements`: "No references linked in <current>".
+  *Phase completion* — the read-only reason's text (`needs-version`: "Phase completion — needs
+  WingFoil 0.3"; `not-in-release` and `unsupported-version` their texts), no bar (D2). *Reference
+  coverage* — shown: "Reference coverage 3/5", a bar, and with the whole project "<n> references
+  without elements"; `percent` null (total 0): "Reference coverage 0/0" and an empty bar;
+  `no-requires`: "No type requires references — see Configuration › Taxonomy" (a link).
+- **D67-7 — The table.** A `<table>` with the column headers *Reference*, *Linked elements*,
+  *Completion*. *Reference*: the category tag (the `ui.yaml` code, data), the row toggle (a
+  `<button>` with a chevron, name "Details of <id>", `aria-expanded`, `aria-controls` the detail
+  row), then for a pattern reference its id as text only (no title, no tooltip, no `title`
+  attribute: D9, R-01.6), for an element reference a link to its element page labelled with its
+  short id, its title and its state pill (tone class + state name). *Linked elements*: one chip
+  per element, every chip, wrapping — a link to `/p/<pid>/e/<encodeURIComponent(full id)>`
+  labelled with its short id, class `tone-<tone>`, accessible name "<short id> — <title> —
+  <state>" (AC-3), and a React Aria tooltip (`TooltipTrigger` + `Focusable` around the TanStack
+  `Link`, as `GitStatus`'s) with the full title, full id and state, opening on hover and on focus,
+  closing with Escape. *Completion*: a bar and "50 % · 1/2"; "—" with no linked element. A click
+  anywhere on a row that is not a link or a chip toggles its detail too (mouse convenience; the
+  keyboard path is the button). The table sits in its own horizontally scrolling container, so at
+  400 px only that container scrolls (bug-044 is page-level and not touched; the width check is
+  scoped to the page's own parts).
+- **D67-8 — Filters.** A search field (label "Search references"; case-insensitive substring of
+  the id and, for an element reference, of its title; `String.prototype.includes` on lower-cased
+  text, never a regular expression). **Category**: a group (visible label "Category") of toggle
+  buttons *All* and each category found in the answer, in the closed order (Q2), each name with
+  its count ("requirement, 2 references"). **Status**: a group (visible label "Status") of toggle
+  buttons *All*, *Completed*, *In progress*, *Not started*, and *No elements* with the whole
+  project only, counts within the chosen category. Counts are over the applied scope's rows and
+  ignore the search (it narrows the table, not the facets). Buttons are plain `<button
+  aria-pressed>` in a `role="group"` labelled by its visible label — not React Aria's
+  `ToggleButtonGroup`, whose single selection renders radios, while §4.8 asks for `aria-pressed`.
+  After a filter or search change, a polite status announces the rows shown ("2 references");
+  nothing is announced after a refresh (AC-4), as the Memory list keys its announcement to the
+  filter.
+- **D67-9 — The inline detail** (one open at a time). The next `<tr>`, `id` the toggle's
+  `aria-controls`, one cell spanning the three columns, headed by the reference id (`<h3>`): the
+  category; for an element reference its title, state pill and *Open* (its element page); the
+  completion "x/y"; each linked element as "<short id> · <title> · <state pill> · <who must
+  act>", a link to its element page — who must act from the row's `descriptor` with Today's
+  texts (§4.1, spec-003 §5: member, role, "Waiting for the workflow engine", a held gate's
+  reason), nothing for a `done` element. Today's private `Who` moves to
+  `web/src/today/WaitingWho.tsx` (exported, Today imports it back) and `waitingWho` takes
+  `Pick<TodayRow, 'descriptor'>` — a refactor whose characterization is Today's existing tests.
+  No description or source for a pattern reference (D9).
+- **D67-10 — Missing references.** Under the table, shown when `figures.coverage` is `shown` (i.e.
+  `taxonomy.requires` is not empty): the heading "Elements missing required references (<n>)",
+  the link *Show in Memory* to `/p/<pid>/memory?missing=refs` (task-066 D66-2, W3-1), then one row
+  per `missing[]` entry from its `elements[]` row: type tag, short id, title, "needs
+  <categories>" (the `ui.yaml` codes, `intl.formatList`), and `MissingRefsBadge` (reused: its
+  hidden description is the link's `aria-describedby`, its tooltip the same text), each a link to
+  the element page; "Every element carries its required references" when `missing` is empty.
+- **D67-11 — `ui.yaml` states.** An ignored file: `UiYamlWarning` (reused, `.ui-yaml-warning`,
+  W3-2) at the top of the page. With `ui.source` `none` or `ignored`: the note "No ui.yaml — only
+  references to other Memory elements are recognised" above the table, a paragraph with the links
+  of Q3 and *Configuration › Taxonomy* (`/p/<pid>/configuration/taxonomy`).
+- **D67-12 — Empty states and notices.** `references` empty: "No references found — declare
+  taxonomy patterns in ui.yaml" when `patterns` is false (R-01.4), else "No references found — no
+  element carries a value matching the taxonomy patterns or another element's id". Filters that
+  match nothing: "No reference matches" and a *Clear filters* button (clears `category`,
+  `status`, `q`; keeps `scope`; the focus moves to the search field). Notices, as the Memory
+  list's: `unreadable` ("<n> elements could not be read: their references are not counted —
+  <ids>"), `capped` ("<n> elements were indexed on their first 200 values only — <ids>"),
+  `eventsError` ("The repository history could not be read: who must act may be incomplete").
+- **D67-13 — Refresh (AC-4).** On `repo` the query refetches (no new code: the key's prefix). The
+  open row is kept by its key (`e:` or `p:` + id) while a row with that key exists, else closed;
+  rows keyed the same way, so React keeps their DOM nodes and the focus is not moved; the row-count
+  announcement is tied to a filter change only (D67-8).
+- **D67-14 — Catalogue.** New keys in one block `traceability.*` plus `shell.nav.traceability`,
+  inserted at their sorted places (the catalogue check requires sorting; additions only, RP-43);
+  the state, category and status words reach messages as `select` values or data, never as
+  literals in `web/` (REQ-ARC-05, Q2).
+- **D67-15 — Screens.** Two `SCREENS` entries appended (RP-43): "traceability" (the custom
+  fixture of the screens console, no `ui.yaml`: the note, its element references or R-01.4's
+  empty text) and "traceability — detail open" — the screens console holds no preset (task-066's
+  note), so the answer comes through `page.route` (a sw-life-cycle-like body with pattern and
+  element references, a missing section and an open detail, as task-066's missing-references
+  screen does). X-06.4 (axe, both themes) and X-09.1 (key build) then cover the page.
+- **D67-16 — Timing (AC-5).** One test appended to the `TT-PERF-03, TT-PERF-04` block of
+  `performance.spec.ts`, as task-066's AC-4: the Traceability page on the large fixture with the
+  preset, reached by the sidebar, its table rendered, p95 ≤ 1.0 s warm, asserted under
+  `test:timing` only (task-059 Q7 (a)); in `test:e2e:chromium` it runs unasserted. A tooltip per
+  chip is mounted lazily by React Aria; if the large fixture's chips miss the budget, the fallback
+  is one shared tooltip moved to the hovered or focused chip (recorded if used).
+- **D67-17 — Docs (AC-6).** `docs/user-guide.md` a section "Traceability" after "Memory";
+  `CHANGELOG.md` *Unreleased* › *Added*; `test/README.md` (the spec, the unit suites, the screens,
+  the timing test); `ux-reference.md` §4.8 v0.3 block only if Q2 (a) changes the status word in
+  the address — each Version/Date bumped on its first edit after a commit.
+
+#### Acceptance criteria: red first or characterization
+
+All red first — the route, the page and its parts do not exist (the sidebar has no Traceability
+entry: `test/web/routes/nav.test.ts` only orders `NAV_ORDER`) — but two characterizations: Today's
+existing suites after `Who` and `waitingWho` move (D67-9: they stay green, no fabricated failure;
+a guard removal on the moved component recorded at refactor), and AC-2's warning component
+(`UiYamlWarning`, built by task-064: its placement on this page is red first, its text is not).
+
+#### Test plan (AC and scenario → file › title)
+
+E2E spec `test/e2e/traceability.spec.ts`, one test per scenario titled with its id, assertions on
+what the user sees; the variants from the harness (`usePresetUiConfig`, `usePrePacksStates`,
+`setFrontmatterValue`, task-059), each test on its own console (bug-023).
+
+| AC / scenario | Test |
+|---------------|------|
+| R-01.1 | `traceability.spec.ts` › "R-01.1 — List references with their completion" (custom + preset, Casey) |
+| R-01.2 | › "R-01.2 — Show who must act on a reference's open elements" (pre-packs + preset) |
+| R-01.3 | › "R-01.3 — Filter references by status" ("Completed": "No reference matches", *Clear filters* restores the rows) |
+| R-01.4 | › "R-01.4 — Explain an empty traceability" (unknown) |
+| R-01.5 | › "R-01.5 — Show the rows outside the current release under the whole project" (`setFrontmatterValue` dl-001 `ref: US-S-09`) |
+| R-01.6 | › "R-01.6 — Show a pattern reference by its id only" (cell text, no link, no `title`, no tooltip on hover or focus) |
+| R-01.7 | › "R-01.7 — List references between Memory elements without ui.yaml" (`related:` on task-001) |
+| R-01.8 | › "R-01.8 — Open the elements missing required references in Memory" (exactly two rows, active filter) |
+| R-01.9 | › "R-01.9 — Filter references by category" |
+| AC-2 / C-04.3 | › "C-04.3 — Show the ui.yaml warning on Traceability" (kanban, Alex, committed `progress.mode: spiral`; warning by `.ui-yaml-warning`, the note, its Taxonomy link) |
+| AC-1 | › "AC-1 — filters in the address, back restores them, the open row not kept" and "AC-1 — chip tooltip on hover and focus, the completion explanation"; unit `test/web/traceability/model.test.ts` (search parse, ignored values, case-insensitive substring never a regex, counts, closed category order, status keys) and `view.test.tsx` (columns, element reference cell, chips, figures and their unavailable texts, empty states, error not empty, notices) |
+| AC-3 | › "AC-3 — the table by keyboard: toggle, detail headed by the id, Escape closes a tooltip"; unit `view.test.tsx` (`aria-expanded`/`aria-controls`, `aria-pressed` groups with counts in names, polite count after a filter change); X-06.4 and X-09.1 through the two `SCREENS` entries (`accessibility.spec.ts`, unchanged) |
+| AC-4 | › "AC-4 — a change outside the UI refreshes the page, the open row and the focus kept" (`@live-refresh`); unit `test/web/traceability/refresh.test.tsx` (open row kept or closed, no announcement on refetch, focus kept) |
+| AC-5 | `performance.spec.ts` › "AC-5 (task-067) — Traceability renders within 1.0 s (p95, warm cache)" |
+| AC-6 | review of the docs; `test/docs/public-text.test.ts` |
+| 400 px (own parts) | › "AC-1 — at 400 px only the table's container scrolls" (Chromium) |
+| D67-9 refactor | `test/web/today/*` unchanged and green; `test/web/today/waiting-who.test.tsx` for the moved component |
+
+#### e2e closure
+
+| Scenario | Spec file : test |
+|----------|------------------|
+| R-01.1 | `test/e2e/traceability.spec.ts` : (to fill at green) |
+| R-01.2 | `test/e2e/traceability.spec.ts` : |
+| R-01.3 | `test/e2e/traceability.spec.ts` : |
+| R-01.4 | `test/e2e/traceability.spec.ts` : |
+| R-01.5 | `test/e2e/traceability.spec.ts` : |
+| R-01.6 | `test/e2e/traceability.spec.ts` : |
+| R-01.7 | `test/e2e/traceability.spec.ts` : |
+| R-01.8 | `test/e2e/traceability.spec.ts` : |
+| R-01.9 | `test/e2e/traceability.spec.ts` : |
+| C-04.3 | `test/e2e/traceability.spec.ts` : |
+
+#### Files
+
+New: `web/src/routes/traceability.tsx`; `web/src/traceability/TraceabilityView.tsx`,
+`Figures.tsx`, `ReferenceTable.tsx`, `MissingSection.tsx`, `model.ts`, `traceability.css`;
+`web/src/today/WaitingWho.tsx` (D67-9); `test/web/traceability/model.test.ts`, `view.test.tsx`,
+`refresh.test.tsx`; `test/web/today/waiting-who.test.tsx`; `test/e2e/traceability.spec.ts`.
+Changed: `web/src/routes/tree.ts` (one line), `web/src/i18n/en.json` (additions),
+`web/src/today/model.ts` (`waitingWho`'s parameter), `web/src/today/TodayView.tsx` (imports
+`WaitingWho`), `test/e2e/support/screens.ts` (two entries), `test/e2e/performance.spec.ts` (one
+test), `docs/user-guide.md`, `CHANGELOG.md`, `test/README.md`, possibly `ux-reference.md` (Q2).
+Per Q1, the completion figure either from task-065's module or a new
+`web/src/progress/CompletionFigure.tsx`. No server, contract or spec file.
+
+#### Size (RP3-20 G2)
+
+About **2.3 active days**: route, read, page, notices and empty states 0.25; figures 0.3 (0.15
+if Q1 (a)); table, element reference cell and chips with tooltips 0.35; filters, address, counts,
+announcements 0.35; detail and the Today extraction 0.2; missing section, note, warning 0.15;
+refresh 0.1; unit tests alongside 0.2; e2e spec (14 tests), screens, timing 0.4; docs and
+review buffer 0.15. Above one day: a split is proposed (Q4).
+
+#### Open questions for the approver
+
+- **Q1 — The completion figure shared with Today (G2).** (a) task-065 owns one component —
+  `web/src/progress/` with the completion figure (value, bar, the T-14.1 explanation on hover and
+  focus as the accessible description) and the phase read-only texts, keys `progress.completion.*`
+  and `progress.phaseCompletion.*` — fixed now by the coordinator for both developers; task-067
+  wires its cards to it after task-065's merge, building the rest first; (b) task-067 owns the
+  same module and task-065 reuses it after task-067's merge; (c) each task builds its own (two
+  components and two sets of keys for one text, reconciled later). **Recommended (a)**: T-14.x
+  and T-15.x are task-065's scenarios and §4.8 defines the text as "Today's"; the names fixed now
+  keep the merge clean whichever lands first.
+- **Q2 — `in-progress` and `release` without a literal in `web/` (G1).** (a) No literal and no
+  server change: the status word in the address is the web's own `partial` for "In progress"
+  (`status=completed|partial|not-started|no-elements`), the row's status mapped by a total
+  function over the contract's union whose remaining case is the colliding member (TypeScript
+  checks exhaustiveness), and the category order a rank over the seven other categories with the
+  remaining one in its closed place; a unit test pins both against the enums of
+  `contracts/api/traceability.schema.json` and `ui-config.schema.json`; `ux-reference.md` §4.8
+  records the address word. (b) A `web/src/presets/api.ts` exempt like the server's: the lint
+  rule's `ignores`, `test/lint/methodology-literals.test.ts` (which now asserts the opposite) and
+  REQ-ARC-05's wording change — an architecture rule widened by a screen task. (c) The server
+  carries the vocabulary: spec-012 §4 amended (a `categories` list in closed order, safety-net
+  spec revision approved before red) plus a server, schema and contract change in a web task;
+  the status word still needs (a) or (b). **Recommended (a)**: no rule or spec changes, the
+  contract's types keep it checked, and the address word is the web's to choose (§4.8 names the
+  parameter, not its values).
+- **Q3 — *Use preset* in the no-`ui.yaml` note (G3).** (a) A link to Configuration › Taxonomy,
+  where task-079's control lives, shown on the spec-005 §5 rule the web can see (`ui.source`
+  `none` — a file that exists, even ignored, hides it — and the user identified in the team, from
+  the project header); disabled reasons stay task-079's, on its tab; (b) the preset applied from
+  the note itself, task-079's control reused — task-067 then waits for task-079's merge; (c) no
+  *Use preset* link in task-067, task-079 adds it to the note. **Recommended (a)**: no dependency
+  on a parallel task, one place where the preset is applied, the note still "links to *Use
+  preset* (when offered)".
+- **Q4 — Split (RP3-20 G2, about 2.3 days).** (a) No split: one page, one review. (b) Split:
+  task-067 keeps the page — figures, scope, filters, table, chips, missing section, note and
+  warning, empty states, timing (R-01.1, R-01.3 … R-01.9, C-04.3, AC-1 and AC-3 but the detail,
+  AC-5, AC-6), about 1.6 days; a new task "Traceability inline detail and refresh" takes the row
+  toggle and its detail with who must act (R-01.2; AC-1's and AC-3's detail parts; D67-9's Today
+  extraction) and AC-4, about 0.7 day, after task-067 and after task-065 (which edits
+  `TodayView.tsx`). **Recommended (b)**: the detail is additive to a working table, the cut is
+  clean, and it moves the only edit of a file task-065 owns after task-065's merge.
