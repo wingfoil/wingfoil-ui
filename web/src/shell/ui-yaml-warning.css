@@ -1,0 +1,11 @@
+/* The ui.yaml warning (task-064 D64-6): a bordered note at the top of the views that read `ui`. */
+
+.ui-yaml-warning {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--tone-human-fg);
+  border-radius: var(--radius-md);
+  background: var(--tone-human-bg);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}

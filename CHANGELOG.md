@@ -9,6 +9,15 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **Configuration › Taxonomy and › Progress** (task-064, US-C-01, US-C-04 C-04.2; spec-005 §1–§4,
+  spec-012 §2): two tabs after *UI settings* show how the console reads the project's
+  `.wingfoil/ui.yaml`, each value marked *declared*, *inferred* or *derived* as the server serves
+  it. *Taxonomy* explains the 8 UI categories and lists every Memory type with its category (or
+  *No category — not counted in progress figures*), the references each type must carry and the
+  reference patterns as written; *Progress* lists `mode`, `scope` with its current element as a
+  link to its page, `phases`, `iterates`, `defects` and the held gates, each with its meaning and
+  allowed values. A file the console cannot use is named at the top of both tabs, "ui.yaml
+  ignored:" and its first problem, and every value is then *inferred*.
 - **The element's document** (task-078, US-G-03, US-G-08): the summary of an element is its body's
   first paragraph rendered as Markdown, and *Open document* opens the whole body in a dialog,
   rendered or as its source, on the element page and in the side panel alike. The rendering is the
@@ -108,8 +117,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   file is not used, its first failure as `failure` (`progress.mode must be sequence or flow
   (found spiral)`); without a file, the values inferred from the project's types. Every text echoed from
   the file comes back with control and bidi characters escaped. An edit of `ui.yaml`, tracked,
-  untracked or ignored by git, refreshes open pages. No screen shows it yet: the Configuration
-  tabs are task-064's.
+  untracked or ignored by git, refreshes open pages. *Configuration › Taxonomy* and *›
+  Progress* show it (task-064).
 - **The reference index** (task-055, spec-012 §1, §8): the server's one index of every element's
   frontmatter values and the references they make — another element's full id, or a value matching
   a `taxonomy.patterns` entry of `.wingfoil/ui.yaml` — shared by the progress, traceability and

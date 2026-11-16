@@ -414,6 +414,18 @@ export const SCREENS: readonly Screen[] = [
     open: (page, c) => openDocumentScreen(page, c, 'source'),
   },
   {
+    // task-064 (D64-4): Configuration › Taxonomy of the kanban project, every value inferred.
+    name: 'configuration — taxonomy',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/configuration/taxonomy`, (p) => p.locator('table.config-types')),
+  },
+  {
+    // task-064 (D64-5): Configuration › Progress of the custom project, every value inferred.
+    name: 'configuration — progress',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[1]}/configuration/progress`, (p) => p.locator('table.config-progress')),
+  },
+  {
     // task-066 (D66-3, D66-7): the kanban list with *All types*, the bucket "To approve" narrowed to
     // its state `pending` — the sub-row and the active filter.
     name: 'memory list — bucket narrowed to a state',
