@@ -510,3 +510,9 @@ Independent reviewer (reviewer role) on `639302d1` (fixes `1b7468c2`, `eaa288d1`
 | R2-2 (nit) — T-08.1's description check accepted any four digits | `test/e2e/recent-activity.spec.ts`: each row's link description is checked equal to its own `datetime` formatted in the browser with `Intl.DateTimeFormat('en', { dateStyle: 'full', timeStyle: 'long' })` — the format of the card (D80-4) | T-08.1 on the push run (below) |
 
 Local: `npm run typecheck`, `npm run lint`, `npm run format:check` → clean.
+
+Before the push: `npx vitest run test/docs/public-text.test.ts --maxWorkers=2` → 67 passed;
+`test/governance/*.test.ts` one at a time → 7, 5, 9, 4 passed. `gates.yml` push run
+**43866705935** on `cab04005`: **success** — `checks`, `coverage`, `contract`, `smoke`,
+`publish-smoke` passed; `e2e-chromium` 204 + 203 passed; own specs (`recent-activity.spec.ts`)
+3 passed on Firefox, 3 on WebKit — R2-2's exact date check included.
