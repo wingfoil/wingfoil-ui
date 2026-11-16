@@ -567,3 +567,9 @@ Red first: `5a7c2df7` — R2-1 (`test/web/today/progress-card.test.tsx`), R2-2, 
 `npx vitest run test/web/traceability/view.test.tsx --maxWorkers=2`: 38 passed; `npx vitest run
 test/web/today/progress-card.test.tsx test/web/today/progress-tooltip.test.tsx
 test/web/i18n/catalogue.test.ts --maxWorkers=2`: 3 files, 29 passed.
+
+Push run `43931535616` on `4fe9e886`: **success**, every job green — checks, coverage (statements
+96.75 %), contract, e2e-chromium ×2, own specs on Firefox and WebKit (14 passed on each), smoke,
+publish-smoke. Local before the push: typecheck, lint, format:check, docs:api clean;
+`check_tasks.py v0.3` OK; `npx vitest run test/governance test/docs/public-text.test.ts
+--maxWorkers=2`: 5 files passed.
