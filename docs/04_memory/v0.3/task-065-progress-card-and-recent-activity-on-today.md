@@ -779,3 +779,8 @@ Local (load about 8): `npm run typecheck`, `lint`, `format:check`, `docs:api` cl
 `npx vitest run --maxWorkers=2` on `test/web/today/progress-card.test.tsx` 24 passed,
 `progress-tooltip.test.tsx` 2 passed, `test/web/i18n` 5 passed, `test/docs/public-text.test.ts`,
 `test/governance` green.
+
+| Run | Commit | Trigger | Result |
+|-----|--------|---------|--------|
+| `43870830022` | `fc1fb9b1` | push | cancelled by the dispatch below |
+| `43870830599` | `fc1fb9b1` | dispatch, the same specs (with `test/e2e/harness/a11y-support.spec.ts`) | **success**: checks, coverage (96.75 % statements, 91.93 % branches), contract, smoke, publish-smoke, e2e-chromium 213 + 212 passed, own specs 160 passed on Firefox and 160 on WebKit |
