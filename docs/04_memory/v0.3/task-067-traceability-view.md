@@ -517,3 +517,8 @@ texts on this page) to the AC-1 e2e test; then the gates again.
   candidate finding.
 - `npx vitest run test/web/traceability test/web/i18n --maxWorkers=2`: 5 files, 42 passed.
 
+- Push run `43919368708` on `2c58e398`: **success**, every job green — checks, coverage (statements
+  96.73 %), contract, e2e-chromium ×2, own specs on Firefox and WebKit (`traceability.spec.ts`, 14
+  passed on each), smoke, publish-smoke. Local before the push: `npm run typecheck`, `npm run lint`,
+  `npm run format:check`, `npm run docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run
+  test/docs/public-text.test.ts test/governance --maxWorkers=2`: 5 files passed.
