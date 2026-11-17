@@ -388,7 +388,9 @@ test.describe('task-081 acceptance criteria', () => {
       await expect(detailItems(page).nth(2)).toContainText('task-004 · Themes');
       await expect(open).toHaveAttribute('aria-expanded', 'true');
       await expect(open).toBeFocused();
-      await expect(status).toHaveText('');
+      // Past the 500 ms pause of the count announcement (F-7): one read, not a retried assertion.
+      await page.waitForTimeout(700);
+      expect((await status.textContent()) ?? '').toBe('');
       expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
     },
   );

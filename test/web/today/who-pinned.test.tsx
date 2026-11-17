@@ -75,6 +75,40 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function stub(rows: TodayRow[]): void {
+  const today: Today = { view: 'approver', requiresYou: [], waitingOnOthers: rows };
+  stubApi({
+    '/api/server': serverInfo(),
+    '/api/projects': {
+      status: 200,
+      body: { projects: [{ id: PID, name: 'demo', path: '/x', remote: null, availability: 'available' }] },
+    },
+    [`/api/p/${PID}`]: { status: 200, body: morgan() },
+    [`/api/p/${PID}/today?view=approver`]: { status: 200, body: today },
+    ...progressAnswer(PID),
+    [`/api/p/${PID}/events/memory?limit=5`]: { status: 200, body: { events: [], more: false } },
+  });
+}
+
+async function whoTexts(): Promise<(string | undefined)[]> {
+  renderApp(`/p/${PID}/today`);
+  const card = await screen.findByRole('region', { name: 'Waiting on others' });
+  return within(card)
+    .getAllByRole('listitem')
+    .map((li) => li.querySelector('.today-who')?.outerHTML);
+}
+
+// Review round 1 (F-5): added after the extraction — the two actors that name no one.
+it("Today's Waiting on others renders nothing for a member or role actor naming no one (task-081, D81-2)", async () => {
+  stub([waiting('task-011-k', { actor: { kind: 'member' } }), waiting('task-012-l', { actor: { kind: 'role' } })]);
+  expect(await whoTexts()).toMatchInlineSnapshot(`
+    [
+      "<span class="today-who"></span>",
+      "<span class="today-who"></span>",
+    ]
+  `);
+});
+
 it("Today's Waiting on others renders the same who must act for every actor case (task-081, D81-2)", async () => {
   const today: Today = { view: 'approver', requiresYou: [], waitingOnOthers: ROWS };
   stubApi({

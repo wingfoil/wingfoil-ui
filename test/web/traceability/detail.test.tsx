@@ -13,7 +13,7 @@ import type {
   TraceabilityElement,
   TraceabilityReference,
 } from '@wingfoil-ui/contracts';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
@@ -447,5 +447,61 @@ describe('Q2 (b) — the events notice', () => {
     stubApi(api({ [CURRENT]: { status: 200, body: answer({ eventsError: { code: 'git-failed', message: 'x' } }) } }));
     await opened();
     expect(screen.getByText('The repository history could not be read: who must act may be incomplete.')).toBeTruthy();
+  });
+});
+
+describe('review round 1', () => {
+  it('F-1 — a refresh that leaves no row gives the focus to "No reference matches"', async () => {
+    const fake = api();
+    stubApi(fake);
+    const user = userEvent.setup();
+    const { router, queryClient } = await opened();
+    await router.navigate({ to: '/p/$pid/traceability', params: { pid: PID }, search: { q: 'US-M' } });
+    await waitFor(() => expect(rowOf('US-S-01')).toBeNull());
+    await user.click(toggle('US-M-01'));
+    within(detailRow()!).getAllByRole('link')[0]!.focus();
+    fake[CURRENT] = { status: 200, body: answer({ references: REFERENCES.filter((r) => r.id !== 'US-M-01') }) };
+    await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+    const empty = await screen.findByText('No reference matches');
+    await waitFor(() => expect(document.activeElement).toBe(empty));
+    expect(empty.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('F-1 — a refresh that leaves no reference gives the focus to "No references found …"', async () => {
+    const fake = api();
+    stubApi(fake);
+    const user = userEvent.setup();
+    const { queryClient } = await opened();
+    await user.click(toggle('US-M-01'));
+    expect(document.activeElement).toBe(toggle('US-M-01'));
+    fake[CURRENT] = { status: 200, body: answer({ references: [] }) };
+    await act(() => queryClient.invalidateQueries({ queryKey: ['p', PID] }));
+    const empty = await screen.findByText(/^No references found/);
+    await waitFor(() => expect(document.activeElement).toBe(empty));
+  });
+
+  it('F-2 — a linked id the answer does not name shows the id alone, no empty pill', async () => {
+    const references = REFERENCES.map((r) =>
+      r.id === 'US-M-01' ? { ...r, linked: ['k-002-memory-list', 'k-099-unknown'] } : r,
+    );
+    stubApi(api({ [CURRENT]: { status: 200, body: answer({ references }) } }));
+    const user = userEvent.setup();
+    await opened();
+    await user.click(toggle('US-M-01'));
+    const item = items()[1]!;
+    expect(item.textContent).toBe('k-099-unknown');
+    expect(item.querySelector('.state-pill')).toBeNull();
+    expect(within(item).getByRole('link').getAttribute('href')).toBe(`/p/${PID}/e/k-099-unknown`);
+  });
+
+  it('F-6 — a double-click on the row toggles it once; a single click still toggles', async () => {
+    stubApi(api());
+    await opened();
+    const cell = rowOf('US-M-01').querySelector('td.trace-completion')!;
+    fireEvent.click(cell, { detail: 1 });
+    fireEvent.click(cell, { detail: 2 });
+    expect(toggle('US-M-01').getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(cell, { detail: 1 });
+    expect(toggle('US-M-01').getAttribute('aria-expanded')).toBe('false');
   });
 });
