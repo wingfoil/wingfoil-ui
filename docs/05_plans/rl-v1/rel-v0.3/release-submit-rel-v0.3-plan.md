@@ -142,4 +142,7 @@ the main checkout (the links console runs from it).
   the whole list; the worktree path, kept: relative to the repository). Twelve code claims, the
   anchors, the Version bumps, `.wingfoil/README.md` against the configuration and every commit
   hash of the plans checked OK. All but the last nit fixed in one commit.
+  Round 2 on `41a681b4`: **PASS** (every fix verified; three optional nits left as they are — the
+  bug-047 re-probe under *Notes* rather than *Triage & Execution Notes*, a trailing blank line, the
+  user guide's "no known vulnerability" dated by its audit).
 
