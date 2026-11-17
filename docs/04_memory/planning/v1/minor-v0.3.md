@@ -172,5 +172,6 @@ Bars common to every release (`08_mvp-canvas.md`, SARD v0.3):
   slot; `gates.yml` `wave` run `44107593951` green (coverage 5183 passed, statements 96.78 %;
   contract 501; e2e 1378 passed on three engines; smoke 4/4; publish-smoke 11/11). The e2e smoke
   gate green, pre-release-checks finalized `8395c004`; enter-releasing `73f01e49` (`in-development
-  → releasing`); approve-release by the approver's `workflow finalize` `b01b4764`, on `6460c1ff`.
+  → releasing`); approve-release by the approver's `workflow finalize` `b01b4764`, on the tree of `6460c1ff` (the
+  pre-release checks on `3ed28dec`; documents only after it).
 - release-publishing: in progress — `release-publishing-rel-v0.3-plan` (RP3P-1 … RP3P-4).

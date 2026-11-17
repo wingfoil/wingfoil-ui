@@ -55,8 +55,8 @@ What v0.3 offers:
 
 ## Install and run
 
-Each release is a git tag (`v0.1.0`, `v0.2.0`, `v0.3.0`); from `0.2.0` on, each is also published on npm as
-`wingfoil-ui` ([Publishing to npm](docs/publishing.md)). Three ways to run it:
+Each release is a git tag (`v0.1.0`, `v0.2.0`, `v0.3.0`); from `0.2.0` on, each is also published on
+npm as `wingfoil-ui` ([Publishing to npm](docs/publishing.md)). Three ways to run it:
 
 ### From npm
 
