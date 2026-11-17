@@ -385,10 +385,10 @@ describe('AC-3 — refresh (D81-6, D81-7, Q1 (b))', () => {
     const user = userEvent.setup();
     const { router } = await opened();
     await user.click(toggle('US-M-01'));
-    await router.navigate({ to: PAGE, search: { q: 'US-S' } });
+    await router.navigate({ to: '/p/$pid/traceability', params: { pid: PID }, search: { q: 'US-S' } });
     await waitFor(() => expect(rowOf('US-M-01')).toBeNull());
     expect(detailRow()).toBeNull();
-    await router.navigate({ to: PAGE, search: {} });
+    await router.navigate({ to: '/p/$pid/traceability', params: { pid: PID }, search: {} });
     await waitFor(() => expect(toggle('US-M-01').getAttribute('aria-expanded')).toBe('true'));
   });
 
@@ -397,7 +397,7 @@ describe('AC-3 — refresh (D81-6, D81-7, Q1 (b))', () => {
     const gate = new Promise<void>((r) => (release = r));
     const fake = api();
     const fetch = stubApi(fake);
-    const plain = fetch.getMockImplementation()!;
+    const plain = fetch.getMockImplementation() as (url: string) => Promise<Response>;
     fetch.mockImplementation(async (url: string) => {
       if (url === PROJECT) await gate;
       return plain(url);

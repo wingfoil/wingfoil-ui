@@ -216,7 +216,12 @@ describe('AC-1 — the page (D67-1, D67-7)', () => {
     const cell = within(row).getAllByRole('cell')[0] as HTMLElement;
     expect(cell.textContent).toBe('requirementUS-M-01');
     expect(within(cell).queryByRole('link')).toBeNull();
-    expect(within(cell).queryByRole('button')).toBeNull();
+    // No hover-card trigger: the cell's only button is task-081's row toggle (§4.8 *Accessibility*).
+    expect(
+      within(cell)
+        .queryAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['Details of US-M-01']);
     expect(cell.querySelector('[title]')).toBeNull();
   });
 

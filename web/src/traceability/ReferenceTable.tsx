@@ -7,22 +7,23 @@
  * region (RP3-16 P2) named "short id — title — state", with a tooltip (full title, id, state) on
  * hover and on focus, closed with Escape.
  *
- * Each row carries a stable key (`data-ref` the id, React's key the kind and id) and the *Reference*
- * cell a slot before the reference, so task-081 adds the row toggle and its detail row (W3-3).
+ * Each row carries a stable key (`data-ref` the id, React's key the kind and id), so a refresh keeps
+ * the node that holds the focus (task-081, D81-7).
+ *
+ * task-081 (D81-3, D81-4, Q1 (b)): the row toggle in the *Reference* cell's slot — a button named
+ * "Details of <id>", `aria-expanded`, `aria-controls` naming the detail row while it is open; a click
+ * on the row toggles it too (not on a link, a button or the end of a text selection) and focuses its
+ * toggle; the detail row (`ReferenceDetail.tsx`) right after it. When a refresh removes the node that
+ * held the focus inside the table (its row or detail), the table takes it (`tabIndex={-1}`).
  */
 import { Link } from '@tanstack/react-router';
 import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/contracts';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link as AriaLink, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Bar } from './Figures.js';
 import { referenceKey } from './model.js';
-
-/** The state pill of an element, its tone as data. */
-function StatePill({ element }: { element: TraceabilityElement }): ReactNode {
-  const tone = element.descriptor?.tone;
-  return <span className={tone === undefined ? 'state-pill' : `state-pill tone-${tone}`}>{element.status}</span>;
-}
+import { ReferenceDetail, StatePill } from './ReferenceDetail.js';
 
 /** The delay before a chip's tooltip opens, as the other tooltips of the console (`GitStatus`). */
 const HOVER_DELAY_MS = 300;
@@ -73,13 +74,16 @@ function ReferenceCell({
   pid,
   reference,
   element,
+  toggle,
 }: {
   pid: string;
   reference: TraceabilityReference;
   element: TraceabilityElement | undefined;
+  toggle: ReactNode;
 }): ReactNode {
   return (
     <td className="trace-ref">
+      {toggle}
       <span className="type-tag trace-category">{reference.category}</span>
       {reference.element ? (
         <span className="trace-ref-element">
@@ -96,25 +100,131 @@ function ReferenceCell({
   );
 }
 
+/** Whether a click on a row is the user's own on a control, or the end of a text selection. */
+function ignoredClick(event: MouseEvent): boolean {
+  const target = event.target instanceof Element ? event.target : null;
+  if (target?.closest('a, button, input, [role="link"], [role="button"]')) return true;
+  const selection = window.getSelection();
+  return selection !== null && !selection.isCollapsed && selection.toString() !== '';
+}
+
+/** One reference: its row and, when open, its detail row (D81-3). */
+function ReferenceRow({
+  pid,
+  reference,
+  elements,
+  expanded,
+  onToggle,
+}: {
+  pid: string;
+  reference: TraceabilityReference;
+  elements: ReadonlyMap<string, TraceabilityElement>;
+  expanded: boolean;
+  onToggle: (key: string) => void;
+}): ReactNode {
+  const intl = useIntl();
+  const detailId = useId();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const key = referenceKey(reference);
+  return (
+    <>
+      {/* A pointer convenience only: the row's toggle is the keyboard's way (D81-4). */}
+      <tr
+        data-ref={reference.id}
+        className={expanded ? 'trace-row trace-row-open' : 'trace-row'}
+        onClick={(event) => {
+          if (ignoredClick(event)) return;
+          onToggle(key);
+          toggleRef.current?.focus({ preventScroll: true });
+        }}
+      >
+        <ReferenceCell
+          pid={pid}
+          reference={reference}
+          element={reference.element ? elements.get(reference.id) : undefined}
+          toggle={
+            <button
+              ref={toggleRef}
+              type="button"
+              className="trace-row-toggle"
+              aria-label={intl.formatMessage({ id: 'traceability.detail.toggle' }, { id: reference.id })}
+              aria-expanded={expanded}
+              {...(expanded ? { 'aria-controls': detailId } : {})}
+              onClick={() => onToggle(key)}
+            />
+          }
+        />
+        <td className="trace-linked">
+          {reference.linked.map((id) => (
+            <Chip key={id} pid={pid} id={id} element={elements.get(id)} />
+          ))}
+        </td>
+        <td className="trace-completion">
+          {reference.total === 0 ? (
+            <FormattedMessage id="traceability.completion.none" />
+          ) : (
+            <>
+              <Bar percent={reference.percent} />
+              <FormattedMessage
+                id="traceability.completion.value"
+                values={{ percent: reference.percent ?? 0, finished: reference.done, total: reference.total }}
+              />
+            </>
+          )}
+        </td>
+      </tr>
+      {expanded && <ReferenceDetail pid={pid} id={detailId} reference={reference} elements={elements} />}
+    </>
+  );
+}
+
 /** The table. */
 export function ReferenceTable({
   pid,
   references,
   elements,
   busy,
+  openKey,
+  onToggle,
 }: {
   pid: string;
   references: readonly TraceabilityReference[];
   elements: ReadonlyMap<string, TraceabilityElement>;
   busy: boolean;
+  /** The open row's key (`referenceKey`), one at a time. */
+  openKey: string | undefined;
+  onToggle: (key: string) => void;
 }): ReactNode {
   const intl = useIntl();
+  const tableRef = useRef<HTMLTableElement>(null);
+  // Q1 (b): the node that last held the focus inside the table. When a refresh removes it while
+  // nothing else took the focus, the table takes it; a focus the user moved elsewhere forgets it.
+  const lastFocus = useRef<Element | null>(null);
+  useEffect(() => {
+    const last = lastFocus.current;
+    if (last === null || last.isConnected) return;
+    lastFocus.current = null;
+    const active = document.activeElement;
+    if (active === null || active === document.body) tableRef.current?.focus({ preventScroll: true });
+  });
   return (
     <div className="trace-table-wrap">
       <table
+        ref={tableRef}
         className="trace-table"
+        tabIndex={-1}
         aria-label={intl.formatMessage({ id: 'traceability.table.label' })}
         aria-busy={busy || undefined}
+        onFocus={(event) => {
+          lastFocus.current = event.target === tableRef.current ? null : event.target;
+        }}
+        onBlur={(event) => {
+          const left = event.target;
+          // Still in the page after the blur: the user moved the focus, not a refresh.
+          window.setTimeout(() => {
+            if (left.isConnected && lastFocus.current === left) lastFocus.current = null;
+          }, 0);
+        }}
       >
         <thead>
           <tr>
@@ -131,27 +241,14 @@ export function ReferenceTable({
         </thead>
         <tbody>
           {references.map((r) => (
-            <tr key={referenceKey(r)} data-ref={r.id}>
-              <ReferenceCell pid={pid} reference={r} element={r.element ? elements.get(r.id) : undefined} />
-              <td className="trace-linked">
-                {r.linked.map((id) => (
-                  <Chip key={id} pid={pid} id={id} element={elements.get(id)} />
-                ))}
-              </td>
-              <td className="trace-completion">
-                {r.total === 0 ? (
-                  <FormattedMessage id="traceability.completion.none" />
-                ) : (
-                  <>
-                    <Bar percent={r.percent} />
-                    <FormattedMessage
-                      id="traceability.completion.value"
-                      values={{ percent: r.percent ?? 0, finished: r.done, total: r.total }}
-                    />
-                  </>
-                )}
-              </td>
-            </tr>
+            <ReferenceRow
+              key={referenceKey(r)}
+              pid={pid}
+              reference={r}
+              elements={elements}
+              expanded={openKey === referenceKey(r)}
+              onToggle={onToggle}
+            />
           ))}
         </tbody>
       </table>

@@ -32,6 +32,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   status filters, with counts, are kept in the address. The elements missing required references
   are listed with *Show in Memory*; without `ui.yaml` a note says only references between Memory
   elements are recognised, and an ignored file shows its warning.
+- **Traceability's inline detail** (task-081, US-R-01 R-01.2; ux-reference §4.8): a click on a row,
+  or Enter or Space on its toggle, opens its detail under it, one at a time — the reference, its
+  completion x/y and each linked element with its state and who must act, in the words of Today's
+  *Waiting on others* (nothing for a done element), each opening the element's page. The page
+  follows the repository by itself: an open row stays open while its reference exists, the focus
+  stays where it is and a refresh announces nothing.
 - **Configuration › Taxonomy and › Progress** (task-064, US-C-01, US-C-04 C-04.2; spec-005 §1–§4,
   spec-012 §2): two tabs after *UI settings* show how the console reads the project's
   `.wingfoil/ui.yaml`, each value marked *declared*, *inferred* or *derived* as the server serves

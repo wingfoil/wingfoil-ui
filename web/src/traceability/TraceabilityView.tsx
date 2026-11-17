@@ -3,8 +3,11 @@
  * the ui.yaml warning, the scope control, the figures, the no-ui.yaml note, the search and the
  * category and status filters, the references table, the missing-references section and the notices,
  * over one answer of `GET /traceability`. Renders the server's references and figures; filters and
- * counts over the answer are its only computations (D67-4). The inline detail and the refresh's open
- * row are task-081's (W3-3).
+ * counts over the answer are its only computations (D67-4).
+ *
+ * task-081 (D81-6, D81-7): the open row — one at a time, never in the address — is kept per project
+ * while the settled answer still has its reference (a refresh, a scope change once its answer is
+ * there); a filter that hides it keeps it open. A refresh moves no focus and announces nothing.
  */
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -18,6 +21,7 @@ import { MissingSection } from './MissingSection.js';
 import {
   categoryFacets,
   effectiveFilters,
+  referenceKey,
   statusFacets,
   visibleReferences,
   type StatusFilter,
@@ -143,6 +147,20 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
   if (data !== undefined && (lastAnswer?.pid !== pid || lastAnswer.answer !== data))
     setLastAnswer({ pid, answer: data });
   const shown = data ?? (lastAnswer?.pid === pid ? lastAnswer.answer : undefined);
+
+  // The open row (D81-6): of this project only (the route is not remounted on a switch, R2-3), and
+  // closed once the settled answer has no such reference — not while a placeholder is shown.
+  const [open, setOpen] = useState<{ pid: string; key: string } | undefined>(undefined);
+  if (
+    open !== undefined &&
+    (open.pid !== pid ||
+      (data !== undefined && !answer.isPlaceholderData && !data.references.some((r) => referenceKey(r) === open.key)))
+  )
+    setOpen(undefined);
+  const openKey = open?.pid === pid ? open.key : undefined;
+  const toggleRow = (key: string): void => {
+    setOpen((o) => (o?.pid === pid && o.key === key ? undefined : { pid, key }));
+  };
   const current = shown?.scope.current ?? null;
   const scopeElement = current
     ? { element: current.shortId ?? current.id, type: shown?.scope.type ?? current.type }
@@ -295,7 +313,14 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
                 </button>
               </div>
             ) : (
-              <ReferenceTable pid={pid} references={rows} elements={elements} busy={answer.isPlaceholderData} />
+              <ReferenceTable
+                pid={pid}
+                references={rows}
+                elements={elements}
+                busy={answer.isPlaceholderData}
+                openKey={openKey}
+                onToggle={toggleRow}
+              />
             )}
           </>
         )}

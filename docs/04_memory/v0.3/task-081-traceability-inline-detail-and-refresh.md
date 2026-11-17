@@ -293,3 +293,48 @@ Relayed by the coordinator, quoted: "tutto come consigliato":
   removed: the existing key `traceability.notice.eventsError` keeps its name and takes the new
   text (as F-8 changed its text), and no `eventsErrorWho` key is added.
 
+
+### red (2026-11-17)
+
+- `d607fcb6`: D81-2's characterization first, `test/web/today/who-pinned.test.tsx` — the
+  `outerHTML` of every *Waiting on others* `.today-who` (ten actor cases) pinned as an inline
+  snapshot on the unchanged Today (`npx vitest run test/web/today/who-pinned.test.tsx
+  --maxWorkers=2`: 1 passed, snapshot written). Deviation from D81-2: the characterization is a file
+  of its own under `test/web/today/` (it imports nothing of the shared part, so it runs before the
+  part exists); the shared part's cases are `test/web/element/who-must-act.test.ts`.
+- `f356cc77`: `test/web/traceability/detail.test.tsx` (15 tests), `test/web/element/who-must-act.test.ts`
+  (9), F-8's expected text in `view.test.tsx` (Q2 (b)), the e2e tests R-01.2, "AC-2 — the row
+  toggle by keyboard …", "AC-3 — a refresh keeps the open row and the focus and announces nothing"
+  (`@live-refresh`), "AC-2 — at 400 px an open detail scrolls only inside the table container" and
+  the `SCREENS` entry "traceability — detail open". Seen failing: `detail.test.tsx` 14 failed, 1
+  passed (the chip click, a characterization: it already opened the element page);
+  `who-must-act.test.ts` — the module does not exist; `view.test.tsx -t F-8` 1 failed. The e2e
+  tests and the screen are not run locally (no local Playwright): their first run is the push run.
+
+### green (2026-11-17)
+
+- New: `web/src/element/WhoMustAct.tsx` (`whoMustAct`, `namesSomeone`, `<WhoMustAct>`,
+  `WaitingWho`), `web/src/traceability/ReferenceDetail.tsx` (the detail row; `StatePill` moved
+  there from `ReferenceTable.tsx`). Changed: `web/src/today/TodayView.tsx` (`Who` removed, the
+  shared part in the `.today-who` span, one header line), `web/src/today/model.ts` (`waitingWho`
+  delegates, `WaitingWho` re-exported); `ReferenceTable.tsx` (`ReferenceRow`, the toggle, the row
+  click, the table's `tabIndex={-1}` and Q1 (b)'s focus rule), `TraceabilityView.tsx` (the open row
+  per project, D81-6), `traceability.css`; `en.json`: six `traceability.detail.*` keys and the new
+  text of `traceability.notice.eventsError` (Q2 (b), the key kept).
+- Deviations, small: (1) the row component's prop is `expanded`, not `open` — `open` is a state
+  name of a fixture (REQ-ARC-05, `wfui/no-methodology-literal`); (2) task-067's unit test R-01.6
+  asserted no button in a pattern reference's cell (no hover-card trigger); the cell now holds the
+  row toggle §4.8 places there, so the test asserts that the toggle is its only button — the
+  intent (no hover card, no link, no `title`) kept; (3) Q1 (b)'s focus rule tracks the last node
+  focused inside the table and, after a render that removed it with the focus on `<body>`, focuses
+  the table; a blur that leaves the node in the page forgets it.
+- Today unchanged: `who-pinned.test.tsx` green after the extraction, as `today.test.tsx` (28),
+  `model.test.ts` (12) and `cards.test.tsx` (13), none edited.
+- `npx vitest run <file> --maxWorkers=2`: `detail.test.tsx` 15 passed, `view.test.tsx` 38,
+  `who-must-act.test.ts` 9, `who-pinned.test.tsx` 1, `test/web/i18n/catalogue.test.ts` 2,
+  `key-catalogue.test.ts` 2, `key-rendering.test.tsx` 1, `test/lint/methodology-literals.test.ts`
+  73, `test/docs/public-text.test.ts` 67.
+- Local: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` clean;
+  `check_tasks.py v0.3` OK.
+- Docs: `docs/user-guide.md` 0.47 (*Traceability*: the detail, kept up to date), `CHANGELOG.md`
+  *Unreleased* › *Added*, `ux-reference.md` 1.31 (§4.8 *Refresh*, Q1 (b)), `test/README.md` 0.101.
