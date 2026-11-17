@@ -3,9 +3,18 @@
 All notable changes to WingFoil UI are recorded in this file. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html); release `v0.1` is the git tag `v0.1.0`,
-release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
+release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`, release `v0.3` the git
+tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
 
 ## [Unreleased]
+
+## [0.3.0] - 2026-11-17
+
+**Project state.** See where a project stands — the progress card, recent activity, traceability,
+the element page — and configure the console per project with `.wingfoil/ui.yaml` and its presets.
+Supports WingFoil **0.2.2 to 0.3.x** (contract-tested: 0.2.2 and 0.3.1). On npm as
+`wingfoil-ui@0.3.0`, the first version published through the pipeline: staged by the npm trusted
+publisher and approved by the approver with 2FA (`docs/publishing.md`).
 
 ### Added
 
@@ -664,6 +673,7 @@ bin/wingfoil-ui.cjs` ([README](README.md#install-and-run)), or `npm pack` it and
 
 Details: [user guide — Known limitations](docs/user-guide.md#known-limitations).
 
-[Unreleased]: https://github.com/wingfoil/wingfoil-ui/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/wingfoil/wingfoil-ui/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/wingfoil/wingfoil-ui/releases/tag/v0.3.0
 [0.2.0]: https://github.com/wingfoil/wingfoil-ui/releases/tag/v0.2.0
 [0.1.0]: https://github.com/wingfoil/wingfoil-ui/releases/tag/v0.1.0

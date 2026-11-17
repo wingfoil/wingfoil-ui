@@ -3,8 +3,8 @@
 Local web UI for [WingFoil](https://github.com/wingfoil/wingfoil)-governed projects, served by a
 local server that drives the `wingfoil` CLI.
 
-> **Status: v0.3 — Project state, in release validation** (not tagged yet; the latest release is
-> **v0.2 — Unblock**, `0.2.0`: git tag `v0.2.0`, npm `wingfoil-ui@0.2.0`). See on *Today* what
+> **Status: v0.3 — Project state, released as `0.3.0`** (git tag `v0.3.0`, npm `wingfoil-ui@0.3.0`;
+> the previous release `v0.2.0` was *Unblock*). See on *Today* what
 > requires you, where the project stands and what happened last, decide gates and submit work
 > through the project's own WingFoil CLI, follow every reference on *Traceability*, read the
 > project's `.wingfoil/ui.yaml` or apply a preset, and keep your copy in sync with its remote. No
@@ -55,7 +55,7 @@ What v0.3 offers:
 
 ## Install and run
 
-Each release is a git tag (`v0.1.0`, `v0.2.0`); from `0.2.0` on, each is also published on npm as
+Each release is a git tag (`v0.1.0`, `v0.2.0`, `v0.3.0`); from `0.2.0` on, each is also published on npm as
 `wingfoil-ui` ([Publishing to npm](docs/publishing.md)). Three ways to run it:
 
 ### From npm
@@ -78,7 +78,7 @@ npx wingfoil-ui
 ```bash
 git clone https://github.com/wingfoil/wingfoil-ui.git
 cd wingfoil-ui
-git checkout v0.2.0           # the release tag
+git checkout v0.3.0           # the release tag
 npm ci
 npm run build                 # server (tsc) and browser app (vite)
 node bin/wingfoil-ui.cjs      # prints the URL and opens the browser

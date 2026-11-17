@@ -1,6 +1,6 @@
 # CLI reference — `wingfoil-ui`
 
-**Version:** 0.8 · **Date:** 2026-11-17 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1; 0.7: deep links across a restart with `--port` only, a page recovers in place — task-063; 0.8: the command line unchanged in v0.3, `GIT_AUTHOR_EMAIL`, the read environment of git and `PATH` for every process — release-submit-rel-v0.3-plan step 3)
+**Version:** 0.9 · **Date:** 2026-11-17 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1; 0.7: deep links across a restart with `--port` only, a page recovers in place — task-063; 0.8: the command line unchanged in v0.3, `GIT_AUTHOR_EMAIL`, the read environment of git and `PATH` for every process — release-submit-rel-v0.3-plan step 3; 0.9: the version examples `0.3.0` — release-publishing-rel-v0.3-plan step 3)
 
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
@@ -34,7 +34,7 @@ usage error.
 |--------|---------|
 | `--port <n>` · `--port=<n>` | listen on port `n`, an integer from 1024 to 65535; default: a free port chosen by the operating system. Links to the console's pages survive a restart only with a fixed port: a page left open recovers in place once the new URL is opened in any tab of the same browser (adr-003 D6, D7) |
 | `--no-open` | do not open a browser; print the URL only |
-| `--version` | print the package version (the `version` of the root `package.json`, e.g. `0.2.0`) on stdout and exit 0 |
+| `--version` | print the package version (the `version` of the root `package.json`, e.g. `0.3.0`) on stdout and exit 0 |
 | `--help` | print the usage on stdout and exit 0 |
 
 Parsing rules (`server/src/launcher/options.ts`, `test/server/launcher/options.test.ts`):
@@ -170,7 +170,7 @@ stdout carries only these lines:
 | started | `WingFoil UI is running at http://127.0.0.1:<port>/#token=<token>` |
 | the browser could not be opened | `Open this URL in your browser: http://127.0.0.1:<port>/#token=<token>` |
 | stopped | `WingFoil UI stopped` |
-| `--version` | the version, e.g. `0.2.0` |
+| `--version` | the version, e.g. `0.3.0` |
 | `--help` | the usage above |
 
 These two URL lines are the only places the token is printed.
