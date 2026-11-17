@@ -1,13 +1,13 @@
 # Publishing to npm
 
-**Version:** 0.8 · **Date:** 2026-11-05 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.9 · **Date:** 2026-11-17 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
 Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
 the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets; 0.5: the
 release steps after the packs adoption — `release-commit` in `release-publishing`, `released` by the
-approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish; 0.8: Python set up in `gate` for the default suite's `check_releases.py` test — task-051)
+approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish; 0.8: Python set up in `gate` for the default suite's `check_releases.py` test — task-051; 0.9: the accepted dev-only findings of every development dependency, not only the registry — release-submit-rel-v0.3-plan step 7)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -186,9 +186,21 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
 
 **At release validation** (before `release-submit`), re-check the dependency audit: `npm audit
 --omit=dev` must report 0 vulnerabilities (what the published package installs), and `npm audit`
-is compared with the accepted dev-only findings of the local registry (see
-[Local staging smoke](#local-staging-smoke)); a new finding outside that list is a decision for the
-approver.
+is compared with the accepted dev-only findings (the local registry's, see
+[Local staging smoke](#local-staging-smoke), and the other development dependencies' below); a new
+finding outside that list is a decision for the approver.
+
+**Accepted dev-only findings of the other development dependencies** (the approver, 2026-11-17,
+release v0.3, option A of `release-submit-rel-v0.3-plan` step 7; `npm audit --json` on `main`
+`3ed28dec`, 34 findings in all — 3 critical, 4 high, 27 moderate — with `npm audit --omit=dev` 0):
+besides the registry's own (below), `body-parser` (high), `qs` and the `@verdaccio/*` packages
+(moderate, through `minimatch`) of `verdaccio` 6.10.5; `hono`, `@hono/node-server` and `zod` (high)
+through `@modelcontextprotocol/sdk` of the pinned CLI `wingfoil@0.3.1`; `undici` (high) of `jsdom`
+30.1.2, the web tests' environment; `minimatch` (moderate) of `eslint`, `typescript-eslint` and
+`typedoc`; `zod` of `eslint-plugin-react-hooks`. None reaches the published package: they run only
+in linting, the tests, the API docs build and the staging smoke, on this machine or a CI runner.
+Status: **accepted risk** for v0.3; a refresh of the development dependencies (most of them have a
+fix in range; `typedoc`'s is not usable) is an input of v0.4's release planning.
 
 **A failed gate or stage** stages nothing (`promote` needs `stage`). Fix on `main`; the approver
 decides whether the same version is tagged again on the fixed commit (nothing was published) or a
