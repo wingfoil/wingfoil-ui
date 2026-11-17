@@ -6,7 +6,7 @@
 // filters as `aria-pressed` groups kept in the URL, the search, the polite row count after a filter
 // change, the empty states and *Clear filters*, a failed read as an error, the ui.yaml warning and
 // note with *Use preset* (Q3 (a)), the missing-references section and the notices. The inline detail
-// and the refresh are task-081's (W3-3).
+// and the refresh are task-081's (W3-3): `detail.test.tsx`.
 import type { ProjectHeader, Traceability, TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/contracts';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
@@ -644,9 +644,8 @@ describe('review round 1', () => {
   it('F-8 — a failed events read names what this page shows', async () => {
     stubApi(api({ [CURRENT]: { status: 200, body: answer({ eventsError: { code: 'git-failed', message: 'x' } }) } }));
     await opened();
-    expect(
-      screen.getByText('The repository history could not be read: the references and figures are shown without it.'),
-    ).toBeTruthy();
+    // task-081 Q2 (b): the detail shows who must act, which is what a failed events read degrades.
+    expect(screen.getByText('The repository history could not be read: who must act may be incomplete.')).toBeTruthy();
   });
 });
 
