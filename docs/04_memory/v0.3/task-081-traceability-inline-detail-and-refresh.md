@@ -338,3 +338,18 @@ Relayed by the coordinator, quoted: "tutto come consigliato":
   `check_tasks.py v0.3` OK.
 - Docs: `docs/user-guide.md` 0.47 (*Traceability*: the detail, kept up to date), `CHANGELOG.md`
   *Unreleased* › *Added*, `ux-reference.md` 1.31 (§4.8 *Refresh*, Q1 (b)), `test/README.md` 0.101.
+
+### refactor (2026-11-17)
+
+- No code change after green: the shared part, the row and the detail were already split as
+  D81-1, D81-3 planned; the green deviations above stand.
+- `gates.yml` push run `44045595257` on `5baf2f35`: **success**, every job green — checks,
+  coverage (statements 96.78 %), contract, e2e-chromium ×2 (the X-06.4 and X-09.1 screens, the new
+  "traceability — detail open" included, and Today's specs unchanged), own specs on Firefox and
+  WebKit (`traceability.spec.ts`, 18 passed on each: R-01.2, AC-2 ×2 and AC-3 among them), smoke,
+  publish-smoke; `e2e-wave` skipped (task scope). AC-3's 5 s budget runs unasserted outside
+  `test:timing` (`@live-refresh`); it is asserted at the coordinator's `test:timing` run at the wave
+  gate (task-059 Q7 (a)).
+- Local before the push: `npm run typecheck`, `npm run lint`, `npm run format:check`,
+  `npm run docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run test/docs/public-text.test.ts
+  --maxWorkers=2`: 67 passed.
