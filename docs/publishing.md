@@ -1,13 +1,13 @@
 # Publishing to npm
 
-**Version:** 0.9 · **Date:** 2026-11-17 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.10 · **Date:** 2026-11-17 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
 Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
 the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets; 0.5: the
 release steps after the packs adoption — `release-commit` in `release-publishing`, `released` by the
-approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish; 0.8: Python set up in `gate` for the default suite's `check_releases.py` test — task-051; 0.9: the accepted dev-only findings of every development dependency, not only the registry — release-submit-rel-v0.3-plan step 7)
+approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish; 0.8: Python set up in `gate` for the default suite's `check_releases.py` test — task-051; 0.9: the accepted dev-only findings of every development dependency, not only the registry — release-submit-rel-v0.3-plan step 7; 0.10: the first tag run — the trusted publisher, `promote`, provenance and the `release` job verified by `v0.3.0`; an unused trusted publisher configuration expires — release-publishing-rel-v0.3-plan step 8)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -71,12 +71,14 @@ and the environment admits `v*` tags only. On a branch the tag checks are skippe
 
 **Verified on a runner:** `gate` (Node 22.22.2) and `stage` (Node 22.12.0), by the third
 `workflow_dispatch` dry run on `main` (run `39451186680`, 2026-10-20: `test:coverage`, `test:smoke`
-4/4, `test:publish-smoke` 11/11; the first two dry runs found bug-020, bug-021, bug-022). **Not
-verified yet:** the trusted publisher, `npm stage publish`, the `npm-publish` approval of a real
-promote and the provenance statement — `0.2.0` was published by hand, so the first release after
-it is their first run — and the `release` job (task-052), whose first run is the `v0.3.0` tag run;
-the test reports and the command-line reporters of `gate` are first seen on a runner by the next
-dry run.
+4/4, `test:publish-smoke` 11/11; the first two dry runs found bug-020, bug-021, bug-022).
+**Verified by a tag run:** the `npm-publish` approval, the trusted publisher, `npm stage publish`
+with the provenance statement and the `release` job's draft, by the `v0.3.0` tag run
+(`44130478400`, 2026-11-17: staged id `ce56da87-…`, the provenance in the Sigstore transparency
+log, the draft's tarball equal to the staged one; live after `npm stage approve`). Its first
+`promote` failed with `ENEEDAUTH`: the trusted publisher configuration made for `0.2.0` had
+expired unused (checklist step 5); re-added, *Re-run failed jobs* staged the version
+(`release-publishing-rel-v0.3-plan` step 8).
 
 ## Approver checklist (registry-side setup, once)
 
@@ -125,6 +127,11 @@ ships as a git tag only and a decision-log records it, as dl-004 did for v0.1 (R
    repository and the file name: a rename or transfer of either must be mirrored there.
    `package.json` `repository.url` matches this repository, as npm requires
    (`test/package/pack.test.ts`).
+   A new configuration is *Pending validation* until a publish uses it, and one left unused
+   **expires** (npmjs.com: "This trusted publisher configuration has expired. Delete it and
+   create a new one."); `promote` then fails with `ENEEDAUTH` and stages nothing. Before pushing
+   a release tag, check that its status is not *Expired*; if it is, delete it and add it again
+   with the same values (the `v0.3.0` tag run, `release-publishing-rel-v0.3-plan` step 8).
 6. **Publishing access** (package Settings → Publishing access): *Require two-factor
    authentication and disallow tokens*, so no token of any kind can publish `wingfoil-ui`.
 
