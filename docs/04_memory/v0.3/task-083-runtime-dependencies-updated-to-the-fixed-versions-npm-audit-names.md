@@ -82,3 +82,13 @@ development stage closed.
 - Local: `typecheck`, `lint`, `format:check`, `docs:api` exit 0; `npx vitest run
   test/docs/public-text.test.ts` plus the Markdown render suite, `--maxWorkers=2`: 144 passed.
 - No product code changed; `CHANGELOG.md` *Security* line (AC-5).
+
+### Review (2026-11-17)
+
+- Independent fresh-context read-only review of `a18d13db`, round 1: **PASS** (AC-1 … AC-3 met,
+  the shipped package checked, the transitive majors accepted by their dependents' ranges). Nits:
+  (1) the CHANGELOG stated the `markdown-it` reachability as a fact and said "long" for a
+  multi-line definition — reworded to the advisory's own terms; (2) AC-2's floors hold for the
+  four direct ranges only — the transitive `fast-uri` under `ajv` is not floored (a fresh install
+  resolves 3.1.9, outside the advisory), accepted; (3) the CI run and `check_tasks.py` to record
+  before the submit.

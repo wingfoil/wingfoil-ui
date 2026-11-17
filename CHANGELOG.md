@@ -331,9 +331,10 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 - **Runtime dependencies updated to their fixed versions** (bug-050, task-083): `dompurify` 3.4.18,
   `markdown-it` 15.0.3, `fastify` 5.12.8 and `@fastify/static` 10.1.11 (now the minimum of their
   ranges), with `fast-uri`, `glob`, `minimatch` and `seroval` in the lockfile; `npm audit
-  --omit=dev` reports 0 vulnerabilities. The `markdown-it` fix removes a quadratic rendering time
-  on a long link reference definition, which a Markdown file of the observed repository could use
-  to block a page.
+  --omit=dev` reports 0 vulnerabilities. Among them, `markdown-it`'s advisory GHSA-gfr2-rv44-r23c
+  (quadratic rendering of a multi-line link reference definition) applies to the default options
+  the console renders Markdown with, so a Markdown file of the observed repository could slow a
+  page down.
 - **An empty key no longer makes an element of a file WingFoil leaves out** (bug-040, task-075): a
   frontmatter with a line `: value` (a key with nothing before the colon) was read by the console,
   while every `wingfoil` command leaves the file out. Such a key is now refused as WingFoil refuses
