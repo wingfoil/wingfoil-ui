@@ -377,6 +377,23 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 - **A document of many quotes, each followed by a lazy line, renders in quadratic time**
   (bug-047): such a Markdown body can freeze the Documentation view, the Directives view or an
   element's document while it renders (markdown-it 15.0.2's own cost; planned for v0.4).
+- **Ids, types, states, roles and tags are shown as written** (bug-041): a control or bidi
+  character in a hand-committed `status:`, a type or state name of `.wingfoil/memory.yaml` or a tag
+  reaches the page raw, while every display-only text is escaped (planned for v0.4).
+- **A zero width joiner between two letters of a name is shown as an escape** (bug-045): U+200C and
+  U+200D, as Persian and several Indic scripts write them, show as `‌` and `‍` in member
+  names and the other escaped repository texts (planned for v0.4).
+- **The bell's *Updates* after a grouped commit** (bug-048): one commit that moves several Memory
+  elements gives events with the same commit, which the list keys its rows by, so a re-read can
+  show a duplicated or a missing row (planned for v0.4).
+- **The page scrolls sideways at a phone width** (bug-044): at 400 px the user name of the project
+  header ends about 38 px past the edge (planned for v0.4).
+- **A figure's explanation cannot be hovered** (task-067 review F-4): the completion explanation of
+  Today and Traceability and the tooltip of a linked element's chip close when the pointer moves
+  onto them (WCAG 1.4.13); by keyboard focus they stay until Escape or blur.
+- **No Content Security Policy** (bug-039): the console's pages and API answers carry no
+  `Content-Security-Policy` header, a second line of defence the browser does not apply should
+  repository text ever reach a page as markup (planned for v0.4).
 
 ## [0.2.0] - 2026-10-20
 

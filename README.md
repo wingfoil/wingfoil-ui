@@ -3,11 +3,12 @@
 Local web UI for [WingFoil](https://github.com/wingfoil/wingfoil)-governed projects, served by a
 local server that drives the `wingfoil` CLI.
 
-> **Status: v0.2 — Unblock, released as `0.2.0`** (git tag `v0.2.0`, npm `wingfoil-ui@0.2.0`; the
-> previous release `v0.1.0` was the read-only console). See on *Today* what requires you, decide
-> gates and submit work through the project's own WingFoil CLI, and keep your copy in sync with its
-> remote (fetch, fast-forward update, push, optionally automatic). No editing, no workflow views and
-> no agents yet (see [What v0.2 does not do](#what-v02-does-not-do)).
+> **Status: v0.3 — Project state, in release validation** (not tagged yet; the latest release is
+> **v0.2 — Unblock**, `0.2.0`: git tag `v0.2.0`, npm `wingfoil-ui@0.2.0`). See on *Today* what
+> requires you, where the project stands and what happened last, decide gates and submit work
+> through the project's own WingFoil CLI, follow every reference on *Traceability*, read the
+> project's `.wingfoil/ui.yaml` or apply a preset, and keep your copy in sync with its remote. No
+> editing, no workflow views and no agents yet (see [What v0.3 does not do](#what-v03-does-not-do)).
 
 ## What it is
 
@@ -15,23 +16,26 @@ local server that drives the `wingfoil` CLI.
 For each project you add, the server runs **that project's own** `wingfoil` CLI (the one pinned in
 its `node_modules`, else the one on the `PATH`) and reads its git repository; the browser shows the
 result. Every governed change is a `memory submit`, `approve` or `reject` of that CLI, which makes
-WingFoil's own `wf(…)` commit; the console never edits a project file itself. The console is
+WingFoil's own `wf(…)` commit; the console edits no project file itself, except *Use preset*,
+which writes `.wingfoil/ui.yaml` for a project that has none and commits it alone. The console is
 reachable only from your machine: the server listens on the loopback addresses only, and every API
 request needs the session opened with the token printed at start.
 
-What v0.2 offers:
+What v0.3 offers:
 
 | Area | What you get |
 |------|--------------|
 | Projects | add a local folder or clone a remote; switch between projects; remove one from the list (its files are not touched); unavailable projects marked with the reason |
-| Project header | the project's WingFoil version against the supported range, missing capabilities, your identity from `git config user.email`, the role view for members with several roles, read-only notices, *How to join* for a user not in the team, the notification bell (what requires you, the last Memory events) |
-| Today | the project's start page: *Requires you* with one action per item, *Waiting on others* with who must act, *Your roles* for members with several roles |
-| Memory | every element type of `.wingfoil/memory.yaml` with counts, state filters, *local changes* markers, live refresh |
-| Element panel | state machine, rejection banner, summary, references (missing required fields flagged), directives, history with commits; the **gate footer** (every outcome side by side, a reason required) and **Submit**, blocked with the reason on local changes or a copy behind its remote; a toast with the `wf(…)` commit after each action |
+| Project header | the project's WingFoil version against the supported range, missing capabilities, your identity (the git author email WingFoil authorises), the role view for members with several roles, read-only notices, *How to join* for a user not in the team, the notification bell (what requires you, the last Memory events) |
+| Today | the project's start page: the **progress card** (current scope, project completion, iterated, open defects, pending gates), *Requires you* with one action per item, *Waiting on others* with who must act — each with type and state filters, short ids and entry dates —, *Your roles* as role tags, *Recent activity* |
+| Memory | every element type of `.wingfoil/memory.yaml` with counts, state filters (also the states of a bucket), *Missing required references*, *local changes* markers, live refresh |
+| Traceability | every reference (a pattern of `ui.yaml` or another element's id) with its linked elements and completion, in the current release or the whole project, with filters and an inline detail |
+| Element page and side panel | the element as a page (also by short id) or in a side panel over Today and the bell; state machine, rejection banner, summary rendered as Markdown and the whole document, references (missing required fields flagged), directives, history with commits; the **gate footer** (every outcome side by side, a reason required) and **Submit**, blocked with the reason on local changes or a copy behind its remote; a toast with the `wf(…)` commit after each action |
 | DNA · Directives · Team | the project's DNA; directives with their bound roles and rendered body; team members with roles and pending gates, agents that never approve |
 | Documentation | index of the DNA's `paths.docs` (without Memory and plan files), Markdown rendered inside the UI |
 | Git status and sync | in the sidebar: branch, local changes, ahead/behind; *Fetch*, *Update* (fast-forward only) and *Push*; Auto-fetch (on by default), Auto-update and Auto-push (off by default) |
 | UI settings | *Configuration › UI settings*: the sync settings, the theme (*System*, *Light*, *Dark*), the action log size; kept on this computer, never committed |
+| Taxonomy and progress | *Configuration › Taxonomy* and *› Progress*: how the console reads `.wingfoil/ui.yaml` (categories, references, progress, held gates), each value *declared*, *inferred* or *derived*; *Use preset* (Kanban, Scrum, WingFoil sw-life-cycle) for a project without one |
 | Everywhere | keyboard access, WCAG 2.1 AA target, light and dark themes (following the system unless the theme setting forces one), English strings from one catalogue (except React Aria's screen-reader-only "Dismiss") |
 
 ## Requirements
@@ -106,22 +110,22 @@ start the published version instead of your tarball.
 
 | Document | Content |
 |----------|---------|
-| [User guide](docs/user-guide.md) | launching, projects, Today, every view, deciding gates and submitting, git status and sync, UI settings, themes and keyboard, local security, local state, troubleshooting, known limitations |
+| [User guide](docs/user-guide.md) | launching, projects, Today, every view, Traceability, deciding gates and submitting, git status and sync, UI settings, taxonomy and progress, themes and keyboard, local security, local state, troubleshooting, known limitations |
 | [CLI reference](docs/cli-reference.md) | the `wingfoil-ui` command line: options, environment, output, exit codes |
 | [CHANGELOG](CHANGELOG.md) | what each release adds |
 | [Publishing to npm](docs/publishing.md) | for maintainers: the publish pipeline, the approver's registry checklist, the release runbook, the local staging smoke, the differences from WingFoil's pipeline |
 | [`.wingfoil/README.md`](.wingfoil/README.md) | how this repository is governed with WingFoil (Memory types, workflows, roles, directives) |
 
-## What v0.2 does not do
+## What v0.3 does not do
 
-- No editing: no field editing, no editing of the DNA, directives or files, no new Memory element
-  or ingestion. The governed changes are submit, approve and reject.
+- No editing: no field editing, no editing of the DNA, directives or files (`ui.yaml` only through
+  *Use preset*), no new Memory element or ingestion. The governed changes are submit, approve and
+  reject.
 - No git beyond fetch, fast-forward update and push: no merge, rebase, stash or forced push, no
   push to a `pushRemote`.
-- No workflow views, timeline, traceability, git tree, files view, command palette or
-  `.wingfoil/ui.yaml` (v0.3); no agent launch (v0.4, with WingFoil 0.3); no notification outside
-  the console (`docs/01_vision/07_sequencer.md`).
-- Known limitations of v0.2, among them the declared risk of *Auto-update*:
+- No workflow views, timeline, git tree, files view or command palette, no agent launch (v0.4,
+  with WingFoil 0.3); no notification outside the console (`docs/01_vision/07_sequencer.md`).
+- Known limitations, among them the declared risk of *Auto-update*:
   [user guide — Known limitations](docs/user-guide.md#known-limitations).
 
 ## Supported WingFoil versions

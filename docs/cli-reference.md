@@ -1,6 +1,6 @@
 # CLI reference — `wingfoil-ui`
 
-**Version:** 0.7 · **Date:** 2026-11-11 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1; 0.7: deep links across a restart with `--port` only, a page recovers in place — task-063)
+**Version:** 0.8 · **Date:** 2026-11-17 (0.1: release v0.1; 0.2: `npx wingfoil-ui` from an installed package, Ctrl-C under `npx` — task-025; 0.3: release v0.2 user-docs — the command line is unchanged; the state directory's new content, the git environment of the transports, the automatic sync at start and at stop; 0.4: release v0.2.0 — `npx wingfoil-ui` from npm; 0.5: the console address file for scripts and agents — task-058; 0.6: Windows covered by unit tests only — its review round 1; 0.7: deep links across a restart with `--port` only, a page recovers in place — task-063; 0.8: the command line unchanged in v0.3, `GIT_AUTHOR_EMAIL`, the read environment of git and `PATH` for every process — release-submit-rel-v0.3-plan step 3)
 
 The `wingfoil-ui` command starts the WingFoil UI console: a local server on the loopback addresses
 and, unless told otherwise, the browser on its URL. It is the package `bin`
@@ -14,8 +14,9 @@ Sources: `bin/wingfoil-ui.cjs`, `server/src/main.ts`, `server/src/launcher/` (`o
 `spec-007` (launcher command line), `spec-006` §1 (state directory), `spec-004` §1–2 (listening,
 session), `spec-010` §4 and §6 (git transports, automatic sync).
 
-In v0.2 the command line, its output lines and its exit statuses are the same as in v0.1; what the
-started console does in addition (governed actions, git sync) is in the
+In v0.3 the command line, its output lines and its exit statuses are the same as in v0.1 and v0.2;
+v0.3 adds the [address file](#address-file-for-scripts-and-agents) of each running console. What
+the started console does (governed actions, git sync, progress and traceability) is in the
 [user guide](user-guide.md).
 
 ## Synopsis
@@ -64,6 +65,7 @@ Usage: wingfoil-ui [--port <n>] [--no-open] [--version] [--help]
 | `XDG_CONFIG_HOME` | Linux and other Unix except macOS, when `WINGFOIL_UI_STATE_DIR` is not set: state in `$XDG_CONFIG_HOME/wingfoil-ui` (an absolute value only), else `~/.config/wingfoil-ui` |
 | `APPDATA` | Windows, when `WINGFOIL_UI_STATE_DIR` is not set: state in `%APPDATA%\wingfoil-ui` (else `<home>\AppData\Roaming\wingfoil-ui`) |
 | `HOME` | the home directory (default state location; `~` in the paths you type in the UI; macOS state in `~/Library/Application Support/wingfoil-ui`) |
+| `GIT_AUTHOR_EMAIL` | when set, who you are in every project (else `author.email`, else `user.email` of git), as the WingFoil CLI authorises its author (bug-029, `server/src/identity/git-email.ts`) |
 | `PATH` | where a project's `wingfoil` is looked for when the project pins none, and where `git` and the browser opener are found |
 
 The `git` and `wingfoil` processes the server starts get the server's environment **without** the
@@ -72,8 +74,11 @@ variables that would point git at another repository or inject configuration (`G
 `GIT_CONFIG_KEY_<n>`/`GIT_CONFIG_VALUE_<n>` and the other redirecting `GIT_*` variables —
 `server/src/git/git.ts`, bug-002). A clone, a fetch, an update and a push also run with
 `GIT_TERMINAL_PROMPT=0` (git never asks for a password in the terminal), with `GIT_ALLOW_PROTOCOL`
-set to `https`, `http`, `ssh`, `git` and `file` whatever the environment says (bug-013), and with
-the absolute entries of `PATH` only. A fetch, an update and a push run ssh as
+set to `https`, `http`, `ssh`, `git` and `file` whatever the environment says (bug-013); the
+console's other git reads and every `wingfoil` process run with `GIT_ALLOW_PROTOCOL=none` (no
+transport, so a partial clone's lazy fetch is refused — `server/src/git/git.ts`). Every process
+the server's process runner starts (`wingfoil`, `git` and what they start) gets the absolute
+entries of `PATH` only (`server/src/process/runner.ts`). A fetch, an update and a push run ssh as
 `ssh -o BatchMode=yes` when neither the environment (`GIT_SSH_COMMAND`, `GIT_SSH`) nor
 `core.sshCommand` names an ssh command; the automatic fetch and update also run with an empty
 `GIT_ASKPASS` and `SSH_ASKPASS_REQUIRE=never`, so no password dialog opens

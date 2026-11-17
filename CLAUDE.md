@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.20 · **Date:** 2026-11-08 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the procedures folded into directives, `test:timing` at the wave gate and before a release — task-049; 0.17: the draft GitHub Release job — task-052; 0.18: the agents' own git identity (`WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`, the machine account `wingfoil-dev`), its reach and self-check, approvals from the approver's console — task-050; 0.19: the self-check stops on any identity but the agent's — its review round 2; 0.20: the heavy gates on `.github/workflows/gates.yml` — task-071, dl-016)
+**Version:** 0.21 · **Date:** 2026-11-17 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the procedures folded into directives, `test:timing` at the wave gate and before a release — task-049; 0.17: the draft GitHub Release job — task-052; 0.18: the agents' own git identity (`WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`, the machine account `wingfoil-dev`), its reach and self-check, approvals from the approver's console — task-050; 0.19: the self-check stops on any identity but the agent's — its review round 2; 0.20: the heavy gates on `.github/workflows/gates.yml` — task-071, dl-016; 0.21: v0.3 in release validation, its surface on `main` not released — release-submit-rel-v0.3-plan step 4)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -18,10 +18,11 @@ then `promote` to the npm stage queue through the trusted publisher, live after 
 stage approve` ([`docs/publishing.md`](docs/publishing.md)). The GitHub Release of `v0.2.0` was made
 by hand (2026-10-20); from v0.3 the workflow's `release` job creates a draft after `promote`, made
 public by the approver after `npm stage approve` (task-052). The previous release, **v0.1 — Read-only
-console** (git tag `v0.1.0`), was not published on npm (dl-004). Next: `minor-v0.3` is in development in
-Sprint 1 (`sprint-001`, run `sw-life-cycle-1-plan` on WingFoil's workflow engine): 19 tasks in four
-waves, from the governance wave (`release-planning-rel-v0.3-plan`, RP3-19; one session per Sprint
-stage, RP3-13).
+console** (git tag `v0.1.0`), was not published on npm (dl-004). Next: `minor-v0.3` (still
+`in-development`) is in release validation in Sprint 1 (`sprint-001`, run `sw-life-cycle-1-plan`
+on WingFoil's workflow engine): its 37 tasks are `done`, development and `plan-release` are closed,
+and `release-submit` › `pre-release-checks` runs in `release-submit-rel-v0.3-plan` (one session
+per Sprint stage, RP3-13). The v0.3 surface is on `main` but **not released**.
 
 Released in `v0.1.0`:
 
@@ -38,8 +39,14 @@ Released in `v0.2.0` (`CHANGELOG.md` *[0.2.0]*): *Today*, the notification bell,
 settings, the git status with *Fetch*, *Update* (fast-forward only) and *Push*, the automatic sync
 (auto-fetch on, auto-update and auto-push off by default); e2e on Chromium, Firefox and WebKit.
 
-Not shipped (v0.3 and later): editing (fields, DNA, directives, files), ingestion, workflow views,
-timeline, traceability, files, command palette, `.wingfoil/ui.yaml`, agent launch. The feature
+On `main`, not released (v0.3 — Project state, `CHANGELOG.md` *[Unreleased]*): WingFoil 0.3 support
+(0.2.2 to 0.3.x), Today's progress card, recent activity, card filters and role tags, the element
+page and side panel with short ids and the rendered document, *Traceability*, the Memory list's
+state and missing-reference filters, *Configuration › Taxonomy* and *› Progress* with *Use preset*
+(the `.wingfoil/ui.yaml` commit), held gates and state limits, the console address file.
+
+Not shipped (v0.4 and later): editing (fields, DNA, directives, files), ingestion, workflow views,
+timeline, git tree, files, command palette, agent launch. The feature
 plan per release is `docs/01_vision/07_sequencer.md`; what shipped and what was accepted as a
 limitation: [`CHANGELOG.md`](CHANGELOG.md).
 
