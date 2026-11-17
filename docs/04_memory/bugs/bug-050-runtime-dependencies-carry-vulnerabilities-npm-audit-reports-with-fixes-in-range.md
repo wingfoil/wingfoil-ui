@@ -3,12 +3,12 @@ id: bug-050-runtime-dependencies-carry-vulnerabilities-npm-audit-reports-with-fi
 type: bug
 title: "Runtime dependencies carry vulnerabilities npm audit reports, with fixes in range"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
+severity: "high"       # REQUIRED — critical | high | medium | low
+release-origin: "v0.3" # optional — release where the bug was FOUND, e.g. "v0.1"
+release: "v0.3"        # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "web"          # optional — server | web | contracts
+wingfoil_version: "0.3.1" # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,61 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+`npm audit --omit=dev` reports 8 vulnerabilities (1 critical, 1 high, 5 moderate, 1 low) in the
+runtime dependencies of `main` at `37a701c5`, so the release check "`npm audit --omit=dev` reports
+0 vulnerabilities" of `pre-release-checks` (directive `release-conventions`) fails for v0.3; every
+fix is inside the ranges the manifests declare.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Check out `main` at `37a701c5` (the tree of release v0.3 after its tasks) and run `npm ci`.
+2. Run `npm audit --omit=dev` (and `npm audit --omit=dev --json` for the detail).
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+0 vulnerabilities in the dependencies that ship (`release-conventions` › `pre-release-checks`).
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+8 vulnerabilities, each with `fixAvailable: true` (a fix within the declared ranges):
+
+| Package | Severity | Installed | Fixed in (latest) | Reached through |
+|---------|----------|-----------|-------------------|-----------------|
+| `dompurify` | critical | 3.4.16 | 3.4.18 | `web` (direct, `^3.4.16`) |
+| `markdown-it` | high | 15.0.2 | 15.0.3 | `web` (direct, `^15.0.2`) |
+| `fastify` | low | 5.12.5 | 5.12.8 | `server` (direct, `^5.12.5`) |
+| `@fastify/static` | moderate | 10.1.5 | 10.1.11 | `server` (direct, `^10.1.5`), through `glob` |
+| `fast-uri` | moderate | 3.1.8, 4.2.1 | 4.2.3 | `ajv`, `fastify` |
+| `glob` | moderate | 13.0.6 | — | `@fastify/static` |
+| `minimatch` | moderate | 10.2.6 | — | `glob` |
+| `seroval` | moderate | 1.6.8 | 1.8.1 | `@tanstack/react-router` (`web`) |
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- `npm audit --omit=dev --json` on `37a701c5`, 2026-11-17: `{"low": 1, "moderate": 5, "high": 1,
+  "critical": 1, "total": 8}`; advisories GHSA-cg2g-xh64-v4q7, GHSA-mrv2-3pqr-j5jr,
+  GHSA-c6gr-qvv4-5v3f (`dompurify`), GHSA-vfgh-jcmw-g37q, GHSA-gfr2-rv44-r23c (`markdown-it`),
+  GHSA-389g-gv7q-r4x8 (`fastify`), GHSA-w74x-v6f9-j3xg, GHSA-xhq7-xmqj-769h (`fast-uri`),
+  GHSA-3g3m-2fjr-6pw4 (`glob`), GHSA-g3hv-75wg-m249 (`minimatch`), GHSA-f86p-h4j2-7qgj,
+  GHSA-9wx9-5pv9-3349 (`seroval`).
+- The full audit (development dependencies too) reports 41; the development-only findings are
+  checked against the accepted list (RV2-7) by `release-submit-rel-v0.3-plan` step 7, not here.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+- Reachability, a first reading (to confirm at the fix): `markdown-it`'s quadratic rendering of a
+  multi-line link reference definition (GHSA-gfr2-rv44-r23c) holds with the default options this
+  console uses (`web/src/docs/render.ts`, `html: false`), so a Markdown file of the observed
+  repository can block the page while it renders (the class of bug-047); its other advisory needs
+  `html: true`. The three `dompurify` advisories concern `SAFE_FOR_TEMPLATES`, `IN_PLACE` and the
+  `application/xhtml+xml` parser type, none of which `sanitiseMarkdownHtml` sets (string output,
+  `ALLOWED_TAGS`, `ALLOWED_ATTR`).
+- `module` is `web` for the critical and high findings; `fastify` and `@fastify/static` are the
+  server's.
+- Found by `release-submit-rel-v0.3-plan` step 7 (RS3-7); the fix is a lockfile update plus the
+  minimum of the four direct ranges, through a task (a triaged bug is planned only by a task naming
+  it, `.wingfoil/memory.yaml`).
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+<!-- Running log, not the retrospective itself. -->
