@@ -32,12 +32,12 @@ Produces: a decision-log; `.wingfoil/README.md` 0.11 → 0.12 (a *Files* row for
 
 1. **The *Files* table of `.wingfoil/README.md` has no row for `ui.yaml`.** The approver's commit
    `8451080a` (`chore(ui): apply the WingFoil sw-life-cycle preset`, 2026-11-16) added
-   `.wingfoil/ui.yaml` (52 lines: `taxonomy` categories, patterns, `requires`; `progress`), the
+   `.wingfoil/ui.yaml` (52 lines: `version`, `taxonomy`, `progress`, `holds`, `artifacts`), the
    console's configuration file (spec-005; the *Use preset* action of task-060 and task-079 writes
    it as a `chore(ui)` commit). The CLI ignores it (`wingfoil-cli` W-11). The table (`.wingfoil/
    README.md` *Files*) lists every other file of `.wingfoil/`, so the agent-docs check of
    `pre-release-checks` (`release-conventions`; dl-025: the tables match the configuration) fails
-   on it. Change: one row — `ui.yaml` | the console's configuration (taxonomy, progress; spec-005),
+   on it. Change: one row — `ui.yaml` | the console's configuration (taxonomy, progress, holds, artifacts; spec-005),
    written by *Use preset* or by hand, ignored by the CLI (W-11).
 
 **Left out.** A task added to a Sprint after its development stage closed is listed by `workflow

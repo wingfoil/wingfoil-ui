@@ -19,7 +19,7 @@ the configuration):
 
 - The approver's commit `8451080a` (2026-11-16, `chore(ui): apply the WingFoil sw-life-cycle
   preset`) added `.wingfoil/ui.yaml`, the console's configuration file (spec-005): `taxonomy`
-  (categories, patterns, `requires`) and `progress`. *Use preset* (task-060, task-079) writes it as
+  (categories, patterns, `requires`), `progress`, `holds` and `artifacts`. *Use preset* (task-060, task-079) writes it as
   a `chore(ui)` commit; the CLI's loaders ignore it (`wingfoil-cli` W-11).
 - The *Files* table of `.wingfoil/README.md` (0.11) lists every other file and folder of
   `.wingfoil/` and has no row for `ui.yaml`.
@@ -30,7 +30,7 @@ the configuration):
 
 | Path | Content |
 |------|---------|
-| `ui.yaml` | the console's configuration (spec-005): taxonomy categories, patterns and requirements, progress; written by *Use preset* or by hand; ignored by the CLI (`wingfoil-cli` W-11) |
+| `ui.yaml` | the console's configuration (spec-005): taxonomy, progress, holds, artifacts; written by *Use preset* or by hand; ignored by the CLI (`wingfoil-cli` W-11) |
 
 Nothing else changes: no `memory.yaml`, `workflows.yaml`, `roles.yaml` or directive change.
 
