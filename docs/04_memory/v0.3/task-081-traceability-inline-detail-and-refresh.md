@@ -371,3 +371,17 @@ round 1") seen failing: `npx vitest run test/web/traceability/detail.test.tsx --
 
 `npx vitest run <file> --maxWorkers=2`: `detail.test.tsx` 19 passed, `view.test.tsx` 38,
 `who-pinned.test.tsx` 2, `test/web/i18n/key-rendering.test.tsx` 1, `catalogue.test.ts` 2.
+
+Gates run `44053756462` (push of `d9d02272`) — `success`: checks, coverage (statements 96.79 %),
+contract, e2e-chromium (1) and (2), own-specs (firefox) and (webkit), smoke, publish-smoke;
+e2e-wave skipped (task scope).
+
+### Review round 2 (2026-11-17, PASS)
+
+PASS at `d9d02272`: the six round-1 fixes verified, no regression found (focus taken only when
+the node that held it inside `.trace-results` is gone and the focus is on the page body; nothing
+on first load or on filter changes; `npx vitest run` of detail, view and who-pinned
+`--maxWorkers=2` 59 passed; typecheck and lint clean). Two nits left as they are by the
+coordinator: the double-click guard also ignores a quick second click meant to close a row (the
+toggle button unaffected); `docs/user-guide.md` 0.47 and `ux-reference.md` 1.31 keep this task's
+one version across its review rounds (the task branch read as one change, as task-067).
