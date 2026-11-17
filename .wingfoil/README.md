@@ -1,12 +1,12 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.11 · **Date:** 2026-11-05 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.12 · **Date:** 2026-11-17 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
 — review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
 governance-alignment-rel-v0.3-plan step 4; 0.10: the five procedures folded into directives, the
-directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051) ·
+directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019) ·
 **Checked against:** `wingfoil@0.3.1` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -70,6 +70,7 @@ Also this repository's own, not a pack's change: its templates, the custom `defi
 | `workflows/built-in/` | the 16 workflows of the packs, unchanged |
 | `workflows/custom/` | this repository's one workflow, `service-ingest` |
 | `roles.yaml` | role → directive bindings and the global directives |
+| `ui.yaml` | the console's configuration (spec-005): taxonomy, progress, holds, artifacts; written by *Use preset* or by hand; ignored by the CLI (`wingfoil-cli` W-11) |
 | `directives/built-in/`, `directives/custom/` | the directive files (a custom directive with a built-in's id overrides it) |
 | `README.md` | this file (a file the CLI does not own: ignored by its loaders, directive `wingfoil-cli` W-11) |
 
