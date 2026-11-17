@@ -224,7 +224,11 @@
 }
 
 .trace-chip:focus-visible,
-.trace-toggle:focus-visible {
+.trace-toggle:focus-visible,
+.trace-row-toggle:focus-visible,
+.trace-detail-item:focus-visible,
+.trace-detail-open:focus-visible,
+.trace-table:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
 }
@@ -312,5 +316,115 @@
 }
 
 .trace-missing-needs {
+  color: var(--color-text-2);
+}
+
+/* task-081 (D81-4, D81-5): the row toggle, the clickable row and the inline detail. */
+.trace-row {
+  cursor: pointer;
+}
+
+.trace-row:hover > td,
+.trace-row-open > td {
+  background: var(--color-surface-2);
+}
+
+.trace-row-open > td {
+  border-bottom: none;
+}
+
+.trace-row-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: var(--space-2);
+  padding: 0;
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text-2);
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+/* The caret: a CSS triangle, turned down when the row is open. */
+.trace-row-toggle::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentcolor;
+  transition: transform 0.1s;
+}
+
+.trace-row-toggle[aria-expanded='true']::before {
+  transform: rotate(90deg);
+}
+
+.trace-detail-row > td {
+  background: var(--color-surface-2);
+}
+
+.trace-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-left: 32px;
+}
+
+.trace-detail-heading {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.trace-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trace-detail-completion {
+  margin: 0;
+  color: var(--color-text-2);
+}
+
+.trace-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trace-detail-item {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.trace-detail-item:hover .trace-detail-title {
+  text-decoration: underline;
+}
+
+.trace-detail-id {
+  font-family: var(--font-mono);
+}
+
+.trace-detail-who {
   color: var(--color-text-2);
 }

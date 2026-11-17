@@ -524,6 +524,13 @@ export const SCREENS: readonly Screen[] = [
     name: 'traceability — with the preset',
     open: (page, c) => openTraceabilityScreen(page, c),
   },
+  {
+    // task-081 (D81-5): the inline detail open on a reference whose elements wait on every kind of
+    // actor (a member with a basis, a role with members, the workflow engine, a held gate), so
+    // X-06.4 and X-09.1 cover the detail and each who-must-act text.
+    name: 'traceability — detail open',
+    open: (page, c) => openTraceabilityScreen(page, c, true),
+  },
 ];
 
 /** The `/progress` answer of the progress card screens (task-065, D65-16): every figure shown. */
@@ -663,7 +670,7 @@ async function openMissingScreen(page: Page, c: RunningConsole): Promise<void> {
  * The Traceability screen with the preset's parts (task-067, D67-15): the custom fixture's answer
  * with a pattern reference linking two of its elements, a shown coverage and one missing element.
  */
-async function openTraceabilityScreen(page: Page, c: RunningConsole): Promise<void> {
+async function openTraceabilityScreen(page: Page, c: RunningConsole, detail = false): Promise<void> {
   const pid = c.pids[1]!;
   await page.route(`**/api/p/${pid}/traceability?scope=*`, async (route) => {
     const response = await route.fetch();
@@ -693,13 +700,63 @@ async function openTraceabilityScreen(page: Page, c: RunningConsole): Promise<vo
         inScope: true,
       }));
     const linked = ['task-002-memory-list', 'task-003-element-panel'];
+    // task-081: four waiting elements, one per actor kind, linked by a reference of their own.
+    const actors = [
+      [
+        'task-901-member',
+        { kind: 'member', member: { name: 'Jordan', email: 'jordan@example.test' }, basis: 'submitter' },
+      ],
+      ['task-902-role', { kind: 'role', role: 'approver', members: ['Morgan', 'Alex'] }],
+      ['task-903-engine', { kind: 'engine' }],
+      ['task-904-held', { kind: 'role', role: 'approver', members: ['Morgan'] }],
+    ] as const;
+    const waiting = detail
+      ? actors.map(([id, actor]) => ({
+          path: `docs/04_memory/tasks/${id}.md`,
+          id,
+          shortId: id.split('-').slice(0, 2).join('-'),
+          title: `Waiting ${id.split('-')[2]}`,
+          type: 'task',
+          status: 'pending',
+          tags: [],
+          localChanges: false,
+          descriptor: {
+            id,
+            type: 'task',
+            status: 'pending',
+            kind: 'gate',
+            tone: 'human',
+            verbs: [],
+            actor,
+            ...(id === 'task-904-held'
+              ? { approveHeld: { condition: 'never', reason: { code: 'held-by-config' } } }
+              : {}),
+          },
+          done: false,
+          inScope: true,
+        }))
+      : [];
+    const waitingRef = detail
+      ? [
+          {
+            id: 'US-W-01',
+            category: 'requirement',
+            element: false,
+            linked: waiting.map((e) => e.id),
+            done: 0,
+            total: waiting.length,
+            percent: 0,
+            status: 'not-started',
+          },
+        ]
+      : [];
     await route.fulfill({
       response,
       json: {
         ...body,
         ui: { source: 'file' },
         patterns: true,
-        elements: [...body.elements, ...extra],
+        elements: [...body.elements, ...extra, ...waiting],
         references: [
           ...body.references,
           {
@@ -712,6 +769,7 @@ async function openTraceabilityScreen(page: Page, c: RunningConsole): Promise<vo
             percent: 50,
             status: 'in-progress',
           },
+          ...waitingRef,
         ],
         figures: { ...body.figures, coverage: { state: 'shown', carrying: 3, total: 5, percent: 60 } },
         missing: [{ id: 'task-004-themes', categories: ['requirement'] }],
@@ -719,4 +777,7 @@ async function openTraceabilityScreen(page: Page, c: RunningConsole): Promise<vo
     });
   });
   await project(page, c, `/p/${pid}/traceability`, (p) => p.locator('.trace-chip'));
+  if (!detail) return;
+  await page.locator('tr[data-ref="US-W-01"] .trace-row-toggle').click();
+  await expect(page.locator('tr.trace-detail-row li')).toHaveCount(4);
 }
