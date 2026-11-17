@@ -278,3 +278,18 @@ detail 0.2; open-row life, refresh and focus 0.1; catalogue and CSS 0.05; unit t
   list's notice names its ages. (c) F-8's notice kept, plus a line in the open detail only.
   **Recommended (b)**: one notice at the top, naming the one thing on the page it affects (the
   references, figures and done states do not depend on the events, spec-003 §4, spec-012 §4).
+
+#### Decisions of the approver (2026-11-17)
+
+Relayed by the coordinator, quoted: "tutto come consigliato":
+
+- **Q1 (b)** — when a refresh removes the element holding the focus (inside the removed row or
+  its detail, nothing else holding it), the table takes it (`tabIndex={-1}`), as Today's
+  `CardRows` F-5; `ux-reference.md` §4.8 *Refresh* records it.
+- **Q2 (b)** — the events notice names what it affects: "The repository history could not be
+  read: who must act may be incomplete." The catalogue is append-only (RP-43,
+  `release-planning-rel-v0.2-plan` — "the shared catalogue, `SCREENS` and `app.ts` are
+  append-only"; `web/scripts/catalogue.mjs` also reports any key no code uses), so no key is
+  removed: the existing key `traceability.notice.eventsError` keeps its name and takes the new
+  text (as F-8 changed its text), and no `eventsErrorWho` key is added.
+
