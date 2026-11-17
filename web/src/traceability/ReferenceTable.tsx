@@ -13,8 +13,8 @@
  * task-081 (D81-3, D81-4, Q1 (b)): the row toggle in the *Reference* cell's slot — a button named
  * "Details of <id>", `aria-expanded`, `aria-controls` naming the detail row while it is open; a click
  * on the row toggles it too (not on a link, a button or the end of a text selection) and focuses its
- * toggle; the detail row (`ReferenceDetail.tsx`) right after it. When a refresh removes the node that
- * held the focus inside the table (its row or detail), the table takes it (`tabIndex={-1}`).
+ * toggle; the detail row (`ReferenceDetail.tsx`) right after it. The table can take the focus
+ * (`tabIndex={-1}`): when a refresh removes the node that held it (Q1 (b), `TraceabilityView.tsx`).
  */
 import { Link } from '@tanstack/react-router';
 import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/contracts';
@@ -100,8 +100,10 @@ function ReferenceCell({
   );
 }
 
-/** Whether a click on a row is the user's own on a control, or the end of a text selection. */
+/** Whether a click on a row is on a control, the end of a text selection or a double-click's second. */
 function ignoredClick(event: MouseEvent): boolean {
+  // Review round 1 F-6: the second click of a double-click (selecting a word) toggles nothing more.
+  if (event.detail > 1) return true;
   const target = event.target instanceof Element ? event.target : null;
   if (target?.closest('a, button, input, [role="link"], [role="button"]')) return true;
   const selection = window.getSelection();
@@ -196,35 +198,13 @@ export function ReferenceTable({
   onToggle: (key: string) => void;
 }): ReactNode {
   const intl = useIntl();
-  const tableRef = useRef<HTMLTableElement>(null);
-  // Q1 (b): the node that last held the focus inside the table. When a refresh removes it while
-  // nothing else took the focus, the table takes it; a focus the user moved elsewhere forgets it.
-  const lastFocus = useRef<Element | null>(null);
-  useEffect(() => {
-    const last = lastFocus.current;
-    if (last === null || last.isConnected) return;
-    lastFocus.current = null;
-    const active = document.activeElement;
-    if (active === null || active === document.body) tableRef.current?.focus({ preventScroll: true });
-  });
   return (
     <div className="trace-table-wrap">
       <table
-        ref={tableRef}
         className="trace-table"
         tabIndex={-1}
         aria-label={intl.formatMessage({ id: 'traceability.table.label' })}
         aria-busy={busy || undefined}
-        onFocus={(event) => {
-          lastFocus.current = event.target === tableRef.current ? null : event.target;
-        }}
-        onBlur={(event) => {
-          const left = event.target;
-          // Still in the page after the blur: the user moved the focus, not a refresh.
-          window.setTimeout(() => {
-            if (left.isConnected && lastFocus.current === left) lastFocus.current = null;
-          }, 0);
-        }}
       >
         <thead>
           <tr>

@@ -12,7 +12,7 @@
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { ProjectHeader, Traceability, UiCategory } from '@wingfoil-ui/contracts';
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FocusEvent, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { QueryError } from '../docs/QueryError.js';
 import { UiYamlWarning } from '../shell/UiYamlWarning.js';
@@ -167,6 +167,32 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
     : undefined;
   const wholeProject = filters.scope === 'project';
 
+  // Q1 (b), review round 1 F-1: the node that last held the focus inside the results — the table,
+  // its rows and details, or the empty state that replaced it. When a refresh removes it while
+  // nothing else took the focus, the table takes it, or the empty state's text when no row is left;
+  // a blur that leaves the node in the page (the user moved the focus) forgets it.
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const lastFocus = useRef<Element | null>(null);
+  useEffect(() => {
+    const last = lastFocus.current;
+    if (last === null || last.isConnected) return;
+    lastFocus.current = null;
+    const active = document.activeElement;
+    if (active !== null && active !== document.body) return;
+    resultsRef.current
+      ?.querySelector<HTMLElement>('.trace-table, .trace-results-focus')
+      ?.focus({ preventScroll: true });
+  });
+  const onResultsFocus = (event: FocusEvent): void => {
+    lastFocus.current = event.target;
+  };
+  const onResultsBlur = (event: FocusEvent): void => {
+    const left = event.target;
+    window.setTimeout(() => {
+      if (left.isConnected && lastFocus.current === left) lastFocus.current = null;
+    }, 0);
+  };
+
   let body: ReactNode;
   if (answer.error && !data) {
     body = <QueryError error={answer.error} />;
@@ -233,97 +259,98 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
             )}
           </div>
         )}
-        {data.references.length === 0 ? (
-          <p className="trace-empty">
-            {data.patterns ? (
-              <FormattedMessage id="traceability.empty.none" />
-            ) : (
-              <FormattedMessage id="traceability.empty.noPatterns" />
-            )}
-          </p>
-        ) : (
-          <>
-            <div className="trace-filters">
-              <input
-                ref={searchRef}
-                type="search"
-                className="field-input trace-search"
-                aria-label={intl.formatMessage({ id: 'traceability.search.label' })}
-                placeholder={intl.formatMessage({ id: 'traceability.search.label' })}
-                value={q}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setQ(value);
-                  go(withFilter({ q: value === '' ? undefined : value }), true);
-                }}
-              />
-              <Group label={<FormattedMessage id="traceability.category.label" />}>
+        {data.references.length > 0 && (
+          <div className="trace-filters">
+            <input
+              ref={searchRef}
+              type="search"
+              className="field-input trace-search"
+              aria-label={intl.formatMessage({ id: 'traceability.search.label' })}
+              placeholder={intl.formatMessage({ id: 'traceability.search.label' })}
+              value={q}
+              onChange={(event) => {
+                const value = event.target.value;
+                setQ(value);
+                go(withFilter({ q: value === '' ? undefined : value }), true);
+              }}
+            />
+            <Group label={<FormattedMessage id="traceability.category.label" />}>
+              <Toggle
+                pressed={applied.category === undefined}
+                label={intl.formatMessage(
+                  { id: 'traceability.category.allWithCount' },
+                  { count: data.references.length },
+                )}
+                onPress={() => go(withFilter({ category: undefined }))}
+              >
+                <FormattedMessage id="traceability.category.all" />
+                <span className="trace-count">{data.references.length}</span>
+              </Toggle>
+              {categories.map((c: { value: UiCategory; count: number }) => (
                 <Toggle
-                  pressed={applied.category === undefined}
-                  label={intl.formatMessage(
-                    { id: 'traceability.category.allWithCount' },
-                    { count: data.references.length },
-                  )}
-                  onPress={() => go(withFilter({ category: undefined }))}
+                  key={c.value}
+                  pressed={applied.category === c.value}
+                  label={count(c.value, c.count)}
+                  onPress={() => go(withFilter({ category: c.value }))}
                 >
-                  <FormattedMessage id="traceability.category.all" />
-                  <span className="trace-count">{data.references.length}</span>
+                  {c.value}
+                  <span className="trace-count">{c.count}</span>
                 </Toggle>
-                {categories.map((c: { value: UiCategory; count: number }) => (
-                  <Toggle
-                    key={c.value}
-                    pressed={applied.category === c.value}
-                    label={count(c.value, c.count)}
-                    onPress={() => go(withFilter({ category: c.value }))}
-                  >
-                    {c.value}
-                    <span className="trace-count">{c.count}</span>
-                  </Toggle>
-                ))}
-              </Group>
-              <Group label={<FormattedMessage id="traceability.status.label" />}>
+              ))}
+            </Group>
+            <Group label={<FormattedMessage id="traceability.status.label" />}>
+              <Toggle
+                pressed={applied.status === undefined}
+                label={statusLabel('all', inCategory.length)}
+                onPress={() => go(withFilter({ status: undefined }))}
+              >
+                {statusName('all')}
+                <span className="trace-count">{inCategory.length}</span>
+              </Toggle>
+              {statuses.map((s) => (
                 <Toggle
-                  pressed={applied.status === undefined}
-                  label={statusLabel('all', inCategory.length)}
-                  onPress={() => go(withFilter({ status: undefined }))}
+                  key={s.value}
+                  pressed={applied.status === s.value}
+                  label={statusLabel(s.value, s.count)}
+                  onPress={() => go(withFilter({ status: s.value }))}
                 >
-                  {statusName('all')}
-                  <span className="trace-count">{inCategory.length}</span>
+                  {statusName(s.value)}
+                  <span className="trace-count">{s.count}</span>
                 </Toggle>
-                {statuses.map((s) => (
-                  <Toggle
-                    key={s.value}
-                    pressed={applied.status === s.value}
-                    label={statusLabel(s.value, s.count)}
-                    onPress={() => go(withFilter({ status: s.value }))}
-                  >
-                    {statusName(s.value)}
-                    <span className="trace-count">{s.count}</span>
-                  </Toggle>
-                ))}
-              </Group>
-            </div>
-            {rows.length === 0 ? (
-              <div className="trace-empty">
-                <p>
-                  <FormattedMessage id="traceability.empty.filter" />
-                </p>
-                <button type="button" className="button button-quiet" onClick={clear}>
-                  <FormattedMessage id="traceability.clear" />
-                </button>
-              </div>
-            ) : (
-              <ReferenceTable
-                pid={pid}
-                references={rows}
-                elements={elements}
-                busy={answer.isPlaceholderData}
-                openKey={openKey}
-                onToggle={toggleRow}
-              />
-            )}
-          </>
+              ))}
+            </Group>
+          </div>
         )}
+        {/* The table or the empty state that replaces it: the container a refresh leaves (Q1 (b)). */}
+        <div className="trace-results" ref={resultsRef} onFocus={onResultsFocus} onBlur={onResultsBlur}>
+          {data.references.length === 0 ? (
+            <p className="trace-empty trace-results-focus" tabIndex={-1}>
+              {data.patterns ? (
+                <FormattedMessage id="traceability.empty.none" />
+              ) : (
+                <FormattedMessage id="traceability.empty.noPatterns" />
+              )}
+            </p>
+          ) : rows.length === 0 ? (
+            <div className="trace-empty">
+              <p className="trace-results-focus" tabIndex={-1}>
+                <FormattedMessage id="traceability.empty.filter" />
+              </p>
+              <button type="button" className="button button-quiet" onClick={clear}>
+                <FormattedMessage id="traceability.clear" />
+              </button>
+            </div>
+          ) : (
+            <ReferenceTable
+              pid={pid}
+              references={rows}
+              elements={elements}
+              busy={answer.isPlaceholderData}
+              openKey={openKey}
+              onToggle={toggleRow}
+            />
+          )}
+        </div>
         <MissingSection pid={pid} answer={data} elements={elements} />
       </>
     );

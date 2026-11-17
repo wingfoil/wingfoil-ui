@@ -371,9 +371,9 @@ counts, which element is done — is the console server's.
   incomplete.
 - **Kept up to date.** The page follows the repository by itself (within 5 seconds): an open row
   stays open while its reference exists and shows the new elements and states, the focus stays
-  where it is, and screen readers hear nothing of the change. A filter that hides the open row
-  keeps it open for when it shows again. If the change removes the row or the element that had
-  the focus, the table takes it.
+  where it is, and a refresh alone announces nothing to screen readers. A filter that hides the
+  open row keeps it open for when it shows again. If the change removes the row or the element
+  that had the focus, the table takes it — or, when no row is left, the text that says so.
 
 ## The element panel
 

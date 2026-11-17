@@ -29,13 +29,23 @@ function DetailItem({
   id: string;
   element: TraceabilityElement | undefined;
 }): ReactNode {
-  const descriptor = element?.descriptor;
+  if (element === undefined) {
+    // Review round 1 F-2: an id the answer does not name (not expected, spec-012 §4) — the id alone.
+    return (
+      <li>
+        <Link className="trace-detail-item" to="/p/$pid/e/$eid" params={{ pid, eid: id }}>
+          <span className="trace-detail-id">{id}</span>
+        </Link>
+      </li>
+    );
+  }
+  const descriptor = element.descriptor;
   const values = {
-    id: <span className="trace-detail-id">{element?.shortId ?? id}</span>,
-    title: <span className="trace-detail-title">{element?.title ?? id}</span>,
-    state: element ? <StatePill element={element} /> : <span className="state-pill" />,
+    id: <span className="trace-detail-id">{element.shortId ?? id}</span>,
+    title: <span className="trace-detail-title">{element.title}</span>,
+    state: <StatePill element={element} />,
   };
-  const who = element !== undefined && !element.done && descriptor !== undefined && namesSomeone(descriptor);
+  const who = !element.done && descriptor !== undefined && namesSomeone(descriptor);
   return (
     <li>
       <Link className="trace-detail-item" to="/p/$pid/e/$eid" params={{ pid, eid: id }}>

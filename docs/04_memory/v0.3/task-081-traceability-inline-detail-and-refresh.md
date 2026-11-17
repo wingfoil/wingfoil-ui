@@ -353,3 +353,21 @@ Relayed by the coordinator, quoted: "tutto come consigliato":
 - Local before the push: `npm run typecheck`, `npm run lint`, `npm run format:check`,
   `npm run docs:api` clean; `check_tasks.py v0.3` OK; `npx vitest run test/docs/public-text.test.ts
   --maxWorkers=2`: 67 passed.
+
+### Review round 1 (2026-11-17, PASS with fixes)
+
+Red first: `a35213c1` — F-1 ×2, F-2, F-6 (`test/web/traceability/detail.test.tsx` › "review
+round 1") seen failing: `npx vitest run test/web/traceability/detail.test.tsx --maxWorkers=2 -t
+"review round 1"`: 4 failed.
+
+| Finding | Outcome | Test |
+|---------|---------|------|
+| F-1 (minor) — a refresh that leaves no visible row unmounted the table with its focus rule, so the focus fell to `<body>` (also for "No references found …") | the rule moves to `TraceabilityView.tsx` on a container that survives, `.trace-results`, holding the table or the empty state that replaces it; when a refresh removes the node that held the focus inside it, the table takes it, or the empty state's text (`tabIndex={-1}`, "No reference matches", "No references found — …"); `ReferenceTable.tsx` keeps only `tabIndex={-1}`. `ux-reference.md` §4.8 *Refresh* records the empty-state target (1.31, the same version) | "F-1 — a refresh that leaves no row gives the focus to \"No reference matches\"", "F-1 — a refresh that leaves no reference gives the focus to \"No references found …\"" (red) |
+| F-2 (minor) — a linked id missing from `elements` rendered "id · id ·" and an empty pill | the id alone in the item's link, no pill, no who | "F-2 — a linked id the answer does not name shows the id alone, no empty pill" (red) |
+| F-3 (nit) — the user guide's "screen readers hear nothing of the change" overclaimed (D81-7) | "a refresh alone announces nothing to screen readers"; the empty-state focus target added (`docs/user-guide.md` 0.47, the same version) | — |
+| F-4 (nit) — AC-3's `toHaveText('')` passed at the first empty instant | after the refresh, 700 ms past the 500 ms pause, one non-retrying read of the polite region | `traceability.spec.ts` › "AC-3 — a refresh keeps the open row and the focus and announces nothing" |
+| F-5 (nit) — the two "none" actors not pinned | a second test in `test/web/today/who-pinned.test.tsx` pins a member actor without `member` and a role actor without `role` (empty `.today-who`); added **after** the extraction, so it pins the extracted part's markup, which the first test proved equal to Today's | "Today's Waiting on others renders nothing for a member or role actor naming no one" |
+| F-6 (nit) — a double-click on row text toggled the row on each click | the row click ignores `event.detail > 1`: a double-click toggles once, a single click still toggles | "F-6 — a double-click on the row toggles it once; a single click still toggles" (red) |
+
+`npx vitest run <file> --maxWorkers=2`: `detail.test.tsx` 19 passed, `view.test.tsx` 38,
+`who-pinned.test.tsx` 2, `test/web/i18n/key-rendering.test.tsx` 1, `catalogue.test.ts` 2.
