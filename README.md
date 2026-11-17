@@ -123,8 +123,8 @@ start the published version instead of your tarball.
   reject.
 - No git beyond fetch, fast-forward update and push: no merge, rebase, stash or forced push, no
   push to a `pushRemote`.
-- No workflow views, timeline, git tree, files view or command palette, no agent launch (v0.4,
-  with WingFoil 0.3); no notification outside the console (`docs/01_vision/07_sequencer.md`).
+- No workflow views, timeline, git tree, files view or command palette, no agent launch (v0.4); no
+  notification outside the console (`docs/01_vision/07_sequencer.md`).
 - Known limitations, among them the declared risk of *Auto-update*:
   [user guide — Known limitations](docs/user-guide.md#known-limitations).
 

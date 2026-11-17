@@ -62,6 +62,10 @@ notice), or rendering in a Web Worker with a time limit; possibly an upstream re
 markdown-it. The approver chose to open it for v0.4 (2026-11-12, "gate 1 e 2 come consigliato"),
 with a *Known limitations* line in v0.3's CHANGELOG.
 
+- Re-probed by the review of `release-submit-rel-v0.3-plan` step 5 (2026-11-17) on `markdown-it`
+  15.0.3, the version task-083 moved `web` to: `'> # h\nx\n'.repeat(n)` renders in 102 ms (n =
+  1000), 207 ms (2000), 756 ms (4000) — still superlinear; the bug stands on 15.0.3.
+
 ## Triage & Execution Notes
 
 <!-- Running log, not the retrospective itself.

@@ -383,12 +383,12 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   uncommitted edit into the state, disable one WingFoil would accept (design probes P3, P4, P6, P7).
 - **A document of many quotes, each followed by a lazy line, renders in quadratic time**
   (bug-047): such a Markdown body can freeze the Documentation view, the Directives view or an
-  element's document while it renders (markdown-it 15.0.2's own cost; planned for v0.4).
+  element's document while it renders (markdown-it 15's own cost, 15.0.3 included; planned for v0.4).
 - **Ids, types, states, roles and tags are shown as written** (bug-041): a control or bidi
   character in a hand-committed `status:`, a type or state name of `.wingfoil/memory.yaml` or a tag
   reaches the page raw, while every display-only text is escaped (planned for v0.4).
 - **A zero width joiner between two letters of a name is shown as an escape** (bug-045): U+200C and
-  U+200D, as Persian and several Indic scripts write them, show as `‌` and `‍` in member
+  U+200D, as Persian and several Indic scripts write them, show as `\u200c` and `\u200d` in member
   names and the other escaped repository texts (planned for v0.4).
 - **The bell's *Updates* after a grouped commit** (bug-048): one commit that moves several Memory
   elements gives events with the same commit, which the list keys its rows by, so a re-read can
