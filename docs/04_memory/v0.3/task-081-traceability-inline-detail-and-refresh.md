@@ -142,7 +142,7 @@ strict-identity run.
   `<WhoMustAct descriptor={row.descriptor} />` inside its unchanged `.today-who` span. Only that
   file and `model.ts` of Today are touched.
 - **D81-2 — Today unchanged, proved.** (1) A characterization test written **before** the
-  extraction (`test/web/element/who-must-act.test.tsx` › "Today's Waiting on others renders the
+  extraction (`test/web/element/who-must-act.test.ts` › "Today's Waiting on others renders the
   same who must act …"): Today rendered with one *Waiting on others* row per actor case (member
   with each basis and without, role with and without members, engine, held by config, held until
   references done, none), the `outerHTML` of each `.today-who` pinned as literal strings — green
@@ -226,7 +226,7 @@ AC-4 docs, by review.
 |---------------|------|
 | R-01.2 (AC-1) | `test/e2e/traceability.spec.ts` › "R-01.2 — Show who must act on a reference's open elements" (custom, `usePrePacksStates` + `usePresetUiConfig`; the row "US-M-01" selected by a click on the row; the detail's items read "task-002 · Memory list · done" and "task-003 · Element panel · backlog · Waiting for the workflow engine"; an item opens the element page `/p/<pid>/e/task-003-element-panel`; axe in both themes) |
 | AC-2 | › "AC-2 — the row toggle by keyboard: aria-expanded, aria-controls, one detail at a time, the focus kept" (Tab to the toggle, Enter opens, Space closes, a second row's toggle closes the first, `expectFocusVisible`); › "AC-2 — at 400 px an open detail scrolls only inside the table container" (every engine); unit `test/web/traceability/detail.test.tsx` (new): the toggle's name and states, `aria-controls` only while open and naming the next row, the heading, element reference *Open* and pattern reference without link, the completion text and "No linked element", one item per linked element in order as a link to its element page, the who texts per actor case and none for a done element or without a descriptor, the row click toggles but not a click on a link, a chip or a selection, the row click focuses the toggle |
-| AC-2 (Today unchanged) | `test/web/element/who-must-act.test.tsx` (new): D81-2's characterization and `whoMustAct` over every actor case; Today's suites unchanged |
+| AC-2 (Today unchanged) | `test/web/element/who-must-act.test.ts` (new): D81-2's characterization and `whoMustAct` over every actor case; Today's suites unchanged |
 | AC-3 | › "AC-3 — a refresh keeps the open row and the focus and announces nothing" (`@live-refresh`: the detail of "US-M-01" open, the focus on its toggle, a `ref: US-M-01` committed outside the UI by `setFrontmatterValue` on an in-scope element, `mutateAndWait` on `repo`, the new item in the detail within `refreshClock().timeout()` — 5 s under `test:timing` (`WFUI_STRICT_REFRESH=1`), the cold-read budget otherwise —, the toggle still `aria-expanded="true"` and `document.activeElement`, the polite region empty, no reload); unit `detail.test.tsx` › "a refresh without the reference closes the detail", "a scope change keeps the detail until the new answer, then closes it if absent", "a project switch opens nothing of the previous project", "a refresh that changes the row count announces nothing", and Q1's fallback |
 | X-06.4, X-09.1 | one `SCREENS` entry appended: "traceability — detail open" (the routed answer of `openTraceabilityScreen` with descriptors of every actor kind — member with basis, role with members, engine, held — and US-M-01's detail opened by its toggle), so axe in both themes and the key build cover the detail and every who text |
 | AC-4 | review of the docs; `test/docs/public-text.test.ts` |
@@ -243,7 +243,7 @@ the wave gate (task-059 Q7 (a)); in `test:e2e:chromium` it runs as a behaviour.
 #### Files
 
 New: `web/src/element/WhoMustAct.tsx`, `web/src/traceability/ReferenceDetail.tsx`,
-`test/web/element/who-must-act.test.tsx`, `test/web/traceability/detail.test.tsx`.
+`test/web/element/who-must-act.test.ts`, `test/web/traceability/detail.test.tsx`.
 Changed: `web/src/today/TodayView.tsx` (import and one call, `Who` removed), `web/src/today/model.ts`
 (`waitingWho` delegates), `web/src/traceability/ReferenceTable.tsx`, `TraceabilityView.tsx`,
 `traceability.css`, `web/src/i18n/en.json` (additions), `test/e2e/traceability.spec.ts` (tests
