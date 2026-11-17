@@ -1,7 +1,7 @@
 # UX reference — WingFoil UI
 
-**Version:** 1.21 · **Date:** 2026-11-12 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver; 1.3: §4.2 *Gate footer* in v0.2 — dev-loop task-037, D37-1…D37-12, decided by the approver; 1.4: §3 *Notifications* and §4.1 all-roles summary in v0.2 — dev-loop task-042, D42-1…D42-8, decided by the approver; 1.5: §4.2 *Single-action footer* and §5 *Feedback* in v0.2 — dev-loop task-038, D38-1…D38-13, decided by the approver; 1.6: §2, §3 *Git status* and *Sidebar* in v0.2 — dev-loop task-039, D39-1…D39-13, decided by the approver; 1.7: §3 sidebar *Configuration* and §4.11 *UI settings* in v0.2 — dev-loop task-041, D41-1…D41-13, decided by the approver; 1.8: §3 *Git status* *Update*/*Push* in v0.2, *Push* whatever auto-push says (a deviation) — dev-loop task-040, D40-1…D40-12, decided by the approver; 1.9: §4.2 the focus after the panel closes — bug-018, task-043 AC-7, decided by the approver; 1.10: §4.2 every opener on Today, the "otherwise" rule, the notification bell — task-043 review rounds 1–2, D43-10; 1.11: §4.6 one row per directive in force — task-047, bug-025, decided by the approver; 1.12: §4.1 Today in v0.3 (roles on one line, filters, entry date, 10 rows, short ids), §4.2 the element page and the rendered summary and document, §4.4 the states of a bucket — release-planning v0.3, RP3-7 N1–N7, RP3-14 D1–D3, D7, D8, decided by the approver; its review round 1, decided by the approver: §4.1, §4.2 the held gates (F1), §4.2 the bell opens the side panel (S5), §6 `holds` and the packs' phases (F6); round 2: S-23.5, the main region for every link (P2), the held-gate bullet after the v0.2 footer (m1); round 3: §4.9 a Memory link opens the main region
-from v0.3; 1.13: §4.8 Traceability in v0.3, the screen study N8 — release-planning v0.3, RP3-7, RP3-14 D2, D9, RP3-16 P2, its open questions TQ-1 … TQ-4 for the approver; 1.14: TQ-1 … TQ-4 decided by the approver, §4.8's v0.1-era detail line superseded, §4.4 v0.3 missing references and figure filters, §4.1 v0.3 no phase strip or flow columns until v0.4 — release-planning v0.3 step 5c, X1; 1.15: §4.2 v0.3 one blocked line per distinct reason in the gate footer — task-073, decided by the approver; 1.16: §4.2 v0.3 the element page's footer bar and the toasts above it, §5 *Feedback* — dev-loop task-062, D62-2, D62-12, decided by the approver; 1.17: §3 *Lost session*, the page recovers in place — task-063, adr-003 D6, D7; 1.18: §4.2 v0.3 the side panel in the address — dev-loop task-077, D77-4, D77-7, decided by the approver; 1.19: §4.2 v0.3 the rendered document — comments left out, anchors, the dialog's links — dev-loop task-078, D78-3, D78-5, decided by the approver; 1.20: §4.2 v0.3 only the comments left out, the document that could not be loaded — task-078 security review rounds 1–2; 1.21: §4.2 v0.3 a comment that starts a line is a block as CommonMark's — task-078 security review round 4, R4-2, decided by the approver) · **Status:** Reference for `lean-inception` and `specification-downcast`
+**Version:** 1.31 · **Date:** 2026-11-17 (0.2: §9 colours aligned with spec-009 — release-planning v0.1 session 2; 0.3: §3 start page with no project open, §5 modal dismissal — dev-loop task-013, decided by the user; 0.4: §4.2 v0.1 read-only panel — dev-loop task-018, decided by the user; 0.5: §4.4 and §4.9 in v0.1 — dev-loop tasks 017 and 020, decided by the user; 0.6: §4.2 panel directives, §4.5, §4.6, §4.10 in v0.1 — dev-loop task-019, decided by the user; 0.7: §3 project switcher in v0.1 (grid rows, removal confirmation, unavailable entries, trigger text) — dev-loop task-015, Wave 4, decided by the user; 0.8: §4.2 non-modal drawer — dev-loop task-015, W4-8, decided by the user; §3 keyboard wording and §4.2 v0.1 bullet aligned after review; 0.9: §3 add-project modal in v0.1 — dev-loop task-014, Wave 4, decided by the user; 1.0: §3 current user, role view and project header strip in v0.1 — dev-loop task-016, Wave 4, decided by the user; 1.1: §3 *How to join* panel — dev-loop task-035, D35-1…D35-9, decided by the approver; identity changes while open — review round 1; 1.2: §4.1 *Today* in v0.2 — dev-loop task-036, D36-1…D36-11, decided by the approver; 1.3: §4.2 *Gate footer* in v0.2 — dev-loop task-037, D37-1…D37-12, decided by the approver; 1.4: §3 *Notifications* and §4.1 all-roles summary in v0.2 — dev-loop task-042, D42-1…D42-8, decided by the approver; 1.5: §4.2 *Single-action footer* and §5 *Feedback* in v0.2 — dev-loop task-038, D38-1…D38-13, decided by the approver; 1.6: §2, §3 *Git status* and *Sidebar* in v0.2 — dev-loop task-039, D39-1…D39-13, decided by the approver; 1.7: §3 sidebar *Configuration* and §4.11 *UI settings* in v0.2 — dev-loop task-041, D41-1…D41-13, decided by the approver; 1.8: §3 *Git status* *Update*/*Push* in v0.2, *Push* whatever auto-push says (a deviation) — dev-loop task-040, D40-1…D40-12, decided by the approver; 1.9: §4.2 the focus after the panel closes — bug-018, task-043 AC-7, decided by the approver; 1.10: §4.2 every opener on Today, the "otherwise" rule, the notification bell — task-043 review rounds 1–2, D43-10; 1.11: §4.6 one row per directive in force — task-047, bug-025, decided by the approver; 1.12: §4.1 Today in v0.3 (roles on one line, filters, entry date, 10 rows, short ids), §4.2 the element page and the rendered summary and document, §4.4 the states of a bucket — release-planning v0.3, RP3-7 N1–N7, RP3-14 D1–D3, D7, D8, decided by the approver; its review round 1, decided by the approver: §4.1, §4.2 the held gates (F1), §4.2 the bell opens the side panel (S5), §6 `holds` and the packs' phases (F6); round 2: S-23.5, the main region for every link (P2), the held-gate bullet after the v0.2 footer (m1); round 3: §4.9 a Memory link opens the main region
+from v0.3; 1.13: §4.8 Traceability in v0.3, the screen study N8 — release-planning v0.3, RP3-7, RP3-14 D2, D9, RP3-16 P2, its open questions TQ-1 … TQ-4 for the approver; 1.14: TQ-1 … TQ-4 decided by the approver, §4.8's v0.1-era detail line superseded, §4.4 v0.3 missing references and figure filters, §4.1 v0.3 no phase strip or flow columns until v0.4 — release-planning v0.3 step 5c, X1; 1.15: §4.2 v0.3 one blocked line per distinct reason in the gate footer — task-073, decided by the approver; 1.16: §4.2 v0.3 the element page's footer bar and the toasts above it, §5 *Feedback* — dev-loop task-062, D62-2, D62-12, decided by the approver; 1.17: §3 *Lost session*, the page recovers in place — task-063, adr-003 D6, D7; 1.18: §4.2 v0.3 the side panel in the address — dev-loop task-077, D77-4, D77-7, decided by the approver; 1.19: §4.2 v0.3 the rendered document — comments left out, anchors, the dialog's links — dev-loop task-078, D78-3, D78-5, decided by the approver; 1.20: §4.2 v0.3 only the comments left out, the document that could not be loaded — task-078 security review rounds 1–2; 1.21: §4.2 v0.3 a comment that starts a line is a block as CommonMark's — task-078 security review round 4, R4-2, decided by the approver; 1.22: §4.11 *Taxonomy* and *Progress* in v0.3 — dev-loop task-064, D64-1 … D64-8, Q1 (a), Q4 (a), decided by the approver; 1.23: §4.11 v0.3 block records D64-1 … D64-8 as built, the two deviations for the approver — task-064 review round 1, F-9; 1.24: §4.4 v0.3 the states of the selected bucket, `?missing=refs`, the active filter — task-066 D66-3, D66-4, D66-7, D66-13, W3-1; 1.25: §4.4 v0.3 `?missing=refs` ignored where the filter is not offered, the rows waiting for `/config` with a type — task-066 review rounds 1 and 2; 1.26: §4.11 *Use preset* in v0.3 — dev-loop task-079, D79-2 … D79-7, Q1 … Q3 (a), decided by the approver; 1.27: §4.11 v0.3 Taxonomy and Progress keep the last data read after a failed refetch — task-079 review round 2 R2-2; 1.28: §4.1 v0.3 the *Recent activity* row and states — dev-loop task-080, D80-2 … D80-7, Q2 (a), Q3 (a), decided by the approver; 1.29: §4.1 v0.3 the progress card as built, *Your roles* after it — task-065 D65-3 … D65-11, Q2 (b), Q3 (b), Q4 (a), Q7 (a), decided by the approver; 1.30: §4.8 v0.3 the status words of the address, `partial` for *In progress* — task-067 Q2 (a), decided by the approver; 1.31: §4.8 v0.3 *Refresh* the focus when a refresh removes it — task-081 Q1 (b), decided by the approver, and its review round 1 F-1) · **Status:** Reference for `lean-inception` and `specification-downcast`
 **Prototype:** `docs/00_reference/prototype/` (interactive HTML; sample data from the WingFoil
 repository and from a fictional Kanban project `acme-checkout`)
 
@@ -122,6 +122,34 @@ member and for a user not identified.
   spec-012 §3); *Recent
   activity* lists the last 5 Memory events (REQ-PERF-11) with no link while the Timeline is v0.4
   (D8).
+- *Recent activity* (dev-loop task-080, D80-2 … D80-7, decided by the approver): the last card,
+  full width, one line per event in the server's order (newest first): "<id> <from> → <to> ·
+  <name>" — the event's full id (no short id, task-065 Q5 (a)) a link opening the element's side
+  panel over Today; "created" in place of the transition for a new element, the operation's word
+  ("amended", "parked", …) for an event with no transition; the name the approver of an approve, a
+  reject or an amend, else the author (the bell's *Updates* rule) — and its time on the right,
+  "<age> ago", the full date and time as the link's description. "No Memory event yet" when empty;
+  its own loading line and error (never the empty text); shown whatever Today's own read (Q2 (a)).
+  A repository change re-reads it without an announcement. Closing a side panel opened from it
+  gives the focus to the main region (§4.2 "another link", Q3 (a)).
+- The progress card as built (task-065, decided by the approver, Q2 (b), Q3 (b), Q4 (a), Q7 (a)):
+  the order is greeting, the `ui.yaml` warning when the file is ignored, the **progress card**,
+  *Your roles*, *Requires you*, *Waiting on others*, *Recent activity* (task-080). The card's first
+  line is the scope — the current element's short id (else its id) and title, a link to its side
+  panel, and its state pill; "No current <type>"; "Whole project". Then one row of figures, each
+  named by its visible text, label then value: "Project completion 25 %" (with a thin bar, and its
+  explanation — "Mean of reference completion over <n> references with at least 1 linked element:
+  <id> <p> %, …", ", and <n> more" past 10 — as a tooltip on hover and keyboard focus, the link's
+  accessible description while open), the phase figures read-only ("Phase — needs WingFoil 0.3
+  (this project: 0.2.2)", "Phase completion — needs WingFoil 0.3", "… — comes with a later WingFoil
+  UI release"), "Iterated: <type> x/y", "Open: <type> n" (the type as written, the Memory list's
+  labels) and "Pending gates n". Each shown figure opens `?figure=<code>` on the Memory list; an
+  unavailable completion shows its reason in its place ("Completion needs references — see
+  Configuration › Taxonomy", "No references linked in <scope>"), an unavailable iterated or
+  open-defects figure is not shown. Unreadable and capped elements are named in notes; a figure that
+  changes on a refresh is announced politely. The card shows with its own read whatever the state
+  of Today's. Today's tab title carries the project completion while it is shown (X-10.4), the other
+  views' titles do not.
 
 ### 4.2 Element panel (right drawer)
 - **v0.1 (dev-loop task-015, decided by the user, W4-8):** the drawer is **non-modal** — no backdrop over the header and sidebar and no focus trap, so the shell (project switcher included) stays operable while it is open; focus moves into the panel on open, *Close* and Escape close it and return focus. **v0.2 (bug-018, task-043 AC-7, decided by the approver):** the focus returns to the opener — the control that opened the panel — when it is one of: the Memory list's row (X-06.3), or on Today a *Requires you* action, a *Requires you* title link, a *Waiting on others* link or an item of the all-roles summary (review rounds 1–2, D43-10) — also after the gate footer's *Cancel*, and while that control is still listed. Otherwise the focus goes to the main region: when the opener is no longer listed (e.g. a decided gate left *Requires you*), and when the panel was opened another way — an item of the notification bell (it opens the panel from a popover that closes), its address, or another link.
@@ -275,6 +303,23 @@ member and for a user not identified.
   (`completion`, `iterated`, `open-defects`, `pending-gates`): the list shows that figure's
   elements, its other filters cleared, the active filter named by the figure ("Pending gates",
   T-13.1) with a control that clears it; an unknown code shows the list unfiltered.
+- **v0.3 refinements (dev-loop task-066, D66-3, D66-4, D66-7, D66-13; decided by the approver, W3-1):**
+  a selected bucket shows its states in a row under the state filters ("In <bucket>"): each state
+  name found on its elements once, with its count — the types in the type filters' order, each
+  type's `sequence`, then undeclared states —; the address is `?bucket=<key>&state=<state>`. The
+  missing-references filter is its own group after the state filters, with a danger-coloured dot,
+  exclusive with the state and bucket filters and combined with the type; its address is
+  **`?missing=refs`** (task-067's *Show in Memory* opens `/p/<id>/memory?missing=refs`); with a type
+  selected it is offered only when `taxonomy.requires` names that type. An **active filter** line
+  under the filters names what narrows the list beyond the type — a bucket, a bucket and its state
+  ("Waiting/drafts/closed · open", M-02.4), "Missing required references", a figure ("Pending
+  gates"; "Project completion", "Iterated: <type>", "Open: <type>") — with *Clear filter*, which
+  returns to the list (the type kept) and moves the focus to the "Memory" heading; a type and its
+  state show none (v0.1). A known `figure` clears every other parameter; the rows wait for
+  `/progress`, and a failed read leaves the list unfiltered with a notice.
+  Where the filter is not offered, `?missing=refs` is ignored — the address kept, no active
+  filter —, and with a type selected the rows wait for `/config` before applying it (task-066
+  review rounds 1 and 2).
 
 ### 4.5 DNA
 Modules, stack + methodologies, team and roles, paths. **Edit mode**: modules (name,
@@ -321,7 +366,11 @@ to the `service` element with the same host, resolved through the taxonomy categ
 **v0.3 (release-planning v0.3, RP3-7 R5 with the screen study N8, RP3-14 D2, D9, RP3-16 P2; the
 API is spec-012; the figures are spec-005 §4's, not re-derived by the web):**
 - **Route.** `/p/<id>/traceability`, the sidebar's *Work* group (§2). The filters live in the URL
-  (`scope`, `category`, `status`, `q`), as the Memory list's; the open row does not.
+  (`scope`, `category`, `status`, `q`), as the Memory list's; the open row does not. `scope` is
+  `project` or absent (the current element); `status` is `completed`, `partial` (*In progress*: the
+  API's word coincides with a fixture state name, which REQ-ARC-05 keeps out of `web/`),
+  `not-started` or `no-elements`; a value the page does not offer is ignored (task-067 Q2 (a),
+  decided by the approver 2026-11-16).
 - **What a row is.** One per **reference** (spec-005 §4): a value of a top-level frontmatter field
   (a string, or a string item of a list) that equals the id of another non-archived element — its
   category is that element type's — or matches a `taxonomy.patterns` entry (the first that
@@ -391,7 +440,11 @@ API is spec-012; the figures are spec-005 §4's, not re-derived by the web):**
   never an empty state (as Today).
 - **Refresh** — on the event stream's `repo` the page reads again (within 5 s, REQ-PERF-03); the
   open row stays open while its reference exists; the focus is not moved; a change of the row count
-  after a refresh is not announced.
+  after a refresh is not announced. When the refresh removes the node that held the focus — inside
+  the removed row or its detail, nothing else holding it — the table takes it (`tabIndex=-1`), as
+  Today's card heading does (task-081 Q1 (b), decided by the approver 2026-11-17); when no row is
+  left, the text of the empty state that replaces the table ("No reference matches", "No
+  references found — …") takes it (task-081 review round 1, F-1).
 - **Accessibility** — a `<table>` with column headers; the row toggle is a button in the
   *Reference* cell with `aria-expanded` and `aria-controls` naming the detail, which is the next
   row (one cell spanning the columns) headed by the reference id; the scope, category and status
@@ -482,6 +535,48 @@ Sub-tabs (one row, scrolls horizontally when narrow):
   `patterns` (regular expressions, first match wins) and `requires`, with examples.
 - **Progress** (`ui.yaml`) — each key (`mode`, `scope`, `phases`, `iterates`, `defects`) with
   its current value, meaning and allowed values.
+- **Taxonomy and Progress — v0.3 (dev-loop task-064; records D64-1 … D64-8 as built, with two deviations noted below; Q1 (a) and Q4 (a) decided by the approver):** two
+  links appended after *UI settings* — the row reads *UI settings · Taxonomy · Progress*, and
+  `/p/<id>/configuration` still opens *UI settings* (Q1 (a)); `/p/<id>/configuration/taxonomy` and
+  `/p/<id>/configuration/progress`. Both render the `ui` section of `GET /config` as served (spec-012
+  §2), each value with a text badge *declared*, *inferred* or *derived*; the page infers nothing.
+  *Taxonomy*: the 8 categories with their meanings (the prototype's list), a *Types → categories*
+  table (type, category or "No category — not counted in progress figures" with its origin,
+  *Requires*; the origin of `requires` once above it), the *Reference patterns* table (each `match`
+  as written, never interpreted; the origin of `patterns` once), each key explained with an
+  example and the patterns' accepted rules in plain words. *Progress*: one row per key — `mode`,
+  `scope`, `phases`, `iterates`, `defects`, `holds` — with its value and origin, meaning and allowed
+  values; `scope`'s current element (sequence mode) a link to its element page with its state pill,
+  *derived*, or "No current <type>"; `phases` "matched to the workflow from v0.4"; each hold with its
+  rule ("Approved outside the console (ui.yaml)", or "Approve not offered while an element that
+  references it is not done"). `artifacts` is not shown in v0.3. When `ui.yaml` is ignored both tabs
+  open with "ui.yaml ignored: {failure}" (the component Today and Traceability share, Q4 (a)).
+  A failed read shows its error only when nothing was read yet: after a failed refetch both tabs
+  keep the last data read (and a pending *Use preset* its dialog; task-079 review round 1 F-4).
+  *Use preset* on Taxonomy: the next bullet (task-079). Deviations from the design, for the approver: the
+  warning is a plain paragraph, not `role="note"` (the REQ-ARC-05 rule reports `note`, a fixture
+  type's name; D64-6), and the 8 categories are one catalogue message instead of a contract
+  constant (`@wingfoil-ui/contracts` exports types only; D64-4).
+- **Use preset — v0.3 (dev-loop task-079; D79-2 … D79-7, Q1 … Q3 (a), decided by the approver; not in
+  the prototype):** on *Taxonomy*, a *Use a preset* section right after the tab's intro (Q3 (a)): a
+  heading, one line ("Writes a shipped configuration as .wingfoil/ui.yaml, in one commit of its
+  own") and the *Use preset* button. The rule lives in the page, from the project header and the
+  `ui` section, and the server re-checks it (spec-005 §5): **not shown** while `ui.yaml` exists
+  (valid or ignored), without a `ui` section, or for a user not identified as one member;
+  **disabled**, focusable, with the element footer's reason line as its description — the version
+  out of range, then the copy behind ("Blocked: your copy is 1 commit behind the remote — Update",
+  *Update* as in the footer, the focus then on *Use preset*), diverged or detached. The dialog
+  (§5 *Modal dismissal*): the title "Use a preset", a radio group of *Kanban*, *Scrum* and *WingFoil
+  sw-life-cycle* each with what it is made for, none chosen at first; once one is chosen the line
+  "Writes .wingfoil/ui.yaml and commits it alone as chore(ui): apply the <Preset> preset. Other
+  staged changes stay staged." (Confirm's description); *Cancel* and *Confirm* (disabled until a
+  choice). While the write runs both are disabled, Escape is ignored and "Applying the preset…" is
+  announced; the dialog stays until the answer even when a refresh hides the button meanwhile, and
+  a state that changes while it is open is left to the server's refusal (Q2 (a)). The result is a
+  toast as §5 *Feedback*: "<Preset> preset applied" with the commit line and *pushed* (or *Not
+  pushed*), the focus then on the main region; a refusal is the red, sticky "<Preset> preset not
+  applied" with its text ("ui.yaml not written: <failure>", the preset's own *write-incomplete*
+  text), the focus back on *Use preset*. Cancel and Escape give the focus back to *Use preset*.
 - **Identity** — how the user is recognised (git email → `dna.team`), effect of an
   unregistered email, available views; permissions follow all roles.
 - **UI settings** — **v0.2 (dev-loop task-041, decided by the approver, D41-1…D41-13; not in the

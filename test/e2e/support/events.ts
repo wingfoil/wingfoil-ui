@@ -10,7 +10,8 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { ServerEventName } from '../../../contracts/src/index.js';
 import { pinnedCli } from '../../harness/cli.js';
-import type { Fixture } from '../../harness/fixtures/index.js';
+import type { Fixture, MemberName } from '../../harness/fixtures/index.js';
+import { memberByName } from '../../harness/fixtures/index.js';
 import { git, run } from '../../harness/run.js';
 
 /** An event recorded in the page. */
@@ -100,6 +101,25 @@ export async function commitFile(fixture: Fixture, file: string, content: string
 /** Run the pinned WingFoil CLI in the fixture (`--format json` is the caller's choice). */
 export async function cli(fixture: Fixture, args: readonly string[]): Promise<string> {
   const { stdout } = await run(process.execPath, [pinnedCli().script, ...args], { cwd: fixture.dir, env: fixture.env });
+  return stdout;
+}
+
+/**
+ * Run the pinned WingFoil CLI in the fixture as team member `name` (task-080, D80-12): the
+ * member's name and email as `GIT_AUTHOR_*`/`GIT_COMMITTER_*` of that one process (git's and
+ * WingFoil's highest-ranked identity), so the copy's own `user.email` — the console's user — is
+ * left as it is. "Morgan approves with the CLI in a terminal" while the user is someone else.
+ */
+export async function cliAs(fixture: Fixture, name: MemberName, args: readonly string[]): Promise<string> {
+  const { email } = memberByName(name);
+  const env = {
+    ...fixture.env,
+    GIT_AUTHOR_NAME: name,
+    GIT_AUTHOR_EMAIL: email,
+    GIT_COMMITTER_NAME: name,
+    GIT_COMMITTER_EMAIL: email,
+  };
+  const { stdout } = await run(process.execPath, [pinnedCli().script, ...args], { cwd: fixture.dir, env });
   return stdout;
 }
 

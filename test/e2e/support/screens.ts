@@ -413,7 +413,195 @@ export const SCREENS: readonly Screen[] = [
     name: 'element document — source',
     open: (page, c) => openDocumentScreen(page, c, 'source'),
   },
+  {
+    // task-064 (D64-4): Configuration › Taxonomy of the kanban project, every value inferred.
+    name: 'configuration — taxonomy',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/configuration/taxonomy`, (p) => p.locator('table.config-types')),
+  },
+  {
+    // task-064 (D64-5): Configuration › Progress of the custom project, every value inferred.
+    name: 'configuration — progress',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[1]}/configuration/progress`, (p) => p.locator('table.config-progress')),
+  },
+  {
+    // task-066 (D66-3, D66-7): the kanban list with *All types*, the bucket "To approve" narrowed to
+    // its state `pending` — the sub-row and the active filter.
+    name: 'memory list — bucket narrowed to a state',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/memory?bucket=toApprove&state=pending`, (p) => p.locator('.memory-active')),
+  },
+  {
+    // task-066 (D66-4 … D66-6): the custom list filtered on the missing references, its rows badged and
+    // its notes. The screens console holds no preset (not changed, RP-43): the list's answer gains the
+    // flag section, one flagged row and one unreadable id through `page.route`, as the document screens.
+    name: 'memory list — missing required references',
+    open: (page, c) => openMissingScreen(page, c),
+  },
+  {
+    // task-066 (D66-8, D66-9): the kanban list filtered on the figure "Pending gates" of `/progress`.
+    name: 'memory list — figure filter',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[0]}/memory?figure=pending-gates`, (p) => p.locator('.memory-active')),
+  },
+  {
+    // task-079 (D79-5, D79-11): the *Use a preset* dialog on the kanban project, a preset chosen, nothing
+    // confirmed (no commit on this shared console).
+    name: 'configuration — use preset dialog',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open'),
+      );
+      await page.locator('.preset-section .preset-open').click();
+      await page.locator('.preset-dialog label.preset-choice').first().click();
+      await expect(page.locator('.preset-dialog .preset-effect')).toBeVisible();
+    },
+  },
+  {
+    // task-079 (D79-2): *Use preset* disabled on the copy one commit behind, its reason with *Update*.
+    name: 'configuration — use preset blocked',
+    open: (page, c) =>
+      project(page, c, `/p/${c.pids[4]}/configuration/taxonomy`, (p) =>
+        p.locator('.preset-section .preset-open[aria-disabled="true"]'),
+      ),
+  },
+  {
+    // task-080 (D80-11): Today as Morgan with its last card, Recent activity, read and in view.
+    name: 'today — recent activity',
+    open: async (page, c) => {
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-activity-row'));
+      await page.locator('.today-activity').scrollIntoViewIfNeeded();
+    },
+  },
+  {
+    // task-080 (D80-2, D80-11): the events read refused (500 through `page.route`): the card's alert,
+    // the rest of Today shown.
+    name: 'today — recent activity, read failed',
+    open: async (page, c) => {
+      await page.route(`**/api/p/${c.pids[0]}/events/memory?limit=5`, (route) =>
+        route.fulfill({ status: 500, json: { error: { code: 'internal', message: 'The events could not be read' } } }),
+      );
+      await project(page, c, `/p/${c.pids[0]}/today`, (p) => p.locator('.today-activity [role="alert"]'));
+      await page.locator('.today-activity').scrollIntoViewIfNeeded();
+    },
+  },
+  {
+    // task-065 (D65-4 … D65-8, D65-16): Today's progress card on the custom project with every figure
+    // shown and both notes — `/progress` answered through `page.route` (the screens console has no
+    // preset and is not changed, RP-43).
+    name: 'today — progress card',
+    open: (page, c) => openProgressScreen(page, c, PROGRESS_SCREEN_BODY),
+  },
+  {
+    // task-065 (D65-7, D65-16): the completion's explanation open by keyboard focus (a key pressed
+    // first: React Aria opens a tooltip on a focus it sees as the keyboard's).
+    name: 'today — completion explanation open',
+    open: async (page, c) => {
+      await openProgressScreen(page, c, PROGRESS_SCREEN_BODY);
+      await page.keyboard.press('Shift');
+      await page.locator('.progress-completion-link').focus();
+      await expect(page.getByRole('tooltip')).toBeVisible();
+      await expectSettled(page);
+    },
+  },
+  {
+    // task-065 (D65-5, D65-6, D65-9): the ui.yaml warning, the completion's reason and the phase
+    // figures read-only on WingFoil 0.2.2 — the project header answered with 0.2.2 too, so the phase
+    // text names the version it shows (review round 1, F-7).
+    name: 'today — progress read-only and ui.yaml ignored',
+    open: (page, c) => openProgressScreen(page, c, PROGRESS_READ_ONLY_BODY, '0.2.2'),
+  },
+  {
+    // task-067 (D67-15): Traceability on the custom fixture without ui.yaml — the note, the figures
+    // and the element references or the empty text.
+    name: 'traceability',
+    open: (page, c) => project(page, c, `/p/${c.pids[1]}/traceability`, (p) => p.locator('.trace-figures')),
+  },
+  {
+    // task-067 (D67-15): Traceability with patterns, chips, filters and the missing-references
+    // section. The screens console holds no preset (RP-43): the answer gains them through `page.route`.
+    name: 'traceability — with the preset',
+    open: (page, c) => openTraceabilityScreen(page, c),
+  },
+  {
+    // task-081 (D81-5): the inline detail open on a reference whose elements wait on every kind of
+    // actor (a member with a basis, a role with members, the workflow engine, a held gate), so
+    // X-06.4 and X-09.1 cover the detail and each who-must-act text.
+    name: 'traceability — detail open',
+    open: (page, c) => openTraceabilityScreen(page, c, true),
+  },
 ];
+
+/** The `/progress` answer of the progress card screens (task-065, D65-16): every figure shown. */
+const PROGRESS_SCREEN_BODY = {
+  ui: { source: 'file' },
+  mode: 'sequence',
+  scope: {
+    type: 'release',
+    current: { id: 'minor-v0.1', title: 'Minor v0.1', type: 'release', status: 'planning', tone: 'active' },
+    basis: 'derived',
+  },
+  figures: {
+    completion: {
+      state: 'shown',
+      value: 0.25,
+      percent: 25,
+      references: [
+        { id: 'US-M-01', done: 1, total: 2, percent: 50 },
+        { id: 'US-S-01', done: 0, total: 1, percent: 0 },
+      ],
+      referencesCount: 2,
+      ids: ['task-001-cli-adapter'],
+    },
+    phase: { state: 'read-only', reason: { code: 'not-in-release' } },
+    phaseCompletion: { state: 'read-only', reason: { code: 'not-in-release' } },
+    iterated: { state: 'shown', type: 'task', done: 1, total: 4, ids: ['task-001-cli-adapter'], doneIds: [] },
+    openDefects: { state: 'shown', type: 'bug', count: 1, ids: ['bug-001-toast-overlap'] },
+    pendingGates: { state: 'shown', count: 3, ids: ['bug-001-toast-overlap'] },
+  },
+  unreadable: ['dl-002-use-fastify'],
+  capped: ['task-004-themes'],
+};
+
+/** The read-only variant (task-065, D65-16): the file ignored, no reference category, WingFoil 0.2.2. */
+const PROGRESS_READ_ONLY_BODY = {
+  ...PROGRESS_SCREEN_BODY,
+  ui: {
+    source: 'ignored',
+    warning: { code: 'ui-config-ignored', failure: 'progress.mode must be sequence or flow (found spiral)' },
+  },
+  mode: 'flow',
+  scope: { type: null, current: null, basis: null },
+  figures: {
+    ...PROGRESS_SCREEN_BODY.figures,
+    completion: { state: 'unavailable', reason: { code: 'no-reference-categories' } },
+    phase: { state: 'read-only', reason: { code: 'needs-version', minVersion: '0.3.0' } },
+    phaseCompletion: { state: 'read-only', reason: { code: 'needs-version', minVersion: '0.3.0' } },
+  },
+  unreadable: [],
+  capped: [],
+};
+
+/**
+ * Today of the custom project with `/progress` answered by `body` and, with `version`, the project
+ * header's WingFoil version answered as `version` (task-065, D65-16).
+ */
+async function openProgressScreen(page: Page, c: RunningConsole, body: unknown, version?: string): Promise<void> {
+  const pid = c.pids[1]!;
+  if (version !== undefined) {
+    await page.route(`**/api/p/${pid}`, async (route) => {
+      const response = await route.fetch();
+      const header = (await response.json()) as { wingfoil: Record<string, unknown> };
+      await route.fulfill({ response, json: { ...header, wingfoil: { ...header.wingfoil, text: version, version } } });
+    });
+  }
+  await page.route(`**/api/p/${pid}/progress`, async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: body });
+  });
+  await project(page, c, `/p/${pid}/today`, (p) => p.locator('.today-progress-figures'));
+}
 
 /** The body the document screens answer for `dl-002-use-fastify` (task-078, D78-10). */
 const DOCUMENT_SCREEN_BODY = [
@@ -456,4 +644,140 @@ async function openDocumentScreen(page: Page, c: RunningConsole, mode: 'rendered
     await expect(dialog.locator('pre.element-document-source')).toBeVisible();
   }
   await expectSettled(page);
+}
+
+/** Open the custom list on `?missing=refs`, its answer given a flagged row and the notes (task-066). */
+async function openMissingScreen(page: Page, c: RunningConsole): Promise<void> {
+  const pid = c.pids[1]!;
+  await page.route(`**/api/p/${pid}/elements`, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as { elements: { id: string }[] };
+    await route.fulfill({
+      response,
+      json: {
+        ...body,
+        elements: body.elements.map((e) =>
+          e.id === 'task-004-themes' ? { ...e, missingCategories: ['requirement'] } : e,
+        ),
+        missingReferences: { shown: true, unreadable: ['dl-002-use-fastify'], capped: [] },
+      },
+    });
+  });
+  await project(page, c, `/p/${pid}/memory?missing=refs`, (p) => p.locator('.memory-badge-missing'));
+}
+
+/**
+ * The Traceability screen with the preset's parts (task-067, D67-15): the custom fixture's answer
+ * with a pattern reference linking two of its elements, a shown coverage and one missing element.
+ */
+async function openTraceabilityScreen(page: Page, c: RunningConsole, detail = false): Promise<void> {
+  const pid = c.pids[1]!;
+  await page.route(`**/api/p/${pid}/traceability?scope=*`, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as {
+      elements: { id: string }[];
+      references: unknown[];
+      figures: Record<string, unknown>;
+    };
+    // Two elements of the custom fixture, as rows of the answer (added when the answer names none).
+    const named = new Set(body.elements.map((e) => e.id));
+    const extra = [
+      ['task-002-memory-list', 'task-002', 'Memory list', 'done', 'done'],
+      ['task-003-element-panel', 'task-003', 'Element panel', 'backlog', 'neutral'],
+    ]
+      .filter(([id]) => !named.has(id!))
+      .map(([id, shortId, title, status, tone]) => ({
+        path: `docs/04_memory/tasks/${id}.md`,
+        id,
+        shortId,
+        title,
+        type: 'task',
+        status,
+        tags: [],
+        localChanges: false,
+        descriptor: { id, type: 'task', status, kind: 'work', tone, verbs: [], actor: { kind: 'none' } },
+        done: tone === 'done',
+        inScope: true,
+      }));
+    const linked = ['task-002-memory-list', 'task-003-element-panel'];
+    // task-081: four waiting elements, one per actor kind, linked by a reference of their own.
+    const actors = [
+      [
+        'task-901-member',
+        { kind: 'member', member: { name: 'Jordan', email: 'jordan@example.test' }, basis: 'submitter' },
+      ],
+      ['task-902-role', { kind: 'role', role: 'approver', members: ['Morgan', 'Alex'] }],
+      ['task-903-engine', { kind: 'engine' }],
+      ['task-904-held', { kind: 'role', role: 'approver', members: ['Morgan'] }],
+    ] as const;
+    const waiting = detail
+      ? actors.map(([id, actor]) => ({
+          path: `docs/04_memory/tasks/${id}.md`,
+          id,
+          shortId: id.split('-').slice(0, 2).join('-'),
+          title: `Waiting ${id.split('-')[2]}`,
+          type: 'task',
+          status: 'pending',
+          tags: [],
+          localChanges: false,
+          descriptor: {
+            id,
+            type: 'task',
+            status: 'pending',
+            kind: 'gate',
+            tone: 'human',
+            verbs: [],
+            actor,
+            ...(id === 'task-904-held'
+              ? { approveHeld: { condition: 'never', reason: { code: 'held-by-config' } } }
+              : {}),
+          },
+          done: false,
+          inScope: true,
+        }))
+      : [];
+    const waitingRef = detail
+      ? [
+          {
+            id: 'US-W-01',
+            category: 'requirement',
+            element: false,
+            linked: waiting.map((e) => e.id),
+            done: 0,
+            total: waiting.length,
+            percent: 0,
+            status: 'not-started',
+          },
+        ]
+      : [];
+    await route.fulfill({
+      response,
+      json: {
+        ...body,
+        ui: { source: 'file' },
+        patterns: true,
+        elements: [...body.elements, ...extra, ...waiting],
+        references: [
+          ...body.references,
+          {
+            id: 'US-M-01',
+            category: 'requirement',
+            element: false,
+            linked,
+            done: 1,
+            total: linked.length,
+            percent: 50,
+            status: 'in-progress',
+          },
+          ...waitingRef,
+        ],
+        figures: { ...body.figures, coverage: { state: 'shown', carrying: 3, total: 5, percent: 60 } },
+        missing: [{ id: 'task-004-themes', categories: ['requirement'] }],
+      },
+    });
+  });
+  await project(page, c, `/p/${pid}/traceability`, (p) => p.locator('.trace-chip'));
+  if (!detail) return;
+  await page.locator('tr[data-ref="US-W-01"] .trace-row-toggle').click();
+  await expect(page.locator('tr.trace-detail-row li')).toHaveCount(4);
 }

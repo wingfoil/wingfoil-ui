@@ -23,6 +23,13 @@
  * v0.3 (task-077, spec-011 §2): the side panel opens over Today (`?panel=<id>`, `panelLinkOptions`),
  * so Today stays mounted — its filters and expansion too (task-061 Q3); when the panel closes, the
  * opener takes the focus back once Today is read again (`onPanelClosed`, D77-7).
+ *
+ * v0.3 (task-081, D81-1): who must act on a *Waiting on others* row is the shared part
+ * `element/WhoMustAct.tsx` (Traceability's detail uses it too), its markup unchanged (D81-2).
+ *
+ * v0.3 (task-065, D65-3, Q3 (b)): the progress card is a slot (`progress`, placed by
+ * `routes/today.tsx`) right after the greeting, before *Your roles* — shown with its own read,
+ * whatever the state of Today's (task-080 Q2 (a)).
  */
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { ProjectHeader, Today, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
@@ -31,13 +38,13 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
-import { HoldText } from '../element/HoldText.js';
+import { WhoMustAct } from '../element/WhoMustAct.js';
 import { onPanelClosed, panelLinkOptions, rememberOpener, usePanelOpen } from '../element/side-panel.js';
 import { useSetRoleView } from '../api/projects.js';
 import { projectHeaderQuery } from '../api/queries.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
 import { ErrorText } from '../shell/ErrorText.js';
-import { greetingName, identityNote, rowReason, waitingWho } from './model.js';
+import { greetingName, identityNote, rowReason } from './model.js';
 import { RoleSummary } from './RoleSummary.js';
 import { CardRows } from './CardRows.js';
 import { RowId, RowSince } from './RowParts.js';
@@ -52,6 +59,10 @@ export interface TodayViewProps {
   header: Read<ProjectHeader> & Pick<UseQueryResult<ProjectHeader>, 'dataUpdatedAt'>;
   /** `GET /today` for the header's role view; not started until the header is read. */
   today: Read<Today> & Pick<UseQueryResult<Today>, 'isFetching'>;
+  /** The progress card (task-065), after the greeting whatever the state of Today's read. */
+  progress?: ReactNode;
+  /** The last card, Recent activity (task-080, D80-3): its own read, shown whatever Today's (Q2 (a)). */
+  activity?: ReactNode;
 }
 
 /** A failed read as an API error (a non-API failure renders as `internal`). */
@@ -145,41 +156,6 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
   );
 }
 
-/** Who must act on a Waiting on others row (D36-6). */
-function Who({ row }: { row: TodayRow }): ReactNode {
-  const intl = useIntl();
-  const who = waitingWho(row);
-  switch (who.kind) {
-    case 'member':
-      return who.basis === undefined ? (
-        <FormattedMessage id="today.waiting.memberNoBasis" values={{ name: who.name }} />
-      ) : (
-        <FormattedMessage id="today.waiting.member" values={{ name: who.name, basis: who.basis }} />
-      );
-    case 'role':
-      return who.members.length === 0 ? (
-        <FormattedMessage id="today.waiting.roleNoMember" values={{ role: who.role }} />
-      ) : (
-        <FormattedMessage
-          id="today.waiting.role"
-          values={{
-            role: who.role,
-            // Its own element: a list of names is data (the catalogue check reads it alone).
-            members: (
-              <span className="today-members">{intl.formatList(who.members, { type: 'unit', style: 'short' })}</span>
-            ),
-          }}
-        />
-      );
-    case 'engine':
-      return <FormattedMessage id="today.waiting.engine" />;
-    case 'held':
-      return <HoldText reason={who.reason} />;
-    case 'none':
-      return null;
-  }
-}
-
 /** One Waiting on others row: a link to the element panel. */
 function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
   const panelOpen = usePanelOpen();
@@ -201,7 +177,7 @@ function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
         <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
         <RowSince since={descriptor.since} descriptionId={sinceId} />
         <span className="today-who">
-          <Who row={row} />
+          <WhoMustAct descriptor={descriptor} />
         </span>
       </Link>
     </li>
@@ -230,7 +206,7 @@ function IdentitySentence({ header }: { header: ProjectHeader }): ReactNode {
 }
 
 /** Today of project `pid`. */
-export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
+export function TodayView({ pid, header, today, progress, activity }: TodayViewProps): ReactNode {
   const intl = useIntl();
   const requiresId = useId();
   const waitingId = useId();
@@ -356,6 +332,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
           </p>
         )}
       </div>
+      {progress}
       <div className="visually-hidden" role="status" aria-label={intl.formatMessage({ id: 'today.updates.label' })}>
         {announcement && (
           <span key={announcement.n}>
@@ -412,6 +389,7 @@ export function TodayView({ pid, header, today }: TodayViewProps): ReactNode {
           )}
         </>
       )}
+      {activity}
     </div>
   );
 }

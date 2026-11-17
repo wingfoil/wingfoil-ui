@@ -215,6 +215,9 @@ test.describe(`TT-PERF-04 — other views ${PERF_TAG}`, () => {
 // start page `/` (no project, no bell), opens the project switcher and presses Enter on the project's
 // row: the project opens on Today (T-01.1) and its read is sent after the key press. The measured path
 // includes opening the project (the header read): not directly comparable with task-036's numbers.
+// task-065 (AC-3, D65-15): Today also reads `/progress` for its progress card; a run ends only once
+// no loading status is left (`timeNavigation`'s rule), so the card's own "Reading the progress…"
+// keeps the timing running until its figures (or its error) are shown: the card is measured too.
 const TODAY: View = {
   scenario: 'T-01.1, T-02.1',
   name: 'Today',
@@ -223,7 +226,8 @@ const TODAY: View = {
     await openSwitcher(page);
   },
   target: (p) => rows(p).first(),
-  ready: '.today-row',
+  // task-080 (D80-10): Today's rows and Recent activity's, both rendered.
+  ready: '.today:has(.today-row) .today-activity-row',
   reads: (pid) => `/api/p/${pid}/today`,
 };
 
@@ -434,6 +438,78 @@ test.describe(`TT-PERF-03, TT-PERF-04 — progress and missing references ${PERF
     } finally {
       await context.close();
     }
+  });
+
+  // task-066 AC-4 (REQ-PERF-04, TT-PERF-04 with `requires` set; D66-14): the Memory list screen on the
+  // preset copy, reached from Documentation by the sidebar as M-01.1's view, its rows and the filter
+  // "Missing required references" rendered.
+  test('AC-4 (task-066) — the Memory list with requires renders within 1.0 s (p95, warm cache)', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const dir = testInfo.outputPath('large-memory');
+    await cp(large.dir, dir, { recursive: true });
+    const copy = { ...large, dir };
+    await usePresetUiConfig(copy);
+    const c = await consoles.start({ projects: [copy] });
+    const view: View = { ...VIEWS[0]!, ready: '.filter-refs .filter-link' };
+    const times: number[] = [];
+    let warmUp = 0;
+    for (let i = 0; i <= PERF_RUNS; i++) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        const ms = await run(page, c, view);
+        if (i === 0) warmUp = ms;
+        else times.push(ms);
+      } finally {
+        await context.close();
+      }
+    }
+    reportRuns('Memory list with requires', warmUp, times);
+    expect(times).toHaveLength(PERF_RUNS);
+    if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
+  });
+
+  // task-067 AC-5 (REQ-PERF-04 since TQ-6 (a), D67-16): the Traceability page on the preset copy,
+  // reached from Documentation by the sidebar, its table rendered with its chips.
+  test('AC-5 (task-067) — Traceability renders within 1.0 s (p95, warm cache)', async ({
+    browser,
+    large,
+    consoles,
+  }, testInfo) => {
+    test.setTimeout(STRICT_PERF ? 600_000 : 300_000);
+    const dir = testInfo.outputPath('large-traceability');
+    await cp(large.dir, dir, { recursive: true });
+    const copy = { ...large, dir };
+    await usePresetUiConfig(copy);
+    const c = await consoles.start({ projects: [copy] });
+    const view: View = {
+      scenario: 'R-01.1',
+      name: 'Traceability',
+      from: (pid) => `/p/${pid}/docs`,
+      target: (page) => nav(page, 'Traceability'),
+      ready: '.trace-table tr[data-ref] .trace-chip',
+      reads: (pid) => `/api/p/${pid}/traceability`,
+    };
+    const times: number[] = [];
+    let warmUp = 0;
+    for (let i = 0; i <= PERF_RUNS; i++) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      try {
+        const ms = await run(page, c, view);
+        if (i === 0) warmUp = ms;
+        else times.push(ms);
+      } finally {
+        await context.close();
+      }
+    }
+    reportRuns('Traceability with the preset', warmUp, times);
+    expect(times).toHaveLength(PERF_RUNS);
+    if (STRICT_PERF) expect(percentile(times, 95)).toBeLessThanOrEqual(PERF_BUDGET_MS);
   });
 
   test('AC-7 — a commit outside the UI reaches /progress and the /elements flags within 5 s', async ({

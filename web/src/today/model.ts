@@ -7,7 +7,8 @@
  * v0.3 (task-061, D61-4): each card's type and state facets, its filters and its 10-row limit, over
  * the rows the server sent — grouping its data, never placing a row (no new query).
  */
-import type { HoldReason, ProjectHeader, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
+import type { ProjectHeader, TodayActionRow, TodayRow } from '@wingfoil-ui/contracts';
+import { whoMustAct, type WaitingWho } from '../element/WhoMustAct.js';
 import { ageOf, type Age } from '../memory/model.js';
 
 /** An age in its largest whole unit, as a positive count (the reason's "for 3 days", D36-7). */
@@ -23,14 +24,8 @@ export type RowReason =
   | { kind: 'age'; state: string; age: Duration }
   | { kind: 'state'; state: string };
 
-/** Who must act on a Waiting on others row (D36-6). */
-export type WaitingWho =
-  | { kind: 'member'; name: string; basis?: string }
-  | { kind: 'role'; role: string; members: string[] }
-  | { kind: 'engine' }
-  /** A held gate (v0.3, spec-003 §5): its hold's reason in place of "Reserved to approver". */
-  | { kind: 'held'; reason: HoldReason }
-  | { kind: 'none' };
+/** Who must act on a Waiting on others row (D36-6): the shared part's (task-081, D81-1). */
+export type { WaitingWho };
 
 /** What the identity sentence of an unidentified user says (D36-8); `undefined` for a member. */
 export type IdentityNote = 'notInTeam' | 'unidentified';
@@ -58,22 +53,7 @@ export function rowReason(row: TodayActionRow, now: number): RowReason {
 
 /** Who must act on a Waiting on others row, from the descriptor's actor (spec-003 §4, §8). */
 export function waitingWho(row: TodayRow): WaitingWho {
-  const { actor, approveHeld } = row.descriptor;
-  if (approveHeld) return { kind: 'held', reason: approveHeld.reason };
-  switch (actor.kind) {
-    case 'member':
-      return actor.member === undefined
-        ? { kind: 'none' }
-        : { kind: 'member', name: actor.member.name, ...(actor.basis ? { basis: actor.basis } : {}) };
-    case 'role':
-      return actor.role === undefined
-        ? { kind: 'none' }
-        : { kind: 'role', role: actor.role, members: actor.members ?? [] };
-    case 'engine':
-      return { kind: 'engine' };
-    case 'none':
-      return { kind: 'none' };
-  }
+  return whoMustAct(row.descriptor);
 }
 
 /** The member's name for the greeting; `undefined` for a user not identified in the team. */

@@ -10,6 +10,7 @@ import type {
   ProjectConfig,
   ProjectHeader,
   ProjectListResponse,
+  Progress,
   ServerInfo,
   Today,
   UiSettings,
@@ -114,7 +115,8 @@ export function todayQuery(pid: string, view: string | null) {
 /**
  * `GET /api/p/:pid/events/memory?limit=<n>`: the last `limit` Memory events, newest first (spec-004
  * §3) — the notification bell's *Updates* (task-042, `limit` 10, TT-PERF-11), read only while its
- * panel is open (D42-2). Key fixed by D31-6.
+ * panel is open (D42-2) — and Today's *Recent activity* (task-080, `limit` 5, REQ-PERF-11), always
+ * read on Today. One entry per `limit`; key fixed by D31-6.
  */
 export function memoryEventsQuery(pid: string, limit: number) {
   return queryOptions({
@@ -133,5 +135,17 @@ export function settingsQuery() {
   return queryOptions({
     queryKey: queryKeys.settings(),
     queryFn: ({ signal }) => apiGet<UiSettings>('/api/settings', signal),
+  });
+}
+
+/**
+ * `GET /api/p/:pid/progress`: the progress figures (spec-012 §3). Shared by the Memory list's figure
+ * filter (task-066 D66-8, read only while `?figure=` names a known code) and Today's progress card
+ * (task-065): one entry per repository state, refreshed by `repo` like every `['p', pid]` key.
+ */
+export function progressQuery(pid: string) {
+  return queryOptions({
+    queryKey: queryKeys.project(pid, 'progress'),
+    queryFn: ({ signal }) => apiGet<Progress>(`${projectPath(pid)}/progress`, signal),
   });
 }

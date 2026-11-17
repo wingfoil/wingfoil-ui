@@ -1,0 +1,82 @@
+/*
+ * The progress figures shared by Today's progress card and the Traceability view (task-065 D65-5 …
+ * D65-7): a figure link (label, then value), the completion's bar and tooltip, a reason in place of
+ * a figure. Colours only through the tokens of tokens.css.
+ */
+.progress-figure-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.progress-completion-trigger {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+/* The completion without its link (task-067 review round 1, F-1): a tooltip trigger, focusable. */
+.progress-completion-trigger:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.progress-figure-link:hover .progress-figure-label {
+  text-decoration: underline;
+}
+
+.progress-figure-label {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.progress-figure-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.progress-completion {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.progress-bar {
+  display: block;
+  width: 100%;
+  min-width: 80px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--color-divider);
+}
+
+.progress-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+}
+
+.progress-reason {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.progress-tooltip {
+  max-width: 320px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: var(--shadow-popover);
+  font-size: 12px;
+  line-height: 1.5;
+}

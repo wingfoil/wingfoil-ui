@@ -24,78 +24,17 @@
  * F4), and the focus moves to the panel's heading (review F5).
  */
 import type { ElementDetail, ProjectHeader } from '@wingfoil-ui/contracts';
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type FocusEvent,
-  type ReactNode,
-} from 'react';
-import { FormattedMessage, defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react';
+import { FormattedMessage, defineMessages, useIntl } from 'react-intl';
 import { Button } from 'react-aria-components';
 import type { DisabledReason } from '@wingfoil-ui/contracts';
 import { hashKey, useQueryClient } from '@tanstack/react-query';
 import { useElementWrite, type ElementWriteVerb } from '../api/writes.js';
 import { useHowToJoin } from '../project/HowToJoin.js';
-import { UpdateLink } from '../repository/UpdateLink.js';
 import { footerView, isBlank, type FooterView, type GateOutcome } from './footer.js';
 import { HoldText } from './HoldText.js';
+import { ReasonLink, reasonMessage } from './reason.js';
 import { elementKeys } from './queries.js';
-
-/** The catalogue texts of the disabled reasons (spec-003 §6, spec-008 §4 `<area>.reason.<code>`). */
-const REASONS = defineMessages({
-  'not-in-team': { id: 'element.reason.notInTeam' },
-  'version-unsupported': { id: 'element.reason.versionUnsupported' },
-  'local-changes': { id: 'element.reason.localChanges' },
-  'copy-behind': { id: 'element.reason.copyBehind' },
-  'copy-diverged': { id: 'element.reason.copyDiverged' },
-  'copy-detached': { id: 'element.reason.copyDetached' },
-  'state-limit': { id: 'element.reason.stateLimit' },
-});
-
-/** The project and the footer's callback for the *Update* link of the copy-behind reason (D40-2). */
-const ReasonLink = createContext<{ pid: string; onStarted(): void; onSucceeded(): void; onFailed(): void } | null>(
-  null,
-);
-
-/** *Update* in the copy-behind reason (G-12.1, G-12.2): the sidebar's update, from the footer. */
-function ReasonUpdateLink({ children }: { children: ReactNode }): ReactNode {
-  const link = useContext(ReasonLink);
-  if (!link) return children;
-  return (
-    <UpdateLink pid={link.pid} onStarted={link.onStarted} onSucceeded={link.onSucceeded} onFailed={link.onFailed}>
-      {children}
-    </UpdateLink>
-  );
-}
-
-/** The reason's message and its arguments. */
-function reasonMessage(reason: DisabledReason): {
-  descriptor: MessageDescriptor;
-  values: Record<string, string | number | ((chunks: ReactNode[]) => ReactNode)>;
-} {
-  switch (reason.code) {
-    case 'version-unsupported':
-      return { descriptor: REASONS[reason.code], values: { range: reason.range } };
-    case 'state-limit':
-      return { descriptor: REASONS[reason.code], values: { state: reason.state, limit: reason.limit } };
-    case 'copy-behind':
-      return {
-        descriptor: REASONS[reason.code],
-        values: {
-          commits: reason.commits,
-          // task-040: the reason ends with "— Update", the update of the project (D40-2).
-          update: (chunks) => <ReasonUpdateLink key="update">{chunks}</ReasonUpdateLink>,
-        },
-      };
-    default:
-      return { descriptor: REASONS[reason.code], values: {} };
-  }
-}
 
 /** A reason's identity: its code and parameters, whatever the order of its keys. */
 function reasonKey(reason: DisabledReason): string {

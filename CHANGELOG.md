@@ -9,6 +9,53 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
 
 ### Added
 
+- **Recent activity on Today** (task-080, US-T-08; spec-012 §6): the last card of Today lists the
+  last 5 Memory events, newest first — the element's id as a link to its side panel, the transition
+  or *created*, who did it and how long ago — refreshed by itself on every change of the
+  repository; commits that are not Memory events are not listed. No link to a Timeline yet (v0.4).
+- **The progress card on Today** (task-065, US-T-12 … US-T-15, US-X-10 X-10.4, US-C-04 C-04.1;
+  spec-012 §3): after the greeting, the current scope (the most advanced element of the
+  `progress.scope` type, *No current <type>* or *Whole project*) with its state, then the project
+  completion with its bar and its explanation on hover and keyboard focus, the phase figures
+  read-only with their reason, *Iterated: <type> x/y*, *Open: <type> n* and *Pending gates n* — each
+  shown figure a link to the Memory list filtered on its elements. A completion that cannot be
+  computed says why (*Completion needs references — see Configuration › Taxonomy*, *No references
+  linked in <scope>*); an ignored `ui.yaml` is named above the card. The figures follow the
+  repository by themselves, a change announced to screen readers, and the tab title of Today carries
+  the project completion (*kanban · 40 % · Today — WingFoil UI*).
+- **Traceability** (task-067, US-R-01, US-C-04 C-04.3; spec-012 §4): a page in the sidebar's
+  *Work* group lists every reference — an element's frontmatter value that is another element's id,
+  or that matches a `ui.yaml` pattern — with its linked elements as chips (short id, state colour,
+  full title, id and state on hover and focus) and its completion, in natural id order. The scope
+  follows the current release by default, or the whole project; the figures show project
+  completion with Today's explanation, phase completion (read-only) and reference coverage. A search and the category and
+  status filters, with counts, are kept in the address. The elements missing required references
+  are listed with *Show in Memory*; without `ui.yaml` a note says only references between Memory
+  elements are recognised, and an ignored file shows its warning.
+- **Traceability's inline detail** (task-081, US-R-01 R-01.2; ux-reference §4.8): a click on a row,
+  or Enter or Space on its toggle, opens its detail under it, one at a time — the reference, its
+  completion x/y and each linked element with its state and who must act, in the words of Today's
+  *Waiting on others* (nothing for a done element), each opening the element's page. The page
+  follows the repository by itself: an open row stays open while its reference exists, the focus
+  stays where it is and a refresh announces nothing.
+- **Configuration › Taxonomy and › Progress** (task-064, US-C-01, US-C-04 C-04.2; spec-005 §1–§4,
+  spec-012 §2): two tabs after *UI settings* show how the console reads the project's
+  `.wingfoil/ui.yaml`, each value marked *declared*, *inferred* or *derived* as the server serves
+  it. *Taxonomy* explains the 8 UI categories and lists every Memory type with its category (or
+  *No category — not counted in progress figures*), the references each type must carry and the
+  reference patterns as written; *Progress* lists `mode`, `scope` with its current element as a
+  link to its page, `phases`, `iterates`, `defects` and the held gates, each with its meaning and
+  allowed values. A file the console cannot use is named at the top of both tabs, "ui.yaml
+  ignored:" and its first problem, and every value is then *inferred*.
+- **Use preset on Configuration › Taxonomy** (task-079, US-C-02, US-C-03; spec-005 §5): for a
+  project with no `.wingfoil/ui.yaml`, *Use a preset* right after the tab's intro offers *Kanban*,
+  *Scrum* and *WingFoil sw-life-cycle*; the dialog names the file and the commit it will make,
+  `chore(ui): apply the <Preset> preset`, and Confirm writes it alone — other staged changes stay
+  staged. A toast names the commit (and whether it was pushed); a refusal is a red toast with its
+  reason, such as "ui.yaml not written: type service is not declared in memory.yaml". The control is
+  not shown when a `ui.yaml` exists or to a user who is not in the team, and is disabled with the
+  reason while the copy is behind (with *Update*), diverged or detached, or WingFoil is outside the
+  supported range.
 - **The element's document** (task-078, US-G-03, US-G-08): the summary of an element is its body's
   first paragraph rendered as Markdown, and *Open document* opens the whole body in a dialog,
   rendered or as its source, on the element page and in the side panel alike. The rendering is the
@@ -108,8 +155,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   file is not used, its first failure as `failure` (`progress.mode must be sequence or flow
   (found spiral)`); without a file, the values inferred from the project's types. Every text echoed from
   the file comes back with control and bidi characters escaped. An edit of `ui.yaml`, tracked,
-  untracked or ignored by git, refreshes open pages. No screen shows it yet: the Configuration
-  tabs are task-064's.
+  untracked or ignored by git, refreshes open pages. *Configuration › Taxonomy* and *›
+  Progress* show it (task-064).
 - **The reference index** (task-055, spec-012 §1, §8): the server's one index of every element's
   frontmatter values and the references they make — another element's full id, or a value matching
   a `taxonomy.patterns` entry of `.wingfoil/ui.yaml` — shared by the progress, traceability and
@@ -134,7 +181,8 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   on and announced to the other pages. It refuses when `ui.yaml` already exists anywhere (the
   working tree, the index or HEAD), when the user is not in the team, when the copy is behind,
   diverged or detached, and when the preset does not fit the project (`ui.yaml not written: type
-  service is not declared in memory.yaml`); it never overwrites a file. Nothing shows it yet.
+  service is not declared in memory.yaml`); it never overwrites a file. *Use preset* on
+  Configuration › Taxonomy shows it (task-079).
 
 - **A page of a restarted console recovers in place** (task-063, US-X-02 X-02.3; adr-003 D6, D7;
   spec-004 §2): when the console was stopped and started again on the same port (`--port`), a page
@@ -143,6 +191,16 @@ release `v0.2` the git tag `v0.2.0` and the npm version `wingfoil-ui@0.2.0`.
   at its own address — the element it showed, for example. No token or session crosses tabs and
   nothing is added to the address; a page of a console started without `--port` cannot reconnect
   (another port is another origin), as the notice says.
+
+- **More filters on the Memory list** (task-066, US-M-02, US-M-03, US-M-04; spec-012 §3, §5): with
+  *All types*, a selected bucket lists the states of its elements, which narrow it to one state
+  (`?bucket=waiting&state=open`); *Missing required references* with its count, shown whenever
+  `ui.yaml` `taxonomy.requires` names a type (0 when nothing is missing), lists the elements the
+  console flags (`?missing=refs`), each marked **missing refs** wherever it is listed, its
+  description naming the missing categories, and a note names the element files that could not be
+  checked; `?figure=<code>` lists the elements behind a figure of the progress card
+  (`completion`, `iterated`, `open-defects`, `pending-gates`), the ids never in the address. An
+  active filter is named under the filters with *Clear filter*.
 
 ### Changed
 

@@ -6,14 +6,23 @@
  * Reads: the project header (shared with the layout) for the role view, then `GET /today` for that
  * view (`todayQuery`, the key shared with the notification bell, D31-6). Both keys sit under
  * `['p', pid]`: the `repo` event refreshes Today (T-03.2, T-04.2); a role view change re-reads the
- * header, whose new `roleView` is a new Today key (T-02.3).
+ * header, whose new `roleView` is a new Today key (T-02.3). The last card, Recent activity, reads the
+ * last 5 Memory events itself (task-080, D80-3).
+ *
+ * v0.3 (task-065, D65-2, D65-11): `GET /progress` (`progressQuery`, the key the Memory list's figure
+ * filter shares) for the progress card, read with Today's own; while its completion is shown, the
+ * tab title carries it — "kanban · 40 % · Today — WingFoil UI" (X-10.4, Today only, Q4 (a)).
  */
 import { useQuery } from '@tanstack/react-query';
 import { createRoute, redirect } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
-import { projectHeaderQuery, todayQuery } from '../api/queries.js';
+import { progressQuery, projectHeaderQuery, todayQuery } from '../api/queries.js';
+import { versionOf } from '../project/model.js';
 import { useProjectTitle } from '../shell/page-title.js';
+import { completionPercent } from '../today/progress.js';
+import { ProgressCard } from '../today/ProgressCard.js';
+import { RecentActivity } from '../today/RecentActivity.js';
 import { TodayView } from '../today/TodayView.js';
 import { NAV_ORDER } from './nav.js';
 import { projectRoute } from './project.js';
@@ -23,12 +32,23 @@ const LABELS = defineMessages({ today: { id: 'shell.nav.today' } });
 function TodayPage(): ReactNode {
   const { pid } = todayRoute.useParams();
   const intl = useIntl();
-  useProjectTitle(pid, intl.formatMessage(LABELS.today));
+  const progress = useQuery(progressQuery(pid));
+  useProjectTitle(pid, intl.formatMessage(LABELS.today), completionPercent(progress.data));
   const header = useQuery(projectHeaderQuery(pid));
   // The role view of the header (`null`: no `?view=`, D31-5); read once the header is known.
   const today = useQuery({ ...todayQuery(pid, header.data?.roleView ?? null), enabled: header.data !== undefined });
   // Keyed by the project: the layout is not remounted on a `$pid` change (review F1).
-  return <TodayView key={pid} pid={pid} header={header} today={today} />;
+  const projectVersion = header.data ? (versionOf(header.data.wingfoil) ?? null) : null;
+  return (
+    <TodayView
+      key={pid}
+      pid={pid}
+      header={header}
+      today={today}
+      progress={<ProgressCard pid={pid} progress={progress} projectVersion={projectVersion} />}
+      activity={<RecentActivity pid={pid} />}
+    />
+  );
 }
 
 /** `/p/$pid/today`: Today. */
