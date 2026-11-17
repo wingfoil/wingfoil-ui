@@ -92,3 +92,8 @@ development stage closed.
   four direct ranges only — the transitive `fast-uri` under `ajv` is not floored (a fresh install
   resolves 3.1.9, outside the advisory), accepted; (3) the CI run and `check_tasks.py` to record
   before the submit.
+- Gates (AC-4): run `44099378805` on `882c60d6` (`scope=task`) **green** — `checks`, `coverage`
+  (5183 passed, 3 skipped; statements 96.78 %, branches 92.09 %), `contract` (501 passed, 3
+  skipped), `e2e-chromium` (2 shards, 235 + 235 passed), `own-specs` Firefox and WebKit (no spec
+  changed), `smoke` 4/4, `publish-smoke` 11/11. The earlier run `44098962231` on `a18d13db` was
+  cancelled by the push of `882c60d6` (one run per ref). `check_tasks.py v0.3` OK.
