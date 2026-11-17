@@ -4,12 +4,12 @@ type: task
 title: "Runtime dependencies updated to the fixed versions npm audit names"              # REQUIRED — e.g. "Today view: pending gates list (REQ-UI-03)"
 status: draft          # auto-set by wingfoil
 release: "v0.3"            # REQUIRED — target release version, e.g. "v0.1"
-sprint: ""             # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
-module: ""             # optional — server | web | contracts (dna.yaml modules)
-priority: ""           # optional — high | medium | low
-tags: []               # optional — additional labels, e.g. [today, a11y]
-ref: ""                # optional — backlog item ID, e.g. "TASK-001"
-bug: []                # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
+sprint: "sprint-001"   # REQUIRED — the Sprint that selects it (sprint-NNN), or "n/a — <reason>" until one does (methodology/scrum)
+module: "governance"   # optional — server | web | contracts (dna.yaml modules)
+priority: "high"       # optional — high | medium | low
+tags: ["v0.3", "governance", "dependencies", "security"] # optional — additional labels, e.g. [today, a11y]
+ref: "GOV"             # optional — backlog item ID, e.g. "TASK-001"
+bug: ["bug-050-runtime-dependencies-carry-vulnerabilities-npm-audit-reports-with-fixes-in-range"] # optional — LIST of bug ids this task closes. Two cases: a fix task derived from a bug
                        # by release-planning, and a bug ABSORBED into an existing task's Acceptance Criteria because that
                        # task already owns the ground. Each bug listed moves with its own verbs (`.wingfoil/memory.yaml`):
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
@@ -20,19 +20,40 @@ tmpl_version: 260703   # Orignal template version
 
 ## Description
 
-<!-- What needs to be built and why. Reference the user story if applicable:
-     "As <persona>, I want <action> so that <benefit>." -->
+The fix of bug-050: `npm audit --omit=dev` reports 8 vulnerabilities in the runtime dependencies of
+`main` (`37a701c5`), so `pre-release-checks` of release v0.3 fails its audit check (directive
+`release-conventions`). Every fix is inside the declared ranges: the lockfile moves to the fixed
+versions and the four direct dependencies raise their minimum. Added in the `release-submit` stage
+of v0.3 by the approver's choice (2026-11-17, option A; `release-submit-rel-v0.3-plan`), after the
+development stage closed.
+
+**Backlog items:** GOV (governance — the dependency fix of bug-050)
 
 ## Acceptance Criteria
 
-<!-- Reference the Gherkin feature file, or inline the key scenarios.
-     e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+- **AC-1 — Audit clean.** `npm audit --omit=dev` reports 0 vulnerabilities; the lockfile resolves
+  `dompurify` ≥ 3.4.18, `markdown-it` ≥ 15.0.3, `fastify` ≥ 5.12.8, `@fastify/static` ≥ 10.1.11
+  and the transitive `fast-uri`, `glob`, `minimatch`, `seroval` to versions outside the advisories
+  of bug-050; the full audit adds no new development-only finding beyond those it reports today.
+- **AC-2 — Ranges.** The direct ranges in `package.json`, `server/package.json` and
+  `web/package.json` name the fixed versions as their minimum (`^3.4.18`, `^15.0.3`, `^5.12.8`,
+  `^10.1.11`), so an install from the published package cannot resolve a vulnerable version.
+- **AC-3 — Nothing else moves.** Only the packages bug-050 names, and what their fixed versions
+  require, change in `package-lock.json`; no product code change; no expectation loosened.
+- **AC-4 — Gates.** `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`;
+  the heavy gates on `.github/workflows/gates.yml` (`scope=task`: coverage, contract, e2e-chromium,
+  both smokes) green on the task branch; `check_tasks.py v0.3`; commands and results in the
+  Execution Notes.
+- **AC-5 — Docs.** A `CHANGELOG.md` `[Unreleased]` *Security* line naming the updated packages
+  and bug-050; Version/Date bumped where a document changes.
 
 ## Implementation Notes
 
-<!-- Optional: known constraints, design hints, or links to relevant ADRs. -->
+- `npm update dompurify markdown-it fastify @fastify/static fast-uri glob minimatch seroval` (or
+  `npm audit fix` without `--force`), then the range floors by hand; `npm ci` after, from the new
+  lockfile, before the gates.
+- The reachability of the `markdown-it` advisory (bug-050 *Notes*) needs no new test of this task:
+  the dependency is fixed upstream; the Markdown time-bound suites already cover the renderer.
 
 ## Execution Notes
 
