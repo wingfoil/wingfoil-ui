@@ -87,3 +87,194 @@ commands and results in the Execution Notes.
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### design (2026-11-17)
+
+Read (dl-015): this task; task-067's design (`e4c99224`: D67-7's row slot, D67-9, D67-13), its
+Execution Notes and review rounds 1–3 (F-5 the last answer kept, F-7 the 500 ms count
+announcement, F-8 the events notice, R2-3 the per-project placeholder and last answer); the
+Execution Notes of task-065 (`web/src/progress/`, `ProgressCard.tsx`), task-080 (*Recent
+activity*), task-062 (the element page `/p/<pid>/e/<full id>` in the main region) and task-059
+(the variants `usePrePacksStates`, `usePresetUiConfig`, `setFrontmatterValue`); `ux-reference.md`
+§4.8 (the v0.3 block: *Inline detail*, *Refresh*, *Accessibility*, deviations (6) and (8)) and
+§4.1 (the *Waiting on others* texts, the held gate); the prototype's *Tracciabilità* view (the
+whole row toggles, a caret, the open row's detail under it); spec-012 §4 (`elements[]` carries
+`descriptor` and `done` "so the web reuses its rows: … the 'who must act' of the detail"), §8
+(`repo` refetches every query under `['p', pid]`), §9; spec-011 §1, §2; spec-003 §4, §5, §7;
+spec-008; `r/traceability.feature` R-01.2; REQ-PERF-03; `test/README.md` (*SCREENS* append-only
+RP-43, *CI gates*, `@live-refresh`). The merged code it extends (`0c2c9ea9`):
+`web/src/traceability/` (`TraceabilityView.tsx`, `ReferenceTable.tsx`, `model.ts`),
+`web/src/routes/traceability.tsx`, `web/src/today/TodayView.tsx` (`Who`), `model.ts`
+(`waitingWho`, `WaitingWho`), `web/src/element/HoldText.tsx`, `test/e2e/traceability.spec.ts`,
+`test/e2e/support/screens.ts` (`openTraceabilityScreen`), `test/e2e/support/cold-read.ts`
+(`refreshClock`, `LIVE_REFRESH_TAG`), `test/web/traceability/view.test.tsx`,
+`test/web/today/today.test.tsx`, `model.test.ts`.
+
+No new tech-spec and **no server, schema or contract change**: every datum of the detail is in the
+answer already — `references[].done`/`total` (the completion x/y), `linked`, and per element of
+`elements[]` its `shortId`, `title`, `status`, `descriptor` (tone, `actor`, `approveHeld`) and
+`done` (spec-012 §4). No security probe (no write, no git, no CLI process); not git-touching: no
+strict-identity run.
+
+#### Gaps found at design
+
+- **G1 — The focus when the refresh removes what holds it.** AC-3 says "the focus does not move";
+  §4.8 does not say where it goes when a refresh removes the focused toggle (its reference is gone)
+  or a focused element link of the open detail. Today's precedent: `CardRows` F-5 (the card's
+  heading). → Q1.
+- **G2 — The events notice no longer names what degrades.** Review round 1 F-8 rewrote
+  `traceability.notice.eventsError` to "… the references and figures are shown without it" because
+  who must act was this task's. With the detail, who must act is on the page and is exactly what a
+  failed events read degrades (spec-003 §4: actors fall back; done is the kind, not events). → Q2.
+
+#### Decisions (D81-n)
+
+- **D81-1 — The shared who-must-act part.** New `web/src/element/WhoMustAct.tsx` (next to
+  `HoldText`, which it uses): `whoMustAct(descriptor: ActionDescriptor): WaitingWho` — today's
+  `waitingWho` body, reading the descriptor only (it never read anything else of the row) — and
+  `<WhoMustAct descriptor />`, today's `Who` JSX moved verbatim: the keys `today.waiting.member`,
+  `memberNoBasis`, `role`, `roleNoMember`, `engine` (no new key, no changed value), `HoldText` for a
+  held gate, `null` for `none`, the members' `intl.formatList` in its own `<span
+  className="today-members">` (the class kept, so Today's DOM is unchanged and
+  `today.test.tsx`'s `.today-members` assertion stays as it is). `WaitingWho` moves with it.
+  `web/src/today/model.ts` keeps `waitingWho(row) = whoMustAct(row.descriptor)` and re-exports
+  the type, so `test/web/today/model.test.ts` is untouched; `TodayView.tsx` loses `Who` and renders
+  `<WhoMustAct descriptor={row.descriptor} />` inside its unchanged `.today-who` span. Only that
+  file and `model.ts` of Today are touched.
+- **D81-2 — Today unchanged, proved.** (1) A characterization test written **before** the
+  extraction (`test/web/element/who-must-act.test.tsx` › "Today's Waiting on others renders the
+  same who must act …"): Today rendered with one *Waiting on others* row per actor case (member
+  with each basis and without, role with and without members, engine, held by config, held until
+  references done, none), the `outerHTML` of each `.today-who` pinned as literal strings — green
+  on `0c2c9ea9`, green after the extraction, the code diff of Today limited to the import and the
+  one call; (2) every Today unit test and e2e spec (`today.spec.ts` T-11.x, `today-cards.spec.ts`,
+  `held-gates.spec.ts`, `today-progress.spec.ts`, `recent-activity.spec.ts`) unchanged and green.
+- **D81-3 — Component structure.** `ReferenceTable.tsx`'s row map becomes a `ReferenceRow`
+  component (one per reference, React key `referenceKey(r)` as now) rendering the existing `<tr>`
+  and, when open, the detail `<tr>` right after it (a fragment); new `ReferenceDetail.tsx` renders
+  the detail cell. `ReferenceTable` gains `openKey: string | undefined` and `onToggle(key)`; the
+  open state lives in `TraceabilityView` (D81-6). `traceability.css` gains the toggle, the
+  clickable row and the detail styles; nothing of the table's columns or chips changes.
+- **D81-4 — The toggle and the row click.** In the *Reference* cell's slot, before the category
+  tag: a native `<button type="button" class="trace-row-toggle">` (as the page's filter toggles)
+  showing a caret (CSS, rotated when open; no text glyph in JSX), accessible name "Details of
+  <reference id>" (`traceability.detail.toggle`, the name constant, the state carried by
+  `aria-expanded`), `aria-expanded` true/false, and `aria-controls` naming the detail row's id
+  while it is open (the id exists only then; a reference to a missing id is not written). Enter
+  and Space press it (native). A click anywhere on the row (§4.8 "a click on a row", the
+  prototype) toggles it too, unless the click lands on or inside a link or a button (the reference
+  link, a chip, the toggle itself — handled once) or ends a text selection; the row click then
+  focuses the row's toggle (`preventScroll`), so the keyboard continues from the row the user
+  chose. The row has `cursor: pointer`; it is a pointer convenience only: everything it does is the
+  toggle's (nothing reachable on hover or pointer only). One row open at a time: opening another
+  closes the first; the focus stays on the pressed toggle.
+- **D81-5 — The detail row.** `<tr class="trace-detail-row" id=…>` with one `<td colSpan={3}>`.
+  Content, from §4.8 *Inline detail*: a heading `<h2>` (the page has `h1`, the missing section
+  `h2`; one detail open at a time) with the reference id, as text (a pattern reference's id is
+  never a link, D9); the category tag; for an element reference its title, state pill (tone class
+  and state name) and *Open*, a link to its element page; the completion "Completion 1/2"
+  (`traceability.detail.completion`) or "No linked element" (`traceability.detail.noLinked`);
+  then a list, one item per `linked` id in the server's order, each **one link** to
+  `/p/<pid>/e/<encodeURIComponent(full id)>` (spec-011 §2, the main region, P2; as Today's
+  *Waiting on others* row is one link) whose text is "<short id> · <title> · <state pill>" and,
+  when the element is not `done` and the shared part renders something, " · <who must act>"
+  (`traceability.detail.element` / `elementWho`, the who-must-act part a rich-text element of its
+  own, as Today's `today.reason.age`, so the key build renders no message inside an argument).
+  Nothing for a done element (§4.8); no who without a descriptor (`typesError`: the pill without
+  tone, as the chip). No description or source for a pattern reference (D9). Every repository
+  string React text (spec-012 §9). At 400 px the detail wraps inside the table's own scrolling
+  container (task-067's width check extended to an open detail).
+- **D81-6 — The open row: state, life and project.** `TraceabilityView` holds `open: { pid,
+  key } | undefined` (the route is not remounted on a project switch: as R2-3, a key of another
+  project is never applied). The row is open while `open.pid === pid` and its key names a
+  reference of the **settled** answer (`data`, not a placeholder): adjusted while rendering, as
+  the page's other derived state — an answer of the same scope without that reference (a refresh)
+  or the new scope's answer without it (a scope change, once it arrives; during
+  `keepPreviousData` the old answer and the open row stay) closes it. A reference hidden by a
+  filter or the search is not shown, nor its detail; it is still open if a later filter shows it
+  again (the AC's "while its reference exists"). The open row is never in the URL (D67-2, §4.8).
+- **D81-7 — Refresh (AC-3, REQ-PERF-03).** Nothing new is needed to re-read: the query key under
+  `['p', pid]` is invalidated on `repo` (spec-012 §8, `adr-002`), measured by the e2e test below.
+  The detail re-renders from the new answer (new elements, states and who must act) in place:
+  rows and detail items keep stable keys (`referenceKey`, element id), so the DOM node holding the
+  focus — the toggle, the *Open* link, an element link, a chip — survives and the focus does not
+  move; the refetch is not a placeholder, so the table never turns `aria-busy`. **No row-count
+  announcement after a refresh:** task-067's announcement is keyed to the filters (`filterKey`)
+  and a refresh does not change them, so it stays silent; opening or closing a detail announces
+  nothing either (`aria-expanded` says it). One interplay with F-7 recorded: a refresh that lands
+  inside the 500 ms pause after a filter change restarts that pause and the one announcement then
+  says the refreshed count — still one announcement, caused by the filter change. When the
+  refresh removes the element holding the focus: Q1.
+- **D81-8 — Catalogue.** Additions only, at their sorted places in `traceability.*` (RP-43):
+  `traceability.detail.toggle` "Details of {id}", `traceability.detail.open` "Open",
+  `traceability.detail.completion` "Completion {finished}/{total}", `traceability.detail.noLinked`
+  "No linked element", `traceability.detail.element` "{id} · {title} · {state}",
+  `traceability.detail.elementWho` "{id} · {title} · {state} · {who}"; Q2 (b) one more.
+  `today.waiting.*` reused, not copied.
+
+#### Acceptance criteria: red first or characterization
+
+AC-1 and AC-2 red first (no toggle, no detail; `TodayView`'s `Who` private). D81-2's Today test
+is a **characterization** (Today's rendering exists and must not change). AC-3: the re-read on
+`repo` exists (task-067's query key) — its timing is a characterization measured by the
+`@live-refresh` test; keeping the open row and the focus is red first (there is no open row).
+AC-4 docs, by review.
+
+#### Test plan (AC and scenario → file › title)
+
+| AC / scenario | Test |
+|---------------|------|
+| R-01.2 (AC-1) | `test/e2e/traceability.spec.ts` › "R-01.2 — Show who must act on a reference's open elements" (custom, `usePrePacksStates` + `usePresetUiConfig`; the row "US-M-01" selected by a click on the row; the detail's items read "task-002 · Memory list · done" and "task-003 · Element panel · backlog · Waiting for the workflow engine"; an item opens the element page `/p/<pid>/e/task-003-element-panel`; axe in both themes) |
+| AC-2 | › "AC-2 — the row toggle by keyboard: aria-expanded, aria-controls, one detail at a time, the focus kept" (Tab to the toggle, Enter opens, Space closes, a second row's toggle closes the first, `expectFocusVisible`); › "AC-2 — at 400 px an open detail scrolls only inside the table container" (every engine); unit `test/web/traceability/detail.test.tsx` (new): the toggle's name and states, `aria-controls` only while open and naming the next row, the heading, element reference *Open* and pattern reference without link, the completion text and "No linked element", one item per linked element in order as a link to its element page, the who texts per actor case and none for a done element or without a descriptor, the row click toggles but not a click on a link, a chip or a selection, the row click focuses the toggle |
+| AC-2 (Today unchanged) | `test/web/element/who-must-act.test.tsx` (new): D81-2's characterization and `whoMustAct` over every actor case; Today's suites unchanged |
+| AC-3 | › "AC-3 — a refresh keeps the open row and the focus and announces nothing" (`@live-refresh`: the detail of "US-M-01" open, the focus on its toggle, a `ref: US-M-01` committed outside the UI by `setFrontmatterValue` on an in-scope element, `mutateAndWait` on `repo`, the new item in the detail within `refreshClock().timeout()` — 5 s under `test:timing` (`WFUI_STRICT_REFRESH=1`), the cold-read budget otherwise —, the toggle still `aria-expanded="true"` and `document.activeElement`, the polite region empty, no reload); unit `detail.test.tsx` › "a refresh without the reference closes the detail", "a scope change keeps the detail until the new answer, then closes it if absent", "a project switch opens nothing of the previous project", "a refresh that changes the row count announces nothing", and Q1's fallback |
+| X-06.4, X-09.1 | one `SCREENS` entry appended: "traceability — detail open" (the routed answer of `openTraceabilityScreen` with descriptors of every actor kind — member with basis, role with members, engine, held — and US-M-01's detail opened by its toggle), so axe in both themes and the key build cover the detail and every who text |
+| AC-4 | review of the docs; `test/docs/public-text.test.ts` |
+
+No separate timing test: AC-3's 5 s is the `@live-refresh` clock, asserted under `test:timing` at
+the wave gate (task-059 Q7 (a)); in `test:e2e:chromium` it runs as a behaviour.
+
+#### e2e closure
+
+| Scenario | Spec file : test |
+|----------|------------------|
+| R-01.2 | `test/e2e/traceability.spec.ts` : "R-01.2 — Show who must act on a reference's open elements" |
+
+#### Files
+
+New: `web/src/element/WhoMustAct.tsx`, `web/src/traceability/ReferenceDetail.tsx`,
+`test/web/element/who-must-act.test.tsx`, `test/web/traceability/detail.test.tsx`.
+Changed: `web/src/today/TodayView.tsx` (import and one call, `Who` removed), `web/src/today/model.ts`
+(`waitingWho` delegates), `web/src/traceability/ReferenceTable.tsx`, `TraceabilityView.tsx`,
+`traceability.css`, `web/src/i18n/en.json` (additions), `test/e2e/traceability.spec.ts` (tests
+appended), `test/e2e/support/screens.ts` (one entry appended, `openTraceabilityScreen` an option),
+`docs/user-guide.md` (*Traceability*: the detail, the refresh), `CHANGELOG.md` *Unreleased*,
+`test/README.md` (the two unit suites, the tests, the screen), `ux-reference.md` §4.8 only if Q1
+or Q2 records a choice there — each Version/Date bumped on its first edit after a commit. No
+server, contract, schema or spec file.
+
+#### Size (RP3-20 G2)
+
+About **0.8 active day**: the extraction and its characterization 0.1; toggle, row click and
+detail 0.2; open-row life, refresh and focus 0.1; catalogue and CSS 0.05; unit tests 0.15; e2e
+(4 tests) and the screen 0.15; docs, gates and review buffer 0.1. Under one day: **no split**.
+
+#### Open questions for the approver
+
+- **Q1 — The focus when a refresh removes the element holding it (G1).** (a) Nothing: the browser
+  leaves the focus on `<body>` (the next Tab starts from the top of the page). (b) The table takes
+  it (`tabIndex={-1}`, its name "References"), only when the focus was inside the removed row or
+  detail and nothing else holds it — as Today's `CardRows` F-5 gives it to the card's heading; the
+  next Tab continues inside the table. (c) The next row's toggle (or the previous one at the end).
+  **Recommended (b)**: the AC's "the focus does not move" holds whenever the focused node still
+  exists; when it cannot, the nearest stable container keeps the keyboard where the user was, the
+  pattern Today already uses; (c) moves the focus onto a control the user did not choose.
+  §4.8 *Refresh* records the choice.
+- **Q2 — The events notice names who must act again (G2).** (a) Keep F-8's text ("… the
+  references and figures are shown without it"). (b) A new key
+  `traceability.notice.eventsErrorWho` "The repository history could not be read: who must act
+  may be incomplete." used in place of F-8's (the old key removed — the only change to an existing
+  catalogue entry, a removal) — what a failed events read actually degrades here, as the Memory
+  list's notice names its ages. (c) F-8's notice kept, plus a line in the open detail only.
+  **Recommended (b)**: one notice at the top, naming the one thing on the page it affects (the
+  references, figures and done states do not depend on the events, spec-003 §4, spec-012 §4).
