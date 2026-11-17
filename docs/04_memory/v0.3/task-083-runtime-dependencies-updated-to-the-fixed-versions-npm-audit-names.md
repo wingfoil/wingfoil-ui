@@ -63,3 +63,22 @@ development stage closed.
      - design: tech-specs found missing/needing revision (`definition-of-done` › design).
      - red/green/refactor: deviations from the plan above, blockers, scope surprises.
      - review: rejection reasons and what changed on the next pass. -->
+
+### Build (2026-11-17)
+
+- `npm update dompurify markdown-it fastify @fastify/static fast-uri glob minimatch seroval`, then
+  the range floors by hand (`^3.4.18`, `^15.0.3` in `web/package.json`; `^5.12.8`, `^10.1.11` in
+  `package.json` and `server/package.json`) and `npm install` (lockfile unchanged by it). The
+  lockfile moves `@fastify/static` 10.1.5 → 10.1.11 (with `@fastify/send` 4.2.1, `glob` 14.0.6,
+  its `minimatch` 11.0.9, `path-scurry` 3.0.0, the new `@isaacs/nonrecursive-glob-match` 1.1.0),
+  `fastify` 5.12.5 → 5.12.8 (with `find-my-way` 9.10.1, `safe-regex2` 5.1.2, `ret` 0.5.1),
+  `fast-uri` 3.1.8 → 3.1.9 and 4.2.1 → 4.2.3, `dompurify` 3.4.16 → 3.4.18, `markdown-it` 15.0.2
+  → 15.0.3 (`web`, with `argparse` 3.0.4), `seroval` 1.6.8 → 1.8.1; and the root development copy
+  of `markdown-it` 14.3.2 → 14.3.3 (named by the same `npm update`; a development dependency of
+  the API docs tooling) — AC-3.
+- `npm audit --omit=dev`: **0** (AC-1). The full audit: 34 (3 critical, 4 high, 27 moderate), all
+  development-only; compared with `main` `37a701c5` (41), no new package, seven gone
+  (`@fastify/static`, `dompurify`, `fast-uri`, `fastify`, `glob`, `markdown-it`, `seroval`).
+- Local: `typecheck`, `lint`, `format:check`, `docs:api` exit 0; `npx vitest run
+  test/docs/public-text.test.ts` plus the Markdown render suite, `--maxWorkers=2`: 144 passed.
+- No product code changed; `CHANGELOG.md` *Security* line (AC-5).
