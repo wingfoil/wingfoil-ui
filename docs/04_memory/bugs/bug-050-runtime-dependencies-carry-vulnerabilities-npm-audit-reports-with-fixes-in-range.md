@@ -75,3 +75,8 @@ fix is inside the ranges the manifests declare.
 ## Triage & Execution Notes
 
 <!-- Running log, not the retrospective itself. -->
+
+- fix: task-083-runtime-dependencies-updated-to-the-fixed-versions-npm-audit-names (`done`, merged
+  `30ee36b1`).
+- 2026-11-18 — close (release `minor-v0.3` `released`, `075f4f7a`): `npm audit --omit=dev` on
+  `075f4f7a` reports 0 vulnerabilities; the fix shipped in `wingfoil-ui@0.3.0`.
