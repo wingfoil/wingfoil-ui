@@ -3,7 +3,7 @@ id: dl-022-exit-criteria-parser-probes-audits-wave-records-deferrals-and-the-end
 type: decision-log
 title: "Exit criteria, parser probes, audits, wave records, deferrals and the end-of-life gate"              # REQUIRED — e.g. "Retrospective v0.1" or "Initialise WingFoil before inception"
 status: draft          # auto-set by wingfoil
-context: ""            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
+context: "governance-evolution"            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
 release: ""            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -12,20 +12,66 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-<!-- The situation or question that prompted this decision. -->
+`dl-020-retrospective-sprint-1` lists its actions 1 … 5 for a `governance-evolution` run of their own, before v0.3.1's
+planning. `bug-051-closing-the-last-planned-sprint-moves-the-life-cycle-to-end-of-life` needs a change of two workflows:
+with no Sprint `planned`, `workflow next` answers `end-of-life.announce`, so an agent that follows it would start
+ending the project. This record rules both, in `governance-evolution-7-plan`.
 
 ## Decision
 
-<!-- What was decided. State it directly, in the present tense.
-     Do NOT mark the body as unratified (no "proposed, not yet ratified" preamble): `status:` already
-     says whether the decision is `in-discussion` or `ready`, and `memory approve` changes only
-     `status`, so a body marker would stay wrong. Where options are still open, present them as
-     options; the approver's choice is recorded in the approve commit's `Reason:`. -->
+**1. The end of the project is the approver's decision (bug-051).**
+
+- `sprint` gains the phase `next-sprint` before `close`: the product-owner adds the next Sprint and moves it to
+  `planned`. `delivery` and the description of `sprint` in `memory.yaml` say so.
+- `sw-life-cycle` gains the approver's gate `confirm-end-of-life` between `delivery` and `end-of-life`. A Sprint moved to
+  `planned` brings the run back to the delivery.
+- Both are deviations from `methodology/scrum@1.0.0` and `software@1.0.0`, recorded as R-8 and R-9 in
+  `.wingfoil/README.md`.
+
+**2. Exit criteria (dl-020 action 1).**
+
+- Directive `release-planning`: each exit criterion names, at *define-scope*, the check that verifies it.
+- Directive `release-conventions`: `pre-release-checks` records each result as *met*, *not met* or *not verified*, and
+  the approver gives the OK of `approve-release` on that list. It also records the screens in scope, verified against
+  `docs/00_reference/ux-reference.md`, and the share of approve and reject commits made from the UI on this repository
+  and on the WingFoil repository (REQ-SEC-10, whose *Verified by* changes accordingly).
+- Directive `ux-consistency`, directive `definition-of-done`, the release and task templates, the bar of `minor-v0.4`
+  and `minor-v1.0` and the header of `ux-reference.md`: the UX reference is the reference, the prototype historical
+  evidence.
+
+**3. Parsers of repository text (dl-020 action 2).** Directive `definition-of-done`: the design of a task that parses or
+renders repository text includes a hostile-input cost probe over every path of the parser, and its tests assert the
+growth between an input of size N and one of size 2N.
+
+**4. Dependency audits (dl-020 action 3).** Directive `definition-of-done`: `npm audit --omit=dev` runs at every wave
+gate and the phase plan records its result; the audit must report 0 at release validation. A finding of the development
+dependencies outside the accepted list of `docs/publishing.md` is the approver's decision at release validation, as that
+document says.
+
+**5. Estimates and actual effort (dl-020 action 4).** A release's budget stays in active days. Directive
+`release-planning`: the one-day size check also runs at *build-backlog*. Directive `definition-of-done`: the phase plan records, at each wave gate, the active days the wave
+used, its start and end dates, the tasks closed and the review rounds.
+
+**6. Deferrals (dl-020 action 5).** Directives `release-planning` and `definition-of-done`: a deferral names a backlog
+element, names the `release-planning` that takes it as an input, or says explicitly that the limitation is accepted.
+
+**7. WingFoil behaviour.** Directive `wingfoil-cli` gains W-53 and the feedback inbox the note F-041: a step closes with
+the element it adds missing, and a verb closes an element past an open step.
 
 ## Rationale
 
-<!-- Why this option was chosen over alternatives. Include the key trade-offs considered. -->
+- **A gate, not a step.** On throwaway clones with `wingfoil@0.3.1`, `workflow finalize` closes `next-sprint` with no
+  Sprint added, so the step alone blocks nothing; the agent's `workflow finalize` of the `approval:` phase is refused
+  (`user not authorized to approve type 'plan'`). The step still asks for the next Sprint at the right moment.
+- **Limit:** the gate is recorded once per run. After the approver has finalized it, a Sprint moved to `planned` reopens
+  the delivery, but closing that Sprint leads to `end-of-life.announce` with no new gate; the approver finalizes the
+  gate only when the project ends.
+- **Actions 1 … 5:** the reasons are those of dl-020's *Rationale*.
+- **Trade-off:** `delivery`, `sprint`, `sw-life-cycle` and the description of `sprint` in `memory.yaml` no longer match
+  the packs, so a later adoption of a pack version has to carry these changes over.
 
 ## Actions
 
-<!-- Optional: follow-up actions that result from this decision, with owners and deadlines. -->
+- Apply this record in `governance-evolution-7-plan` (facilitator).
+- Propose the two phases to WingFoil-Templates as feedback at the next sync (facilitator).
+- Next retrospective: check each action of dl-020 against the Sprint's Execution Notes, as dl-020 says (facilitator).
