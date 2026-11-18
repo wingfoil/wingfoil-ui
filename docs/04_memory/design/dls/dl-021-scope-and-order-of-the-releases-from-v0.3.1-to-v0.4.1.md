@@ -3,7 +3,7 @@ id: dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1           # aut
 type: decision-log
 title: "Scope and order of the releases from v0.3.1 to v0.4.1"              # REQUIRED — e.g. "Retrospective v0.1" or "Initialise WingFoil before inception"
 status: draft          # auto-set by wingfoil
-context: ""            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
+context: "planning"            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
 release: ""            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -12,20 +12,123 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-<!-- The situation or question that prompted this decision. -->
+`dl-020-retrospective-sprint-1` (action 6, RT3-2) runs v0.3.1 and v0.4 in series, v0.3.1 first, gives v0.4
+the support of WingFoil v0.4, and leaves the content of each release to a session with the approver before
+v0.3.1's planning. This record is the outcome of that session (2026-11-18).
+
+The inputs were the approver's requests for the console, the open bugs (bug-039, bug-041, bug-044, bug-045,
+bug-047, bug-048, bug-051, bug-052, bug-053), the development dependency refresh (dl-020 action 3), the inputs
+of dl-020 action 5, and ten prototype capabilities with no release (`retrospective-rel-v0.3-plan`, RT3-4, counts
+8, a figure that depends on the granularity of its list).
+
+Three facts shaped the order:
+
+- WingFoil v0.4 is not released and has no published date: on the WingFoil repository's `main` at `4afbca9db`,
+  its release element `minor-v0.4` is `in-development`, with 27 of the 50 tasks filed so far `done` out of a
+  budget of about 125–135 tasks.
+- `minor-v0.4` of this repository holds 25 backlog items
+  (`docs/03_backlog/04_backlog/by-release/v0.4.json`), and part of them needs nothing from WingFoil v0.4.
+- `npm audit` reports 45 findings on the development dependencies on 2026-11-18 (3 critical, 17 high, 25
+  moderate) and `npm audit --omit=dev` none.
 
 ## Decision
 
-<!-- What was decided. State it directly, in the present tense.
-     Do NOT mark the body as unratified (no "proposed, not yet ratified" preamble): `status:` already
-     says whether the decision is `in-discussion` or `ready`, and `memory approve` changes only
-     `status`, so a body marker would stay wrong. Where options are still open, present them as
-     options; the approver's choice is recorded in the approve commit's `Reason:`. -->
+**1. Release order.** The releases run in series:
+
+| Release | Purpose |
+|---------|---------|
+| v0.3.1 | Corrections |
+| v0.3.2 | New features on the screens already shipped |
+| v0.3.3 | Work that does not depend on WingFoil v0.4, while WingFoil v0.4 is awaited |
+| v0.4 | Support for WingFoil v0.4: workflow and agents |
+| v0.4.1 | The Traceability tree and diagram, and what v0.3.3 left unfinished |
+| v1.0 | MVP complete, as `docs/01_vision/07_sequencer.md` says |
+
+**2. Deviation from semantic versioning.** v0.3.2, v0.3.3 and v0.4.1 are patch releases that carry new
+features. The approver accepts this deviation for these three releases. v0.3.1 carries no new features.
+
+**3. Content of v0.3.1.**
+
+- The bugs bug-039, bug-041, bug-044, bug-045, bug-047, bug-048, bug-052 and bug-053.
+- The development dependency refresh, without the major versions TypeScript 7 and js-yaml 5.
+- From dl-009 action 10: the key rendering, with bug-041.
+- From dl-020 action 5: the stale generated backlog JSON (task-065 F-8) and the broken git configuration case
+  of task-055.
+- The `feature` pattern of this repository's `.wingfoil/ui.yaml`, which matches none of its feature ids.
+
+**4. Content of v0.3.2.**
+
+- A home page with project selection and one card per project, showing its completion and the actions
+  required from the user.
+- Traceability: rows of uniform height, with truncated text and the full content still reachable; a checkbox
+  that hides the linked bugs. The server returns each percentage with and without bugs, the checkbox selects
+  which one is shown, and bugs are shown by default.
+- Memory: a text filter by title or id.
+- Today: a count badge on its sidebar entry.
+- Element panel: the element's UI category, the UI category of its references, and the warning for a missing
+  required reference.
+- Element document: an expandable box with the frontmatter fields before the rendered body.
+- DNA: icons beside the card titles.
+- Directives: a badge for a built-in or a custom directive, the overridden one dimmed and labelled.
+
+**5. Content of v0.3.3.** R6 and R7 (timeline), R8 (files), S6 (command palette), the git worktrees of dl-013,
+the automatic update spike (dl-009 action 3), `SafeToolMessage` (dl-009 action 10), the note on where a type's
+elements come from, and the Configuration › Identity tab. When WingFoil v0.4 is released, what is finished
+closes v0.3.3 and the rest moves to v0.4.1.
+
+**6. Content of v0.4.** T3, A1, A2, W1, W2, G5 and the T2 phases upgrade, plus the current workflow and phase on
+the home page's project card, the context crumb in the header and the pack's name in the directive badge.
+`wingfoil_min` stays 0.3 and WingFoil 0.4 joins the supported versions. These three additions need WingFoil 0.4, above
+the release's floor: an explicit exception to the floor rule of `docs/01_vision/07_sequencer.md`. On a project whose
+WingFoil lacks what one of them needs, it is shown read-only with the reason, as feature S3 of
+`docs/01_vision/06_features.md` says.
+
+**7. Content of v0.4.1.** The Traceability tree and the diagram of the relations between types, with each
+relation's field name and cardinality. The tree is defined at v0.4's release-planning; its root is always the
+project's `feature` element, identified by the mapping in `ui.yaml`.
+
+**8. Later.** The accepted e2e-smoke gaps of ES2-3 (dl-009 action 10) go to v1.0. External links in the
+Documentation index and *Open on GitHub* come after v1.0.
+
+**9. Outside the releases.** bug-051 is fixed by the `governance-evolution` run that precedes v0.3.1's planning.
+The partial clone and the state limit stay accepted limitations (dl-020 action 5). The `opener.ts` follow-up of dl-009
+action 10 is closed: task-077 moved `rememberOpener` to `web/src/element/side-panel.ts`, which removed the circular
+import.
 
 ## Rationale
 
-<!-- Why this option was chosen over alternatives. Include the key trade-offs considered. -->
+- **Corrections first.** v0.3.1 stays a true patch, and v0.3.2 builds on what it fixes: the hoverable tooltip of
+  bug-052 serves the truncated rows, the content security policy of bug-039 is in force for the new screens, and
+  the corrected `feature` pattern links this repository's bugs to their feature rows (bug-007, bug-008 and bug-010;
+  none today), so the Traceability checkbox has linked bugs to hide here.
+- **The deviation is accepted** for v0.3.2, v0.3.3 and v0.4.1 (Decision 2). Trade-off: in this range the version
+  number no longer tells a fix release from a feature release.
+- **Uniform rows change a v0.3 decision.** `docs/00_reference/ux-reference.md` §4.8 shows every chip, wrapping; in
+  v0.3.2 the linked elements that do not fit stay reachable through the row's inline detail.
+- **v0.3.3 keeps the work moving while v0.4 stays smaller.** The move of R6, R7, R8 and S6 takes v0.4's backlog from 25
+  items to 19, before the three additions of Decision 6. Trade-off: what v0.3.3 delivers depends on when WingFoil v0.4
+  is released.
+- **The tree and the diagram wait for v0.4.1.** Neither depends on WingFoil v0.4, but the tree changes decisions of
+  v0.3 (TQ-1 and the inline detail open on one row at a time, `docs/00_reference/ux-reference.md` §4.8) and needs a
+  definition. The `ui.yaml` mapping identifies the root, not the levels below it: on this repository 27 of 83 tasks
+  cite a user story and none cites a feature (frontmatter of `docs/04_memory/` at `d5f32ac1`).
+- **Workflow position waits for v0.4.** Of the workflow verbs, the server runs only `workflow list`
+  (`server/src/cli/commands.ts`) and reads no workflow run, and WingFoil's `minor-v0.4` plans changes to how runs are
+  read (its bug-485, bug-486 and bug-487, `planned` at `4afbca9db`).
 
 ## Actions
 
-<!-- Optional: follow-up actions that result from this decision, with owners and deadlines. -->
+- Before v0.3.1's planning: the `governance-evolution` run for dl-020 actions 1 … 5 and bug-051 (facilitator).
+- With this record: `docs/01_vision/07_sequencer.md` gains a `##` section on the release order, with no `### vX.Y —`
+  heading; `docs/04_memory/planning/v1/minor-v0.4.md` and `minor-v1.0.md` point to this record; `docs/publishing.md`
+  *Accepted dev-only findings* names v0.3.1 for the refresh; `CLAUDE.md` updates the next step (facilitator).
+- At v0.3.1's release-planning: a task makes `docs/03_backlog/X_tools/check_releases.py` read the patch releases. Until
+  that task is done, no MVP feature leaves a minor release and none is added, because the check requires every MVP
+  feature in exactly one `minor-*` file. The `release` of the bugs of Decision 3 becomes `v0.3.1` (product-owner).
+- At the release-planning of v0.3.2 and v0.3.3: `docs/01_vision/06_features.md`, the sequencer, `minor-v0.4` and the
+  backlog partitions take the new and the moved features; `docs/02_requirements/`,
+  `docs/00_reference/ux-reference.md`, spec-005, spec-012 and the API contracts take the changes; dl-013's `release`
+  becomes `v0.3.3` (product-owner).
+- At v0.4's release-planning: define the Traceability tree, including how a project declares the levels between the
+  feature and the task, where the tasks that reach no feature are shown, an element with several parents, and cycles
+  (product-owner, the approver).
