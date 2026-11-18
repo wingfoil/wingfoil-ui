@@ -1,6 +1,6 @@
 # SARD — 5. Security, Roles & Governance
 
-**Version:** 0.9 · **Date:** 2026-11-05 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023; 0.6: REQ-SEC-08 fit criterion scoped to governed writes, update and push — release-planning v0.2 session 2; 0.7: REQ-SEC-05, REQ-SEC-06 v0.3 parts moved to v0.4 with G5, R8 — release-planning v0.3, RP3-7; 0.8: REQ-SEC-02, REQ-SEC-06, REQ-SEC-09 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver; 0.9: REQ-SEC-09's fit criterion names `consoles/` — task-058, adr-003 A4) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.10 · **Date:** 2026-11-18 (0.2: coherence audit fixes — session 6; 0.3: REQ-SEC-02 session derived from the token, static files exempt — initial-design session 6; 0.4: REQ-SEC-05 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-SEC-07 cites the feedback note F-009 — dev-loop task-023; 0.6: REQ-SEC-08 fit criterion scoped to governed writes, update and push — release-planning v0.2 session 2; 0.7: REQ-SEC-05, REQ-SEC-06 v0.3 parts moved to v0.4 with G5, R8 — release-planning v0.3, RP3-7; 0.8: REQ-SEC-02, REQ-SEC-06, REQ-SEC-09 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver; 0.9: REQ-SEC-09's fit criterion names `consoles/` — task-058, adr-003 A4; 0.10: REQ-SEC-10 verified at each release validation — dl-022, dl-020 action 1) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`. The protection of the local server (X4) is mandatory and
 distinct from permissions between team members, which belong to WingFoil (L6).
@@ -115,7 +115,7 @@ distinct from permissions between team members, which belong to WingFoil (L6).
 | Rationale | MVP canvas metric *Adoption*; sequencer rule 5. |
 | Traceability | US-G-04 · G-04.1 · G2 · `08_mvp-canvas.md` |
 | Fit criterion | [percentage] Between the v0.2 and the v0.3 releases, ≥ 80 % of the approve/reject commits of this repository have their hash in the server's local action log (the list of commits the UI caused: hash and time, no other data); the same from v0.3 for the WingFoil repository. |
-| Verified by | retrospective (`wf(…)` history) |
+| Verified by | release validation (`pre-release-checks`, directive `release-conventions`), on both repositories |
 
 ## Process Notes
 

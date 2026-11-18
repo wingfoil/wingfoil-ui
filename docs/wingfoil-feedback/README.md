@@ -137,6 +137,7 @@ defined the procedure (`governance-alignment-rel-v0.2-plan` GA-5).
 | [F-038](F-038-memory-add-fails-with-a-raw-enametoolong-above-252-characters.md) | memory add fails with a raw ENAMETOOLONG quoting an absolute path when the id would exceed 252 characters | gap | open |  |
 | [F-039](F-039-memory-search-drops-a-malformed-memory-file-without-a-warning.md) | memory search leaves out a Memory file without frontmatter, without type or status, or with a non-text id, with no warning | gap | open |  |
 | [F-040](F-040-a-state-named-after-an-object-built-in-reads-as-a-wip-limit.md) | A state named after an Object built-in (`constructor`, `toString`, `__proto__`) reads as a WIP limit: every move into it is refused | defect | open |  |
+| [F-041](F-041-a-step-closes-with-its-element-missing-and-a-verb-closes-past-an-open-step.md) | `workflow finalize` closes a step whose action adds an element with none added, and a verb closes an element while a step of its workflow is open | gap | open |  |
 
 ## Context
 

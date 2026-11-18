@@ -61,6 +61,8 @@ above says otherwise, this section is right:
 
 - **The agent's roles** are the seven of `.wingfoil/dna.yaml`: facilitator, product-owner,
   developer, reviewer, qa, architect and tech-lead — never approver.
+- **Sprints:** `sprint` adds the next Sprint at `next-sprint`, before `close`; a delivery with no
+  planned Sprint stops at the approver's gate `confirm-end-of-life` (`.wingfoil/README.md`, R-8, R-9).
 - **Your git identity.** The approver gives agent sessions an identity of their own (task-050):
   the Claude Code `env` of the main checkout's git-ignored `.claude/settings.local.json`, on the
   approver's machine. It reaches only Claude Code sessions whose working directory is in this

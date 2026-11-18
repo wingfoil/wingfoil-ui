@@ -26,8 +26,8 @@ tmpl_version: 260929   # Orignal template version
 ## Success Criteria
 
 <!-- Measurable criteria that mark this release as complete.
-     Reference the MVP Canvas if applicable (docs/01_vision/08_mvp-canvas.md). Include parity with
-     the prototype for the screens in scope, the accessibility bar, and the supported WingFoil
+     Reference the MVP Canvas if applicable (docs/01_vision/08_mvp-canvas.md). Name the check
+     that verifies each one. Include conformity with `docs/00_reference/ux-reference.md` for the screens in scope, the accessibility bar, and the supported WingFoil
      versions (`wingfoil_min` and the contract tests). -->
 
 ## Execution Notes

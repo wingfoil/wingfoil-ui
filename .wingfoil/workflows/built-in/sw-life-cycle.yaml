@@ -1,6 +1,7 @@
 format: 1
 # The software life cycle (dl-022 S3): each phase includes the slot of its name (spec-001 §9);
 # `delivery` is the methodology's.
+# Deviation from software@1.0.0: the approver's gate confirm-end-of-life (bug-051, this repository's dl-022).
 name: sw-life-cycle
 kind: main
 description: "Inception, specification, delivery and end of life of a software project"
@@ -15,6 +16,12 @@ phases:
   - name: delivery
     description: "The delivery slot: the methodology's workflow."
     include: delivery
+  - name: confirm-end-of-life
+    description: >-
+      The approver decides that the project ends. A delivery with no planned Sprint reaches this
+      gate; adding a planned Sprint brings the run back to the delivery.
+    role: approver
+    approval: { by_role: approver }
   - name: end-of-life
     description: "The end-of-life slot: a phase pack's workflow, or the default."
     include: end-of-life

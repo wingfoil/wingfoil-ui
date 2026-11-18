@@ -1,6 +1,6 @@
 # WingFoil UI — Project Workflow main configuration.
 # Composed from the wingfoil-templates packs base@2.0.1, software@1.0.0 and methodology/scrum@1.0.0
-# (the workflows/built-in/ files, unchanged), with this repository's own workflows re-added
+# (the workflows/built-in/ files, unchanged but for `delivery`, `sprint` and `sw-life-cycle`, this repository's dl-022), with this repository's own workflows re-added
 # (workflows/custom/; governance-alignment-rel-v0.3-plan step 3). A custom workflow never takes the
 # name of a pack's (E_WORKFLOW_DUPLICATE_NAME). The five procedures this repository ran by hand
 # (initial-design, release-planning, dev-loop, user-docs, e2e-smoke) were folded into directives

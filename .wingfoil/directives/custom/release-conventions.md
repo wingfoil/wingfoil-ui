@@ -9,7 +9,7 @@ tags: [custom, release, git, npm]
 
 # Directive — Release conventions of WingFoil UI
 
-**Version:** 1.7 · **Date:** 2026-11-05 (1.0: dl-008's tailoring of `release-submit`,
+**Version:** 1.8 · **Date:** 2026-11-18 (1.0: dl-008's tailoring of `release-submit`,
 `release-publishing` and `retrospective`, re-applied on the `software` and `base` packs' workflows
 at their adoption — governance-alignment-rel-v0.3-plan step 3; 1.1: `mark-released` is the
 approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5; 1.2: when the
@@ -21,7 +21,7 @@ line's plan `delivery-seed-rl-vN-plan`, `check_tasks.py` in `pre-release-checks`
 `memory add --type … --title` form; 1.5: *Governance checks* — the plan version, the closed bug's
 `release`, the release `sprint` rule of `check_releases.py`, task-051; 1.6: the agents' own git identity in the identity paragraph —
 task-050; 1.7: that identity's reach, the paths that still act as the approver — its review
-round 1)
+round 1; 1.8: the exit criteria, the screens in scope and the dogfooding share in `pre-release-checks`, the list at `approve-release` — dl-022, dl-020 action 1)
 
 The packs' release workflows (`release-submit`, `release-publishing`, `.wingfoil/workflows/built-in/`)
 name what each phase does, not how this repository does it. This directive says how; the pipeline
@@ -64,9 +64,18 @@ and the approver's steps are in `docs/publishing.md`.
   - `npm run test:coverage` green (statements at least 80 %), `npm run test:e2e` on Chromium,
     Firefox and WebKit, `npm run test:smoke`; `npm audit --omit=dev` reports 0 vulnerabilities;
   - `npm run test:timing` run alone through the machine-free slot, whatever the diff since its
-    last run, its load recorded (dl-009 action 6).
+    last run, its load recorded (dl-009 action 6);
+  - **exit criteria** (dl-020 action 1): each exit criterion of the release, by the check
+    `release-planning` › *define-scope* named for it, recorded in the `release-submit` plan as *met*,
+    *not met* or *not verified*, with its evidence;
+  - **the screens in scope** (dl-020 action 1): each verified against
+    `docs/00_reference/ux-reference.md`, the result recorded with the exit criteria; the prototype
+    stays as historical evidence;
+  - **dogfooding** (REQ-SEC-10): the share of approve and reject commits made from the UI, on this
+    repository and on the WingFoil repository, measured and recorded with the exit criteria.
 - **`enter-releasing`** (tech-lead): `memory submit <release>` (`in-development → releasing`).
-- **`approve-release`** (approver): the approver's OK, recorded in the run's plan and, when the
+- **`approve-release`** (approver): the approver's OK, given on the list of exit criteria that
+  `pre-release-checks` recorded, and recorded in the run's plan and, when the
   release runs on the workflow engine, by `workflow finalize --step <the step key workflow next
   prints, e.g. release-submit.approve-release@release:minor-v0.3> --reason "…"`. **Never `memory
   approve` on the release here:** `releasing` is a gate, and its approve moves the release to

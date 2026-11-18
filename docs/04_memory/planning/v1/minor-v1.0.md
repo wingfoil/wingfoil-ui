@@ -40,8 +40,7 @@ Exit criteria of `07_sequencer.md` v0.6:
 Bars common to every release (`08_mvp-canvas.md`, SARD v0.3):
 
 - every scenario of `docs/02_requirements/02_bdd/` tagged `@v1.0` passes in the e2e suite;
-- the screens in scope match the prototype (`docs/00_reference/prototype/`) except for the
-  deviations recorded in the Vision Package (directive `ux-consistency`);
+- the screens in scope match `docs/00_reference/ux-reference.md` (directive `ux-consistency`);
 - 0 serious/critical axe violations on every screen in scope, in both themes (directive
   `accessibility`);
 - the CLI JSON contract tests pass on every supported WingFoil version from `wingfoil_min`

@@ -1,6 +1,7 @@
 format: 1
 # One Sprint (the Scrum Guide 2020): planning, the Sprint Backlog, a release once the Backlog is
 # done or moved, the review, the retrospective, then the Sprint closes.
+# Deviation from methodology/scrum@1.0.0: the phase next-sprint (bug-051, this repository's dl-022).
 name: sprint
 kind: sub
 element: sprint
@@ -53,6 +54,14 @@ phases:
   - name: retrospective
     description: "base's retrospective, for this Sprint."
     include: retrospective
+  - name: next-sprint
+    description: >-
+      Before the Sprint closes, add the next Sprint and move it to planned (draft to planned). The
+      life cycle reads a delivery with no planned Sprint as complete.
+    role: product-owner
+    actions:
+      - 'memory.add(type: sprint)'
+      - memory.submit
   - name: close
     description: >-
       Close the Sprint (active to done). An unfinished item first has its sprint rewritten, to the

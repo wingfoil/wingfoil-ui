@@ -1,12 +1,12 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.12 · **Date:** 2026-11-17 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.13 · **Date:** 2026-11-18 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
 — review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
 governance-alignment-rel-v0.3-plan step 4; 0.10: the five procedures folded into directives, the
-directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019) ·
+directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019; 0.13: the phases `next-sprint` and `confirm-end-of-life`, deviations R-8 and R-9 — dl-022) ·
 **Checked against:** `wingfoil@0.3.1` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -40,6 +40,13 @@ Decided by the approver on 2026-11-01 (GA3-11 of `governance-alignment-rel-v0.3-
 | R-2 | `release-line` | gate `planning` only; `active → done` by `submit` | also gate `active` (reject → `planning`): the approver closes the line | `submit` closed a line with no check on its releases. **Residual:** the line sits in the approver's queue for its whole life; it is approved only at its end, every release `released` (`release-conventions`) |
 | R-3 | `bug` | gates `open`, `triaged`, `planned`, `in-review`, `resolved` | no gate on `planned`: `memory submit` moves it to `in-progress` | the start of a planned fix needs no approval, as the task's start; `triaged → planned` stays the approver's. **Trade-off:** any team identity can make the move (by rule the developer, when the fix starts), and `planned` loses its wontfix exit (reject → `closed`): a bug that will not be fixed is rejected to `closed` at `triaged`, before it is planned; once `planned`, only `memory deprecate` (with the approver's OK, directives `wingfoil-cli`, `cli-only-writes`) ends it without a fix |
 
+Decided by the approver on 2026-11-18 (dl-022, bug-051), in the workflows of the packs:
+
+| # | Workflow | Pack's | Here | Why |
+|---|----------|--------|------|-----|
+| R-8 | `sprint`, `delivery`, the description of `sprint` in `memory.yaml` | `close` follows `retrospective`; a later Sprint is added outside a step | the phase `next-sprint` before `close`: the product-owner adds the next Sprint | the next Sprint is asked for before the current one closes |
+| R-9 | `sw-life-cycle` | `end-of-life` follows `delivery` | the approver's gate `confirm-end-of-life` between them | closing the last planned Sprint led `workflow next` to `end-of-life.announce`; the project ends on the approver's decision; the gate is recorded once per run, so the approver finalizes it only when the project ends |
+
 **Accepted limits** (not deviations; the adoption design §11, the review round 1):
 
 - `memory deprecate` needs no approval: any git identity, team member or not, deprecates any element
@@ -53,8 +60,9 @@ Decided by the approver on 2026-11-01 (GA3-11 of `governance-alignment-rel-v0.3-
 - A release (or task) whose `sprint` names a Sprint that does not exist is accepted at `submit`:
   check the id against `docs/04_memory/sprints/` before submitting (directive `wingfoil-cli`
   W-40).
-- The composer's region of `AGENTS.md` names four agent roles and the `bug` gates of the pack; its
-  *This repository* section corrects both (the DNA's seven roles, R-3).
+- The composer's region of `AGENTS.md` names four agent roles, the `bug` gates of the pack and `close`
+  right after the retrospective; its *This repository* section corrects all three (the DNA's seven
+  roles, R-3, R-8).
 
 Also this repository's own, not a pack's change: its templates, the custom `definition-of-done`,
 `release-conventions`, `release-planning` and `traceability-chain` directives (below).
@@ -67,7 +75,7 @@ Also this repository's own, not a pack's change: its templates, the custom `defi
 | `memory.yaml` | the Memory element types: path, id pattern, template, required fields, state machine |
 | `memory/templates/` | this repository's templates (`adr`, `bug`, `decision-log`, `plan`, `release-line`, `release`, `service`, `task`, `tech-spec`); `built-in/` the packs' (only `sprint` is in use) |
 | `workflows.yaml` | the main workflow configuration: the `include` list of the workflow files |
-| `workflows/built-in/` | the 16 workflows of the packs, unchanged |
+| `workflows/built-in/` | the 16 workflows of the packs, unchanged but for `delivery`, `sprint` and `sw-life-cycle` (R-8, R-9) |
 | `workflows/custom/` | this repository's one workflow, `service-ingest` |
 | `roles.yaml` | role → directive bindings and the global directives |
 | `ui.yaml` | the console's configuration (spec-005): taxonomy, progress, holds, artifacts; written by *Use preset* or by hand; ignored by the CLI (`wingfoil-cli` W-11) |
@@ -134,7 +142,7 @@ it; the plan-version and release-`sprint` checks are in directive `release-conve
 | `governance-evolution` | base | main | — | assess · propose · approve · apply |
 | `retrospective` | base | sub | — | explore · additional-points · capture · approve |
 | `retrospective-periodic` | base | main | — | retrospective |
-| `sw-life-cycle` | software | main | — | inception · specification · delivery · end-of-life |
+| `sw-life-cycle` | software | main | — | inception · specification · delivery · confirm-end-of-life · end-of-life |
 | `inception` | software (slot default) | sub | — | frame · approve |
 | `specification` | software (slot default) | sub | — | specify · approve |
 | `end-of-life` | software (slot default) | sub | — | announce · approve · deprecate · archive |
@@ -144,7 +152,7 @@ it; the plan-version and release-`sprint` checks are in directive `release-conve
 | `adr-ingest` | software | main | — | capture · approve |
 | `bug-ingest` | software | main | — | capture · triage |
 | `delivery` | scrum | sub | — | plan-sprint · sprints |
-| `sprint` | scrum | sub | sprint | sprint-planning · development · plan-release · release · sprint-review · retrospective · close |
+| `sprint` | scrum | sub | sprint | sprint-planning · development · plan-release · release · sprint-review · retrospective · next-sprint · close |
 | `backlog-item` | scrum | sub | task | start · build · review · approve · done |
 | `service-ingest` | this repository | main | — | capture · approve |
 
@@ -203,7 +211,7 @@ every role, `approver` included.
 | `release-conventions` | custom | this repository | Release conventions of WingFoil UI (dl-008) | facilitator, qa, tech-lead |
 | `release-planning` | custom | this repository | Release planning of WingFoil UI | architect, product-owner, tech-lead |
 | `traceability-chain` | custom | this repository | The traceability chain of WingFoil UI (the chain the pack's `traceability` asks the project to name) | facilitator, reviewer, architect, product-owner |
-| `ux-consistency` | custom | this repository | UX consistency with the reference and the prototype | reviewer, product-owner |
+| `ux-consistency` | custom | this repository | UX consistency with the reference | reviewer, product-owner |
 | `wingfoil-cli` | custom | this repository | Using the pinned WingFoil CLI | global |
 
 `directives list` warns that `definition-of-done` has two files and uses the custom one (W-23): the

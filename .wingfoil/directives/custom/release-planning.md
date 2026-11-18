@@ -9,11 +9,11 @@ tags: [custom, release, planning, scrum]
 
 # Directive — Release planning of WingFoil UI
 
-**Version:** 1.2 · **Date:** 2026-11-13 (1.0: this repository's `release-planning` procedure folded
+**Version:** 1.3 · **Date:** 2026-11-18 (1.0: this repository's `release-planning` procedure folded
 into a directive, its file removed — task-049, adoption decision 2, RP3-13; 1.1: review round 1 of
 task-049: the release's submits are `plan-release`'s (product-owner), `plan-sprint` adds only the
 first Sprint, the stage plan names a sub workflow, the `memory add --type … --title` forms; 1.2:
-*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018)
+*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018; 1.3: each exit criterion names its check, the size check at *build-backlog*, *Deferrals*, the next Sprint at `next-sprint` — dl-022, dl-020 actions 1, 4, 5)
 
 Applies to the product-owner, the tech-lead and the architect when a release is planned. It says
 how each step is done in this repository; the packs' phases and the verbs own every transition
@@ -25,8 +25,8 @@ includes.
 ## Where it runs
 
 - **The Sprint** the release belongs to: the first Sprint of the delivery is `delivery` ›
-  `plan-sprint` (product-owner); every later one is added outside a step, the same way, and joins
-  the iteration (`delivery.yaml`; `memory.yaml` `sprint`) — `memory add --type sprint --title "…"`,
+  `plan-sprint` (product-owner); every later one is added at `sprint` › `next-sprint`, before the previous
+  Sprint closes, the same way, and joins the iteration (`delivery.yaml`; `memory.yaml` `sprint`) — `memory add --type sprint --title "…"`,
   its `goal` written by editing the draft, `memory submit` (`draft → planned`), when no Sprint is
   `planned`.
 - **`sprint` › `sprint-planning`** (product-owner): the steps below, from *advance-pinned-build* to
@@ -54,7 +54,7 @@ assigned only in *build-backlog*.
 
 | Step | Move | Verb | Who |
 |------|------|------|-----|
-| `plan-sprint` (the first Sprint; a later one outside a step) | sprint `draft → planned` | `memory submit` | product-owner |
+| `plan-sprint` (the first Sprint), `next-sprint` (each later one) | sprint `draft → planned` | `memory submit` | product-owner |
 | triage-bugs | bug `open → triaged` / `→ closed` | `memory approve` / `memory reject` | the approver |
 | reconcile-governance | decision-log `in-discussion → ready`, ADR `pending → accepted` / `→ draft` | `memory approve` / `memory reject` | the approver |
 | record-adrs, identify-specs | ADR, tech-spec `draft → pending` | `memory submit` | architect |
@@ -71,7 +71,7 @@ An agent never approves or rejects: it hands the approver the exact command (`AG
 
 Before an ADR or a tech-spec draft is submitted (here, and when a line is seeded:
 `release-conventions` › *The release line*), an **independent, read-only review** of the drafts
-(dl-022): internal consistency, consistency across the specs, no contradiction with the BDD
+(WingFoil's dl-022): internal consistency, consistency across the specs, no contradiction with the BDD
 scenarios, the Vision Package or the write classes, traceability to the REQ-* it serves. Its
 findings are fixed and re-verified by the same reviewer; the result is logged in the stage's plan.
 
@@ -101,6 +101,10 @@ The pillar and the features of the release, from its element (`docs/04_memory/pl
 confirmed with the approver (the approver's OK on the scope, in the plan); the budget in active
 days, release validation included (2–3 active days, dl-009 action 9). The release's required fields
 are `memory.yaml`'s (`sprint` among them); its `submit` waits for *commit-backlog*.
+
+Each exit criterion of the release names here the check that verifies it: a test, a command, a
+measure, or an inspection and who makes it (dl-020 action 1). `pre-release-checks` records each
+result (`release-conventions`).
 
 ## triage-bugs (tech-lead)
 
@@ -135,6 +139,8 @@ plan, to a task or a rule.
   or `"n/a — <reason>"`), `module`, `priority`, `ref`, the `**Backlog items:**` line, the Acceptance
   Criteria citing the scenarios; ids continue the numbering of the type. Then `memory submit`
   (`draft → pending`). Stop-check: `python3 docs/03_backlog/X_tools/check_tasks.py vX.Y`.
+- **Size:** the one-active-day check of `definition-of-done` › *design* also runs here: a task found
+  too large is split before the Sprint starts (dl-020 action 4).
 - **From decision-logs:** the task(s) each in-scope `ready` decision-log implies; the decision-log
   stays `ready` (dl-017).
 - **From bugs:** one or more fix tasks for each selected `triaged` bug (`bug:` is a list, dl-045),
@@ -153,6 +159,11 @@ In this order (RP3-4): the approver approves the tasks to `backlog`; the release
 and two `memory submit` (`draft → planning → in-development`), run by the product-owner as `sprint`
 › `plan-release`'s moves; the waves and the order of the tasks are written in the plan (RP3-19); the
 Sprint's `planned → active` comes last, after the *Review*.
+
+## Deferrals
+
+A deferral, in any record of a release, names a backlog element, names the `release-planning` that
+takes it as an input, or says explicitly that the limitation is accepted (dl-020 action 5).
 
 ## Review
 

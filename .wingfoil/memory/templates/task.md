@@ -27,8 +27,7 @@ tmpl_version: 260703   # Orignal template version
 
 <!-- Reference the Gherkin feature file, or inline the key scenarios.
      e.g. "See docs/02_requirements/02_bdd/features/today/pending-gates.feature"
-     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x) and the
-     prototype, and state the accessibility bar (keyboard path, axe clean). -->
+     For `web` tasks also point to the screen in docs/00_reference/ux-reference.md (§4.x), and state the accessibility bar (keyboard path, axe clean). -->
 
 ## Implementation Notes
 

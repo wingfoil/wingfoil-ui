@@ -185,7 +185,7 @@ types:
     path: "docs/04_memory/sprints/{id}.md"
     id_pattern: "sprint-{n}"
     name: Sprint
-    description: One fixed-length Sprint (methodology/scrum) — its timebox, its Sprint Goal (`goal`) and, in its body, the Sprint Review's outcome. Workflow — the first added by `delivery`'s `plan-sprint`, the next ones by `memory add` outside a step; run by `sprint`. One is `active` at a time.
+    description: One fixed-length Sprint (methodology/scrum) — its timebox, its Sprint Goal (`goal`) and, in its body, the Sprint Review's outcome. Workflow — the first added by `delivery`'s `plan-sprint`, the next ones by `sprint`'s `next-sprint`; run by `sprint`. One is `active` at a time.
     tags: [ sprint, scrum ]
     amendable: true
     template:

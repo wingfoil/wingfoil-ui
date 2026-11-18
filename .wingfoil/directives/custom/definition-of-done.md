@@ -9,7 +9,7 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.5 · **Date:** 2026-11-13 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.6 · **Date:** 2026-11-18 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
 governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
 `docs:api` — the adoption's review round 1, m2; 1.2: the gates of the former `dev-loop` procedure,
@@ -17,7 +17,7 @@ one section per `backlog-item` phase, its file removed — task-049; 1.3: review
 the `memory add --type tech-spec --title` form; 1.4: the heavy gates on `.github/workflows/gates.yml`
 where it exists on the branch, the local checks, a run as a gate's evidence, the wave gate on the
 phase branch's tip — `governance-evolution-3-plan`, dl-016; 1.5: the wave scope's engine × shard
-jobs — `governance-evolution-5-plan`, dl-018)
+jobs — `governance-evolution-5-plan`, dl-018; 1.6: the parser cost probe, deferrals, the audit and the wave record at the wave gate, the UX reference alone — dl-022, dl-020 actions 1 … 5)
 
 A Sprint Backlog item (a task, run through `backlog-item`: start · build · review · approve · done)
 is done only when every rule below holds; until then it is not part of the Increment. The phases'
@@ -37,7 +37,7 @@ in the task's Execution Notes (`### design (date)`, `### red / green / refactor`
 No code before this phase is closed; the developer works as architect here:
 
 - **Read first** (dl-015, a hard gate): the task, the Execution Notes of every `depends_on` task,
-  the specs, ADRs and decision-logs it cites, the UX reference and the prototype for a screen, the
+  the specs, ADRs and decision-logs it cites, the UX reference for a screen, the
   directives of the step (`workflow next` prints them).
 - **Specs before code:** an `approved` tech-spec for every file format, schema, constant set and
   module API the task implements. A missing one is a safety net for what `release-planning` ›
@@ -49,6 +49,9 @@ No code before this phase is closed; the developer works as architect here:
 - **Security probes** for a task that changes what the console runs on projects, or its git reads
   and writes: `GIT_TRACE` of every verb it runs, a snapshot of `.git` before and after, the
   children's environment (task-046) — on scratch repositories, before the code.
+- **Parsers of repository text** (dl-020 action 2): the design of a task that parses or renders
+  repository text includes a hostile-input cost probe over every path of the parser, and its tests
+  assert the growth between an input of size N and one of size 2N.
 - **Strict identity:** a git-touching task also runs the strict-identity recipe of
   `test/README.md` *Fixtures* › *Git identity* (dl-011).
 - **Size:** a task larger than about one active day is proposed for a split — options and one
@@ -98,6 +101,7 @@ and for `test:timing` everywhere, the load and the wait for the slot are written
   and a test (its e2e closure table), asserting what the user sees.
 - An **independent reviewer**, not the author, reviews against this directive until PASS — an
   adversarial one, who runs the tools, for a security-relevant task. Findings are fixed test first.
+  A finding deferred follows `release-planning` › *Deferrals* (dl-020 action 5).
 - Then `memory submit <task>` (`in-progress → in-review`).
 
 ## approve (the approver)
@@ -123,6 +127,12 @@ The approver's `memory approve <task>` (`in-review → approved`). A reject (`me
   `npm run test:timing` runs alone, locally, through the slot, whatever the diff since its last run
   (dl-009 action 6); then the push of `main` with the approver's OK and dl-011's
   `workflow_dispatch` of `publish.yml` on `main`.
+- **At every wave gate:** `npm audit --omit=dev` runs and the phase plan records its result (dl-020
+  action 3), so a task can still absorb a finding: the audit must report 0 at release validation
+  (`release-conventions`). A finding of the development dependencies outside the accepted list of
+  `docs/publishing.md` is the approver's decision at release validation, as that document says. The
+  phase plan also records the active days the wave used, its start and end dates, the tasks closed
+  and the review rounds (dl-020 action 4).
 
 ## Documented
 
