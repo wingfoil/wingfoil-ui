@@ -26,6 +26,11 @@ What the WingFoil 0.3 workflow engine and agent execution make possible: next wo
   3 technical tasks (11 stories moved from v0.3, RP3-7); the Memory `task` elements are created from it by
   this release's `release-planning` (`ref:` = backlog id).
 
+**Scope change decided, not yet applied to the fields above** (`dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1`): this release supports WingFoil v0.4;
+R6, R7, R8, S6 and the git worktrees of dl-013 move to v0.3.3, and the current workflow and phase on the home page's
+project card, the context crumb in the header and the pack's name in the directive badge join this release. `features`
+and the backlog change at the release-planning of v0.3.3.
+
 ## Pillar Focus
 
 **A — Workflow and agents.** Isolates the dependency on WingFoil 0.3 (`workflow start/next/status`, `agent execute`) in one release (sequencer rule 1); serves Jordan (J3) and Sam (J4). The exact 0.3 verb syntax is confirmed by this release's `release-planning`.

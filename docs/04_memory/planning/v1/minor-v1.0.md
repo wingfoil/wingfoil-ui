@@ -23,6 +23,8 @@ MVP complete — no new features: stable packaging `npx wingfoil-ui` (Q1), suppo
 - Backlog: `docs/03_backlog/04_backlog/by-release/v1.0.json` — 2 user stories,
   0 technical tasks; the Memory `task` elements are created from it by
   this release's `release-planning` (`ref:` = backlog id).
+- Input of this release's `release-planning`: the accepted e2e-smoke gaps of ES2-3 (dl-009 action 10;
+  `dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1`).
 
 ## Pillar Focus
 

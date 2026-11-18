@@ -1,11 +1,11 @@
 # Sequencer — WingFoil UI v1 (v0.1 → v1.0)
 
-**Version:** 0.8
-**Date:** 2026-11-03 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
+**Version:** 0.9
+**Date:** 2026-11-18 (0.2: J0 completion and v0.1 landing screen — coherence audit; 0.3: external
 review — session 7; 0.4: permissions left to WingFoil — specification session 3; 0.5: input count, v0.1 exit (clone) — coherence audit of the specification — session 6; 0.6: v0.1 budget 6 → 9 active days — release-planning v0.1 session 2; 0.7: v0.2 budget 5 → 8 active days — release-planning v0.2 session 2; 0.8: v0.3 narrowed to
 the project-state chain (T2, T5, M2, R5, C1) plus the console usability, links and governance inputs;
 R6, R7, R8, W1, W2, G5, S6 to v0.4; v0.3 budget 7 → 13 active days — release-planning v0.3, RP3-7 …
-RP3-9)
+RP3-9; 0.9: the release order from v0.3.1 to v0.4.1 — dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1)
 **Status:** Accepted in lean-inception session 5 (2026-10-01)
 **Input:** `06_features.md` (44 MVP features, areas, WingFoil versions, scores) · `05_journeys.md` ·
 `02_product-vision.md` (Q2: WingFoil floor) · starting hypothesis in `BOOTSTRAP.md` §7
@@ -123,6 +123,26 @@ the first candidate that needs nothing from WingFoil.
 | v1.0 | X | 1.0 | — | all | all (on WingFoil 1.0) |
 
 Total: 44 features (16 + 13 + 5 + 10).
+
+---
+
+## Release order after v0.3
+
+Decided in `dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1`. The releases run in series. Its patch releases are planned by their own
+`release-planning`; the feature tables above move with them, once `check_releases.py` reads patch
+releases (a task of v0.3.1).
+
+| Release | Purpose |
+|---------|---------|
+| v0.3.1 | Corrections |
+| v0.3.2 | New features on the screens already shipped |
+| v0.3.3 | Work that does not depend on WingFoil v0.4 (R6, R7, R8, S6, the git worktrees of dl-013), while WingFoil v0.4 is awaited |
+| v0.4 | Support for WingFoil v0.4: workflow and agents |
+| v0.4.1 | The Traceability tree and diagram, and what v0.3.3 left unfinished |
+| v1.0 | MVP complete |
+
+v0.3.2, v0.3.3 and v0.4.1 are patch releases that carry new features, a deviation from semantic
+versioning the approver accepted.
 
 ---
 

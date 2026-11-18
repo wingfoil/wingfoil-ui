@@ -1,13 +1,13 @@
 # Publishing to npm
 
-**Version:** 0.10 · **Date:** 2026-11-17 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.11 · **Date:** 2026-11-18 (0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
 Release of v0.2.0 by hand; 0.4: what the first publish showed — an expired npm session answers 404,
 the `0.0.0-stage` placeholder, checklist steps 4–6 done, the GitHub Release's assets; 0.5: the
 release steps after the packs adoption — `release-commit` in `release-publishing`, `released` by the
-approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish; 0.8: Python set up in `gate` for the default suite's `check_releases.py` test — task-051; 0.9: the accepted dev-only findings of every development dependency, not only the registry — release-submit-rel-v0.3-plan step 7; 0.10: the first tag run — the trusted publisher, `promote`, provenance and the `release` job verified by `v0.3.0`; an unused trusted publisher configuration expires — release-publishing-rel-v0.3-plan step 8)
+approver's `memory approve` after the publication, governance-alignment-rel-v0.3-plan step 3; 0.6: the WingFoil comparison names `release-publishing` › `release-commit` (review round 3 nit); 0.7: the `release` job — a draft GitHub Release after `promote`, made public by the approver; the path-free test reports — task-052, review round 1: the tarball's integrity check before the publish; 0.8: Python set up in `gate` for the default suite's `check_releases.py` test — task-051; 0.9: the accepted dev-only findings of every development dependency, not only the registry — release-submit-rel-v0.3-plan step 7; 0.10: the first tag run — the trusted publisher, `promote`, provenance and the `release` job verified by `v0.3.0`; an unused trusted publisher configuration expires — release-publishing-rel-v0.3-plan step 8; 0.11: the development dependency refresh goes to v0.3.1 — dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1)
 
 How `wingfoil-ui` reaches the npm registry: the pipeline `.github/workflows/publish.yml`, the
 registry-side setup the **approver** performs once, the steps of every release, and the staging
@@ -207,7 +207,7 @@ through `@modelcontextprotocol/sdk` of the pinned CLI `wingfoil@0.3.1`; `undici`
 `typedoc`; `zod` of `eslint-plugin-react-hooks`. None reaches the published package: they run only
 in linting, the tests, the API docs build and the staging smoke, on this machine or a CI runner.
 Status: **accepted risk** for v0.3; a refresh of the development dependencies (most of them have a
-fix in range; `typedoc`'s is not usable) is an input of v0.4's release planning.
+fix in range; `typedoc`'s is not usable) is part of v0.3.1 (`dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1`).
 
 **A failed gate or stage** stages nothing (`promote` needs `stage`). Fix on `main`; the approver
 decides whether the same version is tagged again on the fixed commit (nothing was published) or a
