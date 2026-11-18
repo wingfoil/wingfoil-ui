@@ -3,12 +3,12 @@ id: bug-053-scenario-x-02.3-of-the-session-recovery-spec-fails-intermittently   
 type: bug
 title: "Scenario X-02.3 of the session recovery spec fails intermittently"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
-module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+module: "web"             # optional — server | web | contracts
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,39 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The e2e scenario X-02.3 in `test/e2e/session-recovery.spec.ts` fails intermittently and passes when its
+job is run again, on two engines, with no change to the code it covers; the cause is unknown.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+No deterministic reproduction yet. The two failures happened on `gates.yml` runs:
+
+1. Run `session-recovery.spec.ts` on WebKit or Chromium in the heavy gates.
+2. Repeat until the test "X-02.3 — an exchange on another port leaves the page lost" fails.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The scenario gives the same result on every run of the same commit.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+| Run | Engine | Failure | Re-run |
+|-----|--------|---------|--------|
+| `43210245345` (task-077) | WebKit | An ordering of the recorded requests: `same 204` at index 2 instead of 1 | Green on the failed job's re-run |
+| `43840736563` (task-079) | Chromium, `e2e-chromium (2)` | `expected 1, received 2` | Green on the job's re-run |
+
+Neither task changed the spec or the code it covers. `playwright.config` sets `retries: 0`: the second
+attempts were re-runs of the job.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+`backlog-item-rel-v0.3-plan` (Wave 2 and Wave 3 session logs); the build notes of task-077 and task-079.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+Two other failures that passed on re-run in the same Sprint turned out to be product defects (bug-043,
+bug-046), so this one is not assumed to be a test problem until it is explained. Both symptoms concern the
+number or order of the requests the test records. Recorded as a backlog item by
+`dl-020-retrospective-sprint-1`, action 5.
 
 ## Triage & Execution Notes
-
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
