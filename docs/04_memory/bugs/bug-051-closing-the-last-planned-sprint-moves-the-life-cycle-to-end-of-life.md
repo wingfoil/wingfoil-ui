@@ -3,12 +3,12 @@ id: bug-051-closing-the-last-planned-sprint-moves-the-life-cycle-to-end-of-life 
 type: bug
 title: "Closing the last planned Sprint moves the life cycle to end-of-life"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3"     # optional — release where the bug was FOUND, e.g. "v0.1"
 release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+wingfoil_version: "0.3.1"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,53 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+When the last planned Sprint closes, `workflow next` names `end-of-life.announce`: `delivery` iterates
+the Sprints, none is left, so the run reads the delivery as complete and proposes ending the project.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. Check out `main` at `eedfeae8` (`sprint-001` is `active` and no other Sprint exists), with the
+   pinned `wingfoil@0.3.1`.
+2. Run `npm run -s wingfoil -- memory submit sprint-001` (`active → done`).
+3. Run `npm run -s wingfoil -- workflow next`.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+Closing a Sprint never leads to the end of the project by itself: the next Sprint is asked for before
+the current one closes, and the end of life starts only on the approver's explicit decision.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+`workflow next` answers `next step: end-of-life.announce`, and `workflow status` reads `delivery
+complete, end-of-life current`. An agent that follows `workflow next` would add the decision-log that
+announces the end of the project.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+Observed at the close of Sprint 1 (`1ce661b4`). Probes on throwaway clones of this repository, with
+`wingfoil@0.3.1`:
+
+| Change probed | Result |
+|---------------|--------|
+| A step `next-sprint` in `sprint`, before `close` | `workflow next` names it, but `workflow finalize` closes it with no Sprint added, and `memory submit sprint-001` closes the Sprint with the step open: the run still reaches `end-of-life.announce` |
+| The same step with `optional: true` | The same result |
+| An `approval:` phase `confirm-end-of-life` in `sw-life-cycle`, between `delivery` and `end-of-life` | `workflow next` stops on it and routes it to the approver; the agent's `workflow finalize` is refused (`user not authorized to approve type 'plan'`); a `sprint-002` in `planned` brings the run back to `sprint.sprint-planning@sprint:sprint-002` |
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+The fix the approver chose has two parts, applied through a `governance-evolution` run:
+
+1. a step in `sprint`, before `close`, that asks for the next Sprint;
+2. an approver's gate between `delivery` and `end-of-life`, which is what actually blocks: the project
+   ends when the approver finalizes the gate with a reason, with no check to disable and no workflow to
+   rewrite.
+
+`sprint.yaml` and `sw-life-cycle.yaml` come from the packs, so the change is a deviation to record in
+`.wingfoil/README.md`. The probes also show two behaviours of WingFoil for a feedback note: a verb
+closes an element while a step of its workflow is open, and `workflow finalize` accepts a step that
+`produces` an element with none produced.
+
+Workaround until the fix: add the next Sprint and move it to `planned` with `memory submit`; a Sprint
+in `draft` does not bring the run back.
 
 ## Triage & Execution Notes
-
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
