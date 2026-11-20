@@ -1,0 +1,42 @@
+{
+  "id": "task-003-logout",
+  "path": "docs/memory/task/task-003-logout.md",
+  "entries": [
+    {
+      "sha": "2b524d43674c2e226c50af740f88ada621d2dcb7",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:05+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-003-logout",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "1a3133fdd8929cc2ca085b19d9229d77f69ed70d",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:06+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-003-logout",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "9c968ccd87404a8e3b28d2e1c5d6289e77afaacd",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:07+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "approved",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-003-logout [pending → approved]",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    }
+  ]
+}

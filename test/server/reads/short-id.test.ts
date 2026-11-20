@@ -13,7 +13,7 @@ import { REPO_ROOT } from '../../harness/cli.js';
 
 const FILES = [
   '.wingfoil/memory.yaml',
-  ...['wingfoil-0.2.2', 'wingfoil-0.3.1'].flatMap((v) =>
+  ...['wingfoil-0.2.2', 'wingfoil-0.3.2'].flatMap((v) =>
     ['kanban', 'custom', 'unknown'].map((kind) => `test/contracts/samples/${v}/${kind}/files/memory.yaml`),
   ),
 ];
@@ -91,7 +91,7 @@ describe('shortIdOf — the rule (spec-011 §1)', () => {
 });
 
 describe('shortIdsOf — the type of each match', () => {
-  const yaml = read('test/contracts/samples/wingfoil-0.3.1/custom/files/memory.yaml');
+  const yaml = read('test/contracts/samples/wingfoil-0.3.2/custom/files/memory.yaml');
 
   it("takes the pattern of the match's type", () => {
     const of = shortIdsOf(yaml);

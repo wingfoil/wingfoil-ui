@@ -1,0 +1,104 @@
+format: 1
+schedule_minutes: 10
+push: false
+notify: notify-send
+limits:
+  lock_stale_minutes: 120
+  step_timeout_minutes: 45
+  errors_in_a_row: 3
+  review_rejections: 2
+  max_load: 0.8
+  log_repeat_minutes: 60
+  usage_limit_wait_minutes: 30
+weekly_mains: []
+worktree_types:
+- task
+- bug
+line_branches:
+  actions:
+  - memory.add
+  workflows:
+  - sync
+  - branch
+  - converge
+push_workflows:
+- sync
+- branch
+adapter_extra_args:
+  claude-opus: &id001
+    position: end
+    args:
+    - --add-dir
+    - '{checkout}'
+  claude-sonnet: *id001
+  codex-sol: &id002
+    position: before-prompt
+    args:
+    - -C
+    - '{worktree}'
+    - --add-dir
+    - '{checkout}'
+    - --add-dir
+    - '{checkout}/.git'
+    - -c
+    - sandbox_workspace_write.network_access=true
+  codex-terra: *id002
+launch:
+  allow:
+  - backlog-item
+  - adr-ingest
+  - bug-ingest
+  - decision-log-ingest
+  - sprint
+  - retrospective
+  manual: []
+phases:
+  integrate:
+  - backlog-item.done
+  raising: []
+integration:
+  mode: agent
+  merge: no-ff
+  task_branch: task/{id}
+roles:
+  product-owner: high
+  architect: high
+  reviewer: high
+  tech-lead: high
+  facilitator: intermediate
+  developer: intermediate
+  qa: intermediate
+permissions:
+  extra:
+  - Bash(npm ci:*)
+  - Bash(npx tsc:*)
+  - Bash(node --test:*)
+  - Bash(node scripts/checks/:*)
+lines:
+  trunk:
+    release_line: rl-v1
+    branch: main
+    agent: claude
+    weekly_token_budget: null
+    tiers:
+      high: claude-opus
+      intermediate: claude-sonnet
+    reviewer_agent: codex
+    reviewer_tiers:
+      high: codex-sol
+      intermediate: codex-terra
+role_scope:
+  reviewer:
+    allow:
+    - docs/
+    mode: reject
+  qa:
+    allow:
+    - test/
+    - tests/
+    - docs/
+    - package.json
+    - package-lock.json
+    mode: report
+notices:
+  paths: relative

@@ -1,0 +1,42 @@
+{
+  "id": "task-004-themes",
+  "path": "docs/04_memory/v0.1/task-004-themes.md",
+  "entries": [
+    {
+      "sha": "656a2febfae618952876902aab006b63c9c17fee",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:15+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-004-themes",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "b9c0ae5f7113917034e4974cbe9d2a0049876bdd",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:16+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-004-themes",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "c3676fe26fbde95b02158269a6f42783bd26d306",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:17+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-004-themes [pending → backlog]",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    }
+  ]
+}

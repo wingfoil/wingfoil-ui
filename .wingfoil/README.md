@@ -1,13 +1,13 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.13 · **Date:** 2026-11-18 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.14 · **Date:** 2026-11-19 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
 — review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
 governance-alignment-rel-v0.3-plan step 4; 0.10: the five procedures folded into directives, the
-directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019; 0.13: the phases `next-sprint` and `confirm-end-of-life`, deviations R-8 and R-9 — dl-022) ·
-**Checked against:** `wingfoil@0.3.1` (the devDependency pin)
+directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019; 0.13: the phases `next-sprint` and `confirm-end-of-life`, deviations R-8 and R-9 — dl-022; 0.14: the runner's agents, `agents/custom/`, the pin `wingfoil@0.3.2` — `governance-evolution-8-plan`) ·
+**Checked against:** `wingfoil@0.3.2` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
 element types and their state machines, its workflows, and the directives bound to each role. It is
@@ -52,7 +52,7 @@ Decided by the approver on 2026-11-18 (dl-022, bug-051), in the workflows of the
 - `memory deprecate` needs no approval: any git identity, team member or not, deprecates any element
   in any state. Here it runs only in `end-of-life` › `deprecate` or with the approver's OK recorded
   in the active plan (directive `wingfoil-cli`, global, and `cli-only-writes`; `AGENTS.md`).
-- WingFoil 0.3.1 accepts a hand-committed `status:` without the approver, and `memory history`
+- WingFoil 0.3.x accepts a hand-committed `status:` without the approver, and `memory history`
   reads such a commit's text as if a verb had made it: never set a state a verb owns by hand
   (directive `wingfoil-cli` W-34; W-04, the phase plan's close, is the one exception).
 - The `base` pack's `security-secrets` forbids personal emails in files; `dna.yaml` holds the
@@ -71,7 +71,8 @@ Also this repository's own, not a pack's change: its templates, the custom `defi
 
 | Path | Content |
 |------|---------|
-| `dna.yaml` | project identity, modules (`server/`, `web/`, `contracts/`), stack, methodologies, team (members, roles, agents), paths |
+| `dna.yaml` | project identity, modules (`server/`, `web/`, `contracts/`), stack, methodologies, team (members, roles, agents), paths (`runs`: the script runner's run records) |
+| `agents/custom/` | the script runner's four headless adapters (`claude-opus`, `claude-sonnet`, `codex-sol`, `codex-terra`; `wingfoil-cli` › *The script runner*) |
 | `memory.yaml` | the Memory element types: path, id pattern, template, required fields, state machine |
 | `memory/templates/` | this repository's templates (`adr`, `bug`, `decision-log`, `plan`, `release-line`, `release`, `service`, `task`, `tech-spec`); `built-in/` the packs' (only `sprint` is in use) |
 | `workflows.yaml` | the main workflow configuration: the `include` list of the workflow files |
@@ -133,7 +134,7 @@ it; the plan-version and release-`sprint` checks are in directive `release-conve
 
 ## Workflows (`workflows.yaml`)
 
-`wingfoil@0.3.1` starts, follows and ends workflows (`workflow start`, `next`, `status`, `finalize`,
+`wingfoil@0.3.2` starts, follows and ends workflows (`workflow start`, `next`, `status`, `finalize`,
 `adopt`, `end`); it executes no step. Seven workflows are startable (`kind: main`).
 
 | Workflow | Source | Kind | Element | Phases |
@@ -169,9 +170,10 @@ of working.
 ## Roles and directives (`roles.yaml`)
 
 Roles are declared in `dna.yaml` (`team.roles`): approver, facilitator, product-owner, architect,
-developer, reviewer, qa, tech-lead. The DNA's agent executes as facilitator, product-owner,
-developer, reviewer, qa, architect and tech-lead and has no approval authority; the member holds
-every role, `approver` included.
+developer, reviewer, qa, tech-lead. The DNA's three agents — the interactive one, and `claude` and
+`codex`, which the script runner launches (`wingfoil-cli` › *The script runner*) — execute as facilitator,
+product-owner, developer, reviewer, qa, architect and tech-lead and have no approval authority; the
+member holds every role, `approver` included.
 
 **Global directives** (every role): `doc-versioning`, `security-secrets`, `claim-sources`,
 `documentation`, `claim-evidence`, `wingfoil-cli`.

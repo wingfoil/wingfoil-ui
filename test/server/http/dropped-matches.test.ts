@@ -6,7 +6,7 @@
 // - WingFoil 0.2.2 returns a file without frontmatter (and a deprecated file without `type`) as a
 //   match: the Memory list, the element read, its history and Today answer 200 with the valid
 //   elements, `/elements` names the dropped file in `warnings`, `?archived=true` the archived one;
-// - WingFoil 0.3.1 leaves them out with no warning (W-47), and a frontmatter that does not parse
+// - WingFoil 0.3.2 leaves them out with no warning (W-47), and a frontmatter that does not parse
 //   with its `W_MEMORY_UNREADABLE` warning, which stays a warning;
 // - WingFoil 0.2.2 exits 2 on a frontmatter that does not parse, with no list and no file named:
 //   the reads answer 500 `internal` — the declared limitation, pinned here so a change shows.
@@ -48,7 +48,7 @@ let n = 0;
 beforeAll(async () => {
   ws = await TempWorkspace.create('wfui-task-070-matches-');
   const root = await realpath(ws.dir);
-  templates.set('0.3.1', await buildFixture('kanban', { root: path.join(root, 'kanban-0.3.1') }));
+  templates.set('0.3.2', await buildFixture('kanban', { root: path.join(root, 'kanban-0.3.2') }));
   templates.set(
     '0.2.2',
     await buildFixture('kanban', {
@@ -187,14 +187,14 @@ describe('WingFoil 0.2.2 — review round 1 (F1, F2)', () => {
   );
 });
 
-describe('WingFoil 0.3.1 — review round 2 (R2-F1)', () => {
+describe('WingFoil 0.3.2 — review round 2 (R2-F1)', () => {
   it(
     '250 frontmatters that do not parse: 200 warnings and "50 more warnings omitted" on both routes',
     async () => {
       const files: Files = {};
       for (let i = 0; i < 250; i += 1)
         files[`docs/memory/bug/broken-${String(i).padStart(3, '0')}.md`] = '---\nid: [unclosed\ntype: bug\n---\n';
-      const get = await start('0.3.1', files);
+      const get = await start('0.3.2', files);
       for (const url of ['/elements', '/elements?archived=true']) {
         const res = await get(url);
         expect(res.status, url).toBe(200);
@@ -208,11 +208,11 @@ describe('WingFoil 0.3.1 — review round 2 (R2-F1)', () => {
   );
 });
 
-describe('WingFoil 0.3.1 — what the pinned CLI already leaves out', () => {
+describe('WingFoil 0.3.x — what the pinned CLI already leaves out', () => {
   it(
     'the same files are absent without a warning (W-47); a broken frontmatter is its CLI warning',
     async () => {
-      const get = await start('0.3.1', { ...NON_ELEMENTS, [BROKEN]: '---\nid: [unclosed\ntype: bug\n---\n' });
+      const get = await start('0.3.2', { ...NON_ELEMENTS, [BROKEN]: '---\nid: [unclosed\ntype: bug\n---\n' });
       const res = await get('/elements?archived=true');
       expect(res.status, JSON.stringify(res.body).slice(0, 300)).toBe(200);
       expect(ids(res.body)).toContain(LOGIN);

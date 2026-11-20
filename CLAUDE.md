@@ -1,6 +1,6 @@
 # CLAUDE.md — agent entry point
 
-**Version:** 0.26 · **Date:** 2026-11-18 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the procedures folded into directives, `test:timing` at the wave gate and before a release — task-049; 0.17: the draft GitHub Release job — task-052; 0.18: the agents' own git identity (`WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`, the machine account `wingfoil-dev`), its reach and self-check, approvals from the approver's console — task-050; 0.19: the self-check stops on any identity but the agent's — its review round 2; 0.20: the heavy gates on `.github/workflows/gates.yml` — task-071, dl-016; 0.21: v0.3 in release validation, its surface on `main` not released — release-submit-rel-v0.3-plan step 4; 0.22: 38 tasks with task-083 — its review round 1; 0.23: v0.3.0 released — release-publishing-rel-v0.3-plan step 3; 0.24: the status rewrapped — its review; 0.25: the next step after Sprint 1, the release order — dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1; 0.26: five deviations from the packs — dl-022)
+**Version:** 0.27 · **Date:** 2026-11-19 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2: v0.1.0 released, release submit; 0.3: `test:smoke` wave gate — task-026; 0.4: e2e on three engines, inner-loop Chromium run — task-027; 0.5: `test:publish-smoke`, the publishing guide — task-029; 0.6: release v0.2 user-docs — v0.2 in release validation; 0.7: v0.2.0 released — git tag and npm, the first version by hand; 0.8: the GitHub Release of v0.2.0 made; 0.9: the pin on `wingfoil@0.3.1` — task-046; 0.10: the packs `base`, `software`, `methodology/scrum` adopted, `AGENTS.md` — governance-alignment-rel-v0.3-plan step 3; 0.11: BOOTSTRAP.md marked historical — its review round 1; 0.12: W-20, W-25, W-26 already superseded — round 2; 0.13: `wingfoil-cli` re-checked against 0.3.1 — step 4; 0.14: the next step and the directive version after the v0.3 pre-step — its step 7 review; 0.15: v0.3 in development in Sprint 1, directive 1.20 — release-planning-rel-v0.3-plan step 9; 0.16: the procedures folded into directives, `test:timing` at the wave gate and before a release — task-049; 0.17: the draft GitHub Release job — task-052; 0.18: the agents' own git identity (`WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>`, the machine account `wingfoil-dev`), its reach and self-check, approvals from the approver's console — task-050; 0.19: the self-check stops on any identity but the agent's — its review round 2; 0.20: the heavy gates on `.github/workflows/gates.yml` — task-071, dl-016; 0.21: v0.3 in release validation, its surface on `main` not released — release-submit-rel-v0.3-plan step 4; 0.22: 38 tasks with task-083 — its review round 1; 0.23: v0.3.0 released — release-publishing-rel-v0.3-plan step 3; 0.24: the status rewrapped — its review; 0.25: the next step after Sprint 1, the release order — dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1; 0.26: five deviations from the packs — dl-022; 0.27: the script runner and the pin `wingfoil@0.3.2` — `governance-evolution-8-plan`)
 
 WingFoil UI: a local web UI for WingFoil-governed projects. A Node.js server (`server/`) drives
 each project's pinned `wingfoil` CLI and reads git; a React app (`web/`) shows the result;
@@ -19,8 +19,8 @@ Unblock** (git tag `v0.2.0`), was the first version on npm, `wingfoil-ui@0.2.0`,
 hand** by the approver with 2FA (npmjs.com offers no trusted publisher for a name with no version):
 that version has no provenance statement, and its GitHub Release was made by hand (2026-10-20).
 **v0.1 — Read-only console** (git tag `v0.1.0`) was not published on npm (dl-004). Next: the
-`governance-evolution` run for dl-020 actions 1 … 5 and bug-051, then `sprint-002` and v0.3.1 (one session per
-Sprint stage, RP3-13); the order of the releases up to v0.4.1 is `dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1`.
+script runner's pilot — `sprint-002` added at `sprint.next-sprint@sprint:sprint-001` and planned by the
+runner (`wingfoil-cli` › *The script runner*), then v0.3.1; the order of the releases up to v0.4.1 is `dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1`.
 
 Released in `v0.1.0`:
 
@@ -65,8 +65,8 @@ timeline, git tree, files, command palette, agent launch. The feature plan per r
 
 ## Working with the WingFoil CLI
 
-- Run only the pinned CLI: `npm run -s wingfoil -- <command>` (`wingfoil@0.3.1`, devDependency, since
-  task-046; the support matrix is 0.2.2 and 0.3.1).
+- Run only the pinned CLI: `npm run -s wingfoil -- <command>` (`wingfoil@0.3.2`, devDependency, since
+  the runner adoption, `governance-evolution-8-plan`; the support matrix is 0.2.2 and 0.3.2).
 - `.wingfoil/` is composed from the packs `base@2.0.1`, `software@1.0.0` and
   `methodology/scrum@1.0.0`, with this repository's own entries and five deviations
   ([`.wingfoil/README.md`](.wingfoil/README.md)); delivery runs in Sprints of 2 weeks.
@@ -75,13 +75,14 @@ timeline, git tree, files, command palette, agent launch. The feature plan per r
   `wingfoil-cli` says so — the only one is closing a phase plan by hand (W-04). The task
   transitions `backlog → in-progress` and `approved → done`, and the release transitions up to
   `releasing`, are `memory submit`; `releasing → released` and a bug's `triaged → planned` are the
-  approver's `memory approve` (W-25, W-26). WingFoil 0.3.1 accepts a hand-committed `status:`
+  approver's `memory approve` (W-25, W-26). WingFoil 0.3.x accepts a hand-committed `status:`
   without the approver (W-34): never set a state a verb owns by hand. The directive was re-checked
-  against `wingfoil@0.3.1` at `governance-alignment-rel-v0.3-plan` step 4 (1.15; now 1.22); where an
+  against `wingfoil@0.3.2` at `governance-evolution-8-plan` (1.30); where an
   entry and `.wingfoil/memory.yaml` disagree, `memory.yaml` is right. Read the directive's *Known
   behaviours* table before running a verb; do not copy it here.
-- The DNA's agent executes as facilitator, product-owner, developer, reviewer, qa, architect and
-  tech-lead with **no approval authority**: `memory approve` / `reject` are run by the human
+- The DNA's agents (the interactive one, and `claude` and `codex` of the script runner) execute as
+  facilitator, product-owner, developer, reviewer, qa, architect and tech-lead with **no approval
+  authority**: `memory approve` / `reject` are run by the human
   approver. Agent sessions commit as
   `WingFoil UI Agent <352896614+wingfoil-dev@users.noreply.github.com>` (the project's machine
   account `wingfoil-dev`), set by the approver as the four `GIT_AUTHOR_*`/`GIT_COMMITTER_*`
@@ -100,7 +101,8 @@ timeline, git tree, files, command palette, agent launch. The feature plan per r
   children) and a browser driven on the approver's console. An agent never runs `approve`,
   `reject` or `amend`, nor clicks Approve or Reject, through either. A console acts as whoever
   started it (its children keep the identity variables): approvals are made from a console the
-  approver started, never from one an agent session started.
+  approver started, never from one an agent session started. The same holds for the runner's `gate.mjs`: the
+  approver runs it from their own terminal (`wingfoil-cli` › *The script runner*).
 - A wrong or surprising CLI behaviour becomes a `wingfoil-cli` entry and, when it is a WingFoil
   defect or gap, a note in `docs/wingfoil-feedback/`.
 

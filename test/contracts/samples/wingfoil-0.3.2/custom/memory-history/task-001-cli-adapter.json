@@ -1,0 +1,66 @@
+{
+  "id": "task-001-cli-adapter",
+  "path": "docs/04_memory/v0.1/task-001-cli-adapter.md",
+  "entries": [
+    {
+      "sha": "1350cd48b6f523c30fb802fd4ac113f306901064",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:00+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-001-cli-adapter",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "ccd4fdba44907898bd0c85abcacd548e36660f13",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:01+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-001-cli-adapter",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "c6cb3137901ae9fefb57b1251aa2f5154ac9ad23",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:02+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-001-cli-adapter [pending → backlog]",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "7d330e0336e04f3dae0313c97b3b47545b0e5ab2",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:03+00:00",
+      "operation": null,
+      "from": "backlog",
+      "to": "in-progress",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): task-001-cli-adapter [backlog → in-progress]",
+      "wingfoil": null
+    },
+    {
+      "sha": "d500e37143a6bc4200d582c8854648af9848be68",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:04+00:00",
+      "operation": "submit",
+      "from": "in-progress",
+      "to": "in-review",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-001-cli-adapter",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    }
+  ]
+}

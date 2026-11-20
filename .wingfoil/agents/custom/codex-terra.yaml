@@ -1,0 +1,36 @@
+# Codex CLI on gpt-6.1-terra, one adapter per model: the model goes in the launch
+# arguments, since an adapter has no model field; the run record's `model` checks it. Its tier is
+# the line's mapping in config/runner.yaml. Built from the built-in codex-cli adapter; the headless
+# profile is the runner's (directive wingfoil-cli, The script runner; WingFoil reads it from 1.0 only), which adds -C and
+# --add-dir before the prompt (config/runner.yaml adapter_extra_args). Flags checked against
+# `codex exec --help` of codex-cli 0.167.2. The model id is the approver's choice,
+# listed by codex-cli in models_cache.json under its home folder; not checked against OpenAI's catalogue
+# (unverified).
+name: codex-terra
+format: 1
+command: codex
+verified_with: "codex-cli 0.167.2"
+version_args: [ --version ]
+launch:
+  interactive:
+    # -c takes one key=value; the prompt comes last and nothing is appended after it.
+    args: [ -m, gpt-6.1-terra, -c, "{mcp_config}", "{bootstrap}" ]
+    terminal: required
+  headless:
+    args: [ exec, --json, -m, gpt-6.1-terra, --sandbox, workspace-write, -c, "{mcp_config}", "{bootstrap}" ]
+    output: json
+prompt:
+  via: arg
+mcp:
+  via: config-arg
+  template: 'mcp_servers.wingfoil={command = "{mcp_command}", args = {mcp_args}, enabled = true, required = true}'
+session:
+  id: none
+  resume:
+    supported: false
+# `codex exec --json` writes JSON lines: its tokens are the sum of the `turn.completed` events'
+# usage, which one JSON path cannot name, and it reports no model. WingFoil 0.3.2 reads usage only
+# through `lookup`; the runner sums the tokens itself (scripts/runner/lib.mjs parseOutput), and the
+# model check stays open for Codex.
+usage:
+  from: none

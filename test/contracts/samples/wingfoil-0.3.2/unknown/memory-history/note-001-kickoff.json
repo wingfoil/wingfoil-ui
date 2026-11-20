@@ -1,0 +1,18 @@
+{
+  "id": "note-001-kickoff",
+  "path": "docs/notes/note-001-kickoff.md",
+  "entries": [
+    {
+      "sha": "7f82a90f84423bb7c5590c8167aad7ed41fb818b",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:07+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(note): add note-001-kickoff",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    }
+  ]
+}

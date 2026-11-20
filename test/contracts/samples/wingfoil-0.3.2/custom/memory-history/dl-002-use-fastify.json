@@ -1,0 +1,30 @@
+{
+  "id": "dl-002-use-fastify",
+  "path": "docs/04_memory/design/dls/dl-002-use-fastify.md",
+  "entries": [
+    {
+      "sha": "0ab3af1236d8923947c5f8d7dbf636941ce6c2fe",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:21+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(decision-log): add dl-002-use-fastify",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "8b6b9114bb4728543476e2cbef5c5e18b7323cd1",
+      "author": "Casey <casey@example.test>",
+      "timestamp": "2026-09-29T15:20:22+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "in-discussion",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(decision-log): submit dl-002-use-fastify",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    }
+  ]
+}

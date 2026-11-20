@@ -140,7 +140,12 @@ describe('rangeFromMatrix', () => {
   });
 
   it('supportedRange() reads contracts/matrix.json', () => {
-    expect(supportedRange()).toEqual({ min: '0.2.2', max: '0.3.x', below: '0.4.0', versions: ['0.2.2', '0.3.1'] });
+    expect(supportedRange()).toEqual({
+      min: '0.2.2',
+      max: '0.3.x',
+      below: '0.4.0',
+      versions: ['0.2.2', '0.3.2'],
+    });
   });
 });
 

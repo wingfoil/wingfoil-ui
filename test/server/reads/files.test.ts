@@ -360,7 +360,7 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
     ) as DirectivesList;
   const ids = (list: DirectivesList) => list.entries.map((e) => `${e.frontmatter.id} ${e.path}`);
 
-  it.each(['0.2.2', '0.3.1'])('keeps the custom file in force and drops the shadowed one (WingFoil %s)', (version) => {
+  it.each(['0.2.2', '0.3.2'])('keeps the custom file in force and drops the shadowed one (WingFoil %s)', (version) => {
     const list = sample(version);
     const shadowed = 'testing directives/built-in/testing.md';
     expect(ids(list)).toContain(shadowed);
@@ -375,13 +375,13 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
   });
 
   it('answers a list without duplicates as it is', () => {
-    const list = sample('0.3.1');
+    const list = sample('0.3.2');
     const plain = { entries: list.entries.filter((e) => e.path !== 'directives/built-in/testing.md'), warnings: [] };
     expect(directivesInForce(plain)).toEqual(plain.entries);
   });
 
   it('keeps the file the warning names, at its place, even when it is the built-in', () => {
-    const list = sample('0.3.1');
+    const list = sample('0.3.2');
     const warnings = [
       "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md; using directives/built-in/testing.md",
     ];
@@ -391,7 +391,7 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
     );
   });
 
-  /** A `testing` entry of the 0.3.1 sample at `path`. */
+  /** A `testing` entry of the 0.3.2 sample at `path`. */
   const testingAt = (list: DirectivesList, path: string) => ({
     ...list.entries.find((e) => e.path === 'directives/custom/testing.md')!,
     path,
@@ -400,7 +400,7 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
   it("falls back to WingFoil's precedence when the warning is cut: the smallest custom path", () => {
     // WingFoil's rule (`compareDirectivePrecedence`): a
     // `custom/` file first, then the smallest path. Past the cap no warning names the file in force.
-    const list = sample('0.3.1');
+    const list = sample('0.3.2');
     const cut = directivesInForce({ ...list, warnings: ['… 1 more warning'] });
     expect(cut.filter((e) => e.frontmatter.id === 'testing').map((e) => e.path)).toEqual([
       'directives/custom/testing.md',
@@ -423,7 +423,7 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
   });
 
   it('keeps the file the warning names when two custom files declare the id', () => {
-    const list = sample('0.3.1');
+    const list = sample('0.3.2');
     const entries = [...list.entries, testingAt(list, 'directives/custom/zz-testing.md')];
     const warnings = [
       "directive 'testing' defined in directives/built-in/testing.md, directives/custom/testing.md, directives/custom/zz-testing.md; using directives/custom/zz-testing.md",
@@ -436,9 +436,9 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
   });
 
   it('without a warning, keeps the smallest path, not the first listed (WingFoil walks folder by folder)', () => {
-    // 0.3.1 lists `custom/team/x.md` before `custom/team.md` (names sorted per folder while walking),
+    // 0.3.2 lists `custom/team/x.md` before `custom/team.md` (names sorted per folder while walking),
     // but WingFoil's winner is the smallest full path (`compareDirectivePrecedence`): `team.md`.
-    const list = sample('0.3.1');
+    const list = sample('0.3.2');
     const entries = [
       testingAt(list, 'directives/built-in/testing.md'),
       testingAt(list, 'directives/custom/team/x.md'),
@@ -455,7 +455,7 @@ describe('directivesInForce — one entry per directive id (bug-025, task-047 D4
   });
 
   it('reads a path with a space in the warning', () => {
-    const list = sample('0.3.1');
+    const list = sample('0.3.2');
     const entries = [
       ...list.entries.filter((e) => e.path !== 'directives/custom/testing.md'),
       testingAt(list, 'directives/custom/my testing.md'),

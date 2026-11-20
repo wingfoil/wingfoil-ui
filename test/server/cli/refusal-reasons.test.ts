@@ -139,7 +139,7 @@ let n = 0;
 beforeAll(async () => {
   ws = await TempWorkspace.create('wfui-task-070-reasons-');
   const root = await realpath(ws.dir);
-  templates.set('0.3.1', await buildFixture('kanban', { root: path.join(root, 'kanban-0.3.1') }));
+  templates.set('0.3.2', await buildFixture('kanban', { root: path.join(root, 'kanban-0.3.2') }));
   templates.set(
     '0.2.2',
     await buildFixture('kanban', {
@@ -193,9 +193,9 @@ async function submitFromGate(version: string): Promise<{ status: number; body: 
 
 describe('the 422 cli-refused body of the real CLIs (a submit from a gate state)', () => {
   it(
-    'WingFoil 0.3.1: detail.reasons holds the gate sentence; the body passes write.refusal and cli.refusal',
+    'WingFoil 0.3.2: detail.reasons holds the gate sentence; the body passes write.refusal and cli.refusal',
     async () => {
-      const { status, body, dir } = await submitFromGate('0.3.1');
+      const { status, body, dir } = await submitFromGate('0.3.2');
       expect(status, JSON.stringify(body)).toBe(422);
       expect(body.error.code).toBe('cli-refused');
       expect(body.error.message).toBe("illegal transition pending -> (none) for type 'task'");

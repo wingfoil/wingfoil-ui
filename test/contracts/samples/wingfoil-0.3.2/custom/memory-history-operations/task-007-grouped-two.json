@@ -1,0 +1,66 @@
+{
+  "id": "task-007-grouped-two",
+  "path": "docs/04_memory/v0.1/task-007-grouped-two.md",
+  "entries": [
+    {
+      "sha": "d80f86eb4da638e10c9e869626f8867fd3d1e6e1",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:11+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): add task-007-grouped-two",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "7bf8a42c82a00cb29bb10b60458921db80212858",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:12+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "pending",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): submit task-007-grouped-two",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "6687b3893361c5046de06c7e548cf930a48b0cd8",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:40:13+00:00",
+      "operation": "approve",
+      "from": "pending",
+      "to": "backlog",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(task): approve task-007-grouped-two [pending → backlog]",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "b81ddeab3fefed412992a15a2616e7454e2e8836",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:14+00:00",
+      "operation": "start",
+      "from": "backlog",
+      "to": "in-progress",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): start task-006-grouped-one, task-007-grouped-two [backlog → in-progress]",
+      "wingfoil": null
+    },
+    {
+      "sha": "34af087e9589a0b482a8a780b140cd85009242a7",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:40:15+00:00",
+      "operation": "sync",
+      "from": "in-progress",
+      "to": "approved",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(task): sync task-007-grouped-two [in-progress → in-review → approved]",
+      "wingfoil": null
+    }
+  ]
+}

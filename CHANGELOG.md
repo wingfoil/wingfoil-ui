@@ -8,6 +8,11 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
 
 ## [Unreleased]
 
+### Changed
+
+- **WingFoil 0.3.2 contract-tested** (`governance-evolution-8-plan`): the supported range stays 0.2.2 to
+  0.3.x; the contract tests now run on 0.2.2 and 0.3.2, 0.3.2 in place of 0.3.1 (`contracts/matrix.json`).
+
 ## [0.3.0] - 2026-11-17
 
 **Project state.** See where a project stands — the progress card, recent activity, traceability,

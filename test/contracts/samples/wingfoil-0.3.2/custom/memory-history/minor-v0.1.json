@@ -1,0 +1,30 @@
+{
+  "id": "minor-v0.1",
+  "path": "docs/04_memory/planning/v1/minor-v0.1.md",
+  "entries": [
+    {
+      "sha": "c101d92ceb28e41f431d572e8392258e233d80a5",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:26+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(release): add minor-v0.1",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "af97455b0bed902da5246c50aebcbee4737d32de",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:20:27+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "planning",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(release): submit minor-v0.1",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    }
+  ]
+}

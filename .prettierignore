@@ -18,3 +18,8 @@ playwright-report/
 .worktrees/
 # Raw captures of the WingFoil CLI (claim-evidence): kept as the CLI wrote them.
 test/contracts/samples/
+# The script runner's common files: identical in every project, checked by scripts/runner/manifest.mjs
+# (directive wingfoil-cli); a defect or a style change goes to the common source, never here.
+scripts/runner/
+scripts/checks/
+scripts/lib/

@@ -137,7 +137,7 @@ the matrix lists it. A project outside the range, or whose `wingfoil --version` 
 version (WingFoil 0.3 adds its build, e.g. `0.3.1 (870bd44…)`, which is accepted), opens read-only
 with the range in the reason.
 
-Support matrix (contract-tested versions): `0.2.2`, `0.3.1`.
+Support matrix (contract-tested versions): `0.2.2`, `0.3.2`.
 
 Capabilities (`contracts/capabilities.json`): a capability is read-only below its minimum version
 and hidden when a project condition it needs does not hold. A capability this release does not use

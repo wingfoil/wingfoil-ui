@@ -294,7 +294,7 @@ describe('cli/workflow-list.schema.json — the 0.2.x and 0.3.x shapes', () => {
   const branch = (name: string) => ajv.compile({ definitions, $ref: `#/definitions/${name}` });
   /* eslint-disable @typescript-eslint/no-explicit-any -- mutations of parsed JSON samples */
   const v02 = () => clone(sample('0.2.2', 'kanban', 'workflow-list.json')) as any;
-  const v03 = () => clone(sample('0.3.1', 'kanban', 'workflow-list.json')) as any;
+  const v03 = () => clone(sample('0.3.2', 'kanban', 'workflow-list.json')) as any;
 
   it.each(matrix.versions)('wingfoil %s: every sample matches its own branch only', (version) => {
     const own = behaviours(version).workflowList;
@@ -491,8 +491,8 @@ describe('cli/memory-history.schema.json — the 0.2.x and 0.3.x entries', () =>
     expect(count).toBeGreaterThan(0);
   });
 
-  it('the 0.3.1 samples hold every operation 0.3 adds (finalize, park, amend, start, sync, assign)', () => {
-    expect([...new Set(operations('0.3.1'))]).toEqual(
+  it('the 0.3.2 samples hold every operation 0.3 adds (finalize, park, amend, start, sync, assign)', () => {
+    expect([...new Set(operations('0.3.2'))]).toEqual(
       expect.arrayContaining(['start', 'finalize', 'sync', 'amend', 'park', 'assign']),
     );
   });
@@ -513,12 +513,12 @@ describe('cli/memory-history.schema.json — the 0.2.x and 0.3.x entries', () =>
   const base = (version: string): Entry => clone(entriesOf(version, 'kanban').find((e) => e.operation === 'submit')!);
   const refused: [string, () => Entry][] = [
     ['0.2: an operation 0.2.2 does not record', () => ({ ...base('0.2.2'), operation: 'finalize' })],
-    ['0.3: an operation outside the eleven', () => ({ ...base('0.3.1'), operation: 'start-fix' })],
-    ['0.3: a wingfoil that is a number', () => ({ ...base('0.3.1'), wingfoil: 1 })],
+    ['0.3: an operation outside the eleven', () => ({ ...base('0.3.2'), operation: 'start-fix' })],
+    ['0.3: a wingfoil that is a number', () => ({ ...base('0.3.2'), wingfoil: 1 })],
     [
       '0.3: no wingfoil, with an operation of 0.3',
       () => {
-        const e: Entry = { ...base('0.3.1'), operation: 'park' };
+        const e: Entry = { ...base('0.3.2'), operation: 'park' };
         delete e.wingfoil;
         return e;
       },
@@ -531,7 +531,7 @@ describe('cli/memory-history.schema.json — the 0.2.x and 0.3.x entries', () =>
 
   const accepted: [string, () => unknown][] = [
     ['no entries', () => ({ id: 'x', path: 'x.md', entries: [] })],
-    ['0.3: a null wingfoil', () => ({ id: 'x', path: 'x.md', entries: [{ ...base('0.3.1'), wingfoil: null }] })],
+    ['0.3: a null wingfoil', () => ({ id: 'x', path: 'x.md', entries: [{ ...base('0.3.2'), wingfoil: null }] })],
     ['0.2: a null operation', () => ({ id: 'x', path: 'x.md', entries: [{ ...base('0.2.2'), operation: null }] })],
   ];
   it.each(accepted)('accepts %s', (_label, make) => {

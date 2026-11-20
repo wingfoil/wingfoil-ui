@@ -1,5 +1,5 @@
 // task-069 AC-2 (D69-8; spec-003 §8) — `contracts/api/descriptor.schema.json`'s `approveHeld`: the
-// two holds of spec-005 §4a pass (a held gate as the descriptor builds it, on the 0.3.1 custom
+// two holds of spec-005 §4a pass (a held gate as the descriptor builds it, on the 0.3.2 custom
 // sample); an unknown condition or code, a count below 1 or not an integer, a missing reason or an
 // extra key fail. The schema still compiles in Ajv strict mode.
 import { Ajv } from 'ajv';
@@ -13,7 +13,7 @@ import { REPO_ROOT } from '../harness/cli.js';
 const schemaText = readFileSync(path.join(REPO_ROOT, 'contracts', 'api', 'descriptor.schema.json'), 'utf8');
 const validate = new Ajv({ allErrors: true }).compile(JSON.parse(schemaText) as object);
 const memoryYaml = parseMemoryYaml(
-  readFileSync(path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.1/custom/files/memory.yaml'), 'utf8'),
+  readFileSync(path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.2/custom/files/memory.yaml'), 'utf8'),
 );
 
 function held(condition: 'never' | 'when-references-done', count: number) {
