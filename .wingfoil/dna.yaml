@@ -4,7 +4,7 @@
 # description, license, repository and methodology, its modules, stacks and paths, the member's
 # roles, and `tech-lead` in the agent's executes_as (governance-alignment-rel-v0.3-plan GA3-7).
 format: 1
-version: 1.2
+version: 1.3
 project:
   name: WingFoil UI
   description: Local web UI for WingFoil-governed projects, served by a local server that drives the wingfoil CLI.
@@ -145,3 +145,5 @@ paths:
     - .wingfoil
   governance:
     - .wingfoil/
+  runs:
+    - docs/runs/
