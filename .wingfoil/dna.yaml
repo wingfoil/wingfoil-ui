@@ -4,7 +4,7 @@
 # description, license, repository and methodology, its modules, stacks and paths, the member's
 # roles, and `tech-lead` in the agent's executes_as (governance-alignment-rel-v0.3-plan GA3-7).
 format: 1
-version: 1
+version: 1.1
 project:
   name: WingFoil UI
   description: Local web UI for WingFoil-governed projects, served by a local server that drives the wingfoil CLI.
@@ -121,6 +121,11 @@ team:
         - architect
         - tech-lead
       approval_authority: false
+    - name: claude
+      email: 352896614+wingfoil-dev@users.noreply.github.com
+      executes_as: [facilitator, product-owner, developer, reviewer, qa, architect, tech-lead]
+      approval_authority: false
+      adapter: claude-opus
 paths:
   sources:
     - server/
