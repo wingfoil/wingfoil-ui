@@ -1,0 +1,37 @@
+{
+  "baseline": {
+    "rev": "HEAD",
+    "commit": "29499a586ae06f43a809a09b0a7b1629eef7b94d"
+  },
+  "workflows": [
+    {
+      "name": "adr-ingest",
+      "startable": true,
+      "includable": false,
+      "description": "Capture an ADR on demand",
+      "executableNow": true
+    },
+    {
+      "name": "bug-ingest",
+      "startable": true,
+      "includable": false,
+      "description": "Capture a bug on demand",
+      "executableNow": true
+    },
+    {
+      "name": "decision-log-ingest",
+      "startable": true,
+      "includable": false,
+      "description": "Capture a decision-log on demand",
+      "executableNow": true
+    },
+    {
+      "name": "sw-life-cycle",
+      "startable": true,
+      "includable": false,
+      "description": "The end-to-end software life cycle",
+      "executableNow": true
+    }
+  ],
+  "diagnostics": []
+}

@@ -10,3 +10,5 @@ playwright-report/
 web/dist-keys/
 # Claude Code local settings: the agent sessions' git identity, written by the approver (task-050)
 .claude/settings.local.json
+# The script runner's machine paths (line checkouts, worktrees, setup folder): never committed (directive wingfoil-cli)
+config/runner.local.yaml

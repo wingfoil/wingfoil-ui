@@ -1,6 +1,6 @@
 // bug-037, task-075 AC-2 (D75-9, D75-10) — the differential table: every row is a mapping of two (or
 // three) keys run through the server's parse (`parseYaml`) and through `js-yaml` 4.3.2's `load` with
-// its default schema, the loader of the pinned `wingfoil@0.3.1` (`dist/validation/yaml.js`). A row
+// its default schema, the loader of the pinned `wingfoil@0.3.2` (`dist/validation/yaml.js`). A row
 // passes when both refuse it for its keys (js-yaml: "duplicated mapping key", "nested arrays are not
 // supported inside keys", a tag it does not accept on a key, an implicit empty key; the server: a
 // `duplicate key`, `unsupported key` or `empty key`) or both read it.

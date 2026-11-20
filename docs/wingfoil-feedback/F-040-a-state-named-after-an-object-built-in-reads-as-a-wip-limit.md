@@ -45,6 +45,10 @@ and with `__proto__` (`limit [object Object]`), each `held by` no one. `requireW
 `undefined`. `memory.yaml` passes validation: the names are ordinary `sequence` states, and the
 schema accepts them as `limits` keys too. The element can then never leave `draft` by `submit`.
 
+Also on 0.3.1 and 0.3.2 (`0.3.2 (6de2e13c…)`, 2026-11-19, the re-check of `governance-evolution-8-plan`): with no
+`limits` and no `gates` declared, a state named `constructor` also reads as a gate — `memory submit` from it is refused
+with ``illegal `submit` from "constructor": a `gates` state…``.
+
 ## Expected
 
 A state takes a WIP slot only when `limits` declares it as an own key: read the limit with

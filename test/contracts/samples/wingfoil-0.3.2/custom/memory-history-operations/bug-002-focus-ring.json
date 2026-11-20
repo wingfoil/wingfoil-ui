@@ -1,0 +1,42 @@
+{
+  "id": "bug-002-focus-ring",
+  "path": "docs/04_memory/bugs/bug-002-focus-ring.md",
+  "entries": [
+    {
+      "sha": "c055e04e66f65ff4aa56835d71300119f2290d2b",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:40:17+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): add bug-002-focus-ring",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "e65aeb231b25445178650c72462ab745b6800222",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:40:18+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): submit bug-002-focus-ring",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "7538c634e1629128ba4f55123be28828c3e0f840",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:40:19+00:00",
+      "operation": "assign",
+      "from": "open",
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): assign release v0.1 to bug-001-toast-overlap, bug-002-focus-ring",
+      "wingfoil": null
+    }
+  ]
+}

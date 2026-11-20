@@ -1,6 +1,6 @@
 // task-069 — held gates (spec-003 §3, §5, §8; spec-005 §4a; RP3-14 D5) and the actor of a `work`
 // state entered by an `approve` (spec-003 §4, RP3-14 D6), on the definitions, histories and team
-// WingFoil 0.3.1 captured for the custom fixture (the packs' governance: `release` `releasing` and
+// WingFoil 0.3.2 captured for the custom fixture (the packs' governance: `release` `releasing` and
 // `release-line` `active` are gates, a task approved into `backlog` is `work`). The oracle is the
 // spec text and the scenarios S-24.5, S-24.6 and T-11.x, written by hand.
 import { readFileSync } from 'node:fs';
@@ -19,7 +19,7 @@ import { REPO_ROOT } from '../../harness/cli.js';
 import { memberByName, type MemberName } from '../../harness/fixtures/index.js';
 import { APPROVERS } from './standard.js';
 
-const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.1/custom');
+const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.2/custom');
 const read = (file: string) => readFileSync(path.join(SAMPLES, file), 'utf8');
 const memoryYaml = parseMemoryYaml(read('files/memory.yaml'));
 const members = (JSON.parse(read('dna-show.json')) as DnaShow).team.members;
@@ -147,7 +147,7 @@ const member = (name: MemberName, roles?: readonly string[]): Identity => {
   return { kind: 'member', email: m.email, name, roles: [...(roles ?? m.roles)] };
 };
 
-/** The Today rows of the 0.3.1 custom sample, with `extra` elements and their events. */
+/** The Today rows of the 0.3.2 custom sample, with `extra` elements and their events. */
 function rows(
   p: DescriptorProject,
   extra: { id: string; type: string; status: string; events?: HistoryEntry[] }[] = [],
@@ -276,7 +276,7 @@ describe('the actor of a work state entered by an approve (spec-003 §4, D6)', (
     expect(d.since).toBe(T(2));
   });
 
-  it('T-11.x on the 0.3.1 sample — a task approved into backlog is its submitter’s, not the approver’s', () => {
+  it('T-11.x on the 0.3.2 sample — a task approved into backlog is its submitter’s, not the approver’s', () => {
     const r = rows(project());
     const jordan = today(r, member('Jordan'), 'developer');
     expect(ids(jordan.requiresYou)).toEqual(expect.arrayContaining(['task-003-element-panel', 'task-004-themes']));

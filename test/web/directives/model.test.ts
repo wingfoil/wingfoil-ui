@@ -113,7 +113,7 @@ describe('directive paths and links', () => {
 describe('a link to a shadowed directive file (task-047 D47-4, bug-025)', () => {
   const shadowed = JSON.parse(
     readFileSync(
-      path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.1/kanban/directives-list-shadowed.json'),
+      path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.2/kanban/directives-list-shadowed.json'),
       'utf8',
     ),
   ) as DirectivesList;

@@ -1,7 +1,7 @@
 // task-073 — `state-limit` (spec-003 §6 rule 5; RP3-14 D11, RP3-15 F4; D73-2, D73-5): a `submit` or
 // `approve` whose target state is at the type's `limits` is disabled with `state-limit {state,
 // limit}`; a `reject` into a full state stays enabled (WingFoil exempts it, design probe P8). On the
-// definitions WingFoil 0.3.1 captured for the custom fixture (`sprint` `limits: { active: 1 }`), with
+// definitions WingFoil 0.3.2 captured for the custom fixture (`sprint` `limits: { active: 1 }`), with
 // `task` given limits of its own for the gate cases. The oracle is the spec text and S-24.7.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -11,7 +11,7 @@ import { describeElement, type DescriptorProject, type Enablement } from '../../
 import { parseMemoryYaml } from '../../../server/src/reads/memory-yaml.js';
 import { REPO_ROOT } from '../../harness/cli.js';
 
-const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.1/custom');
+const SAMPLES = path.join(REPO_ROOT, 'test/contracts/samples/wingfoil-0.3.2/custom');
 const read = (file: string) => readFileSync(path.join(SAMPLES, file), 'utf8');
 const TEXT = read('files/memory.yaml');
 const TASK_SEQUENCE = '      sequence: [ draft, pending, backlog, in-progress, in-review, approved, done ]\n';

@@ -1,0 +1,23 @@
+{
+  "sources": [
+    "server/",
+    "web/",
+    "contracts/"
+  ],
+  "tests": [
+    "test/"
+  ],
+  "docs": [
+    "docs/"
+  ],
+  "config": [
+    "package.json",
+    ".wingfoil"
+  ],
+  "governance": [
+    ".wingfoil/"
+  ],
+  "runs": [
+    "docs/runs/"
+  ]
+}

@@ -203,7 +203,8 @@ const KANBAN_TYPES_022 = ['adr', 'bug', 'decision-log', 'release', 'release-line
 
 const BEHAVIOURS: Readonly<Record<string, VersionBehaviours>> = {
   '0.2.2': { addState: 'draft', kanbanTypes: KANBAN_TYPES_022, workflowList: 'v0.2', historyEntry: 'v0.2' },
-  '0.3.1': {
+  // 0.3.2 in place of 0.3.1, which answered the same (0.3.2's CHANGELOG *Upgrading from 0.3.1*; governance-evolution-8).
+  '0.3.2': {
     addState: 'first-declared',
     kanbanTypes: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
     workflowList: 'v0.3',

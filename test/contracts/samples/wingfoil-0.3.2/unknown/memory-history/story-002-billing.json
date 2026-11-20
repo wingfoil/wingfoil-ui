@@ -1,0 +1,42 @@
+{
+  "id": "story-002-billing",
+  "path": "docs/stories/story-002-billing.md",
+  "entries": [
+    {
+      "sha": "673b98357a41ff41a95cd82cc0497247b06b9731",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:03+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "idea",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(story): add story-002-billing",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "9f87bf256a039187d34ece810047e96fd4ca4755",
+      "author": "Jordan <jordan@example.test>",
+      "timestamp": "2026-09-29T15:20:05+00:00",
+      "operation": "submit",
+      "from": "idea",
+      "to": "shaping",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(story): submit story-002-billing",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "b224dcddf5bde116cb794b8869c546c295216efa",
+      "author": "Morgan <morgan@example.test>",
+      "timestamp": "2026-09-29T15:20:06+00:00",
+      "operation": "approve",
+      "from": "shaping",
+      "to": "ready-to-build",
+      "approver": "Morgan <morgan@example.test> (approver)",
+      "reason": "Approved",
+      "subject": "wf(story): approve story-002-billing [shaping → ready-to-build]",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    }
+  ]
+}

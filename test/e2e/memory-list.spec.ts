@@ -372,9 +372,9 @@ test.describe('US-S-26 — refresh by itself', () => {
 
 test.describe('US-S-28 — three fixtures, no UI change', () => {
   const TYPES = {
-    // `init --template Kanban` of the pinned WingFoil 0.3.1 declares `plan` (task-046).
+    // `init --template Kanban` of the pinned WingFoil 0.3.2 declares `plan` (task-046).
     kanban: ['adr', 'bug', 'decision-log', 'plan', 'release', 'release-line', 'task', 'tech-spec'],
-    // This repository's types with the packs' `sprint` (methodology/scrum): the pinned 0.3.1 builds the
+    // This repository's types with the packs' `sprint` (methodology/scrum): the pinned 0.3.2 builds the
     // custom fixture on the live `.wingfoil/` (`customGovernance`, the packs adoption's decision 16).
     custom: ['release-line', 'release', 'task', 'adr', 'decision-log', 'tech-spec', 'bug', 'plan', 'sprint', 'service'],
     unknown: ['story', 'note'],

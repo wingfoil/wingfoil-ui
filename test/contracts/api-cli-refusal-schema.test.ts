@@ -90,9 +90,9 @@ describe('cli.refusal.schema.json', () => {
 });
 
 describe('the captured samples (W-20)', () => {
-  it('0.3.1 carries details[].detail; 0.2.2 the error only', () => {
-    const v031 = JSON.parse(sample('0.3.1')) as { details?: { file: unknown; detail: unknown }[] };
-    expect(v031.details?.map((d) => typeof d.detail)).toEqual(['string']);
+  it('0.3.2 carries details[].detail; 0.2.2 the error only', () => {
+    const v032 = JSON.parse(sample('0.3.2')) as { details?: { file: unknown; detail: unknown }[] };
+    expect(v032.details?.map((d) => typeof d.detail)).toEqual(['string']);
     expect(Object.keys(JSON.parse(sample('0.2.2')) as object)).toEqual(['error']);
   });
 });

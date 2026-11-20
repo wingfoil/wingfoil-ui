@@ -1,0 +1,42 @@
+{
+  "id": "bug-001-toast-overlap",
+  "path": "docs/04_memory/bugs/bug-001-toast-overlap.md",
+  "entries": [
+    {
+      "sha": "235f7b3f0223c52e074f68c2f2caeeb1eee4a0cb",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:20:23+00:00",
+      "operation": "add",
+      "from": null,
+      "to": "draft",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): add bug-001-toast-overlap",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "ec09f5e501bc863096f0b1e19fc4270ebf9b1aa3",
+      "author": "Sam <sam@example.test>",
+      "timestamp": "2026-09-29T15:20:24+00:00",
+      "operation": "submit",
+      "from": "draft",
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): submit bug-001-toast-overlap",
+      "wingfoil": "0.3.2 (6de2e13c004bbf419acfa7dc4d98d5a7468cd693)"
+    },
+    {
+      "sha": "7538c634e1629128ba4f55123be28828c3e0f840",
+      "author": "Alex <alex@example.test>",
+      "timestamp": "2026-09-29T15:40:19+00:00",
+      "operation": "assign",
+      "from": "open",
+      "to": "open",
+      "approver": null,
+      "reason": null,
+      "subject": "wf(bug): assign release v0.1 to bug-001-toast-overlap, bug-002-focus-ring",
+      "wingfoil": null
+    }
+  ]
+}

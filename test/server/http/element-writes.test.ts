@@ -983,7 +983,7 @@ const FAILED_COMMITS: [string, (fx: Fixture) => Promise<void>][] = [
 // index and refuses (exit 1, `E_COMMIT_FAILED … nothing was committed`), so the server answers the
 // refusal (422) and nothing is left changed. WingFoil 0.2.2 leaves the file changed (W-30): the
 // server's `write-incomplete` (500) is checked on a 0.2.2 build.
-describe('W2-1 on WingFoil 0.3.1 (pinned) — a failed commit is the CLI’s refusal, nothing left changed', () => {
+describe('W2-1 on WingFoil 0.3.2 (pinned) — a failed commit is the CLI’s refusal, nothing left changed', () => {
   it.each(FAILED_COMMITS)(
     '%s → 422 cli-refused, no root in the body, nothing committed, logged or announced, the file unchanged',
     async (_l, prepare) => {
@@ -1058,7 +1058,7 @@ describe('review round 4 minor-1 — a failed git read on a write route', () => 
 describe('review round 2 N1 — the reason never reaches the server log on a failed write', () => {
   const SECRET = 'secret-reason-text-4711';
 
-  it('WingFoil 0.3.1 (pinned): reject with a failing pre-commit hook → 422 cli-refused; the log holds no reason, no root', async () => {
+  it('WingFoil 0.3.2 (pinned): reject with a failing pre-commit hook → 422 cli-refused; the log holds no reason, no root', async () => {
     const log: string[] = [];
     const c = await start({
       log,

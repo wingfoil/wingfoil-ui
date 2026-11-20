@@ -9,11 +9,11 @@ tags: [custom, release, planning, scrum]
 
 # Directive — Release planning of WingFoil UI
 
-**Version:** 1.3 · **Date:** 2026-11-18 (1.0: this repository's `release-planning` procedure folded
+**Version:** 1.4 · **Date:** 2026-11-19 (1.0: this repository's `release-planning` procedure folded
 into a directive, its file removed — task-049, adoption decision 2, RP3-13; 1.1: review round 1 of
 task-049: the release's submits are `plan-release`'s (product-owner), `plan-sprint` adds only the
 first Sprint, the stage plan names a sub workflow, the `memory add --type … --title` forms; 1.2:
-*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018; 1.3: each exit criterion names its check, the size check at *build-backlog*, *Deferrals*, the next Sprint at `next-sprint` — dl-022, dl-020 actions 1, 4, 5)
+*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018; 1.3: each exit criterion names its check, the size check at *build-backlog*, *Deferrals*, the next Sprint at `next-sprint` — dl-022, dl-020 actions 1, 4, 5; 1.4: *Checkpoints under the runner*, the runner's line switched to the phase branch at *Review* — `governance-evolution-8-plan`, the runner adoption)
 
 Applies to the product-owner, the tech-lead and the architect when a release is planned. It says
 how each step is done in this repository; the packs' phases and the verbs own every transition
@@ -42,6 +42,26 @@ includes.
   opens a second run that `workflow next` answers first (probe of task-049, W0-6). The release's
   later stages use `release-submit-…` and `release-publishing-…` plans. One commit per step, after
   the approver's OK on its draft.
+
+## Checkpoints under the runner
+
+When the script runner launches the step (`wingfoil-cli` › *The script runner*), the approver is not in the session,
+so each OK this directive asks for becomes a stop the approver rules from their own terminal:
+
+- **The scope OK** (*define-scope*) and **the final OK** (*Review*): the step commits what it
+  prepared (the scope in the plan; the reviewed planning) and ends with `RESULT: blocked decision
+  <question>`, one question the approver can approve or reject as it stands. The approver rules it
+  with `gate.mjs`; the ruling and its reason reach the next launch of the step, which goes on from
+  there (approved) or reworks what the reason names (rejected).
+- **An approval of the table above** is not a decision: one a workflow step waits for is that
+  step's gate, ruled with `gate.mjs`; one no step waits for (a bug's `triaged → planned` at
+  *build-backlog*) ends the step with `RESULT: blocked waiting for the approval of <full id>`, given
+  as `wingfoil-cli` rule 14 says.
+- **`RESULT: blocked`** stays for what no ruling can fix (a missing input, a defect that stops the
+  step); the approver closes its notice once it is solved (`wingfoil-cli` rule 14).
+
+An OK given in chat outside a runner launch is still an OK: the step records it in the plan as
+it does today.
 
 ## Selection filter
 
@@ -169,9 +189,11 @@ takes it as an input, or says explicitly that the limitation is accepted (dl-020
 
 An independent, fresh-context review of the whole planning (scope, bugs, specs, backlog,
 `check_tasks.py`) until PASS; then the approver's OK, `memory submit <sprint>`, the plan closed by
-hand (`wingfoil-cli` W-04), the merge into `main` with `--no-ff`. Then the tech-lead creates the
+hand (`wingfoil-cli` W-04), the merge into `main` with `--no-ff` (under the script runner the
+planning's commits are already on `main`). Then the tech-lead creates the
 release's phase branch `design/dev-loop_vX.Y` from `main`; its first commit sets `PHASE_BRANCH` in
-`.github/workflows/gates.yml` to that branch, which the own-specs job diffs against (dl-018).
+`.github/workflows/gates.yml` to that branch, which the own-specs job diffs against (dl-018); under
+the script runner, the approver then switches the runner's line to it (`wingfoil-cli` rule 13).
 
 ## A new release line
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://wingfoil-ui.local/contracts/cli/workflow-list.schema.json",
-  "$comment": "wingfoil 0.2.2 and 0.3.1 — captured from `wingfoil --format json workflow list` on the kanban, custom and unknown fixtures of each version. One branch per version line (spec-001 §5, task-046 D46-3): an output matches exactly one, selected by its shape.",
+  "$comment": "wingfoil 0.2.2 and 0.3.2 (0.3.1 until governance-evolution-8) — captured from `wingfoil --format json workflow list` on the kanban, custom and unknown fixtures of each version. One branch per version line (spec-001 §5, task-046 D46-3): an output matches exactly one, selected by its shape.",
   "title": "wingfoil workflow list",
   "description": "The workflows of the project (spec-001 §3), in the shape of the CLI's version line: definitions v0.2 (0.2.x) or v0.3 (0.3.x). The branches exclude each other: v0.2 has no baseline, v0.3 no manifest.",
   "oneOf": [

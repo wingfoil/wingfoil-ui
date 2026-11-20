@@ -9,7 +9,7 @@ tags: [custom, release, git, npm]
 
 # Directive — Release conventions of WingFoil UI
 
-**Version:** 1.8 · **Date:** 2026-11-18 (1.0: dl-008's tailoring of `release-submit`,
+**Version:** 1.9 · **Date:** 2026-11-19 (1.0: dl-008's tailoring of `release-submit`,
 `release-publishing` and `retrospective`, re-applied on the `software` and `base` packs' workflows
 at their adoption — governance-alignment-rel-v0.3-plan step 3; 1.1: `mark-released` is the
 approver's `approve`, the retrospective's inventory in its plan — GA3-11 R-1, R-5; 1.2: when the
@@ -21,7 +21,7 @@ line's plan `delivery-seed-rl-vN-plan`, `check_tasks.py` in `pre-release-checks`
 `memory add --type … --title` form; 1.5: *Governance checks* — the plan version, the closed bug's
 `release`, the release `sprint` rule of `check_releases.py`, task-051; 1.6: the agents' own git identity in the identity paragraph —
 task-050; 1.7: that identity's reach, the paths that still act as the approver — its review
-round 1; 1.8: the exit criteria, the screens in scope and the dogfooding share in `pre-release-checks`, the list at `approve-release` — dl-022, dl-020 action 1)
+round 1; 1.8: the exit criteria, the screens in scope and the dogfooding share in `pre-release-checks`, the list at `approve-release` — dl-022, dl-020 action 1; 1.9: the runner's line back on `main` before `pre-release-checks` — `governance-evolution-8-plan`)
 
 The packs' release workflows (`release-submit`, `release-publishing`, `.wingfoil/workflows/built-in/`)
 name what each phase does, not how this repository does it. This directive says how; the pipeline
@@ -29,6 +29,8 @@ and the approver's steps are in `docs/publishing.md`.
 
 ## `release-submit`
 
+- **Under the script runner**, before `pre-release-checks`: the approver switches the runner's line
+  back to `main` (`wingfoil-cli` rule 13).
 - **`pre-release-checks`** (qa), on `main` once the release's tasks are merged:
   - every task of the release is `done` (`python3 docs/03_backlog/X_tools/check_tasks.py vX.Y`
     passes on them);
