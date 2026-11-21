@@ -10,7 +10,7 @@ priority: "medium"           # optional — high | medium | low
 tags: ["v0.3.1", "web", "a11y"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: ["bug-052-completion-and-chip-tooltips-close-when-the-pointer-moves-onto-them"]                # optional — LIST of bug ids this task closes
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-084-content-security-policy-on-the-console-pages", "task-085-repository-keys-escaped-where-the-page-renders-them", "task-087-zero-width-joiner-between-two-letters-kept-in-display-text", "task-094-a-broken-git-configuration-read-as-no-identity"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
