@@ -10,7 +10,7 @@ priority: "high"           # optional — high | medium | low
 tags: ["v0.3.1", "server", "security"]               # optional — additional labels, e.g. [today, a11y]
 ref: "GOV"                # optional — backlog item ID, e.g. "TASK-001"
 bug: ["bug-039-the-console-serves-its-pages-without-a-content-security-policy"]                # optional — LIST of bug ids this task closes
-depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+depends_on: ["task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt", "task-092-development-dependencies-refreshed-and-the-node-engine-aligned", "task-091-session-recovery-scenario-made-deterministic"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
 tmpl_version: 260703   # Orignal template version
 ---
 
