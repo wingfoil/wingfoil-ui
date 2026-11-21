@@ -15,9 +15,13 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const arg = (name) => { const at = process.argv.indexOf(name); return at === -1 ? null : process.argv[at + 1]; };
 const stop = (message) => { console.error(`gate: ${message}`); process.exit(2); };
 const id = process.argv.slice(2).find((a) => /^N-\d+$/.test(a));
+const element = arg('--element');
 const reason = arg('--reason');
 const lineName = arg('--line');
-if (!id || !reason?.trim() || !lineName) stop('usage: gate.mjs --line <line> <N-id> --reason "<ruling>" [--reject]');
+if ((!id && !element) || (id && element) || !reason?.trim() || !lineName) {
+  stop('usage: gate.mjs --line <line> <N-id> --reason "<ruling>" [--reject]\n       gate.mjs --line <line> --element <id> --reason "<ruling>" [--reject | --amend] [--expect <status>]');
+}
+if (element && !lib.safeId(element)) stop(`${element} is not a plain element id`);
 const marker = lib.AGENT_MARKERS.find((name) => process.env[name]);
 if (marker) stop(`${marker} is set: a gate is ruled from the approver's own terminal, never from an agent`);
 
@@ -35,11 +39,14 @@ const cli = lib.trustedCli(set.cli, HOME);
 const program = cli[0] === 'node' ? cli[1] : cli[0];
 if (program.startsWith('/') && !existsSync(program)) stop(`the WingFoil CLI is not installed in the runner home: ${program}`);
 const git = (...args) => spawnSync('git', ['-C', co, ...args], { encoding: 'utf8' }).stdout.trim();
-// Run from the runner home, the approver's own checkout: never a line's, matching the trusted ref, its
+// Run from the runner home, a clone used by the runner only: never a line's, matching the trusted ref, its
 // git config running nothing (N3, N4, E); the checkout's git config runs nothing either (N1).
 const homeProblems = lib.homeTrustProblems({ config, home: HOME, repo: REPO, git: (args) => spawnSync('git', ['-C', HOME, ...args], { encoding: 'utf8' }) });
 if (homeProblems.length) stop(homeProblems.join('\ngate: '));
-const checkoutUnsafe = lib.unsafeGitConfig(spawnSync('git', ['-C', co, ...lib.GIT_CONFIG_LIST], { encoding: 'utf8' }).stdout);
+const checkoutConfig = spawnSync('git', ['-C', co, ...lib.GIT_CONFIG_LIST], { encoding: 'utf8' });
+// A config git cannot read is not judged safe (1.1.19, L-3, as run.mjs since 1.1.14).
+if (checkoutConfig.status !== 0) stop(`${co}: git cannot read its config, so nothing is ruled from here: ${(checkoutConfig.stderr || '').trim().split('\n')[0]}`);
+const checkoutUnsafe = lib.unsafeGitConfig(checkoutConfig.stdout);
 if (checkoutUnsafe.length) stop(`${co}: its git config runs programs, so nothing is ruled from here: ${checkoutUnsafe.join(', ')}`);
 const project = JSON.parse(readFileSync(join(HOME, 'package.json'), 'utf8')).name;
 const noticesPath = join(co, set.notices);
@@ -49,18 +56,39 @@ const noticesPath = join(co, set.notices);
 }
 const ledger = (entry) => lib.appendLedger(project, { line: lineName, ...entry });
 
-const entry = lib.notices(readFileSync(noticesPath, 'utf8')).find((n) => n.open && n.id === id);
-if (!entry) stop(`${id} is not an open notice of line ${lineName}`);
-const kind = lib.noticeKind(entry.key);
-if (!['gate', 'decision'].includes(kind)) stop(`${id} is a ${kind} notice, not a gate or a decision`);
+const entry = id ? lib.notices(readFileSync(noticesPath, 'utf8')).find((n) => n.open && n.id === id) : null;
+if (id && !entry) stop(`${id} is not an open notice of line ${lineName}`);
+const kind = entry ? lib.noticeKind(entry.key) : 'element';
+if (!['gate', 'decision', 'element'].includes(kind)) stop(`${id} is a ${kind} notice, not a gate or a decision`);
 // The line's own lock, taken atomically: no run of the line starts while the gate is ruled (L1).
 const lockFile = join(co, '.git', 'dfd-runner.lock');
-try { writeFileSync(lockFile, JSON.stringify({ pid: process.pid, started: new Date().toISOString(), gate: id }), { flag: 'wx' }); } catch { stop(`a run of line ${lineName} is in progress: try again when it ends`); }
+try { writeFileSync(lockFile, JSON.stringify({ pid: process.pid, started: new Date().toISOString(), gate: id ?? element }), { flag: 'wx' }); } catch { stop(`a run of line ${lineName} is in progress: try again when it ends`); }
 process.on('exit', () => rmSync(lockFile, { force: true }));
 if (git('rev-parse', '--abbrev-ref', 'HEAD') !== line.branch) stop(`${co} is not on ${line.branch}`);
-const dirty = git('status', '--porcelain');
-if (dirty) stop(`${co} has uncommitted files:\n${dirty}`);
+const amend = process.argv.includes('--amend');
 const reject = process.argv.includes('--reject');
+// An amendment commits the element's own edited file; anything else must be clean.
+const dirty = git('status', '--porcelain').split('\n').filter(Boolean).filter((l) => !(amend && l.slice(3).trim().endsWith(`/${element}.md`)));
+if (dirty.length) stop(`${co} has uncommitted files:\n${dirty.join('\n')}`);
+
+if (kind === 'element') {
+  // The approver's own verb on an element (approve, reject, amend), run with the home's CLI in the
+  // line's checkout after the same checks as a gate: never the checkout's own node_modules (1.1.17).
+  if (amend && reject) stop('--amend and --reject are two different verbs');
+  const expect = arg('--expect');
+  if (expect) {
+    const history = spawnSync(cli[0], [...cli.slice(1), 'memory', 'history', element, '--format', 'json'], { cwd: co, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    let status;
+    try { status = JSON.parse(history.stdout.slice(history.stdout.indexOf('{'))).entries.filter((e) => e.to).at(-1)?.to ?? null; } catch { status = null; }
+    if (status !== expect) stop(`${element} is ${status ?? 'unknown'}, not ${expect}: nothing done`);
+  }
+  const verb = amend ? 'amend' : reject ? 'reject' : 'approve';
+  const run = spawnSync(cli[0], [...cli.slice(1), 'memory', verb, element, '--reason', reason.trim()], { cwd: co, stdio: 'inherit' });
+  if (run.status !== 0) stop(`wingfoil memory ${verb} ${element} failed (exit ${run.status})`);
+  ledger({ kind: 'element', element, verb, reason: reason.trim() });
+  console.log(`${element}: memory ${verb} done with the runner home's CLI`);
+  process.exit(0);
+}
 
 if (kind === 'decision') {
   // A decision a step asked for: the ruling closes the notice in a commit the step's next run reads.

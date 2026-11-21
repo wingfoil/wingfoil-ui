@@ -79,7 +79,7 @@ lines:
     release_line: rl-v1
     branch: main
     agent: claude
-    weekly_token_budget: null
+    weekly_token_budget: 45000000
     tiers:
       high: claude-opus
       intermediate: claude-sonnet
