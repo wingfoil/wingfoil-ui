@@ -91,7 +91,7 @@ Selection filter (`release` empty or `v0.3.1`), read with `memory search --forma
 - **Bugs:** none `open`. `triaged`: bug-052 and bug-053 (`release` empty, dl-021 Decision 3);
   bug-039, bug-041, bug-044, bug-045, bug-047, bug-048, outside the filter (`release: "v0.4"` until
   `d60248d8`) and pulled in by dl-021 Decision 3 and *Actions*, not by the filter (corrected in
-  Session 3, review round 1 finding 5); and bug-051 (`release` empty) (outside the releases, dl-021 Decision 9: fixed by the
+  Session 3, review round 1 finding 5); and bug-051 (`release` empty; outside the releases, dl-021 Decision 9: fixed by the
   `governance-evolution` run before this planning — its state stays to be closed by the approver,
   not by this plan).
 - **Decision-logs:** all 24 `ready`, none `in-discussion`. **ADRs:** adr-001 … adr-003 `accepted`,
@@ -323,5 +323,28 @@ priority, ref, and no element of a later release pulled in. Findings and their d
 | 10 | Step 1's leftovers not in the *Deferrals* form | **Deferral:** the version check (`npm run -s wingfoil -- --version`), `npm view wingfoil versions` and the feedback sync (`wingfoil-cli` rule 7) — not run, the runner's launch does not permit them; accepted as a limitation of this planning (the pin `wingfoil@0.3.2` stands on `package.json`, `node_modules/wingfoil/package.json` and the CLI's `WingFoil-Version: 0.3.2` trailers, e.g. `e10e7512`); taken by the next `governance-evolution` run, or by `pre-release-checks` of v0.3.1 at the latest |
 | 11 | `trunk:sprint-002`'s candidate scope predates N-001 (no bug-051, no `engines.node`) | Updated at step 9: the edit is carried by `memory submit sprint-002` (W-24), after the final OK |
 
-The amends of findings 2, 4 and 8 (task-091, task-095, `patch-v0.3.1`) are the approver's: an agent
-never amends (`wingfoil-cli` rule 11). Their wording is the one above.
+The amends of findings 2, 4, 7 and 8 are the approver's: an agent never amends (`wingfoil-cli` rule
+11). Each is a hand edit of the element file in the line's clone, then, from the runner home,
+`gate.mjs --line trunk --element <full id> --amend --reason "…"` (rule 14; it commits the element's
+own edited file alone, so one element at a time):
+
+| Element | Edit | Reason |
+|---------|------|--------|
+| `task-091-session-recovery-scenario-made-deterministic` | the 20-run criterion: "through a `repeat` input this task adds to `.github/workflows/gates.yml` (`workflow_dispatch`, Chromium, the given `specs`)" | review round 1 finding 2 |
+| `task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt` | AC-3: spec-012 §3's examples changed by a dated *Process Note*, not marked inline | finding 7 |
+| `task-095-feature-pattern-of-the-ui-configuration-matching-this-repository-feature-ids` | AC-2: "a hand edit of `.wingfoil/ui.yaml`, committed `chore(ui): …` (W-11)" in place of "as *Use preset* writes it" | finding 8 |
+| `patch-v0.3.1` | *Success Criteria*: bug-053's line as task-091's; add task-094's server test and `check_tasks.py v0.3.1` passes | findings 2, 4 |
+
+An amend not made before the task's design is carried: that design records the gap between the task
+and the criterion above and waits for the approver (`definition-of-done` › *design*).
+
+**Step 8 (Review), round 2 — PASS.** The same reviewer re-checked every disposition against the files
+and git at `39c2aff8`: findings 1, 5, 6 fixed; 2, 3, 4, 8, 9, 10, 11 acceptable. Three minor points, fixed
+here: task-093 added to the amends (finding 7 contradicted its AC-3), the amends written as the
+approver's commands, a double parenthesis in Session 1.
+
+**Step 9, the final OK — asked of the approver** (`release-planning` › *Checkpoints under the
+runner*). On the OK the next launch updates `trunk:sprint-002`'s candidate scope (finding 11), runs
+`memory submit sprint-002` (`planned → active`), and closes this plan (W-04); the phase branch
+`design/dev-loop_v0.3.1` and the line's switch follow (`release-planning` › *Review*, `wingfoil-cli`
+rule 13).
