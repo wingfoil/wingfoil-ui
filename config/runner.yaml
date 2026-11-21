@@ -77,7 +77,7 @@ permissions:
 lines:
   trunk:
     release_line: rl-v1
-    branch: main
+    branch: design/dev-loop_v0.3.1
     agent: claude
     weekly_token_budget: 45000000
     tiers:
