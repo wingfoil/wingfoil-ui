@@ -44,7 +44,8 @@ of `docs/03_backlog/X_tools/`:
   exit 0 on `main` with `patch-v0.3.1` present; `check_tasks.py` for v0.1 … v0.4 unchanged.
 - **AC-3 — Backlog rebuilt.** `python3 docs/03_backlog/X_tools/build_backlog.py` run and its output
   committed (it also carries the SARD edits not built since `2607b5dc`, each listed); spec-012 §3's
-  two example wordings marked "(amended 2026-11-16)" as task-065 F-8 suggests.
+  two example wordings changed by a dated *Process Note* in spec-012 (`release-planning` ›
+  *identify-specs*), not marked inline as task-065 F-8 suggests.
 - **AC-4 — Docs.** The tools' docstrings and `docs/03_backlog/` README (if any) say how patches are
   read; no `CHANGELOG.md` entry (no user-visible change).
 
