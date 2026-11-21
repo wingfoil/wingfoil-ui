@@ -1,5 +1,6 @@
 format: 1
 # One Sprint Backlog item. Not named dev-loop: a project's own dev-loop keeps its name.
+# Deviation from methodology/scrum@1.0.0: bug.sync_state at start and review (R-10, this repository's dl-025).
 name: backlog-item
 kind: sub
 element: task
@@ -11,6 +12,7 @@ phases:
     role: developer
     actions:
       - element.set_state(in-progress)
+      - 'bug.sync_state(for_each: task.bug)'
   - name: build
     description: "Do the work to the Definition of Done."
     role: developer
@@ -21,6 +23,7 @@ phases:
     role: reviewer
     actions:
       - memory.submit
+      - 'bug.sync_state(for_each: task.bug)'
   - name: approve
     description: "The approver approves the item; a reject goes back to build."
     role: approver
