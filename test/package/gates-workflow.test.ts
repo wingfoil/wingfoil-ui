@@ -78,6 +78,8 @@ const EXPRESSIONS = new Set([
   "inputs.scope != 'wave'",
   "inputs.scope == 'wave'",
   'inputs.specs',
+  'inputs.repeat',
+  "inputs.repeat != ''",
   'matrix.shard',
   'matrix.engine',
   'failure()',
@@ -113,7 +115,9 @@ function problems(text: string): string[] {
   const inputs = isMap(on['workflow_dispatch']) ? on['workflow_dispatch']['inputs'] : undefined;
   const scope = isMap(inputs) ? inputs['scope'] : undefined;
   const specs = isMap(inputs) ? inputs['specs'] : undefined;
-  if (!isMap(inputs) || JSON.stringify(Object.keys(inputs).sort()) !== '["scope","specs"]') out.push('inputs');
+  if (!isMap(inputs) || JSON.stringify(Object.keys(inputs).sort()) !== '["repeat","scope","specs"]') out.push('inputs');
+  const repeat = isMap(inputs) ? inputs['repeat'] : undefined;
+  if (!isMap(repeat) || repeat['type'] !== 'string' || repeat['default'] !== '') out.push('repeat input');
   if (
     !isMap(scope) ||
     scope['type'] !== 'choice' ||
@@ -247,7 +251,13 @@ describe('gates.yml — the rules (task-071, AC-1, AC-4, AC-5, AC-6)', () => {
       "branches: ['task/**', 'design/**', main]",
       'push filter',
     ],
-    ['a third input', '      specs:\n', '      extra:\n        type: string\n      specs:\n', 'inputs'],
+    [
+      'a repeat that runs by default',
+      "        type: string\n        default: ''\n\npermissions:",
+      "        type: string\n        default: '5'\n\npermissions:",
+      'repeat input',
+    ],
+    ['a fourth input', '      specs:\n', '      extra:\n        type: string\n      specs:\n', 'inputs'],
     ['a free-text scope', 'type: choice', 'type: string', 'scope input'],
     ['runs left running', 'cancel-in-progress: true', 'cancel-in-progress: false', 'concurrency'],
     ['a group not by ref', 'gates-${{ github.ref }}', 'gates', 'concurrency'],
@@ -385,6 +395,7 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
       'smoke',
       'publish-smoke',
       'e2e-wave',
+      'repeat',
     ]);
     for (const [name, j] of Object.entries(jobs)) {
       expect(j['runs-on'], name).toBe('ubuntu-24.04');
@@ -488,6 +499,7 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
       'e2e-chromium': 'npx playwright install --with-deps chromium',
       'own-specs': 'npx playwright install --with-deps "$ENGINE"',
       'e2e-wave': 'npx playwright install --with-deps "$ENGINE"',
+      repeat: 'npx playwright install --with-deps chromium',
     };
     for (const [name, j] of Object.entries(jobs)) {
       const all = runsOf(j).join('\n');
@@ -602,6 +614,7 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
       'e2e-chromium': 'playwright-report-chromium-${{ matrix.shard }}',
       'own-specs': 'playwright-report-own-${{ matrix.engine }}',
       'e2e-wave': 'playwright-report-${{ matrix.engine }}-${{ matrix.shard }}',
+      repeat: 'playwright-report-repeat',
     };
     for (const [name, j] of Object.entries(jobs)) {
       const uploads = stepsOf(j).filter((s) => s.uses?.startsWith('actions/upload-artifact@'));
