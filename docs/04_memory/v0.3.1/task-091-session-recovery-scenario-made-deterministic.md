@@ -31,8 +31,10 @@ is spec-004 §2 *Session* (REQ-SEC-02).
   slowed machine) and names the cause — the test's wait, or the product's request order — in the
   Execution Notes.
 - **AC-2 — Deterministic.** X-02.3 passes 20 runs in a row on Chromium (`npx playwright test
-  test/e2e/session-recovery.spec.ts --repeat-each 20`, run on `.github/workflows/gates.yml`), and
-  the spec passes on Firefox and WebKit; no retry added, no assertion loosened.
+  test/e2e/session-recovery.spec.ts --repeat-each 20`), through a `repeat` input this task adds to
+  `.github/workflows/gates.yml` (`workflow_dispatch`, applied to the given `specs` on Chromium; a
+  local run is not enough, dl-016), and the spec passes on Firefox and WebKit; no retry added, no
+  assertion loosened.
 - **AC-3 — A product fix, if the cause is in the product.** Then a regression test at the unit or
   server level, spec-004 §2 kept or corrected by a dated *Process Note*, and a `CHANGELOG.md`
   *[0.3.1]* line; a test-only fix has no CHANGELOG line.
