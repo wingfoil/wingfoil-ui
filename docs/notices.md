@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-sprint-002/sprint-planning/3 -->
 ### N-003 · 2026-11-21 · trunk:sprint-002
 
-- **Status:** open
+- **Status:** closed 2026-11-21T13:22:37Z — approved by the approver: Final OK on the planning of v0.3.1 (Session 3): the four amends made (task-091, task-093, task-095, patch-v0.3.1), the waves as listed; the budget risk accepted, task-095, task-089, task-086 moved to v0.3.2 if Wave 2 ends past day 3
 - **Kind:** decision
 - **Opened:** 2026-11-21T13:02:08Z
 - **Line:** trunk
 - **Element:** trunk:sprint-002
 - **Reason:** decision (run sprint-002/sprint-planning/3): Do you give the final OK on the planning of v0.3.1 as recorded in `sprint-planning-rel-v0.3.1-plan` Session 3 (step 7 done, the review PASS in round 2, the dispositions of its findings including your four amends to task-091, task-093, task-095 and `patch-v0.3.1`, the waves, and the budget risk with task-095, task-089 and task-086 named to move), so the next launch runs `memory submit sprint-002` and closes the plan?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-003 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:blocked-trunk-sprint-002/sprint-planning/2 -->
 ### N-002 · 2026-11-21 · trunk:sprint-002
