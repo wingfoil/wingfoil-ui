@@ -542,7 +542,7 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
     const select = stepsOf(j).find((s) => s.run?.includes('scripts/e2e-own-specs.mjs'))!;
     expect(select.run!.trim()).toBe('node scripts/e2e-own-specs.mjs --base "origin/$PHASE_BRANCH" > own-specs.txt');
     expect(select.env).toEqual({ SPECS: '${{ inputs.specs }}' });
-    expect(wf.env['PHASE_BRANCH']).toMatch(/^design\/dev-loop_v\d+\.\d+$/);
+    expect(wf.env['PHASE_BRANCH']).toMatch(/^design\/dev-loop_v\d+\.\d+(?:\.\d+)?$/);
     const runStep = stepsOf(j).find((s) => s.run?.includes('test:e2e'))!;
     const lines = runStep
       .run!.trim()
