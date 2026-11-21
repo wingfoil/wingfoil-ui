@@ -31,9 +31,9 @@ bug-007, bug-008, bug-010). Item 12 of `patch-v0.3.1` (decision N-001;
   §1's safe subset (anchored, at most two single-atom quantifiers, `{n,m}` with m ≤ 100); a server
   test runs the committed pattern against every id of `06_features.md` and against the element id
   shapes, red before.
-- **AC-2 — Written as the UI writes it.** The change is one `chore(ui)` commit touching only
-  `.wingfoil/ui.yaml` and valid against its schema (as *Use preset* writes it, spec-005), not a
-  hand edit outside that rule.
+- **AC-2 — One `chore(ui)` commit.** The change is a hand edit of `.wingfoil/ui.yaml`'s `feature`
+  pattern, committed alone as `chore(ui): …` and valid against its schema (spec-005): no preset
+  edits a pattern, and the CLI owns no `ui.yaml` (`wingfoil-cli` W-11).
 - **AC-3 — Inspected.** The approver inspects *Traceability* on this repository and sees the bugs
   that cite a feature (bug-007, bug-008, bug-010) under their features; the result is recorded in
   the Execution Notes.
