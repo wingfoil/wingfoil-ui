@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/review/1 -->
 ### N-004 · 2026-11-21 · trunk:task-091-session-recovery-scenario-made-deterministic
 
-- **Status:** open
+- **Status:** closed 2026-11-21T20:51:44Z — The finding is in this task's own change (the repeat job of gates.yml, 53e4bdcf): it needs no bug. Reject the review: memory park the task with the finding and its structural fix (reuse the spec-path validator of scripts/e2e-own-specs.mjs, with a regression test) in --reason, and answer rejected.
 - **Kind:** blocked
 - **Opened:** 2026-11-21T20:47:30Z
 - **Line:** trunk
 - **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
 - **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/review/1): required workflow-linked bug creation is refused because no step of sw-life-cycle-1-plan adds a bug
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-004 --how "<what solved it>"`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-sprint-002/sprint-planning/3 -->
 ### N-003 · 2026-11-21 · trunk:sprint-002
