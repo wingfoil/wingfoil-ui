@@ -4,31 +4,81 @@ type: release
 title: "WingFoil UI v0.3.1 — Corrections"              # REQUIRED — e.g. "WingFoil UI v0.1 — Read-only dashboard"
 status: draft          # auto-set by wingfoil
 kind: "patch"               # REQUIRED — "minor" or "patch"; also the id prefix, e.g. minor-v0.1, patch-v0.1.1
-patch-of: ""           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
+patch-of: "minor-v0.3"           # optional — when kind is "patch": id of the released minor it patches, e.g. "minor-v0.2"
 version: "v0.3.1"            # REQUIRED — e.g. "v0.1"
-pillar: ""             # REQUIRED — primary feature area of docs/01_vision/06_features.md this wave centers on
+pillar: "R"             # REQUIRED — primary feature area of docs/01_vision/06_features.md this wave centers on
 features: []           # REQUIRED — feature IDs covered by this release (from 06_features.md)
-wingfoil_min: ""       # minimum WingFoil CLI version this release needs, e.g. "0.2.2"
-requirements: ""       # REQUIRED — path to per-release backlog JSON, e.g. "docs/03_backlog/04_backlog/by-release/v0.1.json"
+wingfoil_min: "0.2.2"       # minimum WingFoil CLI version this release needs, e.g. "0.2.2"
+requirements: "docs/03_backlog/04_backlog/by-release/v0.3.1.json"       # REQUIRED — path to per-release backlog JSON, e.g. "docs/03_backlog/04_backlog/by-release/v0.1.json"
 release-line: "v1"       # REQUIRED — version of the parent release-line, e.g. "v1"; also the path folder for this file
-sprint: ""             # REQUIRED — the Sprint whose `release` phase carries it (sprint-NNN); no n/a form (methodology/scrum)
+sprint: "sprint-002"             # REQUIRED — the Sprint whose `release` phase carries it (sprint-NNN); no n/a form (methodology/scrum)
 tmpl_version: 260929   # Orignal template version
 ---
 
 ## Scope
 
-<!-- What this release delivers: primary pillar focus, key features shipped. -->
+*Corrections* of `minor-v0.3` (`wingfoil-ui@0.3.0`): no new feature (`features: []`,
+`dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1` Decision 2). The scope is the one the
+approver approved at `sprint-planning-rel-v0.3.1-plan` Session 1, step 2 (decision N-001,
+2026-11-21, commit `29f21f6d`), with the two additions of that ruling (items 9 and 14):
+
+1. bug-039 — a Content Security Policy on the console's pages;
+2. bug-041 — repository keys escaped on the page, with the key rendering of dl-009 action 10;
+3. bug-044 — no sideways scroll at a narrow width (the header user name);
+4. bug-045 — a zero width joiner between two letters not shown as an escape;
+5. bug-047 — a Markdown body of lazy-line quotes no longer blocks the page;
+6. bug-048 — the notification bell keyed by element, not by commit;
+7. bug-052 — completion and chip tooltips stay open under the pointer;
+8. bug-053 — scenario X-02.3 of the session recovery spec made deterministic;
+9. the development dependency refresh, without TypeScript 7 and js-yaml 5 (dl-020 action 3), and
+   `engines.node` aligned with what the refreshed dependencies require (N-001);
+10. the stale generated backlog JSON (task-065 F-8, dl-020 action 5);
+11. the broken git configuration case of task-055 (dl-020 action 5);
+12. the `feature` pattern of `.wingfoil/ui.yaml`, which matches none of this repository's feature ids
+    (dl-021 Decision 3);
+13. `docs/03_backlog/X_tools/check_releases.py` reads the patch releases (dl-021 *Actions*);
+14. bug-051 — `release: v0.3.1`, closed by the approver after verifying the fix in force since
+    `ed26e1b4`; no code task (N-001).
+
+Not in scope: dl-021 Decisions 4 … 8 (v0.3.2 and later). Backlog: no new backlog item; the Memory
+tasks of v0.3.1 are governance tasks (`ref: GOV`). Budget: 6 active days, release validation
+included (2–3 active days, dl-009 action 9).
 
 ## Pillar Focus
 
-<!-- Describe the pillar and why it is the focus for this release wave. -->
+**R — Project state.** The screens shipped in v0.3 are the ones these corrections touch: their
+security headers and escaping, their layout at a narrow width, the Markdown renderer, the bell and
+the tooltips; the rest is the repository's own tooling and dependencies.
 
 ## Success Criteria
 
-<!-- Measurable criteria that mark this release as complete.
-     Reference the MVP Canvas if applicable (docs/01_vision/08_mvp-canvas.md). Name the check
-     that verifies each one. Include conformity with `docs/00_reference/ux-reference.md` for the screens in scope, the accessibility bar, and the supported WingFoil
-     versions (`wingfoil_min` and the contract tests). -->
+Each criterion names its check (dl-020 action 1); `pre-release-checks` records each result
+(`release-conventions`):
+
+- each bug of the content is fixed: its regression test, named in its task, fails before the fix and
+  passes after (`npx vitest run <file>` or `npm run test:e2e -- <spec>`), and the bug reaches
+  `closed` through the approver;
+- bug-039: every page response carries a `Content-Security-Policy` header (a server test) and the e2e
+  suite passes on the three engines with it in force (`npm run test:e2e`, `gates.yml` `wave`);
+- bug-053: X-02.3 passes 20 runs in a row on Chromium (`npx playwright test <spec> --repeat-each
+  20`, through `gates.yml`);
+- the dependency refresh: `npm outdated` lists only TypeScript 7, js-yaml 5 and the pins kept on
+  purpose (each named in the task); `npm audit` reports no critical or high finding on the
+  development dependencies, or each one left is named in `docs/publishing.md` *Accepted dev-only
+  findings*; `npm audit --omit=dev` reports none; `npm ci` prints no `EBADENGINE` warning on the
+  supported Node (`engines.node`, N-001);
+- the backlog JSON is regenerated and its check passes (the command task-065 F-8 names);
+- `check_releases.py` passes with `patch-v0.3.1` present (`python3
+  docs/03_backlog/X_tools/check_releases.py`);
+- `.wingfoil/ui.yaml`'s `feature` pattern matches this repository's feature ids (an inspection of
+  *Traceability* on this repository by the approver, and the server test of the pattern);
+- bug-051 `closed` by the approver (an inspection of the fix in force since `ed26e1b4`);
+- the bars common to every release: `npm run typecheck`, `lint`, `format:check`, `test:coverage`,
+  `test:contract` (every supported WingFoil version from `wingfoil_min` 0.2.2), `test:smoke`,
+  `test:publish-smoke`, `test:timing`, the three-engine `test:e2e` (`release-conventions`), 0
+  serious/critical axe violations on the screens a fix touches, in both themes (directive
+  `accessibility`), and the screens a fix touches unchanged against
+  `docs/00_reference/ux-reference.md` but for the fix (directive `ux-consistency`).
 
 ## Execution Notes
 
@@ -41,6 +91,14 @@ tmpl_version: 260929   # Orignal template version
 
 <!-- identify-specs: artefacts discovered late or missed; build-backlog: scope/estimation
      surprises, bugs selected for this release and their derived fix tasks. -->
+
+- Plan `sprint-planning-rel-v0.3.1-plan`, the first release planned through the script runner (run
+  `sw-life-cycle-1-plan`, Sprint `sprint-002`); scope approved by the approver as decision N-001.
+- Added by `memory add` at the Sprint's `sprint-planning`, before `plan-release` is open: the CLI
+  refuses the step binding (`no step of sw-life-cycle-1-plan adds a release`), so the add is
+  unbound and `plan-release` records it by `workflow adopt` (RP3-4).
+- `requirements` names `by-release/v0.3.1.json`, which the backlog tools do not yet write for a
+  patch release (item 13).
 
 ### Implementation (`backlog-item`, per task)
 
