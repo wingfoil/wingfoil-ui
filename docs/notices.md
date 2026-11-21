@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-sprint-002/sprint-planning/1 -->
+### N-001 · 2026-11-21 · trunk:sprint-002
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-21T12:18:28Z
+- **Line:** trunk
+- **Element:** trunk:sprint-002
+- **Reason:** decision (run sprint-002/sprint-planning/1): Do you approve the scope of v0.3.1 as written in `sprint-planning-rel-v0.3.1-plan` Session 1, step 2 (content items 1–13, a budget of 6 active days, the listed exit criteria, and adding `patch-v0.3.1` with `sprint: sprint-002` at this step)?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-001 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
