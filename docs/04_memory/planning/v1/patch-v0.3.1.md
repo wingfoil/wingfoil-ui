@@ -60,16 +60,20 @@ Each criterion names its check (dl-020 action 1); `pre-release-checks` records e
   `closed` through the approver;
 - bug-039: every page response carries a `Content-Security-Policy` header (a server test) and the e2e
   suite passes on the three engines with it in force (`npm run test:e2e`, `gates.yml` `wave`);
-- bug-053: X-02.3 passes 20 runs in a row on Chromium (`npx playwright test <spec> --repeat-each
-  20`, through `gates.yml`);
+- bug-053: X-02.3 passes 20 runs in a row on Chromium (`--repeat-each 20`), through the `repeat`
+  input task-091 adds to `gates.yml` (`workflow_dispatch`, the given `specs` on Chromium);
+- task-094: a git configuration git cannot parse reads as "no identity" (its server test, named in
+  the task);
 - the dependency refresh: `npm outdated` lists only TypeScript 7, js-yaml 5 and the pins kept on
   purpose (each named in the task); `npm audit` reports no critical or high finding on the
   development dependencies, or each one left is named in `docs/publishing.md` *Accepted dev-only
   findings*; `npm audit --omit=dev` reports none; `npm ci` prints no `EBADENGINE` warning on the
-  supported Node (`engines.node`, N-001);
+  development and CI Node, declared apart from `engines.node`, which follows the runtime dependencies
+  only (N-001; task-092's approval);
 - the backlog JSON is regenerated and its check passes (the command task-065 F-8 names);
 - `check_releases.py` passes with `patch-v0.3.1` present (`python3
-  docs/03_backlog/X_tools/check_releases.py`);
+  docs/03_backlog/X_tools/check_releases.py`), and `python3 docs/03_backlog/X_tools/check_tasks.py
+  v0.3.1` passes (after task-093), its output recorded in `sprint-planning-rel-v0.3.1-plan`;
 - `.wingfoil/ui.yaml`'s `feature` pattern matches this repository's feature ids (an inspection of
   *Traceability* on this repository by the approver, and the server test of the pattern);
 - bug-051 `closed` by the approver (an inspection of the fix in force since `ed26e1b4`);
