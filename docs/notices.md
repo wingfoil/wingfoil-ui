@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/review/1 -->
+### N-004 · 2026-11-21 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-21T20:47:30Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/review/1): required workflow-linked bug creation is refused because no step of sw-life-cycle-1-plan adds a bug
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-004 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
