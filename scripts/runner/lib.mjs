@@ -5,6 +5,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
+import { posix } from 'node:path';
 
 const require = createRequire(import.meta.url);
 /** WingFoil's own run-log module, from the pinned package; a project may pin it under an alias. */
@@ -244,7 +245,8 @@ export function loadTooHigh(load, cpus, max) {
 // Agents can write the line's checkout and its .git. The runner and gate.mjs run outside the
 // sandbox, so they never run code or read executable settings from there: git runs without hooks or
 // fsmonitor, the WingFoil CLI comes from the runner's home, adapters, check bindings and the team
-// from the home's .wingfoil/, and the approver's rulings from a ledger in the home's .git.
+// from the home's .wingfoil/, and the approver's rulings from a signed ledger in the user's state
+// folder, outside every repository (stateDir). The home is a clone used by the runner only.
 
 /**
  * git settings forced on every git the runner or gate.mjs runs, children included: no hooks, no
@@ -252,6 +254,20 @@ export function loadTooHigh(load, cpus, max) {
  * over the repository's own config.
  */
 export const SAFE_GIT_CONFIG = [['core.hooksPath', '/dev/null'], ['core.fsmonitor', 'false'], ['protocol.ext.allow', 'never'], ['protocol.fd.allow', 'never']];
+
+/** SAFE_GIT_CONFIG as git options, for the commands a notice gives the approver (1.1.16). */
+export const SAFE_GIT_FLAGS = SAFE_GIT_CONFIG.map(([key, value]) => `-c ${key}=${value}`).join(' ');
+
+/**
+ * A git command the approver runs by hand in a line's checkout, which agents write: first the
+ * runner judges the checkout's config (`--check-git`, which refuses filters, drivers, aliases…),
+ * then git runs with hooks, fsmonitor and command transports off.
+ */
+export function approverGit({ home, line, checkout, commands }) {
+  // Each command is git's argv: every word is quoted unless it is plain, so a branch name an agent
+  // chose cannot reach the approver's shell as code (1.1.19, H-1).
+  return `cd ${home} && node scripts/runner/run.mjs --line ${shellWord(line)} --check-git && cd ${checkout} && ${commands.map((argv) => `git ${SAFE_GIT_FLAGS} ${argv.map(shellWord).join(' ')}`).join(' && ')}`;
+}
 
 /** An environment whose git (and the git of every child) runs with SAFE_GIT_CONFIG. */
 export function safeGitEnv(env = {}) {
@@ -389,7 +405,7 @@ export function homeTrustProblems({ config, home: runnerHome, repo, git }) {
   if (resolveReal(runnerHome) !== resolveReal(repo)) problems.push(`the scripts run from ${repo}, not from the runner home ${runnerHome}: run them from the home (paths.runner)`);
   for (const [label, path] of [['the runner home', runnerHome], ['the folder the runner runs from', repo]]) {
     const lines = homeInLines(path, config);
-    if (lines.length) problems.push(`${label} ${path} is in line ${lines.join(', ')}'s checkout or worktrees, which agents write: run the runner from the approver's own checkout (paths.runner)`);
+    if (lines.length) problems.push(`${label} ${path} is in line ${lines.join(', ')}'s checkout or worktrees, which agents write: run the runner from its own home, a clone no agent works in (paths.runner)`);
   }
   const unsafe = unsafeGitConfig(git(GIT_CONFIG_LIST).stdout);
   if (unsafe.length) return [...problems, ...unsafe.map((l) => `the runner home's git config runs a program: ${l}`)];
@@ -417,6 +433,21 @@ export function shellQuote(value) {
   return `'${String(value ?? '').replaceAll("'", "'\\''")}'`;
 }
 
+/** A word for a POSIX shell: as it is when plain, otherwise quoted. */
+export function shellWord(value) {
+  const text = String(value ?? '');
+  return /^[A-Za-z0-9._/:=@%+,-]+$/.test(text) ? text : shellQuote(text);
+}
+
+/**
+ * Whether a branch name is plain: letters, digits and `._/-`, not starting with `-` or `/`, no `..`.
+ * git accepts `$( )`, `;`, `|` and quotes in a name, and the line checkout's branch is the agent's.
+ */
+export function safeRef(name) {
+  const text = String(name ?? '');
+  return /^[A-Za-z0-9._/-]+$/.test(text) && !/^[-/]/.test(text) && !text.includes('..');
+}
+
 /** Whether an id can be put in a command as it is (letters, digits, dots, dashes). */
 export function safeId(id) {
   return /^[a-z0-9][a-z0-9.-]*$/i.test(String(id ?? ''));
@@ -432,15 +463,38 @@ export function identityProblems(team) {
   });
 }
 
-/** The hosts of package-lock.json's `resolved` URLs outside the allowed registries. */
+/**
+ * What a lockfile installs from outside the allowed registries. Every `resolved` must be a URL on
+ * one of `hosts`, except a workspace link (`link: true`) whose `resolved` is a plain relative path
+ * that stays inside the repository (npm workspaces). `file:`, `git+…`, `github:`, absolute paths
+ * and paths leaving the repository are reported; so is a lockfile that is not JSON.
+ */
 export function foreignResolved(lockText, hosts = ['registry.npmjs.org']) {
+  let lock;
+  try { lock = JSON.parse(String(lockText ?? '')); } catch { return ['package-lock.json is not valid JSON']; }
   const found = new Set();
-  for (const match of String(lockText ?? '').matchAll(/"resolved":\s*"([^"]+)"/g)) {
-    let host;
-    try { host = new URL(match[1]).host; } catch { host = match[1]; }
-    if (!hosts.includes(host)) found.add(host);
-  }
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (typeof node.resolved === 'string') {
+      const where = node.resolved;
+      if (node.link === true && insideRepository(where)) { /* a workspace of this repository */ }
+      else {
+        let host;
+        try { const url = new URL(where); host = /^https?:$/.test(url.protocol) ? url.host : where; } catch { host = where; }
+        if (!hosts.includes(host)) found.add(host);
+      }
+    }
+    for (const value of Object.values(node)) visit(value);
+  };
+  visit(lock);
   return [...found];
+}
+
+/** A plain relative path (no scheme, no backslash, not absolute) that does not leave the repository. */
+function insideRepository(where) {
+  if (!where || /[:\\\0]/.test(where) || where.startsWith('/')) return false;
+  const normal = posix.normalize(where);
+  return normal !== '..' && !normal.startsWith('../');
 }
 
 /**
@@ -694,9 +748,11 @@ export function waitsForApprover(step) {
  * (the approver approves in one worktree per line: directive agent-branches), so that the ruling
  * reaches the runner without a push.
  */
-export function unblockCommand(step, checkout = null) {
+export function unblockCommand(step, checkout = null, { home = null, line = null } = {}) {
   const cd = checkout ? `cd ${checkout} && ` : '';
   if (step.awaiting?.kind === 'approval' && step.awaiting.recordNeeded === false && step.awaiting.elements?.length) {
+    // From the runner home, with its CLI (gate.mjs --element), when it is known (1.1.17).
+    if (home && line) return `cd ${home} && ${step.awaiting.elements.map((e) => `node scripts/runner/gate.mjs --line ${line} --element ${e.id} --reason "<your ruling>"`).join(' && ')}`;
     return cd + step.awaiting.elements.map((e) => `npx wingfoil memory approve ${e.id} --reason "<your ruling>"`).join(' && ');
   }
   return `${cd}npx wingfoil workflow finalize ${step.instance} --step ${step.key} --reason "<your ruling>"`;

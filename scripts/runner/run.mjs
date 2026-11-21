@@ -42,6 +42,7 @@ const DRY = process.argv.includes('--dry-run');
 const RESUME = process.argv.includes('--resume');
 const UNTIL_IDLE = process.argv.includes('--until-idle');
 const CLOSE = arg('--close');
+const CHECK_GIT = process.argv.includes('--check-git');
 const RENUMBER = arg('--renumber');
 const STATUS = process.argv.includes('--status');
 const DOCTOR = process.argv.includes('--doctor');
@@ -173,7 +174,7 @@ function guardCheckout(ctx, path = ctx.line.checkout) { guardPath(path); }
 function guardWorktree(ctx, path) {
   if (!path || !existsSync(path)) return;
   const problems = lib.worktreeProblems(path, ctx.line.checkout);
-  if (problems.length) throw new UnsafeCheckout(`${path}: the worktree's git folder is not the one the runner made, so the runner does nothing in it: ${problems[0]}. Remove the worktree (git -C ${ctx.line.checkout} worktree remove --force ${path}) once you have looked at it.`);
+  if (problems.length) throw new UnsafeCheckout(`${path}: the worktree's git folder is not the one the runner made, so the runner does nothing in it: ${problems[0]}. Remove the worktree (git ${lib.SAFE_GIT_FLAGS} -C ${ctx.line.checkout} worktree remove --force ${path}) once you have looked at it.`);
   guardPath(path);
 }
 /** After code an agent wrote has run outside the sandbox (tests, checks, installs): judged again (1.1.13, C). */
@@ -735,8 +736,10 @@ function renumberElement(ctx, oldId, { auto = false } = {}) {
   log(ctx, `${oldId} is now ${newId} (${status}); the old element is deprecated`);
   const others = walkMd(join(line.checkout, lib.memoryDir(memory, type), '..')).filter((f) => f !== oldFile && readFileSync(f, 'utf8').includes(oldId)).map((f) => basename(f, '.md'));
   if (others.length) print(ctx, `  these still cite ${oldId}: ${others.join(', ')}`);
-  const approve = `cd ${line.checkout} && grep -q '^status: ${status}$' ${relative(line.checkout, newFile)} && ${CLI.join(' ')} memory approve ${newId} --reason ${lib.shellQuote(`Renumbered from ${oldId}, the content is unchanged`)}`;
-  if (status !== fields.status && auto) notice(ctx, { key: `renumbered-${line.name}-${newId}`, element: `${type}:${newId}`, reason: `${oldId} was renumbered as ${newId} and stays ${status}, short of ${fields.status}`, command: approve });
+  const approve = `cd ${HOME_REPO} && node scripts/runner/gate.mjs --line ${line.name} --element ${newId} --expect ${lib.shellWord(status)} --reason ${lib.shellQuote(`Renumbered from ${oldId}, the content is unchanged`)}`;
+  // The state name comes from the checkout's memory.yaml, which agents write (1.1.19, L-4).
+  if (status !== fields.status && !lib.safeId(status)) print(ctx, `  ${newId} stays in a state whose name is not plain (${JSON.stringify(status)}): approve it by hand after checking memory.yaml`);
+  else if (status !== fields.status && auto) notice(ctx, { key: `renumbered-${line.name}-${newId}`, element: `${type}:${newId}`, reason: `${oldId} was renumbered as ${newId} and stays ${status}, short of ${fields.status}`, command: approve });
   else if (status !== fields.status) print(ctx, `  → ${approve}`);
   return true;
 }
@@ -801,6 +804,34 @@ function integrateScripted(ctx, step, element, worktree) {
 
 // ---- one run -------------------------------------------------------------------------------
 
+/**
+ * The checkout is on another branch than lines.<line>.branch: after a change of that setting (a
+ * stage switch), or left there by an interrupted step. When nothing would be lost (no uncommitted
+ * file, no operation under way, every commit of the current branch already on origin) and origin
+ * has the configured branch, the runner switches the single-branch clone itself (1.1.16): it adds
+ * the branch to the fetched ones, fetches it and switches, all with the forced git settings, after
+ * judging the config. Otherwise it returns false and a notice asks the approver.
+ */
+function switchLineBranch(ctx, current) {
+  const { line } = ctx;
+  guardCheckout(ctx);
+  const co = line.checkout;
+  const gitDir = git(co, ['rev-parse', '--absolute-git-dir']);
+  if (['rebase-merge', 'rebase-apply', 'MERGE_HEAD', 'CHERRY_PICK_HEAD'].some((f) => existsSync(join(gitDir, f)))) return false;
+  if (sh('git', ['-C', co, 'status', '--porcelain']).stdout.trim()) return false;
+  const pushed = sh('git', ['-C', co, 'rev-list', '--count', `origin/${current}..${current}`]);
+  if (pushed.status !== 0 || pushed.stdout.trim() !== '0') return false;
+  if (!sh('git', ['-C', co, 'ls-remote', '--heads', 'origin', line.branch]).stdout.trim()) return false;
+  git(co, ['remote', 'set-branches', '--add', 'origin', line.branch]);
+  git(co, ['fetch', '-q', 'origin', line.branch]);
+  const local = sh('git', ['-C', co, 'rev-parse', '--verify', '--quiet', `refs/heads/${line.branch}`]).status === 0;
+  git(co, local ? ['switch', '-q', line.branch] : ['switch', '-q', '-c', line.branch, '--track', `origin/${line.branch}`]);
+  if (local) sh('git', ['-C', co, 'merge', '-q', '--ff-only', `origin/${line.branch}`]);
+  guardCheckout(ctx);
+  log(ctx, `switched the checkout from '${current}' to '${line.branch}' (lines.${line.name}.branch); nothing was left unpushed`);
+  return true;
+}
+
 function runOnce(ctx) {
   const { line, config } = ctx;
   const week = lib.isoWeek().label;
@@ -813,8 +844,12 @@ function runOnce(ctx) {
     git(line.checkout, ['fetch', '-q', 'origin']);
     const branch = git(line.checkout, ['rev-parse', '--abbrev-ref', 'HEAD']);
     if (branch !== line.branch) {
-      notice(ctx, { key: `branch-${line.name}`, element: 'runner', reason: `the checkout is on '${branch}', not on '${line.branch}'`, command: `cd ${line.checkout} && (git rebase --abort 2>/dev/null; git switch ${line.branch})` });
-      return;
+      if (!switchLineBranch(ctx, branch)) {
+        // The branch is the agent's to name: only a plain one reaches a command (1.1.19, H-1).
+        if (!lib.safeRef(branch)) notice(ctx, { key: `branch-${line.name}`, element: 'runner', reason: `the checkout is on a branch whose name is not plain (${JSON.stringify(branch)}), not on '${line.branch}', and holds work origin does not have (or uncommitted files)`, command: `no command: an agent named this branch, and its name could run code in a shell. Inspect ${line.checkout} by hand without pasting the name, then put it back on ${line.branch}` });
+        else notice(ctx, { key: `branch-${line.name}`, element: 'runner', reason: `the checkout is on '${branch}', not on '${line.branch}', and holds work origin does not have (or uncommitted files)`, command: `${lib.approverGit({ home: HOME_REPO, line: line.name, checkout: line.checkout, commands: [['status', '--short'], ['log', '--oneline', `origin/${branch}..${branch}`]] })}; review it, then push it from the runner home (git -C ${HOME_REPO} fetch ${line.checkout} ${lib.shellWord(branch)} && git -C ${HOME_REPO} push origin ${lib.shellWord(`FETCH_HEAD:refs/heads/${branch}`)}) or drop it, then run the line again` });
+        return;
+      }
     }
     if (sh('git', ['-C', line.checkout, 'rev-parse', '--verify', '--quiet', `refs/remotes/origin/${line.branch}`]).status === 0) {
       // Fast-forward when it can. With push off the checkout's own commits (records, notices,
@@ -825,7 +860,7 @@ function runOnce(ctx) {
         const merge = sh('git', ['-C', line.checkout, 'merge', '-q', '--no-edit', `origin/${line.branch}`], { env: lineEnv });
         if (merge.status !== 0) {
           sh('git', ['-C', line.checkout, 'merge', '--abort']);
-          notice(ctx, { key: `diverged-${line.name}`, element: 'runner', reason: `origin/${line.branch} does not merge into the checkout: ${firstLine(merge)}`, command: `cd ${line.checkout} && git merge origin/${line.branch} (solve the conflict, commit)` });
+          notice(ctx, { key: `diverged-${line.name}`, element: 'runner', reason: `origin/${line.branch} does not merge into the checkout: ${firstLine(merge)}`, command: `${lib.approverGit({ home: HOME_REPO, line: line.name, checkout: line.checkout, commands: [['merge', `origin/${line.branch}`]] })} (solve the conflict, commit; push from the runner home: git -C ${HOME_REPO} fetch ${line.checkout} ${lib.shellWord(line.branch)} && git -C ${HOME_REPO} push origin ${lib.shellWord(`FETCH_HEAD:refs/heads/${line.branch}`)})` });
           return;
         }
         log(ctx, `merged origin/${line.branch} into the checkout`);
@@ -1011,7 +1046,7 @@ function runOnce(ctx) {
   const liveResults = DRY ? [] : runLiveChecks(ctx, step, worktree.path);
   if (liveResults.length) guardAfterAgentCode(ctx, worktree.path);
   const lastOther = records.filter((r) => r.element === element.ref && r.phase !== step.phase && r.result === 'completed').at(-1);
-  // The approver's rulings come from the ledger gate.mjs and --close write in the runner's home,
+  // The approver's rulings come from the signed ledger gate.mjs and --close write in the state folder,
   // never from commit messages or notices an agent could write (M2).
   const ledger = readLedger();
   const rulings = lib.ledgerGateRulings(ledger, { line: line.name, instance: step.instance, element: element.ref, since: lib.parseNotes(lastOther?.notes).at ?? null });
@@ -1185,7 +1220,7 @@ function runOnce(ctx) {
   if (result === 'blocked' && !question && !(lib.stepMatches(ctx.set.raising, step) && lib.heldByGates({ phase: step.phase, reason, statusBefore, statusAfter })) && !ask) notice(ctx, { key: `blocked-${line.name}-${record.id}`, element: element.ref, reason: `blocked (run ${record.id}): ${reason}${notPulled ? `; start left the task ${statusAfter}, so the gates do not hold it` : ''}`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --close {id} --how "<what solved it>"` });
   if (result === 'blocked' && element.type === 'task' && lib.raisedIds(reason)) {
     const own = needsTheTaskRaised(line.checkout, element);
-    if (own.length) notice(ctx, { key: `needs-raised-${line.name}-${element.id}`, element: element.ref, reason: `the needs of ${element.ref} list what the task raised (${own.join(', ')}): the gate over needs waits for elements no step can write`, command: `remove those ids from the task's needs, then npx wingfoil memory amend ${element.id} --reason "<why>"` });
+    if (own.length) notice(ctx, { key: `needs-raised-${line.name}-${element.id}`, element: element.ref, reason: `the needs of ${element.ref} list what the task raised (${own.join(', ')}): the gate over needs waits for elements no step can write`, command: `remove those ids from the task's needs in ${relative(line.checkout, elementFile(line.checkout, element.type, element.id))}, then cd ${HOME_REPO} && node scripts/runner/gate.mjs --line ${line.name} --element ${element.id} --amend --reason "<why>"` });
   }
   if (forbidden.length) { ctx.halted = true; notice(ctx, { key: `halt-${line.name}-forbidden-${record.id.replaceAll('/', '-')}`, element: element.ref, reason: `${step.key} ran a command no role may run: ${forbidden[0].slice(0, 160)}`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --resume` }); }
   if (wrongModel) notice(ctx, { key: `halt-${line.name}-model-${adapter}`, element: element.ref, reason, command: `check adapter ${adapter} and the tier mapping of line ${line.name}, then node scripts/runner/run.mjs --line ${line.name} --resume` });
@@ -1269,7 +1304,7 @@ function printDoctor(config, line) {
   const inside = (path, dir) => path === dir || path.startsWith(`${dir}/`);
   for (const [name, entry] of Object.entries(config.lines ?? {})) {
     const other = { checkout: lib.expandHome(entry.checkout), worktrees: lib.expandHome(entry.worktrees) };
-    if (other.checkout && inside(HOME_REPO, other.checkout)) problems.push(`the runner home ${HOME_REPO} is line ${name}'s checkout, which agents write: set paths.runner to the approver's own checkout`);
+    if (other.checkout && inside(HOME_REPO, other.checkout)) problems.push(`the runner home ${HOME_REPO} is line ${name}'s checkout, which agents write: set paths.runner to the runner's own home, a clone no agent works in`);
     if (other.worktrees && inside(HOME_REPO, other.worktrees)) problems.push(`the runner home ${HOME_REPO} is inside line ${name}'s worktrees`);
   }
   const program = RUNNER_CLI[0] === 'node' ? RUNNER_CLI[1] : RUNNER_CLI[0];
@@ -1319,6 +1354,17 @@ function main() {
   const ctx = { config, line, project, set: lib.settings(config) };
 
   if (DOCTOR) { printDoctor(config, line); return; }
+  if (CHECK_GIT) {
+    // What a notice's hand command runs first (lib.approverGit): the checkout's and its worktrees'
+    // git folders and config, judged without touching them; exit 11 when git there would run a program.
+    try {
+      guardPath(line.checkout);
+      const wts = existsSync(line.worktrees) ? readdirSync(line.worktrees).map((n) => join(line.worktrees, n)).filter((p) => existsSync(join(p, '.git'))) : [];
+      for (const wt of wts) guardWorktree({ line }, wt);
+      console.log(`ok: line ${line.name}'s checkout and ${wts.length} worktree(s): their git config runs nothing`);
+    } catch (error) { console.error(`runner: ${error.message}`); process.exitCode = 11; }
+    return;
+  }
   if (!existsSync(join(line.checkout, '.git'))) {
     // No notices file to write in: a missing checkout is told by the log and a notification only.
     const origin = sh('git', ['-C', REPO, 'remote', 'get-url', 'origin']).stdout.trim() || '<origin>';
@@ -1376,6 +1422,8 @@ function main() {
       guardCheckout(ctx); // again before every step: the last one's agent may have changed it (N2)
       Object.assign(ctx, { acted: false, launched: false, halted: false, waiting: [], waits: [], shown: new Set(shown) });
       try { runOnce(ctx); } finally { releaseIdLock(ctx); }
+      // A step that runs to its end clears the failures the line had before (1.1.19).
+      closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `failure-${line.name}-`), 'the line ran again without a failure');
       finishOutput(ctx);
       // What a run wrote without launching (a notice, a closed instance) reaches origin as well.
       if (config.push && !DRY && ctx.acted && !ctx.launched) pushOrigin(ctx, ['--follow-tags'], [line.branch]);
@@ -1395,7 +1443,7 @@ function main() {
     process.exitCode = 1;
     try {
       const said = ctx.set.noticePaths === 'relative' ? lib.publicText(error.message, noticePlaces(ctx)) : error.message;
-      notice(ctx, { key: `failure-${lineName}-${said.slice(0, 60).replace(/[^A-Za-z0-9.-]+/g, '_')}`, element: 'runner', reason: `runner failure: ${error.message.split('\n')[0]}`, command: `node scripts/runner/run.mjs --line ${lineName} --dry-run` });
+      notice(ctx, { key: `failure-${lineName}-${said.slice(0, 60).replace(/[^A-Za-z0-9.-]+/g, '_')}`, element: 'runner', reason: `runner failure: ${error.message.split('\n')[0]} (the notice closes by itself once the line runs again without a failure)`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${lineName} --dry-run` });
     } catch { /* the notice itself failed: the exit code reports it */ }
   } finally {
     if (!DRY) rmSync(lock, { force: true });

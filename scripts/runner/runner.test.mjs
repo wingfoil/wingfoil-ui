@@ -1095,6 +1095,29 @@ test('1.1.11: code outside the sandbox trusts nothing an agent can write', () =>
   // M1: a lockfile resolving outside the registry.
   assert.deepEqual(lib.foreignResolved('{"a":{"resolved": "https://registry.npmjs.org/a/-/a-1.tgz"},"b":{"resolved": "https://evil.example/b.tgz"}}'), ['evil.example']);
   assert.deepEqual(lib.foreignResolved('{"a":{"resolved": "https://registry.npmjs.org/a/-/a-1.tgz"}}'), []);
+  // 1.1.18: npm workspaces link to folders of the repository; anything else stays refused.
+  const workspaces = (extra = {}) => JSON.stringify({ lockfileVersion: 3, packages: {
+    '': { workspaces: ['contracts', 'server', 'web'] },
+    'node_modules/@wingfoil-ui/contracts': { resolved: 'contracts', link: true },
+    'node_modules/@wingfoil-ui/server': { resolved: 'server', link: true },
+    'node_modules/@wingfoil-ui/web': { resolved: 'web', link: true },
+    'node_modules/@wingfoil-ui/deep': { resolved: 'packages/a/../deep', link: true },
+    'node_modules/js-yaml': { resolved: 'https://registry.npmjs.org/js-yaml/-/js-yaml-4.1.0.tgz' },
+    ...extra } }, null, 2);
+  assert.deepEqual(lib.foreignResolved(workspaces()), []);
+  assert.deepEqual(lib.foreignResolved(workspaces({
+    'node_modules/out': { resolved: '../fuori', link: true },
+    'node_modules/out2': { resolved: 'a/../../fuori', link: true },
+    'node_modules/abs': { resolved: '/tmp/x', link: true },
+    'node_modules/file': { resolved: 'file:/tmp/x' },
+    'node_modules/filelink': { resolved: 'file:contracts', link: true },
+    'node_modules/git': { resolved: 'git+https://registry.npmjs.org/x.git' },
+    'node_modules/gh': { resolved: 'github:evil/x' },
+    'node_modules/nolink': { resolved: 'contracts' },
+    'node_modules/ok/node_modules/nested': { resolved: 'https://evil.example/n.tgz' },
+  })).sort(), ['../fuori', '/tmp/x', 'a/../../fuori', 'contracts', 'evil.example', 'file:/tmp/x', 'file:contracts', 'git+https://registry.npmjs.org/x.git', 'github:evil/x'].sort());
+  assert.deepEqual(lib.foreignResolved('{"dependencies":{"a":{"resolved":"https://evil.example/a.tgz","dependencies":{"b":{"resolved":"../b","link":true}}}}}').sort(), ['../b', 'evil.example']);
+  assert.deepEqual(lib.foreignResolved('"resolved": "x"'), ['package-lock.json is not valid JSON']);
 
   // M2: rulings come from the ledger only, and only signed ones (1.1.12).
   const ledger = lib.parseLedger([
@@ -1214,4 +1237,30 @@ test('1.1.13: exact git keys, the worktree\'s own git folder, the home is where 
   assert.equal(lib.writesWithCli(['memory', 'history', 'x']), false);
   assert.equal(lib.writesWithCli(['workflow', 'finalize', 'i']), true);
   assert.equal(lib.writesWithCli(['workflow', 'status']), false);
+});
+
+test('1.1.16: a hand command in a line checkout is judged first and runs git without hooks', () => {
+  assert.equal(lib.SAFE_GIT_FLAGS, '-c core.hooksPath=/dev/null -c core.fsmonitor=false -c protocol.ext.allow=never -c protocol.fd.allow=never');
+  const command = lib.approverGit({ home: '/w/home', line: 'trunk', checkout: '/w/co', commands: [['merge', 'origin/main'], ['status', '--short']] });
+  assert.equal(command, `cd /w/home && node scripts/runner/run.mjs --line trunk --check-git && cd /w/co && git ${lib.SAFE_GIT_FLAGS} merge origin/main && git ${lib.SAFE_GIT_FLAGS} status --short`);
+});
+
+test('1.1.17: the approver approves an element from the runner home, with its CLI', () => {
+  const step = { instance: 'i', key: 'x.approve', awaiting: { kind: 'approval', recordNeeded: false, elements: [{ id: 'dl-1' }, { id: 'adr-2' }] } };
+  assert.equal(lib.unblockCommand(step, '/c', { home: '/w/home', line: 'trunk' }),
+    'cd /w/home && node scripts/runner/gate.mjs --line trunk --element dl-1 --reason "<your ruling>" && node scripts/runner/gate.mjs --line trunk --element adr-2 --reason "<your ruling>"');
+  assert.equal(lib.unblockCommand(step, '/c'), 'cd /c && npx wingfoil memory approve dl-1 --reason "<your ruling>" && npx wingfoil memory approve adr-2 --reason "<your ruling>"');
+});
+
+test('1.1.19: a branch an agent named cannot reach the approver\'s shell (H-1, L-4)', () => {
+  for (const bad of ['x$(id)', 'a;touch${IFS}P;b', 'a`id`', 'a|sh', "a'b", '-x', '/x', 'a..b', 'a b', '']) assert.equal(lib.safeRef(bad), false, bad);
+  for (const good of ['main', 'main-claude', 'feature/x_1.2']) assert.equal(lib.safeRef(good), true, good);
+  assert.equal(lib.shellWord('origin/main..main'), 'origin/main..main');
+  assert.equal(lib.shellWord('x$(id)'), "'x$(id)'");
+  assert.equal(lib.shellWord("approved;sh${IFS}x"), "'approved;sh${IFS}x'");
+  const command = lib.approverGit({ home: '/w/home', line: 'trunk', checkout: '/w/co', commands: [['log', '--oneline', 'origin/x$(id)..x$(id)']] });
+  assert.equal(command, `cd /w/home && node scripts/runner/run.mjs --line trunk --check-git && cd /w/co && git ${lib.SAFE_GIT_FLAGS} log --oneline 'origin/x$(id)..x$(id)'`);
+  // What the shell runs: the quoted word reaches git as one argument, with nothing expanded.
+  const echoed = spawnSync('sh', ['-c', `printf '%s\\n' ${lib.shellWord('x$(echo PWNED)`echo P2`;echo P3')}`], { encoding: 'utf8' }).stdout;
+  assert.equal(echoed, 'x$(echo PWNED)`echo P2`;echo P3\n');
 });
