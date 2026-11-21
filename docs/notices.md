@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-sprint-002/sprint-planning/2 -->
+### N-002 · 2026-11-21 · trunk:sprint-002
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-21T12:38:05Z
+- **Line:** trunk
+- **Element:** trunk:sprint-002
+- **Reason:** blocked (run sprint-002/sprint-planning/2): waiting for the approval of task-084-content-security-policy-on-the-console-pages, task-085-repository-keys-escaped-where-the-page-renders-them, task-086-header-user-name-without-sideways-scroll-at-a-narrow-width, task-087-zero-width-joiner-between-two-letters-kept-in-display-text, task-088-bounded-rendering-of-markdown-bodies-with-lazy-line-quotes, task-089-notification-bell-rows-keyed-by-element, task-090-hoverable-completion-and-chip-tooltips, task-091-session-recovery-scenario-made-deterministic, task-092-development-dependencies-refreshed-and-the-node-engine-aligned, task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt, task-094-a-broken-git-configuration-read-as-no-identity, task-095-feature-pattern-of-the-ui-configuration-matching-this-repository-feature-ids (pending → backlog) and of bug-039-the-console-serves-its-pages-without-a-content-security-policy, bug-041-repository-keys-shown-on-the-page-are-not-escaped, bug-044-the-page-scrolls-sideways-at-a-narrow-width-because-of-the-header-user-name, bug-045-a-name-with-a-zero-width-joiner-between-two-letters-shows-the-joiner-as-an-escape, bug-047-a-markdown-body-of-quotes-with-lazy-lines-blocks-the-page-while-it-is-rendered, bug-048-the-notification-bell-keys-its-rows-by-commit-so-a-grouped-commit-shows-wrong-rows, bug-052-completion-and-chip-tooltips-close-when-the-pointer-moves-onto-them, bug-053-scenario-x-02.3-of-the-session-recovery-spec-fails-intermittently (triaged → planned), and bug-051-closing-the-last-planned-sprint-moves-the-life-cycle-to-end-of-life closed per N-001
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-002 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
