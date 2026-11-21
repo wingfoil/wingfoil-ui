@@ -9,7 +9,7 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.6 · **Date:** 2026-11-18 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.7 · **Date:** 2026-11-21 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
 governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
 `docs:api` — the adoption's review round 1, m2; 1.2: the gates of the former `dev-loop` procedure,
@@ -17,7 +17,7 @@ one section per `backlog-item` phase, its file removed — task-049; 1.3: review
 the `memory add --type tech-spec --title` form; 1.4: the heavy gates on `.github/workflows/gates.yml`
 where it exists on the branch, the local checks, a run as a gate's evidence, the wave gate on the
 phase branch's tip — `governance-evolution-3-plan`, dl-016; 1.5: the wave scope's engine × shard
-jobs — `governance-evolution-5-plan`, dl-018; 1.6: the parser cost probe, deferrals, the audit and the wave record at the wave gate, the UX reference alone — dl-022, dl-020 actions 1 … 5)
+jobs — `governance-evolution-5-plan`, dl-018; 1.6: the parser cost probe, deferrals, the audit and the wave record at the wave gate, the UX reference alone — dl-022, dl-020 actions 1 … 5; 1.7: a task's bugs moved by `bug.sync_state` at start and review, the approver's moves of the bugs, the wave gate and the phase branch as tasks under the script runner — `governance-evolution-10-plan`, dl-025)
 
 A Sprint Backlog item (a task, run through `backlog-item`: start · build · review · approve · done)
 is done only when every rule below holds; until then it is not part of the Increment. The phases'
@@ -27,8 +27,10 @@ in the task's Execution Notes (`### design (date)`, `### red / green / refactor`
 
 ## start (developer)
 
-- `memory submit <task>` (`backlog → in-progress`). Each bug the task names in `bug:` moves `planned
-  → in-progress` with `memory submit <bug>` when the task starts (GA3-11 R-3).
+- `memory submit <task>` (`backlog → in-progress`). Then the step's `bug.sync_state(for_each:
+  task.bug)` (deviation R-10): `memory submit <bug>` (`planned → in-progress`, GA3-11 R-3) for each
+  bug `workflow next` names under that action — the bugs the task lists in `bug:`. WingFoil has no
+  `sync` verb: the commit reads `submit` (`wingfoil-cli` W-55).
 - A branch `task/<task-id>` from the phase branch the stage's plan names, in its own worktree
   `.worktrees/<task-id>` (dl-014 G1, G2) — parallel tasks never share a checkout.
 
@@ -102,12 +104,16 @@ and for `test:timing` everywhere, the load and the wait for the slot are written
 - An **independent reviewer**, not the author, reviews against this directive until PASS — an
   adversarial one, who runs the tools, for a security-relevant task. Findings are fixed test first.
   A finding deferred follows `release-planning` › *Deferrals* (dl-020 action 5).
-- Then `memory submit <task>` (`in-progress → in-review`).
+- Then `memory submit <task>` (`in-progress → in-review`), and the step's `bug.sync_state` (R-10):
+  `memory submit <bug>` (`in-progress → in-review`) for each bug `workflow next` names. A review
+  that rejects (`memory park`) moves no bug.
 
 ## approve (the approver)
 
-The approver's `memory approve <task>` (`in-review → approved`). A reject (`memory reject`, back to
-`in-progress`) returns to `build`: the rework starts with a failing test for the finding.
+The approver's `memory approve <task>` (`in-review → approved`), and of each of its bugs
+(`in-review → resolved`; under the script runner `gate.mjs --element`, `wingfoil-cli` rule 14). A
+reject (`memory reject`, back to `in-progress`) returns to `build`: the rework starts with a failing
+test for the finding; its bugs are rejected with it (`in-review → in-progress`).
 
 ## done (developer)
 
@@ -117,9 +123,14 @@ The approver's `memory approve <task>` (`in-review → approved`). A reject (`me
   fails, `git merge --abort`, the conflict resolved on the task branch, the gates re-run and the
   reviewer re-checks, the approver told before the merge — the task stays `approved` (no verb takes
   it back).
-- `memory submit <task>` (`approved → done`). The bugs it names move with it by their own verbs
-  (`.wingfoil/memory.yaml`): `submit`, and the approver's `approve` along the bug's machine.
-- **The wave gate.** Where `gates.yml` exists: its `wave` scope (the three-engine `test:e2e`, engine
+- `memory submit <task>` (`approved → done`). Its bugs are `resolved` by now (*approve*); each gets
+  its close note, then the approver's `resolved → closed`.
+- **The wave gate.** Under the script runner it is the wave's gate task (`release-planning` ›
+  *build-backlog*, dl-025): its Acceptance Criteria are the checks below and its build runs them;
+  what its agent may not do — a push, `gh`, the machine-free slot — it asks for with `RESULT: blocked
+  decision`, and the approver, or a session outside the runner, does it and names the results in
+  the ruling. A gate task (the wave's, or the phase branch's) has no red or green: its Execution
+  Notes record each check with its evidence. Where `gates.yml` exists: its `wave` scope (the three-engine `test:e2e`, engine
   × shard jobs (dl-016), with the task scope's gates) by `workflow_dispatch` on the phase branch's tip,
   before the merge into `main`; the merge then checked to change no file against that tip (`git
   diff <tip> <merge>` empty). Otherwise, on `main` after the wave's merge: `npm run test:e2e`

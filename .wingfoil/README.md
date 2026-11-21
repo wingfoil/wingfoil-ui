@@ -1,12 +1,12 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.14 · **Date:** 2026-11-19 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.15 · **Date:** 2026-11-21 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
 — review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
 governance-alignment-rel-v0.3-plan step 4; 0.10: the five procedures folded into directives, the
-directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019; 0.13: the phases `next-sprint` and `confirm-end-of-life`, deviations R-8 and R-9 — dl-022; 0.14: the runner's agents, `agents/custom/`, the pin `wingfoil@0.3.2` — `governance-evolution-8-plan`) ·
+directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019; 0.13: the phases `next-sprint` and `confirm-end-of-life`, deviations R-8 and R-9 — dl-022; 0.14: the runner's agents, `agents/custom/`, the pin `wingfoil@0.3.2` — `governance-evolution-8-plan`; 0.15: deviation R-10, a task's bugs moved at `start` and `review` — `governance-evolution-10-plan`, dl-025) ·
 **Checked against:** `wingfoil@0.3.2` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -46,6 +46,13 @@ Decided by the approver on 2026-11-18 (dl-022, bug-051), in the workflows of the
 |---|----------|--------|------|-----|
 | R-8 | `sprint`, `delivery`, the description of `sprint` in `memory.yaml` | `close` follows `retrospective`; a later Sprint is added outside a step | the phase `next-sprint` before `close`: the product-owner adds the next Sprint | the next Sprint is asked for before the current one closes |
 | R-9 | `sw-life-cycle` | `end-of-life` follows `delivery` | the approver's gate `confirm-end-of-life` between them | closing the last planned Sprint led `workflow next` to `end-of-life.announce`; the project ends on the approver's decision; the gate is recorded once per run, so the approver finalizes it only when the project ends |
+
+Decided by the approver on 2026-11-21 (dl-025), for the script runner, which shows an agent only the
+step's actions:
+
+| # | Workflow | Pack's | Here | Why |
+|---|----------|--------|------|-----|
+| R-10 | `backlog-item` | `start` and `review` move only the task | `bug.sync_state(for_each: task.bug)` at `start` (each bug `planned → in-progress`) and at `review` (`in-progress → in-review`), done with `memory submit <bug>` for each bug `workflow next` names | at the pilot's first `start` the agent moved the task and not its bug, which `definition-of-done` names; not at `done`, where WingFoil would target the bug's last state, `closed`, past the approver's gates (`wingfoil-cli` W-55) |
 
 **Accepted limits** (not deviations; the adoption design §11, the review round 1):
 
