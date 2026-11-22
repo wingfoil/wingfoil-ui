@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/review/3 -->
+### N-005 · 2026-11-22 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-22T08:02:25Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/review/3): WingFoil refuses the mandatory workflow-linked bug creation needed to record the review rejection
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-005 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
