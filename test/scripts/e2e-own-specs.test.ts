@@ -159,6 +159,24 @@ describe('e2e-own-specs.mjs (task-071, AC-2, D71-6)', () => {
     expect(r.stderr).toMatch(/^refused: .*origin\/no-such-branch/);
   });
 
+  it('--explicit (task-091): the input only, validated alike, never the changed files', async () => {
+    const ok = await select('test/e2e/harness/h.spec.ts test/e2e/a.spec.ts', ['--explicit']);
+    expect(ok.code, ok.stderr).toBe(0);
+    expect(lines(ok.stdout)).toEqual(['test/e2e/a.spec.ts', 'test/e2e/harness/h.spec.ts']);
+    for (const bad of [undefined, '', ' \t ']) {
+      const r = await select(bad, ['--explicit']);
+      expect(r.code, String(bad)).toBe(1);
+      expect(r.stdout).toBe('');
+      expect(r.stderr).toMatch(/^refused: the specs input is required/);
+    }
+    for (const bad of ['--retries=2', 'test/e2e/../e2e/a.spec.ts', 'test/e2e/nope.spec.ts']) {
+      const r = await select(bad, ['--explicit']);
+      expect(r.code, bad).toBe(1);
+      expect(r.stderr).toMatch(/^refused: /);
+    }
+    expect((await select('test/e2e/a.spec.ts', ['--explicit', '--base', PHASE])).code).toBe(2);
+  });
+
   it('refuses a base that git would read as an option, and a usage error exits 2', async () => {
     const opt = await select(undefined, ['--base', '--output=x']);
     expect(opt.code).toBe(1);

@@ -2,6 +2,10 @@
 // the e2e spec files a task runs on Firefox and WebKit.
 //
 //   SPECS='<space-separated spec files>' node scripts/e2e-own-specs.mjs --base <ref>
+//   SPECS='<space-separated spec files>' node scripts/e2e-own-specs.mjs --explicit
+//
+// `--explicit` (the `repeat` job, task-091): `SPECS` must hold at least one token, never a fallback to
+// the changed files; the same validation, no git.
 //
 // - `SPECS` (the `specs` input of a dispatch, read from the environment, never from the command line)
 //   wins when it holds anything but whitespace; otherwise the spec files the checked-out HEAD changes
@@ -19,7 +23,7 @@
 import { execFileSync } from 'node:child_process';
 import { lstatSync } from 'node:fs';
 
-const USAGE = 'usage: SPECS=<files> node scripts/e2e-own-specs.mjs --base <ref>';
+const USAGE = 'usage: SPECS=<files> node scripts/e2e-own-specs.mjs --base <ref> | --explicit';
 const SPEC = /^test\/e2e\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.spec\.ts$/;
 const REF = /^[A-Za-z0-9_][A-Za-z0-9_./-]*$/;
 const SUPPORT = (p) => p.startsWith('test/e2e/support/') || p === 'playwright.config.ts';
@@ -30,6 +34,7 @@ class Refused extends Error {}
 const shown = (token) => JSON.stringify(token.length > 200 ? `${token.slice(0, 200)}…` : token).slice(1, -1);
 
 function parseArgs(argv) {
+  if (argv.length === 1 && argv[0] === '--explicit') return null;
   if (argv.length !== 2 || argv[0] !== '--base') {
     process.stderr.write(`${USAGE}\n`);
     process.exit(2);
@@ -77,6 +82,7 @@ const base = parseArgs(process.argv.slice(2));
 try {
   const input = (process.env.SPECS ?? '').trim();
   const fromInput = input !== '';
+  if (base === null && !fromInput) throw new Refused('the specs input is required');
   const tokens = fromInput ? input.split(/\s+/) : changed(base);
   const specs = [...new Set(tokens.map(accept))].sort();
   const source = fromInput ? 'from the specs input' : `changed against the merge-base with ${base}`;
