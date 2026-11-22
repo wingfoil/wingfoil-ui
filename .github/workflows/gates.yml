@@ -296,7 +296,8 @@ jobs:
           retention-days: 14
 
   # The given specs run again and again on Chromium (task-091, bug-053): by hand only, with the
-  # `repeat` input and the spec files of the `specs` input. No retry; a failed repetition fails the job.
+  # `repeat` input and the spec files of the `specs` input, required and validated by
+  # scripts/e2e-own-specs.mjs --explicit. No retry; a failed repetition fails the job.
   repeat:
     needs: checks
     if: ${{ inputs.repeat != '' }}
@@ -314,10 +315,13 @@ jobs:
         run: npm ci
       - name: Chromium and its system packages
         run: npx playwright install --with-deps chromium
+      - name: The given specs, validated (the specs input is required, no fallback)
+        env:
+          SPECS: ${{ inputs.specs }}
+        run: node scripts/e2e-own-specs.mjs --explicit > repeat-specs.txt
       - name: The given specs on Chromium, repeated
         env:
           REPEAT: ${{ inputs.repeat }}
-          SPECS: ${{ inputs.specs }}
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
           PLAYWRIGHT_HTML_OPEN: never
         run: |
@@ -325,7 +329,7 @@ jobs:
             '' | *[!0-9]* | 0*) echo "refused: repeat is a positive whole number"; exit 1 ;;
           esac
           if [ "$REPEAT" -gt 200 ]; then echo "refused: repeat is at most 200"; exit 1; fi
-          read -r -a specs <<<"$SPECS"
+          mapfile -t specs < repeat-specs.txt
           if [ "${#specs[@]}" -eq 0 ]; then echo "refused: repeat needs the specs input"; exit 1; fi
           npm run test:e2e:chromium -- --repeat-each "$REPEAT" --reporter=github,html "${specs[@]}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
