@@ -11,6 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-091-session-recovery-scenario-made-deterministic -->
+### N-009 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** open
+- **Kind:** gate
+- **Opened:** 2026-11-23T10:12:43Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** backlog-item.approve@task:task-091-session-recovery-scenario-made-deterministic waits for the approver
+- **Ready:** yes
+- **Head:** 45a48609
+- **Evidence:** run task-091-session-recovery-scenario-made-deterministic/review/7 completed
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-009 --reason 'Approved backlog-item.approve@task:task-091-session-recovery-scenario-made-deterministic at 45a48609: run task-091-session-recovery-scenario-made-deterministic/review/7 completed'`
+
 ## Closed
 
 <!-- runner:closed -->
