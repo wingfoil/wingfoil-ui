@@ -71,8 +71,6 @@ roles:
 permissions:
   extra:
   - Bash(npm ci:*)
-  - Bash(npx tsc:*)
-  - Bash(node --test:*)
   - Bash(node scripts/checks/:*)
 lines:
   trunk:

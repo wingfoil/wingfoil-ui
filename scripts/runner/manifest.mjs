@@ -2,7 +2,9 @@
 // The runner's common files, the same in every project (directive runner): MANIFEST.sha256 lists
 // each with its hash. `--check` is the bound check `runner-manifest`; `--write` is for the runner's
 // own source only. A project's own settings live in config/runner.yaml, which is not listed.
-// Usage: node scripts/runner/manifest.mjs --check | --write
+// `--digest` checks the files, then prints the sha256 of MANIFEST.sha256 itself, one value that pins
+// this runner version; `--digest <sha256>` checks it against that value (exit 1 when it differs).
+// Usage: node scripts/runner/manifest.mjs --check | --write | --digest [<sha256>]
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -46,4 +48,14 @@ if (process.argv.includes('--write')) {
   if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
   const out = left.length ? `, ${left.length} machine file(s) left out: ${left.join(', ')}` : '';
   console.log(`ok: runner ${readFileSync(join(REPO, 'scripts/runner/VERSION'), 'utf8').trim()}, the ${COMMON.length - left.length} common files match the manifest${out}`);
+  const at = process.argv.indexOf('--digest');
+  if (at !== -1) {
+    // The digest of the manifest is the same whichever machine files a project left out.
+    const digest = createHash('sha256').update(readFileSync(file)).digest('hex');
+    const expected = process.argv[at + 1];
+    if (expected && !expected.startsWith('--')) {
+      if (expected.toLowerCase() !== digest) { console.error(`manifest sha256 ${digest}, not ${expected}`); process.exit(1); }
+      console.log(`ok: manifest sha256 ${digest}`);
+    } else console.log(`sha256:${digest}`);
+  }
 }
