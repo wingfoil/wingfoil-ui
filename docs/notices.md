@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/build/1 -->
+### N-011 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-23T10:49:12Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/build/1): may the headless runner run the registry-querying npm commands (`npm outdated`, `npm audit`, `npm update`/`install`) that task-092 needs, or will the approver supply their output?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-011 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
