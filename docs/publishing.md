@@ -1,6 +1,6 @@
 # Publishing to npm
 
-**Version:** 0.12 · **Date:** 2026-11-19 (0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.13 · **Date:** 2026-11-23 (0.13: the accepted dev-only findings after the refresh, `verdaccio` 6.11.3, `engines.node` kept at 22.12.0 — task-092; 0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
@@ -201,13 +201,35 @@ finding outside that list is a decision for the approver.
 release v0.3, option A of `release-submit-rel-v0.3-plan` step 7; `npm audit --json` on `main`
 `3ed28dec`, 34 findings in all — 3 critical, 4 high, 27 moderate — with `npm audit --omit=dev` 0):
 besides the registry's own (below), `body-parser` (high), `qs` and the `@verdaccio/*` packages
-(moderate, through `minimatch`) of `verdaccio` 6.10.5; `hono`, `@hono/node-server` and `zod` (high)
+(moderate, through `minimatch`) of `verdaccio` 6.10.5 (6.11.3 since task-092); `hono`, `@hono/node-server` and `zod` (high)
 through `@modelcontextprotocol/sdk` of the pinned CLI `wingfoil@0.3.1` (and of `wingfoil@0.3.2`, pinned since `governance-evolution-8-plan`: `npm audit --json` gives the same 34 findings, `--omit=dev` 0, 2026-11-19); `undici` (high) of `jsdom`
 30.1.2, the web tests' environment; `minimatch` (moderate) of `eslint`, `typescript-eslint` and
 `typedoc`; `zod` of `eslint-plugin-react-hooks`. None reaches the published package: they run only
 in linting, the tests, the API docs build and the staging smoke, on this machine or a CI runner.
 Status: **accepted risk** for v0.3; a refresh of the development dependencies (most of them have a
 fix in range; `typedoc`'s is not usable) is part of v0.3.1 (`dl-021-scope-and-order-of-the-releases-from-v0.3.1-to-v0.4.1`).
+
+**Accepted dev-only findings after the refresh** (task-092, `trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned`,
+approver-side run of commit `2691f25e`, Node 22.21.0 / npm 11.6.2): `npm audit` reports 18 findings
+(0 critical, 0 high, 18 moderate), `npm audit --omit=dev` reports 0. The 18 are `minimatch`
+through `typedoc` and the `@verdaccio/*` packages of `verdaccio` 6.11.3 (`verdaccio`,
+`verdaccio-audit`, `verdaccio-htpasswd`, `@verdaccio/auth`, `config`, `core`, `hooks`, `loaders`,
+`local-storage-legacy`, `logger`, `logger-commons`, `middleware`, `package-filter`, `signature`,
+`tarball`, `url`); the critical and high findings listed above are gone. Reason they stay: no fix
+is usable in range (`typedoc`'s, as before) and they run only in the API docs build and the staging
+smoke, on a machine or CI runner, never in the published package. Status: **accepted risk**
+(moderate, dev-only); re-checked at release validation.
+
+**`engines.node` stays `>=22.12.0`** (task-092, decision N-001 left to design; D29-5). The strictest
+`engines` in `package-lock.json` are dev-only: `jsdom` 30.1.x, `@asamuzakjp/css-color`,
+`@asamuzakjp/dom-selector` and `w3c-xmlserializer`, `^22.22.2 || ^24.15.0 || >=26.0.0` (already so
+before the refresh); `undici` `>=22.19.0`; the run-time closure's strictest is `>=22.12.0`. The
+field describes what the *published* package needs, so it follows the run-time closure; raising it
+to 22.22.2 would refuse users the package runs on. The dev toolchain runs on 22.22.2 in CI
+(`gates.yml`, `publish.yml` `gate`), where `npm ci` prints no `EBADENGINE`; on Node 22.12 to 22.21
+`npm ci` prints `EBADENGINE` for those four dev packages only (observed on 22.21.0, before and
+after the refresh). The four `package.json` files, `README.md`, `docs/cli-reference.md` and the
+launcher keep 22.12.
 
 **A failed gate or stage** stages nothing (`promote` needs `stage`). Fix on `main`; the approver
 decides whether the same version is tagged again on the fixed commit (nothing was published) or a
@@ -238,7 +260,7 @@ packaging or `.github/workflows/publish.yml` changes (CLAUDE.md, *Checks*).
 
 1. The tarball: `WFUI_PUBLISH_TARBALL` when set (the pipeline passes the gate's), otherwise
    `npm pack` (its `prepack` builds).
-2. A local Verdaccio — the exact-pinned devDependency `verdaccio@6.10.5` — on a free loopback port,
+2. A local Verdaccio — the exact-pinned devDependency `verdaccio@6.11.3` — on a free loopback port,
    its config, storage and user file in the test's own `wfui-publish-smoke-*` folder under the
    run's temporary root, with **no uplink**. It is seeded with the run-time dependency closure of
    `package-lock.json` (from the root's `dependencies`), packed offline from the npm cache
@@ -260,7 +282,7 @@ request to `https://registry.npmjs.org/` fails in that environment and that a pa
 is unknown to the local registry. It needs a warm npm cache holding the lockfile's tarballs — what
 `npm ci` leaves.
 
-**Audit findings of the registry (dev-only).** `verdaccio@6.10.5` brings 9 `npm audit` findings
+**Audit findings of the registry (dev-only).** `verdaccio@6.10.5` (replaced by 6.11.3, task-092) brought 9 `npm audit` findings
 (3 critical, 6 high on 2026-10-17): `handlebars` (through `@verdaccio/hooks`), `braces`,
 `micromatch`, `fast-glob`, `globby` (through `@verdaccio/local-storage-legacy`) and `compression`.
 `npm audit --omit=dev` reports 0: none reaches the published package. The exposure is a
@@ -286,7 +308,7 @@ publisher, made live by the approver's `npm stage approve` with 2FA — are the 
 | Tag checks | `check-release-tag.cjs` in three steps, also `server.json` versions | `check-release-tag.mjs`, one step: annotated, `v` + root, workspace and lockfile versions (a glob workspace entry is refused), the commit built (peeled), on `origin/main` | no `server.json`; the workspaces carry the version (release-publishing `release-commit`) (D29-13) |
 | Gate content | `build`, `test:report` (Jest with coverage and JSON), `lint`, a test-results summary, `npm publish --dry-run`, `npm pack --ignore-scripts`; test reports uploaded (the full `coverage-summary.json`, `lcov.info`, `jest-results.json`) | `typecheck`, `lint`, `format:check`, `test:coverage` (its reporters chosen on the runner), `test:smoke`, `npm pack` with `prepack` (clean build); uploaded: `coverage-totals.json` and `test-results.md` rebuilt with fixed fields, and on a tag the Release notes | the gates named by task-029 AC-1; no report holding a path is uploaded (dl-005, task-052); the notes are made in `gate` so a missing CHANGELOG section fails before the stage |
 | Stage job install | no `npm ci`: the staging script installs Verdaccio itself into its work folder | a full `npm ci` (dev dependencies included) before the smoke | the smoke is a Vitest file, the pinned Verdaccio comes from the lockfile, and the npm cache it fills is what the registry is seeded from offline |
-| Staging registry | `verdaccio@6` installed at run time into the work folder, fixed port 4873, an uplink to npmjs for the dependencies (none for the package under test) | `verdaccio@6.10.5` as an exact-pinned devDependency, a free loopback port, **no uplink**: seeded offline with the lockfile's run-time closure; npm behind a dead proxy | AC-3: the smoke never contacts the public registry; the lockfile pins Verdaccio and its dependencies by integrity; worktrees run concurrently (D29-1, D29-2) |
+| Staging registry | `verdaccio@6` installed at run time into the work folder, fixed port 4873, an uplink to npmjs for the dependencies (none for the package under test) | `verdaccio@6.11.3` as an exact-pinned devDependency, a free loopback port, **no uplink**: seeded offline with the lockfile's run-time closure; npm behind a dead proxy | AC-3: the smoke never contacts the public registry; the lockfile pins Verdaccio and its dependencies by integrity; worktrees run concurrently (D29-1, D29-2) |
 | Staging install and check | `npm install -g`, then `wingfoil --version` must be `<version> (<commit>)` — `--expect-commit "$GITHUB_SHA"` ties the installed tarball to the tagged commit — plus an init smoke | `npm install wingfoil-ui@<version>` into an empty folder, `npx wingfoil-ui --version` = the version, a `--no-open` start with an authenticated API read, SIGINT stop; the published tarball's integrity equals the gate's | the README's install path is a local install and `npx`; the launcher prints no commit, so nothing ties the tarball to `$GITHUB_SHA` beyond the gate's tag checks and the artifact hand-over |
 | Staging implementation | a standalone script (`npm run publish:staging`) with its own signal handling and teardown | a Vitest file reusing the launch smoke's helpers (`test/smoke/support.ts`), teardown in `afterAll`, folders under the run's temporary root | task-029 Implementation Notes: reuse `test/smoke/`; the temp-folder convention of task-026 (D29-3) |
 | Node versions | `gate` and `stage` 22.12.0, `promote` 24.21.0 | `gate` 22.22.2, `stage` 22.12.0, `promote` 24.21.0 | the dev toolchain declares more than the runtime floor (`jsdom` `^22.22.2`); the installed package still starts on the `engines` floor in `stage` (D29-5) |
