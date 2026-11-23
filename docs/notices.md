@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/done/1 -->
+### N-010 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-23T10:18:37Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/done/1): rebase of task/task-091-session-recovery-scenario-made-deterministic onto design/dev-loop_v0.3.1 conflicts in test/package/gates-workflow.test.ts (commit 53e4bdcf); integration aborted, nothing merged, memory submit not run
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-010 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
