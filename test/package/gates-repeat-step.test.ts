@@ -36,7 +36,7 @@ beforeAll(async () => {
     path.join(folder, 'scripts', 'e2e-own-specs.mjs'),
   );
   for (const f of ['a', 'b']) await writeFile(path.join(folder, 'test', 'e2e', `${f}.spec.ts`), '//\n');
-  await writeFile(path.join(folder, 'bin', 'npm'), '#!/bin/bash\nprintf "%s\\n" "$@" > "$CALLS"\n');
+  await writeFile(path.join(folder, 'bin', 'npm'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$CALLS"\n');
   await chmod(path.join(folder, 'bin', 'npm'), 0o755);
 });
 afterAll(async () => {
@@ -107,4 +107,21 @@ describe('gates.yml — the repeat job validates its specs input (task-091, bug-
       expect(r.calls, repeat).toBeNull();
     }
   });
+
+  it.each(['1', '200'])('accepts the boundary repeat count %s', async (repeat) => {
+    const r = await job('test/e2e/a.spec.ts', repeat);
+    expect(r.code, r.stderr).toBe(0);
+    expect(r.calls).toContain(repeat);
+  });
+
+  it.each(['201', '1000', '9223372036854775808', '18446744073709551616', '9'.repeat(100)])(
+    'refuses the oversized repeat count %s as a string, with no arithmetic diagnostic',
+    async (repeat) => {
+      const r = await job('test/e2e/a.spec.ts', repeat);
+      expect(r.code).toBe(1);
+      expect(r.stderr).toMatch(/^refused: repeat is at most 200$/m);
+      expect(r.stderr).not.toMatch(/integer expression/);
+      expect(r.calls).toBeNull();
+    },
+  );
 });
