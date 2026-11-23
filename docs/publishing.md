@@ -1,6 +1,6 @@
 # Publishing to npm
 
-**Version:** 0.13 · **Date:** 2026-11-23 (0.13: the accepted dev-only findings after the refresh, `verdaccio` 6.11.3, `engines.node` kept at 22.12.0 — task-092; 0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.14 · **Date:** 2026-11-23 (0.14: the EBADENGINE result scoped to the Node version run — task-092; 0.13: the accepted dev-only findings after the refresh, `verdaccio` 6.11.3, `engines.node` kept at 22.12.0 — task-092; 0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
@@ -226,9 +226,11 @@ smoke, on a machine or CI runner, never in the published package. Status: **acce
 before the refresh); `undici` `>=22.19.0`; the run-time closure's strictest is `>=22.12.0`. The
 field describes what the *published* package needs, so it follows the run-time closure; raising it
 to 22.22.2 would refuse users the package runs on. The dev toolchain runs on 22.22.2 in CI
-(`gates.yml`, `publish.yml` `gate`), where `npm ci` prints no `EBADENGINE`; on Node 22.12 to 22.21
-`npm ci` prints `EBADENGINE` for those four dev packages only (observed on 22.21.0, before and
-after the refresh). The four `package.json` files, `README.md`, `docs/cli-reference.md` and the
+(`gates.yml`, `publish.yml` `gate`), where `npm ci` prints no `EBADENGINE`. Executed result: on
+Node 22.21.0 (the only version tried) `npm ci` printed four `EBADENGINE` warnings, for those four
+dev packages, before and after the refresh. Derived from the lockfile's `engines`, not executed:
+Node below 22.19.0 also falls short of `undici` 8.13.1 (`>=22.19.0`), so the warnings there are
+not limited to those four; no other Node 22.x version was run. The four `package.json` files, `README.md`, `docs/cli-reference.md` and the
 launcher keep 22.12.
 
 **A failed gate or stage** stages nothing (`promote` needs `stage`). Fix on `main`; the approver
