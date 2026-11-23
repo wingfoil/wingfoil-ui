@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/3 -->
 ### N-015 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-23T19:04:29Z — approved by the approver: Done: task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned pushed at 81f33c247198a1cfa6d07fc5718e87f3831f9e63 and gates.yml dispatched with scope=wave: run 45219044794, conclusion failure. Green: checks, coverage, contract, smoke, publish-smoke; npm ci on Node 22.22.2 (checks job) added 715 packages, no EBADENGINE. Red: all six e2e-wave jobs (chromium, firefox, webkit x 2 shards), one cause only: axe-core 4.13.0 -> 4.14.1 (through @axe-core/playwright 4.14) reports label-content-name-mismatch (serious, WCAG 2.5.3) in accessibility.spec.ts X-06.4 (memory list, traceability) and X-08.1: the filter links and count buttons whose aria-label does not contain their visible text as is (a[aria-label='task, 4 elements'], 'All types, N elements', 'To approve, N elements', button 'In progress, 1 reference', the trace-toggle buttons). Logs: gh run view 45219044794 --log-failed. The approver's ruling: park the task with this finding; the build fixes the labels so the visible text is part of the accessible name (label in name), updates the tests that assert them, keeps axe-core 4.14, then asks again for the wave run.
 - **Kind:** decision
 - **Opened:** 2026-11-23T16:38:38Z
 - **Line:** trunk
 - **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 - **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/3): Will you push task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned at 81f33c247198a1cfa6d07fc5718e87f3831f9e63 from the runner home, dispatch gates.yml with scope=wave, and provide the run id, commit, gate results and Node 22.22.2 install log?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-015 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1 -->
 ### N-013 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
