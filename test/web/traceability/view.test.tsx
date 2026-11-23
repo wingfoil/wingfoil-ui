@@ -143,6 +143,11 @@ function api(over: FakeApi = {}, who: ProjectHeader = header(BO)): FakeApi {
   };
 }
 
+/** The accessible name of a control with no `aria-label`: its content, whitespace collapsed. */
+function nameOf(node: Element): string {
+  return (node.textContent ?? '').replace(/\s+/g, ' ').trim();
+}
+
 function table(): HTMLElement {
   return screen.getByRole('table', { name: 'References' });
 }
@@ -356,23 +361,44 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
     expect(screen.queryByRole('group', { name: 'Scope' })).toBeNull();
   });
 
+  it('names every filter toggle from its visible label and count, in their displayed order (WCAG 2.5.3)', async () => {
+    stubApi(api());
+    const { router } = await opened(`${PAGE}?scope=project`);
+    expect(router.state.location.search).toEqual({ scope: 'project' });
+    const toggles = [
+      ...within(screen.getByRole('group', { name: 'Category' })).getAllByRole('button'),
+      ...within(screen.getByRole('group', { name: 'Status' })).getAllByRole('button'),
+    ];
+    expect(toggles.length).toBeGreaterThan(5);
+    for (const toggle of toggles) {
+      // No override of the visible text: the name is the content, the hidden unit after the count.
+      expect(toggle.hasAttribute('aria-label')).toBe(false);
+      const visible = toggle.cloneNode(true) as Element;
+      visible.querySelectorAll('.visually-hidden').forEach((n) => n.remove());
+      const shown = (visible.textContent ?? '').replace(/\s+/g, ' ').trim();
+      const name = nameOf(toggle);
+      expect(name.startsWith(shown), `${name} / ${shown}`).toBe(true);
+      expect(name).toMatch(/ \d+ references?$/);
+    }
+  });
+
   it('filters by category with counts in the names, keeps it in the URL and announces the rows politely', async () => {
     stubApi(api());
     const user = userEvent.setup();
     const { router } = await opened();
     const category = screen.getByRole('group', { name: 'Category' });
-    expect(
-      within(category)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['All, 3 references', 'decision, 1 reference', 'requirement, 2 references']);
+    expect(within(category).getAllByRole('button').map(nameOf)).toEqual([
+      'All 3 references',
+      'decision 1 reference',
+      'requirement 2 references',
+    ]);
     const status = screen.getByRole('status', { name: 'Traceability updates' });
     expect(status.textContent).toBe('');
-    await user.click(within(category).getByRole('button', { name: 'requirement, 2 references' }));
+    await user.click(within(category).getByRole('button', { name: 'requirement 2 references' }));
     await waitFor(() => expect(rowIds()).toEqual(['US-M-01', 'US-S-01']));
     expect(router.state.location.search).toEqual({ category: 'requirement' });
     expect(
-      within(category).getByRole('button', { name: 'requirement, 2 references' }).getAttribute('aria-pressed'),
+      within(category).getByRole('button', { name: 'requirement 2 references' }).getAttribute('aria-pressed'),
     ).toBe('true');
     await waitFor(() => expect(status.textContent).toBe('2 references'));
   });
@@ -382,19 +408,20 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
     const user = userEvent.setup();
     const { router } = await opened(`${PAGE}?category=requirement`);
     const status = screen.getByRole('group', { name: 'Status' });
-    expect(
-      within(status)
-        .getAllByRole('button')
-        .map((b) => b.getAttribute('aria-label')),
-    ).toEqual(['All, 2 references', 'Completed, 0 references', 'In progress, 1 reference', 'Not started, 1 reference']);
-    await user.click(within(status).getByRole('button', { name: 'In progress, 1 reference' }));
+    expect(within(status).getAllByRole('button').map(nameOf)).toEqual([
+      'All 2 references',
+      'Completed 0 references',
+      'In progress 1 reference',
+      'Not started 1 reference',
+    ]);
+    await user.click(within(status).getByRole('button', { name: 'In progress 1 reference' }));
     await waitFor(() => expect(rowIds()).toEqual(['US-M-01']));
     expect(router.state.location.search).toEqual({ category: 'requirement', status: 'partial' });
     cleanup();
     stopEventStream();
     await opened(`${PAGE}?scope=project`);
     expect(
-      within(screen.getByRole('group', { name: 'Status' })).getByRole('button', { name: 'No elements, 1 reference' }),
+      within(screen.getByRole('group', { name: 'Status' })).getByRole('button', { name: 'No elements 1 reference' }),
     ).toBeTruthy();
   });
 
@@ -424,7 +451,7 @@ describe('AC-1, AC-3 — scope, filters and search in the address (D67-2, D67-5,
     expect(rowIds()).toHaveLength(3);
     expect(
       within(screen.getByRole('group', { name: 'Category' }))
-        .getByRole('button', { name: 'All, 3 references' })
+        .getByRole('button', { name: 'All 3 references' })
         .getAttribute('aria-pressed'),
     ).toBe('true');
   });
