@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1 -->
 ### N-013 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-23T16:22:10Z — approved by the approver: Yes, and it is no exception: cli-only-writes covers the states a verb owns, not the body. The approver committed the build's Execution Notes as they were ('docs(tasks): task-092 execution notes — build', status untouched). Now memory park the task with F-1 and its fix in --reason, and answer rejected. The CI evidence for the final head stays the approver's command (push of the task branch and the gates.yml dispatch): ask for it with RESULT: blocked decision when the review needs it.
 - **Kind:** decision
 - **Opened:** 2026-11-23T13:57:41Z
 - **Line:** trunk
 - **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 - **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1): May the existing build notes for trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned be committed without changing state, as an exception to CLI-only writes, so memory park can record rejection F-1?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-013 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:diverged-trunk -->
 ### N-014 · 2026-11-23 · trunk:runner
