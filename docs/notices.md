@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1 -->
+### N-013 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-23T13:57:41Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1): May the existing build notes for trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned be committed without changing state, as an exception to CLI-only writes, so memory park can record rejection F-1?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-013 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
