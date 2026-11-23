@@ -55,3 +55,29 @@ Gates: `npm run typecheck`, `npm run lint`, `npm run format:check`; the heavy ga
 
 <!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. -->
+
+**Build (developer, N-011).** The registry commands ran on the approver's side, outside the
+runner's sandbox (commit `2691f25e`, Node 22.21.0 / npm 11.6.2); the runner queried no registry.
+
+- `npm outdated` after: `js-yaml` 4.3.2 (latest 5.5.0, kept: dl-021 Decision 3), `typescript` 6.0.3
+  (latest 7.0.2, kept: dl-021 Decision 3), `jsdom` 30.1.3 (the registry `latest` tag 29.1.1 is
+  older: nothing to move). `wingfoil` 0.3.2 not listed, not moved (`release-planning` ›
+  *advance-pinned-build*). AC-1 met.
+- `npm audit`: before 34 (3 critical, 4 high, 27 moderate); after 18 (0 critical, 0 high, 18
+  moderate: `minimatch` through `typedoc`, the `@verdaccio/*` packages of `verdaccio` 6.11.3).
+  `npm audit --omit=dev`: 0. The 18 are accepted in `docs/publishing.md` *Accepted dev-only findings
+  after the refresh*. AC-2 met. `verdaccio` stays an exact pin (offline seeding of the staging smoke,
+  D29-1/D29-2).
+- Engines (`package-lock.json` `engines.node`): strictest are `jsdom` 30.1.x, `@asamuzakjp/css-color`,
+  `@asamuzakjp/dom-selector`, `w3c-xmlserializer` `^22.22.2 || ^24.15.0 || >=26.0.0` (dev-only);
+  `undici` `>=22.19.0`; run-time closure `>=22.12.0`. **Design decision:** `engines.node` stays
+  `>=22.12.0` in the four `package.json`, as D29-5 keeps the published floor at the run-time
+  closure; CI runs the toolchain on 22.22.2 (`gates.yml`, `publish.yml` `gate`), where no
+  `EBADENGINE` appears; on 22.21.0 `npm ci` warns for those four dev packages only (before and
+  after). AC-3's "lowest Node every refreshed dependency supports" is read as the published
+  package's run-time closure, per the approver's ruling; README, `docs/cli-reference.md` and
+  spec-007 keep 22.12. Reasoning in `docs/publishing.md`.
+- Docs/CHANGELOG: `docs/publishing.md` 0.13, `CHANGELOG.md` *[Unreleased]* (commit on the task branch).
+- Local: `npm run typecheck`, `lint`, `format:check` pass. `npm test` started (see the answer);
+  `test:coverage`, `test:contract`, the three-engine `test:e2e` and both smokes are the heavy gates
+  of `.github/workflows/gates.yml`, run on the push.
