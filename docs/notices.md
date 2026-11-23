@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-091-session-recovery-scenario-made-deterministic/review/6 -->
+### N-008 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-23T09:28:04Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** decision (run task-091-session-recovery-scenario-made-deterministic/review/6): Do you approve the CI handoff: push task/task-091-session-recovery-scenario-made-deterministic at aaf02ac683264e2e4f02fec2bf300e55e6cec1f8 from the runner home, dispatch gates.yml with scope=task, specs=test/e2e/session-recovery.spec.ts and repeat=20, and provide the run id, commit and results before review resumes?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-008 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
