@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/done/1 -->
 ### N-010 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
 
-- **Status:** open
+- **Status:** closed 2026-11-23T10:20:16Z — Resolve the rebase conflict in test/package/gates-workflow.test.ts as the task's own merge b4aca3c6 already did: keep both sides, the phase branch's PHASE_BRANCH pattern /^design\/dev-loop_v\d+\.\d+(?:\.\d+)?$/ and every repeat-input addition of 53e4bdcf (EXPRESSIONS, the inputs check, the 'a repeat that runs by default' and 'a fourth input' cases, the repeat job). Then git rebase --continue, run npm run test -- test/package/gates-workflow.test.ts test/package/gates-repeat-step.test.ts and npm run typecheck, lint, format:check, and integrate as the step says.
 - **Kind:** blocked
 - **Opened:** 2026-11-23T10:18:37Z
 - **Line:** trunk
 - **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
 - **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/done/1): rebase of task/task-091-session-recovery-scenario-made-deterministic onto design/dev-loop_v0.3.1 conflicts in test/package/gates-workflow.test.ts (commit 53e4bdcf); integration aborted, nothing merged, memory submit not run
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-010 --how "<what solved it>"`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-091-session-recovery-scenario-made-deterministic -->
 ### N-009 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
