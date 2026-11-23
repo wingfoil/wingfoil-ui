@@ -120,7 +120,6 @@ function SearchLink({
   search,
   current,
   className,
-  label,
   onFollow,
   children,
 }: {
@@ -128,7 +127,6 @@ function SearchLink({
   search: ListFilters;
   current?: 'page' | 'true' | undefined;
   className: string;
-  label?: string | undefined;
   onFollow?: () => void;
   children: ReactNode;
 }): ReactNode {
@@ -140,7 +138,6 @@ function SearchLink({
       className={className}
       href={router.buildLocation(target).href}
       aria-current={current}
-      aria-label={label}
       onClick={(event) => {
         // Only a click that navigates here (primary button, no modifier: not a new tab or window).
         if (!navigatesHere(event)) return;
@@ -153,6 +150,9 @@ function SearchLink({
     </a>
   );
 }
+
+/** The space between the parts of a control's name (not text: the catalogue rule does not apply). */
+const WORD_SPACE = ' ';
 
 /**
  * One filter link: its name, its count, `aria-current="page"` when it is the filter the list
@@ -176,21 +176,20 @@ function FilterLink({
   count: number;
   tone?: string | undefined;
 }): ReactNode {
-  const intl = useIntl();
-  const label = typeof name === 'string' ? name : '';
   const current = sameFilters(applied, search) ? 'page' : parent ? 'true' : undefined;
+  // No `aria-label`: the accessible name is the content, "<name> <count> <unit>", so that the
+  // visible text is part of it (label in name, WCAG 2.5.3); the unit is the hidden part.
   return (
     <li>
-      <SearchLink
-        className="filter-link"
-        pid={pid}
-        search={search}
-        current={current}
-        label={intl.formatMessage({ id: 'memory.filter.withCount' }, { name: label, count })}
-      >
+      <SearchLink className="filter-link" pid={pid} search={search} current={current}>
         {tone !== undefined && <span className={`filter-dot tone-${tone}`} aria-hidden="true" />}
         <span>{name}</span>
+        {WORD_SPACE}
         <span className="filter-count">{count}</span>
+        {WORD_SPACE}
+        <span className="visually-hidden">
+          <FormattedMessage id="memory.filter.countUnit" values={{ count }} />
+        </span>
       </SearchLink>
     </li>
   );

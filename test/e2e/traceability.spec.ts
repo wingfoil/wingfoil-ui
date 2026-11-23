@@ -77,7 +77,7 @@ test.describe('US-R-01 — traceability', () => {
     const before = await rowIds(page);
     await page
       .getByRole('group', { name: 'Status' })
-      .getByRole('button', { name: /^Completed,/ })
+      .getByRole('button', { name: /^Completed / })
       .click();
     await expect(page.getByText('No reference matches')).toBeVisible();
     await expect(page).toHaveURL(/status=completed/);
@@ -170,7 +170,7 @@ test.describe('US-R-01 — traceability', () => {
     await openPage(page, c);
     await page
       .getByRole('group', { name: 'Category' })
-      .getByRole('button', { name: /^requirement,/ })
+      .getByRole('button', { name: /^requirement / })
       .click();
     await expect.poll(() => rowIds(page)).toEqual(['US-M-01', 'US-S-01']);
     await expect(page).toHaveURL(/category=requirement/);
@@ -204,7 +204,7 @@ test.describe('task-067 acceptance criteria', () => {
     await openPage(page, c, '?category=requirement&q=US-M');
     await expect.poll(() => rowIds(page)).toEqual(['US-M-01']);
     await expect(page.getByRole('searchbox', { name: 'Search references' })).toHaveValue('US-M');
-    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: /^All,/ }).click();
+    await page.getByRole('group', { name: 'Category' }).getByRole('button', { name: /^All / }).click();
     await expect(page).not.toHaveURL(/category=/);
     await page.goBack();
     await expect(page).toHaveURL(/category=requirement/);
@@ -260,8 +260,8 @@ test.describe('task-067 acceptance criteria', () => {
   }) => {
     const c = await consoles.start({ projects: [await customCopy(fixtures)] });
     await openPage(page, c);
-    const requirement = page.getByRole('group', { name: 'Category' }).getByRole('button', { name: /^requirement,/ });
-    await expect(requirement).toHaveAccessibleName('requirement, 2 references');
+    const requirement = page.getByRole('group', { name: 'Category' }).getByRole('button', { name: /^requirement / });
+    await expect(requirement).toHaveAccessibleName('requirement 2 references');
     await tabUntil(page, requirement);
     await expectFocusVisible(requirement);
     await page.keyboard.press('Enter');

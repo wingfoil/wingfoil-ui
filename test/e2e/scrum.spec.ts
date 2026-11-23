@@ -45,7 +45,7 @@ test.describe('task-025 AC-4 — Scrum fixture', () => {
     }
     await expect(row(page, 'task-001-search-story')).toContainText('Search story');
     // The task type lists its deprecated element too, once selected (W3-24).
-    const task = typeList(page).getByRole('link', { name: 'task, 3 elements' });
+    const task = typeList(page).getByRole('link', { name: 'task 3 elements' });
     await task.click();
     await expect(task).toHaveAttribute('aria-current', 'page');
     await expect(row(page, 'task-004-obsolete-spike').locator('.state-pill')).toHaveText('deprecated', {

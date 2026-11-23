@@ -14,7 +14,11 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
   6.11.3 (exact pin); `npm audit` goes from 34 findings (3 critical, 4 high, 27 moderate) to 18
   moderate, all dev-only, accepted in `docs/publishing.md`; `npm audit --omit=dev` stays 0.
   TypeScript 7 and js-yaml 5 are kept back. The Node requirement is unchanged, 22.12 or later
-  (`engines.node` follows the run-time closure; the dev toolchain needs 22.22.2).
+  (`engines.node` follows the run-time closure; the dev toolchain needs 22.22.2). The refreshed
+  `axe-core` 4.14 reports the counted filters (the Memory list's types, states and buckets, the
+  Traceability categories and statuses) for `label-content-name-mismatch`; their accessible name is
+  now their content, label, count and a visually hidden unit ("task 4 elements"), with no
+  `aria-label` overriding the visible text (WCAG 2.5.3).
 
 - **WingFoil 0.3.2 contract-tested** (`governance-evolution-8-plan`): the supported range stays 0.2.2 to
   0.3.x; the contract tests now run on 0.2.2 and 0.3.2, 0.3.2 in place of 0.3.1 (`contracts/matrix.json`).

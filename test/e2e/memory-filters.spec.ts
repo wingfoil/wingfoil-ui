@@ -69,15 +69,15 @@ test.describe('US-M-02 — a bucket narrowed to one of its states (v0.3)', () =>
     await openList(page, c);
     await page
       .getByRole('list', { name: 'Element types' })
-      .getByRole('link', { name: /^All types,/ })
+      .getByRole('link', { name: /^All types / })
       .click();
     await page
       .getByRole('list', { name: 'States' })
-      .getByRole('link', { name: /^Waiting\/drafts\/closed,/ })
+      .getByRole('link', { name: /^Waiting\/drafts\/closed / })
       .click();
     const sub = page.getByRole('list', { name: 'In Waiting/drafts/closed' });
     // The state reached by Tab from the bucket and followed from the keyboard, with visible focus.
-    const state = sub.getByRole('link', { name: /^open,/ });
+    const state = sub.getByRole('link', { name: /^open / });
     await tabUntil(page, state);
     await expectFocusVisible(state);
     await page.keyboard.press('Enter');
@@ -106,7 +106,7 @@ test.describe('US-M-03 — elements missing a required reference', () => {
     const c = await consoles.start({ projects: [await presetCopy(fixtures)] });
     await openList(page, c);
     const filter = missingFilter(page);
-    await expect(filter).toHaveAccessibleName(`${MISSING}, 2 elements`, { timeout: COLD_READ_MS });
+    await expect(filter).toHaveAccessibleName(`${MISSING} 2 elements`, { timeout: COLD_READ_MS });
     await filter.focus();
     await expectFocusVisible(filter);
     await page.keyboard.press('Enter');
@@ -178,7 +178,7 @@ test.describe('US-M-04 — the filter hidden when nothing is required', () => {
     });
     const c = await consoles.start({ projects: [fx] });
     await openList(page, c);
-    await expect(missingFilter(page)).toHaveAccessibleName(`${MISSING}, 0 elements`, { timeout: COLD_READ_MS });
+    await expect(missingFilter(page)).toHaveAccessibleName(`${MISSING} 0 elements`, { timeout: COLD_READ_MS });
     await expect(page.locator('.memory-badge-missing')).toHaveCount(0);
   });
 });

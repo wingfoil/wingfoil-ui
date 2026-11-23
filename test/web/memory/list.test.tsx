@@ -96,16 +96,28 @@ function api(over: FakeApi = {}): FakeApi {
 }
 
 /** The type filter links (name → count text). */
+/** The text a sighted user reads on a control: its content without the visually hidden parts. */
+function visibleText(node: Element): string {
+  const copy = node.cloneNode(true) as Element;
+  copy.querySelectorAll('.visually-hidden, [aria-hidden="true"]').forEach((n) => n.remove());
+  return (copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/** A filter link as "<label><count>": the visible text without the space between them. */
+function labelAndCount(link: Element): string {
+  return visibleText(link).replace(/ (\d+)$/, '$1');
+}
+
 function typeFilters(): string[] {
   return within(screen.getByRole('list', { name: 'Element types' }))
     .getAllByRole('link')
-    .map((a) => a.textContent ?? '');
+    .map(labelAndCount);
 }
 
 function stateFilters(): string[] {
   return within(screen.getByRole('list', { name: 'States' }))
     .getAllByRole('link')
-    .map((a) => a.textContent ?? '');
+    .map(labelAndCount);
 }
 
 function rows(): string[] {
@@ -156,7 +168,31 @@ it('lists the declared types in order with counts, then undeclared types, and ev
   expect(new Set(paths(fetch))).toEqual(new Set([CONFIG, LIST, `/api/p/${PID}`]));
 });
 
-it('filters all types by bucket, the four buckets in the header order with counts', async () => {
+it('names every counted filter link from its visible label and count in their displayed order (WCAG 2.5.3)', async () => {
+  stubApi(api());
+  const user = userEvent.setup();
+  renderApp(`/p/${PID}/memory`);
+  await screen.findByText('Title of k-001-alpha');
+  const check = (): void => {
+    const links = [
+      ...within(screen.getByRole('list', { name: 'Element types' })).getAllByRole('link'),
+      ...within(screen.getByRole('list', { name: 'States' })).getAllByRole('link'),
+    ];
+    expect(links.length).toBeGreaterThan(5);
+    for (const link of links) {
+      expect(link.hasAttribute('aria-label')).toBe(false);
+      const name = (link.textContent ?? '').replace(/\s+/g, ' ').trim();
+      expect(name.startsWith(visibleText(link)), `${name} / ${visibleText(link)}`).toBe(true);
+      expect(name).toMatch(/ \d+ elements?$/);
+    }
+  };
+  check();
+  await user.click(screen.getByRole('link', { name: /^kind-a /i }));
+  await screen.findByRole('link', { name: /^All states 4 elements$/ });
+  check();
+});
+
+it('filters all types by bucket,the four buckets in the header order with counts', async () => {
   stubApi(api());
   const user = userEvent.setup();
   const { router } = renderApp(`/p/${PID}/memory`);
@@ -175,14 +211,14 @@ it('lists one type with its states, undeclared ones after the sequence, and read
   const user = userEvent.setup();
   renderApp(`/p/${PID}/memory`);
   await screen.findByText('Title of k-001-alpha');
-  await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
+  await user.click(screen.getByRole('link', { name: /^kind-a / }));
   await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'k-002-beta', 'k-003-gamma', 'k-009-gone']));
   expect(stateFilters()).toEqual(['All states4', 's11', 's21', 's31', 'odd1']);
   // The type count stays on the non-archived elements.
   expect(typeFilters()[1]).toBe('kind-a3');
-  await user.click(screen.getByRole('link', { name: /^s3,/ }));
+  await user.click(screen.getByRole('link', { name: /^s3 / }));
   await waitFor(() => expect(rows()).toEqual(['k-009-gone']));
-  await user.click(screen.getByRole('link', { name: /^kind-m,/ }));
+  await user.click(screen.getByRole('link', { name: /^kind-m / }));
   await waitFor(() => expect(rows()).toEqual(['m-001-delta']));
   expect(paths(fetch).filter((p) => p === ARCHIVED)).toHaveLength(1);
 });
@@ -192,8 +228,8 @@ it('follows the history back and forward across filter URLs (review F7)', async 
   const user = userEvent.setup();
   const { router } = renderApp(`/p/${PID}/memory`);
   await screen.findByText('Title of k-001-alpha');
-  await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
-  await user.click(await screen.findByRole('link', { name: /^s2,/ }));
+  await user.click(screen.getByRole('link', { name: /^kind-a / }));
+  await user.click(await screen.findByRole('link', { name: /^s2 / }));
   await waitFor(() => expect(rows()).toEqual(['k-001-alpha']));
   act(() => router.history.back());
   await waitFor(() => expect(router.state.location.search).toEqual({ type: 'kind-a' }));
@@ -201,10 +237,10 @@ it('follows the history back and forward across filter URLs (review F7)', async 
   act(() => router.history.back());
   await waitFor(() => expect(router.state.location.search).toEqual({}));
   await waitFor(() => expect(stateFilters()[1]).toBe('To approve2'));
-  expect(screen.getByRole('link', { name: /^All types,/ }).getAttribute('aria-current')).toBe('page');
+  expect(screen.getByRole('link', { name: /^All types / }).getAttribute('aria-current')).toBe('page');
   act(() => router.history.forward());
   await waitFor(() => expect(router.state.location.search).toEqual({ type: 'kind-a' }));
-  await waitFor(() => expect(screen.getByRole('link', { name: /^kind-a,/ }).getAttribute('aria-current')).toBe('page'));
+  await waitFor(() => expect(screen.getByRole('link', { name: /^kind-a / }).getAttribute('aria-current')).toBe('page'));
   expect(stateFilters()).toEqual(['All states4', 's11', 's21', 's31', 'odd1']);
 });
 
@@ -271,7 +307,7 @@ it('does not move the focus on a refetch after a modified click that opened no p
   await user.click(screen.getByRole('link', { name: /k-003-gamma/ }));
   await user.keyboard('{/Control}');
   expect(router.state.location.pathname).toBe(`/p/${PID}/memory`);
-  const allTypes = screen.getByRole('link', { name: /^All types,/ });
+  const allTypes = screen.getByRole('link', { name: /^All types / });
   allTypes.focus();
   fake[LIST] = { status: 200, body: { ...ELEMENTS, elements: ELEMENTS.elements.slice(1) } };
   await act(() => queryClient.invalidateQueries({ queryKey: queryKeys.project(PID) }));
@@ -329,7 +365,7 @@ it('shows no empty text for a deep-linked declared type until the configuration 
   const net = stubHeld(api(), [CONFIG]);
   net.hold();
   renderApp(`/p/${PID}/memory?type=kind-e`);
-  await screen.findByRole('link', { name: /^All types,/ });
+  await screen.findByRole('link', { name: /^All types / });
   // The list is read, the configuration not yet: no verdict on the type.
   expect(screen.queryByText('No element matches these filters.')).toBeNull();
   expect(screen.queryByText('No kind-e yet')).toBeNull();
@@ -356,7 +392,7 @@ it('drops the return row when the user moved the focus before the rows were comp
   await user.click(screen.getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(router.state.location.pathname).toBe(`/p/${PID}/memory`));
   // Before the archived read is back, the user goes to a filter.
-  const allTypes = await screen.findByRole('link', { name: /^All types,/ });
+  const allTypes = await screen.findByRole('link', { name: /^All types / });
   allTypes.focus();
   net.release();
   await screen.findByText('Title of k-009-gone');
@@ -457,11 +493,11 @@ it('announces every refresh that changed the list, none for an unchanged one, cl
   expect(status.textContent).toBe('The list was updated.');
   // A filter change clears the announcement; going back to the first filter does not bring it back
   // (review N1).
-  await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
+  await user.click(screen.getByRole('link', { name: /^kind-a / }));
   await waitFor(() => expect(status.textContent).toBe(''));
-  await user.click(screen.getByRole('link', { name: /^All types,/ }));
+  await user.click(screen.getByRole('link', { name: /^All types / }));
   await waitFor(() =>
-    expect(screen.getByRole('link', { name: /^All types,/ }).getAttribute('aria-current')).toBe('page'),
+    expect(screen.getByRole('link', { name: /^All types / }).getAttribute('aria-current')).toBe('page'),
   );
   expect(status.textContent).toBe('');
   expect(added).toHaveLength(2);
