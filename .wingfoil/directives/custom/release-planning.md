@@ -9,11 +9,11 @@ tags: [custom, release, planning, scrum]
 
 # Directive — Release planning of WingFoil UI
 
-**Version:** 1.4 · **Date:** 2026-11-19 (1.0: this repository's `release-planning` procedure folded
+**Version:** 1.5 · **Date:** 2026-11-21 (1.0: this repository's `release-planning` procedure folded
 into a directive, its file removed — task-049, adoption decision 2, RP3-13; 1.1: review round 1 of
 task-049: the release's submits are `plan-release`'s (product-owner), `plan-sprint` adds only the
 first Sprint, the stage plan names a sub workflow, the `memory add --type … --title` forms; 1.2:
-*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018; 1.3: each exit criterion names its check, the size check at *build-backlog*, *Deferrals*, the next Sprint at `next-sprint` — dl-022, dl-020 actions 1, 4, 5; 1.4: *Checkpoints under the runner*, the runner's line switched to the phase branch at *Review* — `governance-evolution-8-plan`, the runner adoption)
+*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018; 1.3: each exit criterion names its check, the size check at *build-backlog*, *Deferrals*, the next Sprint at `next-sprint` — dl-022, dl-020 actions 1, 4, 5; 1.4: *Checkpoints under the runner*, the runner's line switched to the phase branch at *Review* — `governance-evolution-8-plan`, the runner adoption; 1.5: the waves as `depends_on`, the phase-branch task and a gate task per wave at *build-backlog* — `governance-evolution-10-plan`, dl-025)
 
 Applies to the product-owner, the tech-lead and the architect when a release is planned. It says
 how each step is done in this repository; the packs' phases and the verbs own every transition
@@ -161,6 +161,20 @@ plan, to a task or a rule.
   (`draft → pending`). Stop-check: `python3 docs/03_backlog/X_tools/check_tasks.py vX.Y`.
 - **Size:** the one-active-day check of `definition-of-done` › *design* also runs here: a task found
   too large is split before the Sprint starts (dl-020 action 4).
+- **The order is `depends_on`** (dl-025): the script runner honours no other ordering. Two
+  governance tasks, with no `module` and no red or green (`definition-of-done` › *done*):
+  - **"Phase branch — vX.Y.Z"**, the first of the Sprint Backlog: its Acceptance Criteria are
+    *Review*'s phase branch — `design/dev-loop_v<version>` from `main`, its `PHASE_BRANCH` commit, a
+    green `gates.yml` run on its tip, pushed, and the runner's line switched to it (`wingfoil-cli`
+    rule 13). Its agent asks for what needs a push or the approver with `RESULT: blocked decision`,
+    then verifies each criterion.
+  - **"Wave N gate — vX.Y.Z"**, one per wave: `depends_on` every task of wave N; its Acceptance
+    Criteria are `definition-of-done` › *The wave gate* and *At every wave gate*. The last wave's
+    gate also moves the line back to `main` before `pre-release-checks` (rule 13).
+
+  Every task of wave 1 depends on the phase-branch task, every task of wave N on the gate task of
+  wave N−1. They are written in each draft, before its `memory submit`: an agent's edit of its own
+  draft, never an amend.
 - **From decision-logs:** the task(s) each in-scope `ready` decision-log implies; the decision-log
   stays `ready` (dl-017).
 - **From bugs:** one or more fix tasks for each selected `triaged` bug (`bug:` is a list, dl-045),
@@ -177,8 +191,9 @@ plan, to a task or a rule.
 
 In this order (RP3-4): the approver approves the tasks to `backlog`; the release gets its `sprint`
 and two `memory submit` (`draft → planning → in-development`), run by the product-owner as `sprint`
-› `plan-release`'s moves; the waves and the order of the tasks are written in the plan (RP3-19); the
-Sprint's `planned → active` comes last, after the *Review*.
+› `plan-release`'s moves; the waves and the order of the tasks are written in the plan (RP3-19),
+the same order as the tasks' `depends_on` (*build-backlog*); the Sprint's `planned → active` comes
+last, after the *Review*.
 
 ## Deferrals
 
@@ -193,7 +208,8 @@ hand (`wingfoil-cli` W-04), the merge into `main` with `--no-ff` (under the scri
 planning's commits are already on `main`). Then the tech-lead creates the
 release's phase branch `design/dev-loop_vX.Y` from `main`; its first commit sets `PHASE_BRANCH` in
 `.github/workflows/gates.yml` to that branch, which the own-specs job diffs against (dl-018); under
-the script runner, the approver then switches the runner's line to it (`wingfoil-cli` rule 13).
+the script runner this is the phase-branch task (*build-backlog*), and the approver switches the
+runner's line to it (`wingfoil-cli` rule 13).
 
 ## A new release line
 

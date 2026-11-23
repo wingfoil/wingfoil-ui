@@ -15,6 +15,50 @@ command it names.
 
 <!-- runner:closed -->
 
+<!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/start/3 -->
+### N-007 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** closed 2026-11-23T08:08:40Z — Run every check through npm run, which the runner allows: npm run test -- test/package/gates-repeat-step.test.ts test/docs/public-text.test.ts test/scripts/e2e-own-specs.test.ts test/package/gates-workflow.test.ts (the test script is vitest run), plus npm run typecheck, lint and format:check. Never npx vitest. Keep the two fixes already in the worktree, commit them once the checks pass, then go on as the step says.
+- **Kind:** blocked
+- **Opened:** 2026-11-23T08:02:01Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/start/3): the two fixes are edited in the worktree but unverified and uncommitted, because the sandbox refused `npx vitest run` (needs approval), so I could not run the checks or `memory submit`
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-007 --how "<what solved it>"`
+
+<!-- key:halt-trunk-rejected-task-091-session-recovery-scenario-made-deterministic -->
+### N-006 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** closed 2026-11-23T07:54:12Z — resumed by the approver
+- **Kind:** halt
+- **Opened:** 2026-11-23T07:51:39Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** trunk:task-091-session-recovery-scenario-made-deterministic rejected 2 times in review: rule it first (npx wingfoil memory history task-091-session-recovery-scenario-made-deterministic)
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
+
+<!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/review/3 -->
+### N-005 · 2026-11-22 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** closed 2026-11-23T07:46:34Z — Both findings are in this task's own change (e72f9648): they need no bug, as for N-004. Reject the review: memory park the task with each finding and its structural fix in --reason (the repeat count refused as an oversized decimal string before any integer comparison, with boundary tests; the recorder of gates-repeat-step.test.ts on the repository's POSIX-shell pattern, so test/docs/public-text.test.ts passes), and answer rejected. A finding in the task's own change never needs a bug.
+- **Kind:** blocked
+- **Opened:** 2026-11-22T08:02:25Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/review/3): WingFoil refuses the mandatory workflow-linked bug creation needed to record the review rejection
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-005 --how "<what solved it>"`
+
+<!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/review/1 -->
+### N-004 · 2026-11-21 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** closed 2026-11-21T20:51:44Z — The finding is in this task's own change (the repeat job of gates.yml, 53e4bdcf): it needs no bug. Reject the review: memory park the task with the finding and its structural fix (reuse the spec-path validator of scripts/e2e-own-specs.mjs, with a regression test) in --reason, and answer rejected.
+- **Kind:** blocked
+- **Opened:** 2026-11-21T20:47:30Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/review/1): required workflow-linked bug creation is refused because no step of sw-life-cycle-1-plan adds a bug
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-004 --how "<what solved it>"`
+
 <!-- key:decision-trunk-sprint-002/sprint-planning/3 -->
 ### N-003 · 2026-11-21 · trunk:sprint-002
 
