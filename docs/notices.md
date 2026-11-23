@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:failure-trunk-npm_ci_--silent_--ignore-scripts_in_trunk_worktrees_task-0 -->
 ### N-012 · 2026-11-23 · trunk:runner
 
-- **Status:** open
+- **Status:** closed 2026-11-23T13:24:09Z — the line ran again without a failure
 - **Kind:** failure
 - **Opened:** 2026-11-23T13:19:23Z
 - **Line:** trunk
 - **Element:** trunk:runner
 - **Reason:** runner failure: npm ci --silent --ignore-scripts in <trunk worktrees>/task-092-development-dependencies-refreshed-and-the-node-engine-aligned:  (the notice closes by itself once the line runs again without a failure)
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --dry-run`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/build/1 -->
 ### N-011 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
