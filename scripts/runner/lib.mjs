@@ -659,12 +659,14 @@ export const FORBIDDEN_WF = Object.freeze(['memory approve', 'memory reject', 'w
  */
 export function permissionArgs({ command, role, cli, sources = [], extra = [] }) {
   if (command !== 'claude') return [];
+  // Read-only version checks, matched exactly (no `:*`): nothing else opens with them (1.2.0).
+  const versions = versionCommands(cli).map((c) => `Bash(${c})`);
   const forms = [...new Set([cli.join(' '), 'npx wingfoil', 'npx --no-install wingfoil'])];
   const wf = (verbs) => forms.flatMap((form) => verbs.map((verb) => `Bash(${form} ${verb}:*)`));
   const git = (verbs) => verbs.map((verb) => `Bash(git ${verb}:*)`);
   const reviewing = role === 'reviewer';
   const allow = ['Read', 'Glob', 'Grep', 'Edit', 'Write', 'Bash(npm test:*)', 'Bash(npm run:*)', ...git(GIT_READ), ...git(GIT_RECORD), ...wf(WF_READ),
-    ...wf(reviewing ? WF_REVIEW : WF_WRITE), ...(reviewing ? [] : git(GIT_WRITE)), ...extra];
+    ...wf(reviewing ? WF_REVIEW : WF_WRITE), ...(reviewing ? [] : git(GIT_WRITE)), ...versions, ...extra];
   const deny = ['Bash(git push:*)', 'Bash(git -C:*)', 'Bash(git remote:*)', 'Bash(git config:*)', 'Bash(npm publish:*)', ...wf(FORBIDDEN_WF),
     ...(['reviewer', 'qa'].includes(role) ? sources.flatMap((path) => { const glob = `${String(path).replace(/\/+$/, '')}/**`; return [`Edit(${glob})`, `Write(${glob})`]; }) : [])];
   return ['--allowedTools', ...allow, '--disallowedTools', ...deny];
@@ -744,18 +746,48 @@ export function waitsForApprover(step) {
 }
 
 /**
- * The exact command that unblocks a step waiting for the approver, run in the line's checkout
- * (the approver approves in one worktree per line: directive agent-branches), so that the ruling
- * reaches the runner without a push.
+ * Container mode (1.2.0): one project run by a caller (a benchmark harness) that acts as the approver.
+ * Only the caller starts it, with --container and DFD_RUNNER_CONTAINER=1 together; a configuration
+ * that names it is refused, so a line's config/runner.yaml can never enable an automated approver.
  */
-export function unblockCommand(step, checkout = null, { home = null, line = null } = {}) {
-  const cd = checkout ? `cd ${checkout} && ` : '';
-  if (step.awaiting?.kind === 'approval' && step.awaiting.recordNeeded === false && step.awaiting.elements?.length) {
-    // From the runner home, with its CLI (gate.mjs --element), when it is known (1.1.17).
-    if (home && line) return `cd ${home} && ${step.awaiting.elements.map((e) => `node scripts/runner/gate.mjs --line ${line} --element ${e.id} --reason "<your ruling>"`).join(' && ')}`;
-    return cd + step.awaiting.elements.map((e) => `npx wingfoil memory approve ${e.id} --reason "<your ruling>"`).join(' && ');
-  }
-  return `${cd}npx wingfoil workflow finalize ${step.instance} --step ${step.key} --reason "<your ruling>"`;
+export function containerProblems({ flag = false, env = {}, config = {} }) {
+  const out = [];
+  const set = env.DFD_RUNNER_CONTAINER === '1';
+  if (config && Object.hasOwn(config, 'container')) out.push('the configuration names container mode: only its caller starts it (--container with DFD_RUNNER_CONTAINER=1), never a configuration');
+  if (flag && !set) out.push('--container needs DFD_RUNNER_CONTAINER=1 in the environment');
+  if (!flag && set) out.push('DFD_RUNNER_CONTAINER is set without --container');
+  return out;
+}
+
+/** A launch's record for the caller's --record-dir: the run record, the agent's stream, its exit (R4). */
+export function launchRecord({ record, line, step, adapter, model, stdout = '', stderr = '' }) {
+  return { record, line, instance: step.instance, step: step.key, adapter, model,
+    tokens: record.tokens, exit_status: record.exit_status, duration_ms: record.duration_ms, result: record.result,
+    stdout: String(stdout ?? ''), stderr: String(stderr ?? '') };
+}
+
+/** What a container run leaves the caller to rule: the line's open notices, with how to rule each. */
+export function waitingItems(noticesText, lineName, { home }) {
+  return notices(noticesText).filter((n) => n.open && (/\*\*Line:\*\* (\S+)/.exec(n.text)?.[1] ?? null) === lineName).map((n) => ({
+    id: n.id, key: n.key, kind: noticeKind(n.key),
+    element: /^### N-\d+ · [^·]+ · (.+)$/m.exec(n.text)?.[1]?.trim() ?? null,
+    reason: /\*\*Reason:\*\* (.*)/.exec(n.text)?.[1] ?? '',
+    rule: ['gate', 'decision'].includes(noticeKind(n.key)) ? `cd ${home} && node scripts/runner/gate.mjs --container --line ${lineName} ${n.id} --reason <ruling> [--reject]` : `cd ${home} && node scripts/runner/run.mjs --container --line ${lineName} --close ${n.id} --how <what solved it>`,
+  }));
+}
+
+/** The read-only CLI verbs the approver may run through the runner home (`run.mjs --read`, 1.2.0). */
+export const APPROVER_READS = Object.freeze(['workflow next', 'workflow status', 'workflow show', 'workflow list', 'memory search', 'memory history']);
+export function readAllowed(args) {
+  return APPROVER_READS.includes(args.slice(0, 2).join(' '));
+}
+
+/** A line's name in the log prefix, coloured in a terminal (NO_COLOR turns it off): one colour per line. */
+const LINE_COLOURS = [36, 35, 33, 32, 34, 31];
+export function lineLabel(name, colour = false) {
+  if (!colour) return name;
+  const code = name === 'trunk' ? 36 : LINE_COLOURS[1 + ([...String(name)].reduce((sum, c) => sum + c.charCodeAt(0), 0) % (LINE_COLOURS.length - 1))];
+  return `\u001b[1;${code}m${name}\u001b[0m`;
 }
 
 /** The notice key of a step waiting for the approver. */
@@ -1281,7 +1313,53 @@ export function integrationText({ checkout, worktree, lineBranch, branch, id, te
   ].join('\n');
 }
 
-export function buildPrompt({ project, step, element, line, worktree, checkout, branch, stateRef, returned = null, decided = [], exit = '', author = null, amend = null, amended = null, push = false, lineBranchNames = [], integrate = false, raising = true, sessionContext = true, runsTests = 'npm test', elementPath = null, liveResults = [], cli = 'npx wingfoil', rulings = [], decisions = [], unblocked = null, merge = 'ff' }) {
+/** The element types a step's own actions add (`memory.add(type: bug)`); `*` for an add without a type. */
+export function addedTypes(step) {
+  const out = [];
+  for (const a of step?.actions ?? []) {
+    const text = String(a?.text ?? a?.token ?? '');
+    if (a?.token !== 'memory.add' && !text.startsWith('memory.add')) continue;
+    const type = /type:\s*([a-z0-9-]+)/i.exec(text)?.[1];
+    out.push(type ?? '*');
+  }
+  return [...new Set(out)];
+}
+
+/** The package the pinned CLI comes from: `npx … wingfoil` → wingfoil, `node node_modules/<pkg>/…` → <pkg>. */
+export function cliPackage(cli = ['npx', '--no-install', 'wingfoil']) {
+  const [first, ...rest] = cli;
+  if (first === 'npx') return rest.find((a) => !a.startsWith('-')) ?? null;
+  const path = cli.find((a) => a.includes('node_modules/'));
+  if (path) return /node_modules\/((?:@[^/]+\/)?[^/]+)/.exec(path)?.[1] ?? null;
+  return /(?:^|\/)([^/]+)$/.exec(first ?? '')?.[1] ?? null;
+}
+
+/** The read-only version checks an agent may run, exactly in these forms (1.2.0). */
+export function versionCommands(cli = ['npx', '--no-install', 'wingfoil']) {
+  const pkg = cliPackage(cli);
+  const forms = [...new Set([cli.join(' '), 'npx --no-install wingfoil'])].map((form) => `${form} --version`);
+  return pkg ? [...forms, `npm view ${pkg} versions`, `npm view ${pkg} versions --json`] : forms;
+}
+
+/** How a code step runs its tests and checks: through npm run only (1.2.0). */
+export function testRule(runsTests = 'npm test') {
+  const script = /^npm\s+(?:run(?:-script)?\s+)?(?:-\S+\s+)*([^\s-][^\s]*)/.exec(runsTests)?.[1] ?? 'test';
+  return `Run tests and checks only through npm run: ${runsTests}, or npm run ${script} -- <files> for targeted files. npx, node_modules/.bin and the tools called directly (vitest, jest, eslint, tsc, node --test …) are not permitted and are refused.`;
+}
+
+/**
+ * Which memory add takes --workflow and --step: only the types the step's own actions add (what the
+ * `created` evidence reads); anything raised is added without them (1.2.0).
+ */
+export function createRule(step, { raising = false } = {}) {
+  const types = addedTypes(step);
+  const other = raising ? 'Anything else you raise follows the rule below: added WITHOUT --workflow and --step.' : 'Any other element is added WITHOUT --workflow and --step.';
+  if (!types.length) return `This step's actions add no element: never pass --workflow or --step to memory add${raising ? '; what you raise follows the rule below' : ''}.`;
+  const which = types.includes('*') ? 'An element this step\'s actions add' : `An element of type ${types.join(' or ')} that this step's actions add`;
+  return `${which} takes --workflow ${step.instance} --step ${step.key}. ${other}`;
+}
+
+export function buildPrompt({ project, step, element, line, worktree, checkout, branch, stateRef, returned = null, decided = [], exit = '', author = null, amend = null, amended = null, push = false, lineBranchNames = [], integrate = false, raising = true, sessionContext = true, runsTests = 'npm test', elementPath = null, liveResults = [], cli = 'npx wingfoil', rulings = [], decisions = [], unblocked = null, merge = 'ff', versions = [] }) {
   if (amend) { exit = ''; }
   const amendText = amend
     ? [
@@ -1329,7 +1407,9 @@ export function buildPrompt({ project, step, element, line, worktree, checkout, 
       : integrate
         ? integrationText({ checkout, worktree, lineBranch: line.branch, branch, id: element.id, test: runsTests, merge })
         : `Code and tests: in ${worktree} (branch ${branch}), committed on that branch.\nMemory and workflow commands: ONLY in ${checkout} (branch ${line.branch}): cd there with a cd of its own, and back to ${worktree} the same way before code, tests and git.\n${COMMAND_FORMS}`,
-    `Memory changes only through the pinned CLI (directive cli-only-writes). An element this step creates takes --workflow ${step.instance} --step ${step.key}; custom fields (release, kind, scope, tags, …) are written in the draft right after memory add.`,
+    worktree !== checkout || integrate ? testRule(runsTests) : '',
+    versions.length ? `Version checks, if the step needs them, one per call and exactly in these forms (no pipe, no cd … && before them, no other flag): ${versions.join('; ')}.` : '',
+    `Memory changes only through the pinned CLI (directive cli-only-writes); custom fields (release, kind, scope, tags, …) are written in the draft right after memory add. ${createRule(step, { raising: /^task:/.test(element.ref) && raising })}`,
     /^task:/.test(element.ref) && raising
       ? `If the step needs an element it cannot settle itself (another task, an adr: the task or the specification calls a choice architectural, or the work adds a dependency or changes a public contract; a decision-log; a bug: a defect outside this task), look for it first in ${checkout}: npx wingfoil memory search <keyword>. One that exists and is still open (a task not done, an adr not accepted, a decision-log not ready, a bug not resolved): add its id to the task's needs: list in its frontmatter, commit, and answer RESULT: blocked needs <id>[, <id>…]. One that is missing: raise it, npx wingfoil memory add --type <adr|decision-log|bug> --title "<the decision or the defect, nothing else>" WITHOUT --workflow and --step, write origin: ${element.id} and its Context in the draft, commit, and answer RESULT: blocked raised <id>[, <id>…]. Never a duplicate of an open element. In both cases do not move the task (no memory submit) unless this is start, which pulls it first: dev-loop holds it until each is closed. What you raise never goes in the task's needs: its own gate holds the task, and listing it there stalls the task.`
       : '',
@@ -1340,7 +1420,7 @@ export function buildPrompt({ project, step, element, line, worktree, checkout, 
     'Do not run workflow finalize, memory approve or memory reject, and do not push: the runner finalizes after its bound checks, and the approver approves.',
     pushText(step, { push, checkout, lines: lineBranchNames }),
     step.phase === 'review'
-      ? `Review: to accept, leave the element as it is and answer completed. To reject, in ${checkout} run npx wingfoil memory park ${element.id} --reason "<the reasons>" and answer rejected with the reasons. Name each finding's class and, when one exists, the structural solution that removes the class; look for the other cases of each class first (directive code-review). If the reject needs an adr, a decision-log or a bug, raise it first (as below), cite its id in the reasons, then park and answer rejected: dev-loop holds the task until it is closed. If a finding's cause is a test red wrote that contradicts an accepted decision (an adr, a decision-log, the specification), the solution is a red amendment: add to the reasons the line Red amendment (${line.name}:<decision id>): <file>[, <file>…] naming those test files, and never ask green or refactor to change red's files.`
+      ? `Review: to accept, leave the element as it is and answer completed. To reject, in ${checkout} run npx wingfoil memory park ${element.id} --reason "<the reasons>" and answer rejected with the reasons. Name each finding's class and, when one exists, the structural solution that removes the class; look for the other cases of each class first (directive code-review). A finding inside this element's own change is recorded in the memory park --reason: the park commit is its tracked record (directive code-review), so it needs no bug. If the reject needs an adr, a decision-log, or a bug for a defect outside this element's change, raise it first (as below), cite its id in the reasons, then park and answer rejected: dev-loop holds the task until it is closed. If a finding's cause is a test red wrote that contradicts an accepted decision (an adr, a decision-log, the specification), the solution is a red amendment: add to the reasons the line Red amendment (${line.name}:<decision id>): <file>[, <file>…] naming those test files, and never ask green or refactor to change red's files.`
       : '',
     checks.length ? `After you, the runner runs the bound checks: ${checks.join(', ')}.` : '',
     '',
@@ -1452,11 +1532,24 @@ export function parseOutput(stdout) {
       text = typeof o.result === 'string' ? o.result : text;
       session = o.session_id ?? session;
       if (o.is_error === true) { isError = true; errorText = typeof o.result === 'string' ? o.result : errorText; }
-      const u = o.usage ?? {};
-      add('input', u.input_tokens);
-      add('output', u.output_tokens);
-      add('cache_read', u.cache_read_input_tokens);
-      add('cache_write', u.cache_creation_input_tokens);
+      // modelUsage counts every model the run used, subagents included; usage covers only the main
+      // conversation, so it is the fallback when modelUsage carries no counts (1.2.0).
+      const perModel = Object.values(o.modelUsage ?? {}).filter((m) => m && typeof m === 'object');
+      const counted = perModel.some((m) => ['inputTokens', 'outputTokens', 'cacheReadInputTokens', 'cacheCreationInputTokens'].some((k) => Number.isSafeInteger(m[k])));
+      if (counted) {
+        for (const m of perModel) {
+          add('input', m.inputTokens);
+          add('output', m.outputTokens);
+          add('cache_read', m.cacheReadInputTokens);
+          add('cache_write', m.cacheCreationInputTokens);
+        }
+      } else {
+        const u = o.usage ?? {};
+        add('input', u.input_tokens);
+        add('output', u.output_tokens);
+        add('cache_read', u.cache_read_input_tokens);
+        add('cache_write', u.cache_creation_input_tokens);
+      }
       const models = Object.keys(o.modelUsage ?? {});
       if (models.length) model = models.join(',');
     }

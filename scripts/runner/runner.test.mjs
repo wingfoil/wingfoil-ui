@@ -239,13 +239,16 @@ test('every role maps to a tier, and every line maps it to an adapter that exist
   }
 });
 
-test('every agent of a line has a git identity noreply@<its provider> in dna.yaml', () => {
+// What holds in every adopting project (1.2.0): each agent of a line has its own email, never an
+// approver's, and no approval authority; the noreply@<provider> form is dfd-llm's own convention.
+test('every agent of a line has its own git identity in dna.yaml, never an approver\'s', () => {
+  assert.deepEqual(lib.identityProblems(dna.team).filter((p) => lines.some((l) => [l.agent, l.reviewer_agent].includes(p.split(' ')[1]))), []);
   for (const line of lines) {
     for (const agent of [line.agent, line.reviewer_agent].filter(Boolean)) {
       const entry = dna.team.agents.find((a) => a.name === agent);
       assert.ok(entry, `${agent} in team.agents`);
-      assert.match(entry.email, /^noreply@[a-z0-9.-]+$/);
-      assert.equal(entry.approval_authority, false);
+      assert.match(entry.email, /^[^@\s]+@[a-z0-9.-]+$/i);
+      assert.notEqual(entry.approval_authority, true);
     }
   }
 });
@@ -275,8 +278,10 @@ test('every adapter of a line has its extra arguments, and the prompt stays wher
   }
 });
 
-test('the bound checks the runner runs exist', () => {
-  const bindings = yaml.load(readFileSync(new URL('.wingfoil/workflows/bindings.yaml', root), 'utf8'));
+// A project without check bindings has nothing to check here: skipped with the reason (1.2.0).
+const BINDINGS = new URL('.wingfoil/workflows/bindings.yaml', root);
+test('the bound checks the runner runs exist', { skip: existsSync(BINDINGS) ? false : 'this project has no .wingfoil/workflows/bindings.yaml: the runner runs no bound checks' }, () => {
+  const bindings = yaml.load(readFileSync(BINDINGS, 'utf8'));
   for (const [token, binding] of Object.entries(bindings.checks ?? {})) {
     const script = binding.run?.find((a) => a.startsWith('scripts/'));
     if (script) assert.ok(existsSync(new URL(script, root)), `${token}: ${script}`);
@@ -392,8 +397,6 @@ test('the frontier of every open workflow, and the gates', () => {
   const { steps, complete } = lib.frontier(status);
   assert.deepEqual(complete, ['done-plan']);
   assert.ok(lib.waitsForApprover(steps[0]));
-  assert.equal(lib.unblockCommand(steps[0]), 'npx wingfoil workflow finalize a-plan --step inception.approve --reason "<your ruling>"');
-  assert.equal(lib.unblockCommand(steps[0], '/c'), 'cd /c && npx wingfoil workflow finalize a-plan --step inception.approve --reason "<your ruling>"');
   assert.deepEqual(lib.weeklyMains({ weekly_mains: ['a', 'b'] }, { weekly_mains: ['a'] }), ['a']);
   assert.deepEqual(lib.weeklyMains({ weekly_mains: ['a', 'b'] }, {}), ['a', 'b']);
   const work = steps.find((s) => !lib.waitsForApprover(s));
@@ -401,8 +404,6 @@ test('the frontier of every open workflow, and the gates', () => {
   assert.deepEqual(lib.stepElement(work), { type: 'plan', id: 'w-plan', status: null, ref: 'plan:w-plan' });
   const onTask = { key: 'dev-loop.red', instance: 'x', scope: { element: { type: 'task', id: 'task-3-y', status: 'in-progress' } } };
   assert.equal(lib.stepElement(onTask).ref, 'task:task-3-y');
-  const approveElement = { key: 'k', instance: 'i', awaiting: { kind: 'approval', recordNeeded: false, elements: [{ id: 'dl-1' }] } };
-  assert.equal(lib.unblockCommand(approveElement), 'npx wingfoil memory approve dl-1 --reason "<your ruling>"');
 });
 
 test('notices: opened once, closed with the date and how, and the last resume', () => {
@@ -627,7 +628,7 @@ test('a step resumed after a park or a reject is told why; every step how it com
   assert.match(prompt, /resumes after a park by codex <noreply@openai.com> \(2026-11-13T10:25:13\+01:00\)\. Its reasons, address every point before you answer:\n1\) the ADRs/);
   assert.match(prompt, /^EXIT-LINE$/m);
   const review = lib.buildPrompt({ project: 'p', step: { key: 'dev-loop.review', workflow: 'dev-loop', phase: 'review', instance: 'i', role: 'reviewer' }, element, line: { name: 'trunk', branch: 'main' }, worktree: '/w', checkout: '/c', branch: 'b' });
-  assert.match(review, /If the reject needs an adr, a decision-log or a bug, raise it first/);
+  assert.match(review, /If the reject needs an adr, a decision-log, or a bug for a defect outside this element's change, raise it first/);
   assert.match(review, /Name each finding's class and, when one exists, the structural solution/);
   assert.match(prompt, /implement the solution for the whole class/);
   assert.ok(!/implement the solution for the whole class/.test(review));
@@ -1245,12 +1246,6 @@ test('1.1.16: a hand command in a line checkout is judged first and runs git wit
   assert.equal(command, `cd /w/home && node scripts/runner/run.mjs --line trunk --check-git && cd /w/co && git ${lib.SAFE_GIT_FLAGS} merge origin/main && git ${lib.SAFE_GIT_FLAGS} status --short`);
 });
 
-test('1.1.17: the approver approves an element from the runner home, with its CLI', () => {
-  const step = { instance: 'i', key: 'x.approve', awaiting: { kind: 'approval', recordNeeded: false, elements: [{ id: 'dl-1' }, { id: 'adr-2' }] } };
-  assert.equal(lib.unblockCommand(step, '/c', { home: '/w/home', line: 'trunk' }),
-    'cd /w/home && node scripts/runner/gate.mjs --line trunk --element dl-1 --reason "<your ruling>" && node scripts/runner/gate.mjs --line trunk --element adr-2 --reason "<your ruling>"');
-  assert.equal(lib.unblockCommand(step, '/c'), 'cd /c && npx wingfoil memory approve dl-1 --reason "<your ruling>" && npx wingfoil memory approve adr-2 --reason "<your ruling>"');
-});
 
 test('1.1.19: a branch an agent named cannot reach the approver\'s shell (H-1, L-4)', () => {
   for (const bad of ['x$(id)', 'a;touch${IFS}P;b', 'a`id`', 'a|sh', "a'b", '-x', '/x', 'a..b', 'a b', '']) assert.equal(lib.safeRef(bad), false, bad);
@@ -1263,4 +1258,69 @@ test('1.1.19: a branch an agent named cannot reach the approver\'s shell (H-1, L
   // What the shell runs: the quoted word reaches git as one argument, with nothing expanded.
   const echoed = spawnSync('sh', ['-c', `printf '%s\\n' ${lib.shellWord('x$(echo PWNED)`echo P2`;echo P3')}`], { encoding: 'utf8' }).stdout;
   assert.equal(echoed, 'x$(echo PWNED)`echo P2`;echo P3\n');
+});
+
+test('1.2.0: tokens count the subagents (modelUsage), usage is the fallback', () => {
+  const withSub = JSON.stringify({ type: 'result', result: 'RESULT: completed', usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 2, cache_creation_input_tokens: 600 },
+    modelUsage: { 'claude-haiku-5-5': { inputTokens: 40, outputTokens: 20, cacheReadInputTokens: 300, cacheCreationInputTokens: 43184 }, 'claude-sonnet-5-5': { inputTokens: 1, outputTokens: 2, cacheReadInputTokens: 3, cacheCreationInputTokens: 4 } } });
+  assert.deepEqual(lib.parseOutput(withSub).tokens, { input: 41, output: 22, cache_read: 303, cache_write: 43188 });
+  assert.equal(lib.parseOutput(withSub).model, 'claude-haiku-5-5,claude-sonnet-5-5');
+  const without = JSON.stringify({ type: 'result', result: 'x', usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 2, cache_creation_input_tokens: 600 }, modelUsage: { m: { inputTokens: 10, outputTokens: 5, cacheReadInputTokens: 2, cacheCreationInputTokens: 600 } } });
+  assert.deepEqual(lib.parseOutput(without).tokens, { input: 10, output: 5, cache_read: 2, cache_write: 600 });
+  assert.deepEqual(lib.parseOutput(JSON.stringify({ type: 'result', result: 'x', usage: { input_tokens: 7, output_tokens: 1 } })).tokens, { input: 7, output: 1, cache_read: lib.NOT_REPORTED, cache_write: lib.NOT_REPORTED });
+});
+
+test('1.2.0: --workflow/--step only for what the step\'s actions add; findings of the own change go in the park', () => {
+  const base = { project: 'p', element: { ref: 'task:task-1-x', id: 'task-1-x', type: 'task', status: 'in-review' }, line: { name: 'trunk', branch: 'main' }, worktree: '/w', checkout: '/c', branch: 'task/task-1-x', stateRef: 'abc' };
+  const review = { key: 'backlog-item.review@task:task-1-x', workflow: 'backlog-item', phase: 'review', instance: 'p-1', role: 'reviewer', actions: [{ token: 'memory.park', text: 'memory.park' }] };
+  const prompt = lib.buildPrompt({ ...base, step: review });
+  assert.ok(!/takes --workflow p-1 --step/.test(prompt), 'no unconditional --workflow/--step rule');
+  assert.match(prompt, /This step's actions add no element: never pass --workflow or --step to memory add/);
+  assert.match(prompt, /A finding inside this element's own change is recorded in the memory park --reason/);
+  assert.match(prompt, /a bug for a defect outside this element's change/);
+  const ingest = { key: 'bug-ingest.triage', workflow: 'bug-ingest', phase: 'triage', instance: 'b-1', role: 'qa', actions: [{ token: 'memory.add', text: 'memory.add(type: bug)' }, { token: 'memory.submit', text: 'memory.submit' }] };
+  assert.deepEqual(lib.addedTypes(ingest), ['bug']);
+  assert.match(lib.buildPrompt({ ...base, element: { ref: 'plan:b-1', id: 'b-1', type: 'plan' }, worktree: '/c', step: ingest }), /An element of type bug that this step's actions add takes --workflow b-1 --step bug-ingest\.triage\. Any other element is added WITHOUT --workflow and --step\./);
+});
+
+test('1.2.0: code steps run tests through npm run only; version checks in exact forms', () => {
+  const step = { key: 'backlog-item.build@task:t', workflow: 'backlog-item', phase: 'build', instance: 'p', role: 'developer', actions: [] };
+  const prompt = lib.buildPrompt({ project: 'p', step, element: { ref: 'task:t', id: 't', type: 'task' }, line: { name: 'trunk', branch: 'main' }, worktree: '/w', checkout: '/c', branch: 'task/t', runsTests: 'npm test', versions: lib.versionCommands(['npx', '--no-install', 'wingfoil']) });
+  assert.match(prompt, /Run tests and checks only through npm run: npm test, or npm run test -- <files> for targeted files\. npx, node_modules\/\.bin and the tools called directly/);
+  assert.match(prompt, /Version checks, if the step needs them, one per call and exactly in these forms/);
+  assert.match(lib.testRule('npm run -s unit'), /npm run unit -- <files>/);
+  assert.deepEqual(lib.versionCommands(['npx', '--no-install', 'wingfoil']), ['npx --no-install wingfoil --version', 'npm view wingfoil versions', 'npm view wingfoil versions --json']);
+  assert.equal(lib.cliPackage(['node', 'node_modules/wingfoil-released/dist/cli.js']), 'wingfoil-released');
+  const args = lib.permissionArgs({ command: 'claude', role: 'developer', cli: ['npx', '--no-install', 'wingfoil'] });
+  const allow = args.slice(1, args.indexOf('--disallowedTools'));
+  for (const exact of ['Bash(npx --no-install wingfoil --version)', 'Bash(npm view wingfoil versions)', 'Bash(npm view wingfoil versions --json)']) assert.ok(allow.includes(exact), exact);
+  assert.ok(!allow.some((a) => /^Bash\(npm view.*:\*\)$/.test(a)), 'npm view is never a prefix rule');
+});
+
+test('1.2.0: container mode is only its caller\'s; the line label; the approver\'s reads', () => {
+  assert.deepEqual(lib.containerProblems({ flag: true, env: { DFD_RUNNER_CONTAINER: '1' }, config: {} }), []);
+  assert.equal(lib.containerProblems({ flag: true, env: { DFD_RUNNER_CONTAINER: '1' }, config: { container: true } }).length, 1);
+  assert.equal(lib.containerProblems({ flag: false, env: {}, config: { container: { on: true } } }).length, 1);
+  assert.equal(lib.containerProblems({ flag: true, env: {}, config: {} }).length, 1);
+  assert.equal(lib.containerProblems({ flag: false, env: { DFD_RUNNER_CONTAINER: '1' }, config: {} }).length, 1);
+  assert.deepEqual(lib.containerProblems({ flag: false, env: {}, config: {} }), []);
+  assert.equal(lib.lineLabel('trunk'), 'trunk');
+  assert.equal(lib.lineLabel('trunk', true), '\u001b[1;36mtrunk\u001b[0m');
+  assert.equal(lib.lineLabel('claude', true), lib.lineLabel('claude', true));
+  assert.notEqual(lib.lineLabel('claude', true), lib.lineLabel('trunk', true));
+  assert.ok(lib.readAllowed(['workflow', 'next', 'i']));
+  assert.ok(!lib.readAllowed(['memory', 'approve', 'x']));
+  const text = lib.addNotice(NOTICES, { key: 'gate-trunk-p-1-a.approve', at: '2026-11-23T10:00:00.000Z', line: 'trunk', element: 'plan:p-1', reason: 'a.approve waits for the approver', command: 'c' }).text;
+  const items = lib.waitingItems(text, 'trunk', { home: '/h' });
+  assert.equal(items.length, 1);
+  assert.equal(items[0].kind, 'gate');
+  assert.match(items[0].rule, /gate\.mjs --container --line trunk N-\d+ --reason/);
+  assert.deepEqual(lib.waitingItems(text, 'claude', { home: '/h' }), []);
+});
+
+test('1.2.0: one adapter for every tier keeps distinct_from by session', () => {
+  const records = [{ element: 'task:t', phase: 'build', result: 'completed', session: 's1', agent: 'claude', adapter: 'one' }];
+  const who = { agent: 'claude', adapter: 'one', role: 'reviewer', line: { name: 'trunk' } };
+  assert.equal(lib.distinctViolation(records, 'task:t', ['build'], { ...who, session: 's2' }), null);
+  assert.match(lib.distinctViolation(records, 'task:t', ['build'], { ...who, session: 's1' }), /session s1 already ran build/);
 });

@@ -2,6 +2,8 @@
 // The approver's command for a gate (directive runner): it checks again that the gate is what the
 // notice says, then runs the project's own verb. Never run by an agent: it refuses an agent's shell.
 // Usage: node scripts/runner/gate.mjs --line <line> <N-id> --reason "<ruling>" [--reject] [--config <file>]
+// Container mode (its caller only, with DFD_RUNNER_CONTAINER=1): --container, and --step <instance>/<step key>
+// in place of the N-id for a gate.
 import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -16,16 +18,22 @@ const arg = (name) => { const at = process.argv.indexOf(name); return at === -1 
 const stop = (message) => { console.error(`gate: ${message}`); process.exit(2); };
 const id = process.argv.slice(2).find((a) => /^N-\d+$/.test(a));
 const element = arg('--element');
+const CONTAINER = process.argv.includes('--container');
+const stepRef = arg('--step');
 const reason = arg('--reason');
 const lineName = arg('--line');
-if ((!id && !element) || (id && element) || !reason?.trim() || !lineName) {
-  stop('usage: gate.mjs --line <line> <N-id> --reason "<ruling>" [--reject]\n       gate.mjs --line <line> --element <id> --reason "<ruling>" [--reject | --amend] [--expect <status>]');
+if ([id, element, stepRef].filter(Boolean).length !== 1 || !reason?.trim() || !lineName) {
+  stop('usage: gate.mjs --line <line> <N-id> --reason "<ruling>" [--reject]\n       gate.mjs --line <line> --element <id> --reason "<ruling>" [--reject | --amend] [--expect <status>]\n       gate.mjs --container --line <line> --step <instance>/<step key> --reason "<ruling>" [--reject]');
 }
 if (element && !lib.safeId(element)) stop(`${element} is not a plain element id`);
 const marker = lib.AGENT_MARKERS.find((name) => process.env[name]);
 if (marker) stop(`${marker} is set: a gate is ruled from the approver's own terminal, never from an agent`);
 
 const config = lib.readConfig(arg('--config') ?? join(REPO, 'config/runner.yaml'));
+// Container mode is its caller's, never a configuration's (lib.containerProblems, 1.2.0).
+const containerProblems = lib.containerProblems({ flag: CONTAINER, env: process.env, config });
+if (containerProblems.length) stop(containerProblems.join('\ngate: '));
+if (stepRef && !CONTAINER) stop('--step rules a gate in container mode only: outside it, a gate is ruled by its notice');
 let line;
 try { line = lib.lineConfig(config, lineName); } catch (error) { stop(error.message); }
 const set = lib.settings(config);
@@ -42,7 +50,8 @@ const git = (...args) => spawnSync('git', ['-C', co, ...args], { encoding: 'utf8
 // Run from the runner home, a clone used by the runner only: never a line's, matching the trusted ref, its
 // git config running nothing (N3, N4, E); the checkout's git config runs nothing either (N1).
 const homeProblems = lib.homeTrustProblems({ config, home: HOME, repo: REPO, git: (args) => spawnSync('git', ['-C', HOME, ...args], { encoding: 'utf8' }) });
-if (homeProblems.length) stop(homeProblems.join('\ngate: '));
+// In container mode the caller owns the home: its trust checks are off, as in run.mjs.
+if (homeProblems.length && !CONTAINER) stop(homeProblems.join('\ngate: '));
 const checkoutConfig = spawnSync('git', ['-C', co, ...lib.GIT_CONFIG_LIST], { encoding: 'utf8' });
 // A config git cannot read is not judged safe (1.1.19, L-3, as run.mjs since 1.1.14).
 if (checkoutConfig.status !== 0) stop(`${co}: git cannot read its config, so nothing is ruled from here: ${(checkoutConfig.stderr || '').trim().split('\n')[0]}`);
@@ -58,7 +67,7 @@ const ledger = (entry) => lib.appendLedger(project, { line: lineName, ...entry }
 
 const entry = id ? lib.notices(readFileSync(noticesPath, 'utf8')).find((n) => n.open && n.id === id) : null;
 if (id && !entry) stop(`${id} is not an open notice of line ${lineName}`);
-const kind = entry ? lib.noticeKind(entry.key) : 'element';
+const kind = entry ? lib.noticeKind(entry.key) : stepRef ? 'gate' : 'element';
 if (!['gate', 'decision', 'element'].includes(kind)) stop(`${id} is a ${kind} notice, not a gate or a decision`);
 // The line's own lock, taken atomically: no run of the line starts while the gate is ruled (L1).
 const lockFile = join(co, '.git', 'dfd-runner.lock');
@@ -109,12 +118,13 @@ if (kind === 'decision') {
 }
 
 const status = spawnSync(cli[0], [...cli.slice(1), 'workflow', 'status', '--format', 'json'], { cwd: co, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-const step = lib.frontier(JSON.parse(status.stdout)).steps.find((s) => lib.gateKey(lineName, s) === entry.key && lib.waitsForApprover(s));
-if (!step) stop(`${id} no longer waits: ${entry.key} is not on the frontier`);
+const wanted = entry ? entry.key : `gate-${lineName}-${stepRef.replace('/', '-')}`;
+const step = lib.frontier(JSON.parse(status.stdout)).steps.find((s) => lib.gateKey(lineName, s) === wanted && lib.waitsForApprover(s));
+if (!step) stop(`${id ?? stepRef} no longer waits: ${wanted} is not on the frontier`);
 
 for (const argv of lib.gateArgv(step, reason, { reject })) {
   const run = spawnSync(cli[0], [...cli.slice(1), ...argv], { cwd: co, stdio: 'inherit' });
   if (run.status !== 0) stop(`wingfoil ${argv.slice(0, 2).join(' ')} failed (exit ${run.status})`);
 }
-ledger({ kind: 'gate', notice: id, instance: step.instance, step: step.key, element: lib.stepElement(step).ref, ruling: reject ? 'reject' : 'approve', reason: reason.trim() });
-console.log(`${id} ruled: the runner closes the notice on its next run`);
+ledger({ kind: 'gate', notice: id ?? null, container: CONTAINER || undefined, instance: step.instance, step: step.key, element: lib.stepElement(step).ref, ruling: reject ? 'reject' : 'approve', reason: reason.trim() });
+console.log(`${id ?? stepRef} ruled: the runner closes the notice on its next run`);
