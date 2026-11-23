@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/build/1 -->
 ### N-011 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-23T13:03:57Z — approved by the approver: No: the runner never queries the registry. The approver's side ran the refresh outside the sandbox: commit 2691f25e on the task branch (npm update within ranges, verdaccio 6.11.3 exact), node_modules reinstalled with npm ci. Its message holds npm outdated, npm audit (0 critical, 0 high, 18 moderate dev-only) and npm audit --omit=dev (0), and the engines data. Continue the build from that commit: Execution Notes with those outputs, the accepted moderate findings in docs/publishing.md, engines.node (decide at design: D29-5 in docs/publishing.md keeps the published floor at the run-time closure's 22.12.0 while the dev toolchain needs 22.22.2; raise it only with that reasoning), docs and CHANGELOG, tests only through npm run. Ask with RESULT: blocked decision if any further registry command is needed.
 - **Kind:** decision
 - **Opened:** 2026-11-23T10:49:12Z
 - **Line:** trunk
 - **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 - **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/build/1): may the headless runner run the registry-querying npm commands (`npm outdated`, `npm audit`, `npm update`/`install`) that task-092 needs, or will the approver supply their output?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-011 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/done/1 -->
 ### N-010 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
