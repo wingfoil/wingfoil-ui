@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/start/3 -->
+### N-007 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-23T08:02:01Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/start/3): the two fixes are edited in the worktree but unverified and uncommitted, because the sandbox refused `npx vitest run` (needs approval), so I could not run the checks or `memory submit`
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-007 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
