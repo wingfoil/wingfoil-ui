@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/start/3 -->
 ### N-007 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
 
-- **Status:** open
+- **Status:** closed 2026-11-23T08:08:40Z — Run every check through npm run, which the runner allows: npm run test -- test/package/gates-repeat-step.test.ts test/docs/public-text.test.ts test/scripts/e2e-own-specs.test.ts test/package/gates-workflow.test.ts (the test script is vitest run), plus npm run typecheck, lint and format:check. Never npx vitest. Keep the two fixes already in the worktree, commit them once the checks pass, then go on as the step says.
 - **Kind:** blocked
 - **Opened:** 2026-11-23T08:02:01Z
 - **Line:** trunk
 - **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
 - **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/start/3): the two fixes are edited in the worktree but unverified and uncommitted, because the sandbox refused `npx vitest run` (needs approval), so I could not run the checks or `memory submit`
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-007 --how "<what solved it>"`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:halt-trunk-rejected-task-091-session-recovery-scenario-made-deterministic -->
 ### N-006 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
