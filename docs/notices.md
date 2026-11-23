@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/3 -->
+### N-015 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-23T16:38:38Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/3): Will you push task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned at 81f33c247198a1cfa6d07fc5718e87f3831f9e63 from the runner home, dispatch gates.yml with scope=wave, and provide the run id, commit, gate results and Node 22.22.2 install log?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-015 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
