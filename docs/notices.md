@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:halt-trunk-rejected-task-091-session-recovery-scenario-made-deterministic -->
+### N-006 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
+
+- **Status:** open
+- **Kind:** halt
+- **Opened:** 2026-11-23T07:51:39Z
+- **Line:** trunk
+- **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
+- **Reason:** trunk:task-091-session-recovery-scenario-made-deterministic rejected 2 times in review: rule it first (npx wingfoil memory history task-091-session-recovery-scenario-made-deterministic)
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
+
 ## Closed
 
 <!-- runner:closed -->
