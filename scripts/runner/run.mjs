@@ -43,6 +43,9 @@ const RESUME = process.argv.includes('--resume');
 const UNTIL_IDLE = process.argv.includes('--until-idle');
 const CLOSE = arg('--close');
 const CHECK_GIT = process.argv.includes('--check-git');
+const CONTAINER = process.argv.includes('--container');
+const RECORD_DIR = arg('--record-dir');
+const READ = process.argv.includes('--read') ? process.argv.slice(process.argv.indexOf('--read') + 1) : null;
 const RENUMBER = arg('--renumber');
 const STATUS = process.argv.includes('--status');
 const DOCTOR = process.argv.includes('--doctor');
@@ -81,7 +84,9 @@ const now = () => new Date().toISOString();
 // The versions come first in whatever a run prints, once; a run that prints nothing stays silent.
 let versionShown = false;
 const showVersion = () => { if (!versionShown) { versionShown = true; console.log(versionLine()); } };
-const print = (ctx, message) => { showVersion(); console.log(`${lib.logStamp()} [${ctx.project} ${ctx.line.name}] ${message}`); };
+// The line's name is coloured in a terminal only: a journal or a log file stays plain (1.2.0).
+const COLOUR = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+const print = (ctx, message) => { showVersion(); console.log(`${lib.logStamp()} [${ctx.project} ${lib.lineLabel(ctx.line.name, COLOUR)}] ${message}`); };
 /** A line that says the run did something: what the run was waiting on is printed before it. */
 const log = (ctx, message) => {
   ctx.acted = true;
@@ -873,7 +878,7 @@ function runOnce(ctx) {
 
   // Budget notices that no longer hold are closed (the budget set, a new week).
   const records = readRecords(line.checkout);
-  const budget = lib.budgetStop({ line, records, week, weights: ctx.set.weights });
+  const budget = CONTAINER ? null : lib.budgetStop({ line, records, week, weights: ctx.set.weights });
   closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `budget-${line.name}-`).filter((k) => k !== budget?.key), 'the budget allows the line again');
 
   startDue(ctx, week);
@@ -946,7 +951,7 @@ function runOnce(ctx) {
     if (!lib.launchesOptional(candidate, ctx.set.optional)) { waitLine(ctx, `${candidate.key} is optional: passed over (launch.optional)`); continue; }
     if (lib.stepMatches(ctx.set.manual, candidate)) {
       manual += 1;
-      notice(ctx, { key: `manual-${line.name}-${candidate.instance}-${candidate.key}`, element: lib.stepElement(candidate).ref, reason: `${candidate.key} is run by hand (launch.manual)`, command: `cd ${line.checkout} && npx wingfoil workflow next ${candidate.instance}` });
+      notice(ctx, { key: `manual-${line.name}-${candidate.instance}-${candidate.key}`, element: lib.stepElement(candidate).ref, reason: `${candidate.key} is run by hand (launch.manual)`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --read workflow next ${candidate.instance}` });
       continue;
     }
     const dependencies = lib.openDependencies(elementFields(line.checkout, lib.stepElement(candidate).type, lib.stepElement(candidate).id).depends_on, (id) => {
@@ -1059,7 +1064,7 @@ function runOnce(ctx) {
   const closedBlock = lastOwn?.result === 'blocked' ? lib.ledgerClose(ledger, { line: line.name, key: `blocked-${line.name}-${lastOwn.id}` }) : null;
   const unblocked = closedBlock?.how ? { id: closedBlock.notice, how: closedBlock.how } : null;
   const exit = lib.exitLine(step, element, lib.nextState(memoryYaml, element.type, element.status));
-  const prompt = lib.buildPrompt({ project: ctx.project, step, element, line, worktree: worktree.path, checkout: line.checkout, branch: worktree.branch, stateRef, returned, decided, exit, author: { email: identity.email, model: lib.adapterModel(manifest) }, amend, amended: amended ? { id: amended.id, head: lib.parseNotes(amended.notes).head, asked: amended.asked ?? null, since: amended.since ?? false } : null , push: Boolean(config.push), integrate: lib.stepMatches(ctx.set.integrate, step), raising: lib.stepMatches(ctx.set.raising, step), sessionContext: ctx.set.sessionContext, cli: CLI.join(' '), rulings, decisions, unblocked, merge: ctx.set.merge, elementPath: elementFile(line.checkout, element.type, element.id), liveResults, runsTests: ctx.set.testCommand.join(' '), lineBranchNames: Object.entries(config.lines).filter(([n]) => n !== 'trunk').map(([, e]) => e.branch) });
+  const prompt = lib.buildPrompt({ project: ctx.project, step, element, line, worktree: worktree.path, checkout: line.checkout, branch: worktree.branch, stateRef, returned, decided, exit, author: { email: identity.email, model: lib.adapterModel(manifest) }, amend, amended: amended ? { id: amended.id, head: lib.parseNotes(amended.notes).head, asked: amended.asked ?? null, since: amended.since ?? false } : null , push: Boolean(config.push), integrate: lib.stepMatches(ctx.set.integrate, step), raising: lib.stepMatches(ctx.set.raising, step), sessionContext: ctx.set.sessionContext, cli: CLI.join(' '), rulings, decisions, unblocked, merge: ctx.set.merge, elementPath: elementFile(line.checkout, element.type, element.id), liveResults, runsTests: ctx.set.testCommand.join(' '), versions: lib.versionCommands(CLI), lineBranchNames: Object.entries(config.lines).filter(([n]) => n !== 'trunk').map(([, e]) => e.branch) });
   const mcp = lib.mcpValues(CLI);
   const tmp = mkdtempSync(join(tmpdir(), 'dfd-runner-'));
   const mcpConfigText = lib.substitute([manifest.mcp?.template ?? ''], mcp)[0];
@@ -1195,6 +1200,11 @@ function runOnce(ctx) {
     result, notes: lib.formatNotes({ line: line.name, week, at: now(), started: new Date(started).toISOString(), check_ms: checksMs, changed: sh('git', ['-C', worktree.path, 'diff', '--shortstat', base, head]).stdout.trim().replace(/[^0-9,]+/g, '-'), step: step.key, instance: step.instance, head, amend: amend?.decision, limit: atLimit ? 1 : undefined, outside: outside.length || undefined, ask: lib.askNote(ask), checks: checks.map((c) => `${c.token}:${c.ok ? 'pass' : 'fail'}`).join(','), reason: ctx.set.noticePaths === 'relative' ? lib.publicText(reason, noticePlaces(ctx)) : reason }),
   };
   appendFileSync(logFile, lib.runRecordLine(record));
+  if (RECORD_DIR) {
+    // The caller's copy of the launch (R4): the record, the agent's whole stream, its exit.
+    mkdirSync(RECORD_DIR, { recursive: true });
+    writeFileSync(join(RECORD_DIR, `${record.id.replaceAll('/', '_')}.json`), `${JSON.stringify(lib.launchRecord({ record, line: line.name, step, adapter: record.adapter, model: out.model, stdout: launch.stdout, stderr: launch.stderr }), null, 2)}\n`);
+  }
   commit(ctx, [join(PATHS.runs, `${element.id}.jsonl`)], lib.recordSubject(record), identity);
   if (line.name !== 'trunk' && Object.keys(config.lines).length > 1) { lineBranches(ctx, false); noticeIdClashes(ctx, stateRef); }
   log(ctx, lib.outcomeLine({ result, reason, durationMs: duration, tokens: out.tokens }));
@@ -1206,9 +1216,9 @@ function runOnce(ctx) {
   if (back === 'park') {
     const parked = wingfoil(line.checkout, ['memory', 'park', element.id, '--reason', lib.checkReturnReason(step.key, record.id, failed)], lineEnv);
     if (parked.status === 0) log(ctx, `${element.ref} parked back from ${statusAfter}: a post check failed`);
-    else notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks (${reason}); the park was refused: ${firstLine(parked)}`, command: `fix the step's commits, return ${element.ref} by hand (npx wingfoil memory history ${element.id}), then close this notice` });
+    else notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks (${reason}); the park was refused: ${firstLine(parked)}`, command: `fix the step's commits, return ${element.ref} by hand (its history: cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --read memory history ${element.id}), then close this notice` });
   } else if (back === 'notice') {
-    notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks: ${reason}`, command: `fix the step's commits, return ${element.ref} by hand (npx wingfoil memory history ${element.id}), then close this notice` });
+    notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks: ${reason}`, command: `fix the step's commits, return ${element.ref} by hand (its history: cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --read memory history ${element.id}), then close this notice` });
   }
 
   // A step that raised elements or wrote needs is held by dev-loop's gates, not by a notice; approvals have theirs.
@@ -1339,7 +1349,16 @@ function main() {
   const program = RUNNER_CLI[0] === 'node' ? RUNNER_CLI[1] : RUNNER_CLI[0];
   if (program.startsWith('/') && !existsSync(program)) { console.error(`runner: the WingFoil CLI is not installed in the runner home: ${program} (npm ci in ${HOME_REPO})`); process.exit(2); }
   PROJECT = JSON.parse(readFileSync(join(HOME_REPO, 'package.json'), 'utf8')).name;
-  if (!DOCTOR && !STATUS) {
+  // Container mode: the caller's, never a configuration's (lib.containerProblems).
+  const container = lib.containerProblems({ flag: CONTAINER, env: process.env, config });
+  if (container.length) { console.error(`runner: ${container.join('\nrunner: ')}`); process.exit(2); }
+  if (CONTAINER) {
+    if (!RECORD_DIR) { console.error('runner: --container needs --record-dir <dir>: the caller reads the launches and what waits there'); process.exit(2); }
+    // No push, no notification, no budget, no trust checks of the home: the caller owns the run.
+    Object.assign(config, { push: false, notify: null });
+    for (const entry of Object.values(config.lines ?? {})) entry.weekly_token_budget = null;
+  }
+  if (!DOCTOR && !STATUS && !CONTAINER) {
     // The runner trusts its home: it refuses to start from a line's checkout, from a home whose files
     // differ from the trusted ref, or from one whose git config runs programs (N3, N4).
     const problems = homeProblems(config);
@@ -1363,6 +1382,16 @@ function main() {
       for (const wt of wts) guardWorktree({ line }, wt);
       console.log(`ok: line ${line.name}'s checkout and ${wts.length} worktree(s): their git config runs nothing`);
     } catch (error) { console.error(`runner: ${error.message}`); process.exitCode = 11; }
+    return;
+  }
+  if (READ) {
+    // A read-only verb for the approver, with the home's CLI in the line's checkout after its git config
+    // is judged: never the checkout's own npx (1.2.0, L-5).
+    if (!lib.readAllowed(READ)) { console.error(`runner: --read takes ${lib.APPROVER_READS.join(', ')}`); process.exitCode = 3; return; }
+    try { guardPath(line.checkout); } catch (error) { console.error(`runner: ${error.message}`); process.exitCode = 11; return; }
+    const run = sh(RUNNER_CLI[0], [...RUNNER_CLI.slice(1), ...READ], { cwd: line.checkout });
+    process.stdout.write(run.stdout); process.stderr.write(run.stderr);
+    process.exitCode = run.status ?? 1;
     return;
   }
   if (!existsSync(join(line.checkout, '.git'))) {
@@ -1429,7 +1458,11 @@ function main() {
       if (config.push && !DRY && ctx.acted && !ctx.launched) pushOrigin(ctx, ['--follow-tags'], [line.branch]);
       runs += 1;
     } while (UNTIL_IDLE && !DRY && ctx.launched && !ctx.halted && runs < most && !existsSync(join(line.checkout, '.git', 'dfd-stop')));
-    process.exitCode = DRY ? 0 : ctx.halted ? 11 : ctx.acted || runs > 1 ? 0 : 10;
+    const waiting = CONTAINER ? lib.waitingItems(noticesText(ctx), line.name, { home: HOME_REPO }) : [];
+    if (CONTAINER && !DRY) mkdirSync(RECORD_DIR, { recursive: true });
+    if (CONTAINER && !DRY) writeFileSync(join(RECORD_DIR, 'waiting.json'), `${JSON.stringify({ line: line.name, at: now(), items: waiting }, null, 2)}\n`);
+    // Container mode: 12 when the run stops on what its caller must rule (waiting.json).
+    process.exitCode = DRY ? 0 : ctx.halted ? 11 : CONTAINER && waiting.length && !ctx.launched ? 12 : ctx.acted || runs > 1 ? 0 : 10;
   } catch (error) {
     if (error instanceof UnsafeCheckout) {
       // Nothing is written in that checkout, not even a notice: its git would run the program.

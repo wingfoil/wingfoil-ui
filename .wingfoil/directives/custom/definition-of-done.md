@@ -9,7 +9,7 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.7 · **Date:** 2026-11-21 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.8 · **Date:** 2026-11-23 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
 governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
 `docs:api` — the adoption's review round 1, m2; 1.2: the gates of the former `dev-loop` procedure,
@@ -17,7 +17,7 @@ one section per `backlog-item` phase, its file removed — task-049; 1.3: review
 the `memory add --type tech-spec --title` form; 1.4: the heavy gates on `.github/workflows/gates.yml`
 where it exists on the branch, the local checks, a run as a gate's evidence, the wave gate on the
 phase branch's tip — `governance-evolution-3-plan`, dl-016; 1.5: the wave scope's engine × shard
-jobs — `governance-evolution-5-plan`, dl-018; 1.6: the parser cost probe, deferrals, the audit and the wave record at the wave gate, the UX reference alone — dl-022, dl-020 actions 1 … 5; 1.7: a task's bugs moved by `bug.sync_state` at start and review, the approver's moves of the bugs, the wave gate and the phase branch as tasks under the script runner — `governance-evolution-10-plan`, dl-025)
+jobs — `governance-evolution-5-plan`, dl-018; 1.6: the parser cost probe, deferrals, the audit and the wave record at the wave gate, the UX reference alone — dl-022, dl-020 actions 1 … 5; 1.7: a task's bugs moved by `bug.sync_state` at start and review, the approver's moves of the bugs, the wave gate and the phase branch as tasks under the script runner — `governance-evolution-10-plan`, dl-025; 1.8: targeted runs through `npm test -- <files>`, a finding in the task's own change recorded in the park's reason — `governance-evolution-11-plan`, dl-026)
 
 A Sprint Backlog item (a task, run through `backlog-item`: start · build · review · approve · done)
 is done only when every rule below holds; until then it is not part of the Increment. The phases'
@@ -90,9 +90,10 @@ and WebKit, `test:smoke`, `test:publish-smoke` — run there, on the run a push 
 (or a `workflow_dispatch` on a `task/*` or `design/*` ref); followed with `gh run watch <id>` and
 `gh run view <id> --log-failed`, its artifacts read with `gh run download <id>`; a gate's evidence
 is the run id, its commit and its result. Before the push: the suites that touch git green under
-the strict-identity recipe of `test/README.md` (dl-011), and the public-text check (`npx vitest run
+the strict-identity recipe of `test/README.md` (dl-011), and the public-text check (`npm test --
 test/docs/public-text.test.ts`). Local, always: `typecheck`, `lint`, `format:check`, `docs:api`,
-targeted `npx vitest run <files>`. Where the workflow does not exist on the branch, the heavy gates
+targeted `npm test -- <files>` (the same `vitest run <files>`; under the script runner `npx`
+and the tools called directly are refused, dl-026). Where the workflow does not exist on the branch, the heavy gates
 (Playwright, `test:coverage`, the smokes) run through the machine-free slot, one at a time; there,
 and for `test:timing` everywhere, the load and the wait for the slot are written in each log
 (dl-009 action 4).
@@ -103,6 +104,8 @@ and for `test:timing` everywhere, the load and the wait for the slot are written
   and a test (its e2e closure table), asserting what the user sees.
 - An **independent reviewer**, not the author, reviews against this directive until PASS — an
   adversarial one, who runs the tools, for a security-relevant task. Findings are fixed test first.
+  A finding inside the task's own change is recorded in the `memory park --reason`, whose commit is
+  its record, and needs no bug; a bug is raised only for a defect outside the change (dl-026).
   A finding deferred follows `release-planning` › *Deferrals* (dl-020 action 5).
 - Then `memory submit <task>` (`in-progress → in-review`), and the step's `bug.sync_state` (R-10):
   `memory submit <bug>` (`in-progress → in-review`) for each bug `workflow next` names. A review

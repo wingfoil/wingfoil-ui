@@ -15,6 +15,50 @@ command it names.
 
 <!-- runner:closed -->
 
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1 -->
+### N-013 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** closed 2026-11-23T16:22:10Z — approved by the approver: Yes, and it is no exception: cli-only-writes covers the states a verb owns, not the body. The approver committed the build's Execution Notes as they were ('docs(tasks): task-092 execution notes — build', status untouched). Now memory park the task with F-1 and its fix in --reason, and answer rejected. The CI evidence for the final head stays the approver's command (push of the task branch and the gates.yml dispatch): ask for it with RESULT: blocked decision when the review needs it.
+- **Kind:** decision
+- **Opened:** 2026-11-23T13:57:41Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1): May the existing build notes for trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned be committed without changing state, as an exception to CLI-only writes, so memory park can record rejection F-1?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-013 --reason "<ruling>" [--reject]`
+
+<!-- key:diverged-trunk -->
+### N-014 · 2026-11-23 · trunk:runner
+
+- **Status:** closed 2026-11-23T16:01:10Z — origin merges again
+- **Kind:** diverged
+- **Opened:** 2026-11-23T15:57:53Z
+- **Line:** trunk
+- **Element:** trunk:runner
+- **Reason:** origin/design/dev-loop_v0.3.1 does not merge into the checkout: Auto-merging test/README.md
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --check-git && cd <trunk checkout> && git -c core.hooksPath=/dev/null -c core.fsmonitor=false -c protocol.ext.allow=never -c protocol.fd.allow=never merge origin/design/dev-loop_v0.3.1 (solve the conflict, commit; push from the runner home: git -C <runner home> fetch <trunk checkout> design/dev-loop_v0.3.1 && git -C <runner home> push origin FETCH_HEAD:refs/heads/design/dev-loop_v0.3.1)`
+
+<!-- key:failure-trunk-npm_ci_--silent_--ignore-scripts_in_trunk_worktrees_task-0 -->
+### N-012 · 2026-11-23 · trunk:runner
+
+- **Status:** closed 2026-11-23T13:24:09Z — the line ran again without a failure
+- **Kind:** failure
+- **Opened:** 2026-11-23T13:19:23Z
+- **Line:** trunk
+- **Element:** trunk:runner
+- **Reason:** runner failure: npm ci --silent --ignore-scripts in <trunk worktrees>/task-092-development-dependencies-refreshed-and-the-node-engine-aligned:  (the notice closes by itself once the line runs again without a failure)
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --dry-run`
+
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/build/1 -->
+### N-011 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** closed 2026-11-23T13:03:57Z — approved by the approver: No: the runner never queries the registry. The approver's side ran the refresh outside the sandbox: commit 2691f25e on the task branch (npm update within ranges, verdaccio 6.11.3 exact), node_modules reinstalled with npm ci. Its message holds npm outdated, npm audit (0 critical, 0 high, 18 moderate dev-only) and npm audit --omit=dev (0), and the engines data. Continue the build from that commit: Execution Notes with those outputs, the accepted moderate findings in docs/publishing.md, engines.node (decide at design: D29-5 in docs/publishing.md keeps the published floor at the run-time closure's 22.12.0 while the dev toolchain needs 22.22.2; raise it only with that reasoning), docs and CHANGELOG, tests only through npm run. Ask with RESULT: blocked decision if any further registry command is needed.
+- **Kind:** decision
+- **Opened:** 2026-11-23T10:49:12Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/build/1): may the headless runner run the registry-querying npm commands (`npm outdated`, `npm audit`, `npm update`/`install`) that task-092 needs, or will the approver supply their output?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-011 --reason "<ruling>" [--reject]`
+
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/done/1 -->
 ### N-010 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
 
