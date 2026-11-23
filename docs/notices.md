@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/review/3 -->
 ### N-005 · 2026-11-22 · trunk:task-091-session-recovery-scenario-made-deterministic
 
-- **Status:** open
+- **Status:** closed 2026-11-23T07:46:34Z — Both findings are in this task's own change (e72f9648): they need no bug, as for N-004. Reject the review: memory park the task with each finding and its structural fix in --reason (the repeat count refused as an oversized decimal string before any integer comparison, with boundary tests; the recorder of gates-repeat-step.test.ts on the repository's POSIX-shell pattern, so test/docs/public-text.test.ts passes), and answer rejected. A finding in the task's own change never needs a bug.
 - **Kind:** blocked
 - **Opened:** 2026-11-22T08:02:25Z
 - **Line:** trunk
 - **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
 - **Reason:** blocked (run task-091-session-recovery-scenario-made-deterministic/review/3): WingFoil refuses the mandatory workflow-linked bug creation needed to record the review rejection
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-005 --how "<what solved it>"`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/review/1 -->
 ### N-004 · 2026-11-21 · trunk:task-091-session-recovery-scenario-made-deterministic
