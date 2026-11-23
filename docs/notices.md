@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:halt-trunk-rejected-task-092-development-dependencies-refreshed-and-the-node-engine-aligned -->
 ### N-016 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-23T19:28:28Z — resumed by the approver
 - **Kind:** halt
 - **Opened:** 2026-11-23T19:08:11Z
 - **Line:** trunk
 - **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 - **Reason:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned rejected 2 times in review: rule it first (npx wingfoil memory history task-092-development-dependencies-refreshed-and-the-node-engine-aligned)
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/3 -->
 ### N-015 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
