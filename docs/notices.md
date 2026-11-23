@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-091-session-recovery-scenario-made-deterministic/review/6 -->
 ### N-008 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
 
-- **Status:** open
+- **Status:** closed 2026-11-23T10:03:37Z — approved by the approver: CI hand-off done by the approver: task/task-091-session-recovery-scenario-made-deterministic pushed at aaf02ac683264e2e4f02fec2bf300e55e6cec1f8; gates.yml run 45149414803 (workflow_dispatch, scope=task, specs=test/e2e/session-recovery.spec.ts, repeat=20) concluded success: repeat 40 passed with --repeat-each 20 on Chromium, no failure or flaky; e2e-chromium 235+235 passed; own specs Firefox 2 and WebKit 2 passed; checks, coverage, contract, smoke, publish-smoke green; e2e-wave skipped outside the wave scope. Resume the review with this evidence.
 - **Kind:** decision
 - **Opened:** 2026-11-23T09:28:04Z
 - **Line:** trunk
 - **Element:** trunk:task-091-session-recovery-scenario-made-deterministic
 - **Reason:** decision (run task-091-session-recovery-scenario-made-deterministic/review/6): Do you approve the CI handoff: push task/task-091-session-recovery-scenario-made-deterministic at aaf02ac683264e2e4f02fec2bf300e55e6cec1f8 from the runner home, dispatch gates.yml with scope=task, specs=test/e2e/session-recovery.spec.ts and repeat=20, and provide the run id, commit and results before review resumes?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-008 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:blocked-trunk-task-091-session-recovery-scenario-made-deterministic/start/3 -->
 ### N-007 · 2026-11-23 · trunk:task-091-session-recovery-scenario-made-deterministic
