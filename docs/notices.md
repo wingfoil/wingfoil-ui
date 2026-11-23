@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:diverged-trunk -->
+### N-014 · 2026-11-23 · trunk:runner
+
+- **Status:** open
+- **Kind:** diverged
+- **Opened:** 2026-11-23T15:57:53Z
+- **Line:** trunk
+- **Element:** trunk:runner
+- **Reason:** origin/design/dev-loop_v0.3.1 does not merge into the checkout: Auto-merging test/README.md
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --check-git && cd <trunk checkout> && git -c core.hooksPath=/dev/null -c core.fsmonitor=false -c protocol.ext.allow=never -c protocol.fd.allow=never merge origin/design/dev-loop_v0.3.1 (solve the conflict, commit; push from the runner home: git -C <runner home> fetch <trunk checkout> design/dev-loop_v0.3.1 && git -C <runner home> push origin FETCH_HEAD:refs/heads/design/dev-loop_v0.3.1)`
+
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1 -->
 ### N-013 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
