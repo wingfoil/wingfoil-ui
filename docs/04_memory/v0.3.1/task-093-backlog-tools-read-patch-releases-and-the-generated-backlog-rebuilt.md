@@ -98,3 +98,34 @@ Code commit on `task/task-093-…`: `bb04643c`.
   (deleted, not committed) for the same reason.
 - AC-4: docstrings of `check_releases.py` and `build_backlog.py` say how patches are read; there is
   no README in `docs/03_backlog/`; no CHANGELOG entry.
+
+### review (2026-11-24, independent reviewer)
+
+Reviewed implementation `bb04643c` against AC-1 … AC-4, dl-021 and the current task and spec-012
+on the line. Regression tests committed on the task branch as `a2c80eb5`:
+
+- `npm run test -- test/governance/check-releases.test.ts test/governance/backlog-tools.test.ts`
+  → 12 passed.
+- `npm run test -- test/governance/patch-release-review.test.ts` → 1 passed, 3 failed. The real
+  `check_tasks.py v0.3.1` call passes (`12 tasks · 0 backlog items · 0 listed`, `OK`, exit 0).
+  Each failing AC-1 case runs `check_releases.py --root <scratch tree>` with a modified copy of
+  `patch-v0.3.1`: `features:` followed by `  - R1`, a missing `features` field, and
+  `features: null` all incorrectly print `releases: 5 minor + 1 patch · features: 44 / 44 MVP`,
+  `OK`, exit 0.
+- `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` → exit 0.
+
+**Rejected — R1 (validation fails open, AC-1).** The patch loop skips the required `features`
+field and searches only its single-line value for a feature-shaped substring. A valid non-empty
+YAML block list bypasses the no-feature rule; missing and null fields are also accepted. The
+search across the four tools (`rg -n 'features:|patch-of' docs/03_backlog/X_tools
+test/governance`) and the three regression cases cover the other forms of this class. Structural
+fix: validate that the patch's required field is an actual empty list, or explicitly restrict its
+supported syntax to an empty flow list and reject every unsupported/missing form. Keep the
+regressions failing until the implementation fixes the guard.
+
+**R2 (incomplete documentation, AC-4).** `check_tasks.py` and `check_backlog.py` still have their
+old docstrings (`sed -n '1,30p'` of each): neither describes patch partitions or their ordering.
+Document their patch inputs/ranking alongside the other two tools.
+
+No linked bugs (`bug: []`); a rejected review moves none. CI evidence and phase-branch integration
+must be checked on the corrected head before acceptance; no heavy gate was run in this review.
