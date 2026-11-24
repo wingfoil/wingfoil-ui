@@ -3,9 +3,10 @@
 // worktree carries its provenance (directive git-conventions): the trailer AI-Model with the
 // adapter's model, a Co-Authored-By trailer with the commit author's email, and a citation of the
 // element as <line>:<id> in its body, in any case. The step's commits are those reachable from HEAD
-// and from neither DFD_BASE, the worktree's HEAD before the launch, nor the line's branch
-// (DFD_LINE_BRANCH): the line's commits a rebase brings in were checked in their own steps. The
-// runner gives DFD_BASE, DFD_LINE_BRANCH, DFD_MODEL, DFD_LINE and WINGFOIL_ELEMENT (lib.checkEnv).
+// and from neither WINGFOIL_RUNNER_BASE, the worktree's HEAD before the launch, nor the line's branch
+// (WINGFOIL_RUNNER_LINE_BRANCH): the line's commits a rebase brings in were checked in their own steps. The
+// runner gives WINGFOIL_RUNNER_BASE, _LINE_BRANCH, _MODEL, _LINE and WINGFOIL_ELEMENT (lib.checkEnv);
+// each WINGFOIL_RUNNER_<KEY> is also read under its name from before 1.2.1, DFD_<KEY>.
 // A step that added no commit passes; merges are not read.
 // Usage: node scripts/checks/commit-trailers.mjs [--base <rev>] [--line-branch <ref>] [--model <id>] [--line <name>] [--element <id>]
 import { execFileSync } from 'node:child_process';
@@ -17,12 +18,13 @@ const arg = (name) => {
   const at = process.argv.indexOf(name);
   return at === -1 ? null : process.argv[at + 1];
 };
-const base = arg('--base') ?? process.env.DFD_BASE;
-const lineBranch = arg('--line-branch') ?? process.env.DFD_LINE_BRANCH;
-const model = arg('--model') ?? process.env.DFD_MODEL;
-const line = arg('--line') ?? process.env.DFD_LINE;
+const env = (key) => process.env[`WINGFOIL_RUNNER_${key}`] ?? process.env[`DFD_${key}`];
+const base = arg('--base') ?? env('BASE');
+const lineBranch = arg('--line-branch') ?? env('LINE_BRANCH');
+const model = arg('--model') ?? env('MODEL');
+const line = arg('--line') ?? env('LINE');
 const id = elementArg();
-if (!base || !lineBranch || !model || !line || !id) fail('needs DFD_BASE, DFD_LINE_BRANCH, DFD_MODEL, DFD_LINE and WINGFOIL_ELEMENT (or --base, --line-branch, --model, --line, --element)');
+if (!base || !lineBranch || !model || !line || !id) fail('needs WINGFOIL_RUNNER_BASE, WINGFOIL_RUNNER_LINE_BRANCH, WINGFOIL_RUNNER_MODEL, WINGFOIL_RUNNER_LINE and WINGFOIL_ELEMENT (or --base, --line-branch, --model, --line, --element)');
 
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const log = execFileSync('git', ['log', '--no-merges', '--format=%H%x00%ae%x00%B%x1e', 'HEAD', '--not', base, lineBranch, '--'], { encoding: 'utf8' });

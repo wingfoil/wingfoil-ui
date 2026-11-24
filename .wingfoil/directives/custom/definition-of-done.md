@@ -9,7 +9,7 @@ tags: [custom, scrum, testing, review]
 
 # Directive — Definition of Done of WingFoil UI
 
-**Version:** 1.8 · **Date:** 2026-11-23 (1.0: replaces `methodology/scrum`'s generic
+**Version:** 1.9 · **Date:** 2026-11-24 (1.0: replaces `methodology/scrum`'s generic
 `definition-of-done` with this repository's, at the packs' adoption —
 governance-alignment-rel-v0.3-plan step 3; 1.1: the bugs' moves after GA3-11 R-3, the source of
 `docs:api` — the adoption's review round 1, m2; 1.2: the gates of the former `dev-loop` procedure,
@@ -17,13 +17,15 @@ one section per `backlog-item` phase, its file removed — task-049; 1.3: review
 the `memory add --type tech-spec --title` form; 1.4: the heavy gates on `.github/workflows/gates.yml`
 where it exists on the branch, the local checks, a run as a gate's evidence, the wave gate on the
 phase branch's tip — `governance-evolution-3-plan`, dl-016; 1.5: the wave scope's engine × shard
-jobs — `governance-evolution-5-plan`, dl-018; 1.6: the parser cost probe, deferrals, the audit and the wave record at the wave gate, the UX reference alone — dl-022, dl-020 actions 1 … 5; 1.7: a task's bugs moved by `bug.sync_state` at start and review, the approver's moves of the bugs, the wave gate and the phase branch as tasks under the script runner — `governance-evolution-10-plan`, dl-025; 1.8: targeted runs through `npm test -- <files>`, a finding in the task's own change recorded in the park's reason — `governance-evolution-11-plan`, dl-026)
+jobs — `governance-evolution-5-plan`, dl-018; 1.6: the parser cost probe, deferrals, the audit and the wave record at the wave gate, the UX reference alone — dl-022, dl-020 actions 1 … 5; 1.7: a task's bugs moved by `bug.sync_state` at start and review, the approver's moves of the bugs, the wave gate and the phase branch as tasks under the script runner — `governance-evolution-10-plan`, dl-025; 1.8: targeted runs through `npm test -- <files>`, a finding in the task's own change recorded in the park's reason — `governance-evolution-11-plan`, dl-026; 1.9: the Execution Notes committed in the step that writes them — `governance-evolution-12-plan`, dl-027)
 
 A Sprint Backlog item (a task, run through `backlog-item`: start · build · review · approve · done)
 is done only when every rule below holds; until then it is not part of the Increment. The phases'
 verbs move the task (`backlog-item`, `.wingfoil/memory.yaml`); this directive says how each phase is
 done here. Inside `build` the work runs **design → red → green → refactor**; each phase is logged
-in the task's Execution Notes (`### design (date)`, `### red / green / refactor`, `### review`).
+in the task's Execution Notes (`### design (date)`, `### red / green / refactor`, `### review`),
+committed in the step that writes them — by the verb that moves the task, otherwise in a
+`docs(<task>): …` commit of its own (a body commit is not a hand transition, `wingfoil-cli` rule 11).
 
 ## start (developer)
 
