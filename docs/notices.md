@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:halt-trunk-rejected-task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -->
 ### N-020 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
 
-- **Status:** open
+- **Status:** closed 2026-11-24T10:01:43Z — resumed by the approver
 - **Kind:** halt
 - **Opened:** 2026-11-24T09:56:49Z
 - **Line:** trunk
 - **Element:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
 - **Reason:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt rejected 2 times in review: rule it first (npx wingfoil memory history task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt)
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-092-development-dependencies-refreshed-and-the-node-engine-aligned -->
 ### N-019 · 2026-11-24 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
