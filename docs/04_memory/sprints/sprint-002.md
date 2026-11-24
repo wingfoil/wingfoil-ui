@@ -57,7 +57,11 @@ and Wave 3 gates are runner tasks). Phase branch `design/dev-loop_v0.3.1` at `24
 - **Runtime audit:** `npm audit --omit=dev` on the same checkout: 0 vulnerabilities.
 - **Into `main`:** merge `286228ba` (`--no-ff`); `git diff 24309852 286228ba` changes only
   `docs/05_plans/governance-evolution/governance-evolution-12-plan.md`, which only `main` carries
-  (`5b4c9866`, `e90888f0`).
+  (`5b4c9866`, `e90888f0`). `main` pushed at `3b3ae5ff` with the gate tasks; `publish.yml`
+  `workflow_dispatch` on it, run 45477768155: `gate` failed on one test, AC-2 of
+  `test/governance/patch-release-review.test.ts`, which pinned "12 tasks" while task-096 and
+  task-097 made 14 (no stage, promote or release ran). Fixed by `1797ae57` (the count follows the
+  release's task files); `publish.yml` dispatched again on the fix.
 - **The wave:** from 2026-11-21 14:46 (task-091 `start`) to 2026-11-24 17:19 (task-093 `done`),
   4 active days (commits on 11-21, 11-22, 11-23, 11-24); 3 tasks closed.
 - **Review rounds** (the runner's run records, `docs/runs/`): task-091 4 verdicts (3 rejected, 1
