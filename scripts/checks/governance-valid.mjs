@@ -22,7 +22,7 @@ const walk = (o, where) => {
   }
 };
 for (const args of commands) {
-  const cli = JSON.parse(process.env.DFD_CLI ?? '["npx","--no-install","wingfoil"]');
+  const cli = JSON.parse(process.env.WINGFOIL_RUNNER_CLI ?? process.env.DFD_CLI ?? '["npx","--no-install","wingfoil"]');
   const r = spawnSync(cli[0], [...cli.slice(1), ...args, '--format', 'json'], { encoding: 'utf8' });
   const where = `wingfoil ${args.join(' ')}`;
   if (r.status !== 0) { found.push(`${where}: exit ${r.status}: ${r.stderr.trim()}`); continue; }
