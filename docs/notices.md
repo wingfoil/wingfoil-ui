@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/3 -->
+### N-021 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-24T10:08:57Z
+- **Line:** trunk
+- **Element:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+- **Reason:** decision (run task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/3): Will you push task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt at 53d18a1d73f0f5aebaff6c4abcc8f7df6a554172 using the recorded commands, dispatch gates.yml with scope=task, and provide its run id, head SHA and job results?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-021 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
