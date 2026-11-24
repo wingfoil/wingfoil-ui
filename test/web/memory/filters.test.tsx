@@ -123,7 +123,15 @@ function api(over: FakeApi = {}): FakeApi {
 function linksOf(name: string): string[] {
   return within(screen.getByRole('list', { name }))
     .getAllByRole('link')
-    .map((a) => a.textContent ?? '');
+    .map((a) => {
+      // "<label><count>": the visible text, without the hidden unit and the space before the count.
+      const copy = a.cloneNode(true) as Element;
+      copy.querySelectorAll('.visually-hidden').forEach((n) => n.remove());
+      return (copy.textContent ?? '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/ (\d+)$/, '$1');
+    });
 }
 
 function rows(): string[] {
@@ -158,7 +166,7 @@ describe('AC-1 — the states of a bucket (N7)', () => {
     await screen.findByText('Title of k-001-alpha');
     // No bucket selected: no sub-row.
     expect(screen.queryByRole('list', { name: /^In / })).toBeNull();
-    await user.click(screen.getByRole('link', { name: /^Waiting\/drafts\/closed,/ }));
+    await user.click(screen.getByRole('link', { name: /^Waiting\/drafts\/closed / }));
     await waitFor(() => expect(rows()).toEqual(['k-002-beta', 'm-001-delta', 'm-002-eps', 'z-001-stray']));
     expect(router.state.location.search).toEqual({ bucket: 'waiting' });
     // kind-a's sequence (s1), kind-m's (m1; s1 already listed), then the undeclared type's q.
@@ -178,10 +186,10 @@ describe('AC-1 — the states of a bucket (N7)', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/p/${PID}/memory?bucket=waiting`);
     const sub = await screen.findByRole('list', { name: 'In Waiting/drafts/closed' });
-    await user.click(within(sub).getByRole('link', { name: 's1, 2 elements' }));
+    await user.click(within(sub).getByRole('link', { name: 's1 2 elements' }));
     await waitFor(() => expect(rows()).toEqual(['k-002-beta', 'm-002-eps']));
     expect(router.state.location.search).toEqual({ bucket: 'waiting', state: 's1' });
-    expect(within(sub).getByRole('link', { name: 's1, 2 elements' }).getAttribute('aria-current')).toBe('page');
+    expect(within(sub).getByRole('link', { name: 's1 2 elements' }).getAttribute('aria-current')).toBe('page');
     const active = screen.getByRole('group', { name: 'Active filter' });
     expect(active.querySelector('.memory-active-name')?.textContent).toBe('Waiting/drafts/closed · s1');
     cleanup();
@@ -241,10 +249,10 @@ describe('AC-2 — missing required references (M2)', () => {
     const { router } = renderApp(`/p/${PID}/memory`);
     await screen.findByText('Title of k-001-alpha');
     expect(linksOf('Reference filters')).toEqual([`${MISSING}2`]);
-    await user.click(screen.getByRole('link', { name: `${MISSING}, 2 elements` }));
+    await user.click(screen.getByRole('link', { name: `${MISSING} 2 elements` }));
     await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'm-001-delta']));
     expect(router.state.location.search).toEqual({ missing: 'refs' });
-    expect(screen.getByRole('link', { name: `${MISSING}, 2 elements` }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: `${MISSING} 2 elements` }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('group', { name: 'Active filter' }).querySelector('.memory-active-name')?.textContent).toBe(
       MISSING,
     );
@@ -256,7 +264,7 @@ describe('AC-2 — missing required references (M2)', () => {
     );
     renderApp(`/p/${PID}/memory`);
     await screen.findByText('Title of k-001-alpha');
-    expect(screen.getByRole('link', { name: `${MISSING}, 0 elements` })).toBeTruthy();
+    expect(screen.getByRole('link', { name: `${MISSING} 0 elements` })).toBeTruthy();
   });
 
   it('hides the filter when nothing is required, when the server sends no flag section, and with typesError', async () => {
@@ -281,10 +289,10 @@ describe('AC-2 — missing required references (M2)', () => {
     const user = userEvent.setup();
     const { router } = renderApp(`/p/${PID}/memory?type=kind-m`);
     await waitFor(() => expect(rows()).toEqual(['m-001-delta', 'm-002-eps']));
-    await user.click(await screen.findByRole('link', { name: `${MISSING}, 1 element` }));
+    await user.click(await screen.findByRole('link', { name: `${MISSING} 1 element` }));
     await waitFor(() => expect(rows()).toEqual(['m-001-delta']));
     expect(router.state.location.search).toEqual({ type: 'kind-m', missing: 'refs' });
-    await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
+    await user.click(screen.getByRole('link', { name: /^kind-a / }));
     await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'k-002-beta', 'k-003-gamma']));
     expect(screen.queryByRole('list', { name: 'Reference filters' })).toBeNull();
   });
@@ -297,7 +305,7 @@ describe('AC-2 — missing required references (M2)', () => {
       MISSING,
     );
     expect(screen.queryByRole('list', { name: /^In / })).toBeNull();
-    expect(screen.getByRole('link', { name: /^Done,/ }).getAttribute('aria-current')).toBeNull();
+    expect(screen.getByRole('link', { name: /^Done / }).getAttribute('aria-current')).toBeNull();
   });
 
   it('badges every flagged row whatever the filter, its description naming the missing categories', async () => {
@@ -407,23 +415,23 @@ describe('review round 1', () => {
     stubApi(api());
     renderApp(`/p/${PID}/memory?type=kind-a&bucket=done&figure=bogus`);
     await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'k-002-beta', 'k-003-gamma']));
-    expect(screen.getByRole('link', { name: /^kind-a,/ }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: /^All types,/ }).hasAttribute('aria-current')).toBe(false);
+    expect(screen.getByRole('link', { name: /^kind-a / }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: /^All types / }).hasAttribute('aria-current')).toBe(false);
     cleanup();
     stopEventStream();
     renderApp(`/p/${PID}/memory?missing=refs&bucket=done&panel=`);
     await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'm-001-delta']));
-    expect(screen.getByRole('link', { name: `${MISSING}, 2 elements` }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: /^Done,/ }).hasAttribute('aria-current')).toBe(false);
+    expect(screen.getByRole('link', { name: `${MISSING} 2 elements` }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: /^Done / }).hasAttribute('aria-current')).toBe(false);
   });
 
   it('F-5 — marks a bucket "true" while one of its states is selected, the state "page"', async () => {
     stubApi(api());
     renderApp(`/p/${PID}/memory?bucket=waiting&state=s1`);
     const sub = await screen.findByRole('list', { name: 'In Waiting/drafts/closed' });
-    expect(screen.getByRole('link', { name: /^Waiting\/drafts\/closed,/ }).getAttribute('aria-current')).toBe('true');
-    expect(within(sub).getByRole('link', { name: 's1, 2 elements' }).getAttribute('aria-current')).toBe('page');
-    expect(within(sub).getByRole('link', { name: 'm1, 1 element' }).hasAttribute('aria-current')).toBe(false);
+    expect(screen.getByRole('link', { name: /^Waiting\/drafts\/closed / }).getAttribute('aria-current')).toBe('true');
+    expect(within(sub).getByRole('link', { name: 's1 2 elements' }).getAttribute('aria-current')).toBe('page');
+    expect(within(sub).getByRole('link', { name: 'm1 1 element' }).hasAttribute('aria-current')).toBe(false);
   });
 });
 

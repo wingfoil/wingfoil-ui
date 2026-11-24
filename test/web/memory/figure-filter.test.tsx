@@ -150,7 +150,7 @@ describe('AC-3 — the figure filter', () => {
       expect(within(screen.getByRole('list', { name: 'States' })).getAllByRole('link')).toHaveLength(5);
       expect(activeName()).toBe(label);
       // The counts of the filter rows stay those of the whole list.
-      expect(screen.getByRole('link', { name: /^All types,/ }).textContent).toBe('All types5');
+      expect(screen.getByRole('link', { name: /^All types / }).textContent).toBe('All types 5 elements');
     });
   }
 
@@ -205,7 +205,7 @@ describe('AC-3 — the figure filter', () => {
     const { router } = renderApp(`/p/${PID}/memory?figure=completion`);
     await waitFor(() => expect(rows()).toEqual(['k-001-alpha', 'k-002-beta']));
     expect(router.state.location.href).toBe(`/p/${PID}/memory?figure=completion`);
-    await user.click(screen.getByRole('link', { name: /^kind-a,/ }));
+    await user.click(screen.getByRole('link', { name: /^kind-a / }));
     await waitFor(() => expect(router.state.location.search).toEqual({ type: 'kind-a' }));
     expect(router.state.location.href).not.toMatch(/k-00/);
   });
@@ -267,8 +267,8 @@ describe('review round 2', () => {
       stubApi(api(over));
       renderApp(`/p/${PID}/memory?figure=completion`);
       await waitFor(() => expect(rows()).toEqual(ALL));
-      expect(screen.getByRole('link', { name: /^All types,/ }).getAttribute('aria-current')).toBe('page');
-      expect(screen.getByRole('link', { name: /^All states,/ }).getAttribute('aria-current')).toBe('page');
+      expect(screen.getByRole('link', { name: /^All types / }).getAttribute('aria-current')).toBe('page');
+      expect(screen.getByRole('link', { name: /^All states / }).getAttribute('aria-current')).toBe('page');
       cleanup();
       stopEventStream();
     }

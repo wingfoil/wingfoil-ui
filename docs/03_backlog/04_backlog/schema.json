@@ -8,7 +8,7 @@
   "additionalProperties": false,
   "properties": {
     "version": { "const": 1 },
-    "release": { "type": "string", "pattern": "^v\\d+\\.\\d+$", "description": "Present only in a by-release partition." },
+    "release": { "type": "string", "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$", "description": "Present only in a by-release partition." },
     "generated_from": {
       "type": "object",
       "required": ["story_map", "bdd", "sard"],

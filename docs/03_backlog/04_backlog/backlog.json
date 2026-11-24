@@ -2,7 +2,7 @@
   "version": 1,
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.7",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.13",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -3630,7 +3630,7 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Today",
             "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
-            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+            "And it shows \"Project completion 25 %\", \"Iterated: task 1/4\", \"Open: bug 1\" and \"Pending gates 3\""
           ]
         },
         {
@@ -3754,7 +3754,7 @@
         },
         {
           "id": "T-13.2",
-          "title": "Open the items behind \"Tasks 1/4\"",
+          "title": "Open the items behind \"Iterated: task 1/4\"",
           "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -3763,7 +3763,7 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
-            "When I select \"Tasks 1/4\" on the progress card",
+            "When I select \"Iterated: task 1/4\" on the progress card",
             "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         },
@@ -8471,7 +8471,7 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Today",
             "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
-            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+            "And it shows \"Project completion 25 %\", \"Iterated: task 1/4\", \"Open: bug 1\" and \"Pending gates 3\""
           ]
         },
         {
@@ -8569,7 +8569,7 @@
       "area": "ARC",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-ARC-08",
-      "description": "The project list, the role view per project, the UI settings and the action log (hash and time of each commit the UI caused, REQ-SEC-10) are stored per user in the operating system's user configuration directory, never in a project repository and never committed.",
+      "description": "The project list, the role view per project, the UI settings, the action log (hash and time of each commit the UI caused, REQ-SEC-10) and the console address files (one per running console, `consoles/<port>.json`, adr-003) are stored per user in the operating system's user configuration directory, never in a project repository and never committed.",
       "fit_criterion": "[boolean] After the full e2e suite, `git status --porcelain` of every fixture prints only the changes the scenarios made on purpose, and the state survives a server restart.",
       "verified_by": "e2e",
       "stories": [
@@ -10037,8 +10037,8 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-02",
-      "description": "Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain` combined with a fingerprint of the working-tree content of each changed and untracked entry (computed by the server, no extra git command); a change of either invalidates them, so a second edit of a file that is already modified changes the state too. The effective `user.email` (repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback.",
-      "fit_criterion": "[boolean] A unit test shows a cache miss after a commit and after a working-tree edit, including a second edit of an already-modified file, a cache hit when neither changed, and a new identity after a change of `user.email`.",
+      "description": "Cached CLI and git reads are keyed on the commit of HEAD **and** a hash of `git status --porcelain` combined with a fingerprint of the working-tree content of each changed and untracked entry and, from v0.3, the mark of `.wingfoil/ui.yaml` whatever its git status — an ignored file included (computed by the server, no extra git command); a change of either invalidates them, so a second edit of a file that is already modified changes the state too. The effective author email (REQ-STATE-05: `GIT_AUTHOR_EMAIL`, else `author.email`, else `user.email` of the repository and global git configuration) is watched too and re-evaluates the identity. Changes are detected by file watching, with a periodic check as a fallback.",
+      "fit_criterion": "[boolean] A unit test shows a cache miss after a commit and after a working-tree edit, including a second edit of an already-modified file, a cache hit when neither changed, and a new identity after a change of `user.email` or `author.email`.",
       "verified_by": "unit",
       "stories": [
         "US-S-26"
@@ -10340,8 +10340,8 @@
       "area": "STATE",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-STATE-05",
-      "description": "The user is the effective `git config user.email` of the project (repository, else global), matched case-insensitively to `dna.team.members[].email`. Not in the team, no email, or an email matching several members → read-only, with the reason. Re-evaluated on change of the git configuration or the DNA.",
-      "fit_criterion": "[boolean] Every listed scenario passes; the identity shown always equals the member whose email matches `git config user.email` of the fixture.",
+      "description": "The user is the effective author email of the project, resolved as the WingFoil CLI resolves the author it authorises (`git commit`'s order, `wingfoil-cli` W-39): `GIT_AUTHOR_EMAIL` of the console's environment when set (trimmed; blank means no email), else `author.email`, else `user.email` (repository, else global configuration) — never the `EMAIL` variable nor git's hostname guess; matched case-insensitively to `dna.team.members[].email`. Not in the team, no email, or an email matching several members → read-only, with the reason. Re-evaluated on change of the git configuration or the DNA.",
+      "fit_criterion": "[boolean] Every listed scenario passes; the identity shown always equals the member whose email matches the fixture's author email as above (`git config user.email` when no `GIT_AUTHOR_EMAIL` or `author.email` is set).",
       "verified_by": "unit · e2e",
       "stories": [
         "US-S-12",
@@ -10867,7 +10867,7 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Today",
             "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
-            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+            "And it shows \"Project completion 25 %\", \"Iterated: task 1/4\", \"Open: bug 1\" and \"Pending gates 3\""
           ]
         },
         {
@@ -10937,7 +10937,7 @@
         },
         {
           "id": "T-13.2",
-          "title": "Open the items behind \"Tasks 1/4\"",
+          "title": "Open the items behind \"Iterated: task 1/4\"",
           "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -10946,7 +10946,7 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
-            "When I select \"Tasks 1/4\" on the progress card",
+            "When I select \"Iterated: task 1/4\" on the progress card",
             "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         },
@@ -11848,7 +11848,7 @@
       "area": "INT",
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-INT-06",
-      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `config` — `user.email`, `core.sshCommand`, `branch.<b>.remote`/`.merge` —, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only` (manual update), `merge --ff-only` (automatic update, local fast-forward to the fetched upstream — spec-010 §4), `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never creates a merge commit, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`).",
+      "description": "The server runs only these git operations: read (`rev-parse`, `status --porcelain`, `log`, `rev-list --count`, `ls-tree`, `ls-files --stage`, `hash-object` (no `-w`: nothing written), `diff-tree`, `config` — `author.email` and `user.email` (one `--get-regexp`, the identity of REQ-STATE-05), `core.sshCommand`, `branch.<b>.remote`/`.merge` —, `remote`), `clone` (adding a remote project, into a new empty folder), `fetch`, `pull --ff-only` (manual update), `merge --ff-only` (automatic update, local fast-forward to the fetched upstream — spec-010 §4), `push`, and `add -- .wingfoil/ui.yaml` + `commit -- .wingfoil/ui.yaml` for presets. It never creates a merge commit, rebases, resets, stashes or checks out. Git's error message is shown verbatim on failure. Memory events (Timeline, Recent activity) are parsed from `wf(…)` subjects; `add` and `submit` subjects carry no transition, so a submit's `from → to` is read from the element file's `status` before and after the commit (project-wide views: one `git log -p` over the Memory directories; element panel: `memory history <id>`, which carries the states — `spec-002-memory-events-from-git`).",
       "fit_criterion": "[percentage] 100 % of the git processes started during the e2e suite use a subcommand of the allowed list (process audit), and every `merge` process carries `--ff-only`.",
       "verified_by": "e2e (process audit)",
       "stories": [
@@ -13158,7 +13158,7 @@
       "wingfoil_min": "0.2.2",
       "requirement": "REQ-SEC-09",
       "description": "`ui.yaml`, the local UI state and the server logs contain no secret: no session token, no git credential, no environment variable value. Git authentication is left to the user's git configuration.",
-      "fit_criterion": "[boolean] A secret scan over `ui.yaml`, the local state directory and the logs after the e2e suite reports 0 findings.",
+      "fit_criterion": "[boolean] A secret scan over `ui.yaml`, the local state directory (its `consoles/` folder of console address files included) and the logs after the e2e suite reports 0 findings.",
       "verified_by": "e2e (secret scan)",
       "stories": [
         "US-C-02",
@@ -13244,7 +13244,7 @@
       "requirement": "REQ-SEC-10",
       "description": "From v0.2 the gates of the WingFoil UI repository are passed from the UI; from v0.3 those of the WingFoil repository too.",
       "fit_criterion": "[percentage] Between the v0.2 and the v0.3 releases, ≥ 80 % of the approve/reject commits of this repository have their hash in the server's local action log (the list of commits the UI caused: hash and time, no other data); the same from v0.3 for the WingFoil repository.",
-      "verified_by": "retrospective (`wf(…)` history)",
+      "verified_by": "release validation (`pre-release-checks`, directive `release-conventions`), on both repositories",
       "stories": [
         "US-G-04"
       ],

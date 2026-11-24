@@ -70,7 +70,7 @@
     "@eslint/js": "^10.0.1",
     "@formatjs/cli": "^6.16.33",
     "@formatjs/icu-messageformat-parser": "^3.5.21",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "1.63.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
@@ -92,7 +92,7 @@
     "typedoc": "^0.28.20",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.0",
-    "verdaccio": "6.10.5",
+    "verdaccio": "6.11.3",
     "vite": "^8.3.3",
     "vitest": "^5.0.3",
     "wingfoil": "0.3.2"

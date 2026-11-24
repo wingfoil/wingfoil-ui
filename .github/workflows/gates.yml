@@ -21,6 +21,8 @@
 #                  scripts/e2e-own-specs.mjs; none → one line that says so and success
 #   e2e-wave       wave scope: the whole suite on Chromium, Firefox and WebKit, engine × shard jobs;
 #                  it replaces e2e-chromium and own-specs, which it contains (W2-2)
+#   repeat         by hand only, with the `repeat` input: the `specs` input's files on Chromium,
+#                  `--repeat-each <repeat>`, no retry (task-091, bug-053)
 #
 # A Playwright job uploads its HTML report on failure only, one per job (engine × shard), 14 days.
 # Security: contents: read for every job, no credential of any kind; checkout without persisted
@@ -45,6 +47,10 @@ on:
         description: 'Space-separated e2e spec files for own-specs (empty: the spec files the branch changes)'
         type: string
         default: ''
+      repeat:
+        description: 'Repetitions (1-200) of the specs input on Chromium, in the extra job `repeat` (empty: no such job)'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -55,7 +61,7 @@ concurrency:
 
 env:
   NODE_VERSION: '22.22.2'
-  PHASE_BRANCH: design/dev-loop_v0.3
+  PHASE_BRANCH: design/dev-loop_v0.3.1
   E2E_SHARDS: '2'
 
 jobs:
@@ -102,6 +108,10 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.12'
+      # check_backlog.py validates the generated backlog against its JSON schema and fails when
+      # `jsonschema` is missing (task-093): pinned exactly, as in publish.yml's gate.
+      - name: Python test dependency (jsonschema, pinned)
+        run: python3 -m pip install jsonschema==4.23.0
       - name: Install
         run: npm ci
       - name: Tests with coverage (text table and coverage summary on the runner only)
@@ -286,5 +296,50 @@ jobs:
         if: ${{ failure() }}
         with:
           name: playwright-report-${{ matrix.engine }}-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 14
+
+  # The given specs run again and again on Chromium (task-091, bug-053): by hand only, with the
+  # `repeat` input and the spec files of the `specs` input, required and validated by
+  # scripts/e2e-own-specs.mjs --explicit. No retry; a failed repetition fails the job.
+  repeat:
+    needs: checks
+    if: ${{ inputs.repeat != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Install
+        run: npm ci
+      - name: Chromium and its system packages
+        run: npx playwright install --with-deps chromium
+      - name: The given specs, validated (the specs input is required, no fallback)
+        env:
+          SPECS: ${{ inputs.specs }}
+        run: node scripts/e2e-own-specs.mjs --explicit > repeat-specs.txt
+      - name: The given specs on Chromium, repeated
+        env:
+          REPEAT: ${{ inputs.repeat }}
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report
+          PLAYWRIGHT_HTML_OPEN: never
+        run: |
+          case "$REPEAT" in
+            '' | *[!0-9]* | 0*) echo "refused: repeat is a positive whole number" >&2; exit 1 ;;
+            ????*) echo "refused: repeat is at most 200" >&2; exit 1 ;;
+          esac
+          if [ "$REPEAT" -gt 200 ]; then echo "refused: repeat is at most 200" >&2; exit 1; fi
+          mapfile -t specs < repeat-specs.txt
+          if [ "${#specs[@]}" -eq 0 ]; then echo "refused: repeat needs the specs input" >&2; exit 1; fi
+          npm run test:e2e:chromium -- --repeat-each "$REPEAT" --reporter=github,html "${specs[@]}"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ failure() }}
+        with:
+          name: playwright-report-repeat
           path: playwright-report/
           retention-days: 14
