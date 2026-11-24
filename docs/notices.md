@@ -11,6 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -->
+### N-023 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+
+- **Status:** open
+- **Kind:** gate
+- **Opened:** 2026-11-24T15:08:50Z
+- **Line:** trunk
+- **Element:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+- **Reason:** backlog-item.approve@task:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt waits for the approver
+- **Ready:** yes
+- **Head:** f0f5de40
+- **Evidence:** run task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/7 completed
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-023 --reason 'Approved backlog-item.approve@task:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt at f0f5de40: run task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/7 completed'`
+
 ## Closed
 
 <!-- runner:closed -->
