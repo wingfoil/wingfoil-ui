@@ -53,3 +53,11 @@ number or order of the requests the test records. Recorded as a backlog item by
 `dl-020-retrospective-sprint-1`, action 5.
 
 ## Triage & Execution Notes
+
+**Close note (2026-11-24).** Fixed by task-091-session-recovery-scenario-made-deterministic (`done`,
+merged into the phase branch and into `main` at the Wave 1 gate). Cause and fix in task-091's
+Execution Notes (reproduced under load: 9 of 40 failed with the pre-fix spec, 40 of 40 passed with
+the fix). Evidence on CI: `gates.yml` run 45149414803 (`scope=task`, `specs=test/e2e/session-recovery.spec.ts`,
+`repeat=20`): the repeat job 40 passed with `--repeat-each 20` on Chromium, no failure or flaky;
+the spec on Firefox and WebKit passed; and the Wave 1 gate's `scope=wave` run 45436485768 (three
+engines) success. Ready for the approver's `resolved → closed`.
