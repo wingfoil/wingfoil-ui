@@ -18,7 +18,8 @@ carries no feature) and is checked on its own:
 - the required fields of `release` are set as for a minor, `kind` is `patch`, `release-line` = v1;
 - `version` is `vX.Y.Z`, the file is `patch-vX.Y.Z.md`, and `patch-of` names an existing
   `minor-vX.Y` of the same line in status `released` (a patch corrects a shipped minor);
-- `features` is empty and `wingfoil_min` is the patched minor's;
+- `features` is the empty flow list `[]` (a missing field, `null`, a block list or any other form
+  fails; the same flow-list rule applies to the minors) and `wingfoil_min` is the patched minor's;
 - `requirements` points to the existing by-release partition of the patch's version
   (`by-release/vX.Y.Z.json`, written by build_backlog.py, no item).
 The sequencer comparisons (pillar, features, MVP coverage) concern the minors only.
@@ -83,6 +84,15 @@ def fm(text):
             out[m.group(1)] = m.group(2).strip('"')
     return out
 
+def feature_list(name, f):
+    """The ids of `features`, read only from the flow-list form `[A1, B2]` (`[]` for none); a missing
+    field, `null`, an empty value (a block list) or any other form is an error (fails closed)."""
+    raw = f.get("features")
+    if raw is None or not re.fullmatch(r"\[\s*(?:[A-Z]\d+\s*(?:,\s*[A-Z]\d+\s*)*)?\]", raw):
+        errors.append(f"{name}: features {raw!r} is missing or not a flow list ([] or [A1, B2])")
+        return []
+    return re.findall(r"[A-Z]\d+", raw)
+
 seen = collections.Counter()
 files = sorted((ROOT / "docs/04_memory/planning/v1").glob("minor-*.md"))
 for p in files:
@@ -100,7 +110,7 @@ for p in files:
     if v not in expected:
         errors.append(f"{p.name}: version {v} not in the sequencer"); continue
     e = expected[v]
-    feats = re.findall(r"[A-Z]\d+", f.get("features", ""))
+    feats = feature_list(p.name, f)
     seen.update(feats)
     if f.get("pillar") != e["pillar"]: errors.append(f"{p.name}: pillar {f.get('pillar')} != {e['pillar']}")
     if f.get("wingfoil_min") != e["wingfoil_min"]: errors.append(f"{p.name}: wingfoil_min {f.get('wingfoil_min')} != {e['wingfoil_min']}")
@@ -135,7 +145,7 @@ for p in patches:
             errors.append(f"{p.name}: patch-of {f.get('patch-of')} is {base.get('status')}, not released")
         if f.get("wingfoil_min") != base.get("wingfoil_min"):
             errors.append(f"{p.name}: wingfoil_min {f.get('wingfoil_min')} != {base.get('wingfoil_min')} of {f.get('patch-of')}")
-    if re.findall(r"[A-Z]\d+", f.get("features", "")):
+    if feature_list(p.name, f):
         errors.append(f"{p.name}: a patch carries no feature, features {f.get('features')}")
     req = f.get("requirements", "")
     if req != f"docs/03_backlog/04_backlog/by-release/{v}.json" or not (ROOT / req).is_file():

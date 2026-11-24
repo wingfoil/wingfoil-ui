@@ -18,6 +18,10 @@ A governance task of the release (`module: governance` together with `ref: GOV`,
 `**Backlog items:** GOV …`) has no backlog item and is exempt from the module and backlog checks;
 `governance` without `GOV`, or `GOV` with another module, is an error.
 
+<release> may be a patch (`v0.3.1`, task-093): a patch has no sequencer entry and no backlog item
+of its own, so its tasks are checked as above (its by-release/<release>.json holds no item) and a
+patch ranks right after its minor in every release comparison (v0.3 < v0.3.1 < v0.4).
+
 Usage: python3 docs/03_backlog/X_tools/check_tasks.py [release]   (default: v0.1)
 Exit status 0 when every check passes.
 """
