@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/6 -->
 ### N-022 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
 
-- **Status:** open
+- **Status:** closed 2026-11-24T15:03:03Z — approved by the approver: Pushed task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt at a4aa6e8bee5d0d04d305c6f0ba1a0ddc683709a3 and dispatched gates.yml scope=task: run 45414655791. Attempt 1: checks, contract, coverage, smoke, publish-smoke, e2e-chromium 1 and 2, own-specs webkit success; own-specs firefox failed 1 of 59, M-02.2 To approve (memory-list.spec.ts:229, the bucket click did not navigate; that spec and MemoryList.tsx come from task-092, not task-093). Attempt 2 (rerun of the failed job): every job success, own-specs firefox 59 of 59; e2e-wave and repeat skipped by scope. The push-triggered run 45414640636 was cancelled and is not evidence. Ruling: the task-scope gates pass; the intermittent Firefox failure of M-02.2 is not task-093's and is recorded at the Wave 1 gate, not here.
 - **Kind:** decision
 - **Opened:** 2026-11-24T12:50:30Z
 - **Line:** trunk
 - **Element:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
 - **Reason:** decision (run task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/6): Will you push task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt at a4aa6e8bee5d0d04d305c6f0ba1a0ddc683709a3 using the committed handoff commands, dispatch gates.yml with scope=task, and provide the run id, SHA and job results?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-022 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/3 -->
 ### N-021 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
