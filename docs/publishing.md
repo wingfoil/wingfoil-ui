@@ -1,6 +1,6 @@
 # Publishing to npm
 
-**Version:** 0.14 · **Date:** 2026-11-23 (0.14: the EBADENGINE result scoped to the Node version run — task-092; 0.13: the accepted dev-only findings after the refresh, `verdaccio` 6.11.3, `engines.node` kept at 22.12.0 — task-092; 0.1: the publish pipeline, the approver's checklist, the
+**Version:** 0.15 · **Date:** 2026-11-24 (0.15: the kept pin `@playwright/test` 1.63.0 — task-092; 0.14: the EBADENGINE result scoped to the Node version run — task-092; 0.13: the accepted dev-only findings after the refresh, `verdaccio` 6.11.3, `engines.node` kept at 22.12.0 — task-092; 0.1: the publish pipeline, the approver's checklist, the
 local staging smoke, the differences from WingFoil's pipeline — task-029; 0.2: review round 1 — a
 dispatch never promotes, the guard's limit, the dev-only audit findings, what is not verified yet;
 0.3: release v0.2.0 — the first version by hand, `stage` verified on Node 22.12.0, the GitHub
@@ -219,6 +219,16 @@ through `typedoc` and the `@verdaccio/*` packages of `verdaccio` 6.11.3 (`verdac
 is usable in range (`typedoc`'s, as before) and they run only in the API docs build and the staging
 smoke, on a machine or CI runner, never in the published package. Status: **accepted risk**
 (moderate, dev-only); re-checked at release validation.
+
+**Kept pin: `@playwright/test`, `playwright` and `playwright-core` at 1.63.0** (task-092,
+`trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned`, commit `90fba817`;
+`@playwright/test` is an exact version in `package.json`). Reason: with `@playwright/test` 1.65.1
+(Firefox 159.0, playwright firefox v1572) the `gates.yml` `scope=wave` run 45283632876 on
+`1398b53f3ab808b9d4026f14cd86370ef8bff31a` showed 127 `Page crashed` failures on Firefox, across
+every spec (shard 1: 61, shard 2: 66); run 45219044794 showed the same (approver's evidence,
+N-017). The version change is the **inferred** cause, not yet confirmed: the next wave run on the
+pinned version confirms or refutes it. The pin stays until a later Playwright release is shown
+green on the three-engine wave; `npm outdated` lists it as a pin kept on purpose.
 
 **`engines.node` stays `>=22.12.0`** (task-092, decision N-001 left to design; D29-5). The strictest
 `engines` in `package-lock.json` are dev-only: `jsdom` 30.1.x, `@asamuzakjp/css-color`,
