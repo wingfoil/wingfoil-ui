@@ -129,3 +129,41 @@ Document their patch inputs/ranking alongside the other two tools.
 
 No linked bugs (`bug: []`); a rejected review moves none. CI evidence and phase-branch integration
 must be checked on the corrected head before acceptance; no heavy gate was run in this review.
+
+### review round 2 (2026-11-24, independent reviewer)
+
+Reviewed correction `48263e8d` against AC-1 … AC-4 and the first review's R1/R2. Regression
+extension committed on the task branch as `f342a8af`.
+
+- `npm run test -- test/governance/check-releases.test.ts test/governance/backlog-tools.test.ts
+  test/governance/patch-release-review.test.ts` before extending the regressions: 16 passed. This
+  includes the original block-list/missing/null refusals, the real `check_tasks.py v0.3.1` call,
+  the patch partition build and a fresh-build comparison of the generated backlog.
+- `npm run test -- test/governance/patch-release-review.test.ts` after extending the regressions:
+  5 passed, 4 failed. Patch fields `features: "[]"`, `features: "[]` and `features: []"` all print
+  `releases: 5 minor + 1 patch · features: 44 / 44 MVP`, `OK`, exit 0. Replacing the minor's
+  field with `features: "[T2, T5, M2, R5, C1]"` produces the same incorrect success. A
+  single-quoted scalar is correctly refused.
+- `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` and
+  `git diff --check`: exit 0 on the task branch. The first format check identified the new
+  test's wrapping; the corrected wrapping passes. No implementation file was changed.
+- AC-4 / R2 is resolved: the four tool docstrings describe patch input, and the two ranking
+  checks state `v0.3 < v0.3.1 < v0.4` (`git diff 628ca24a..48263e8d --
+  docs/03_backlog/X_tools`). The line's spec-012 Process Notes contain the dated 2026-11-24
+  wording clarification (`sed -n '620,642p' docs/04_memory/design/specs/spec-012-project-state-views-api.md`).
+
+**Rejected — R1 remains (type erasure before validation / validation fails open, AC-1).**
+`fm()` removes all leading/trailing double quotes with `.strip('"')` before the new
+`feature_list()` checks its supposed raw value. A quoted scalar and malformed unbalanced quotes
+therefore become a valid-looking list; `.wingfoil/memory.yaml` requires `features` to be a list,
+and the new docstring explicitly promises to reject other forms. The class search
+(`rg -n 'features|strip\(|def fm' docs/03_backlog/X_tools test/governance
+.wingfoil/memory.yaml`) found the shared validator used by both release loops; the minor case
+above covers the second call site. Structural solution: preserve the original `features` syntax
+until the strict flow-list guard runs, or parse YAML and validate the list type before normalizing
+scalars. Apply the guard consistently to both loops and keep these regression cases red until
+the implementation fixes it. This is within the task's own change; its tracked record is the
+`memory park --reason` commit, with no separate bug.
+
+No linked bugs (`bug: []`); this rejection moves none. Required CI evidence and phase-branch
+integration remain for the corrected head before acceptance; no heavy gate was run here.
