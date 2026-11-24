@@ -81,7 +81,12 @@ def fm(text):
     for line in text.split("---")[1].splitlines():
         m = re.match(r"^([\w-]+):\s*(.*?)\s*(?:#.*)?$", line)
         if m:
-            out[m.group(1)] = m.group(2).strip('"')
+            val = m.group(2)
+            # `features` keeps its raw syntax for feature_list's strict guard; any other value loses
+            # only a balanced pair of double quotes (an unmatched quote stays and fails comparisons)
+            if m.group(1) != "features" and len(val) >= 2 and val[0] == val[-1] == '"':
+                val = val[1:-1]
+            out[m.group(1)] = val
     return out
 
 def feature_list(name, f):
