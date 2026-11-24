@@ -65,6 +65,15 @@ function stateList(page: Page): Locator {
   return page.getByRole('list', { name: 'States' });
 }
 
+/**
+ * The state filter link of a bucket: its accessible name is the content "<name> <count> <unit>"
+ * (space-separated, `FilterLink`), so the name is matched up to the count.
+ */
+function bucketLink(page: Page, bucket: string): Locator {
+  const escaped = bucket.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+  return stateList(page).getByRole('link', { name: new RegExp(`^${escaped} \\d+ `) });
+}
+
 function rows(page: Page): Locator {
   return page.getByRole('list', { name: 'Elements' }).getByRole('link');
 }
@@ -216,12 +225,8 @@ test.describe('US-M-02 — unknown types and states', () => {
     test(`M-02.2 — Group unknown states in generic buckets: ${bucket}`, async ({ page, fixtures, consoles }) => {
       const c = await consoles.start({ projects: [await fixtures.get('unknown')] });
       await openList(page, c);
-      await stateList(page)
-        .getByRole('link', { name: new RegExp(`^${bucket.replace('/', '\\/')},`) })
-        .click();
-      await expect(
-        stateList(page).getByRole('link', { name: new RegExp(`^${bucket.replace('/', '\\/')},`) }),
-      ).toHaveAttribute('aria-current', 'page');
+      await bucketLink(page, bucket).click();
+      await expect(bucketLink(page, bucket)).toHaveAttribute('aria-current', 'page');
       await expect.poll(async () => (await listed(page)).sort()).toEqual([...elements].sort());
       if (elements.length === 0) {
         await expect(page.getByText('No element matches these filters.', { exact: true })).toBeVisible();
