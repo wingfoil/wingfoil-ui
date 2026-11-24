@@ -11,10 +11,14 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-092-development-dependencies-refreshed-and-the-node-engine-aligned -->
 ### N-019 · 2026-11-24 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-24T09:17:30Z — the approver ruled the gate
 - **Kind:** gate
 - **Opened:** 2026-11-24T09:10:07Z
 - **Line:** trunk
@@ -24,10 +28,6 @@ command it names.
 - **Head:** f742d3af
 - **Evidence:** run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/8 completed
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-019 --reason 'Approved backlog-item.approve@task:task-092-development-dependencies-refreshed-and-the-node-engine-aligned at f742d3af: run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/8 completed'`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/7 -->
 ### N-018 · 2026-11-24 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
