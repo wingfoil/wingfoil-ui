@@ -204,9 +204,9 @@ before review resumes. Run from the runner home in the approver's own terminal, 
 the changes to the runner's common files carried from the phase branch (rule 14):
 
 ```sh
-cd /home/robypomper/Workspaces/wingfoil_project/runner-homes/wingfoil-ui
+cd "<runner home>"
 node scripts/runner/run.mjs --line trunk --check-git
-git fetch /home/robypomper/Workspaces/wingfoil_project/runner-lines/wingfoil-ui-trunk task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+git fetch "<line checkout>" task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
 git push origin FETCH_HEAD:refs/heads/task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
 gh workflow run gates.yml --ref task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -f scope=task
 ```
@@ -214,3 +214,47 @@ gh workflow run gates.yml --ref task/task-093-backlog-tools-read-patch-releases-
 No linked bugs (`bug: []`); no bug transition applies. The task remains `in-progress` pending
 the required CI evidence. This review record is committed separately, as required by
 `definition-of-done` 1.9 and `wingfoil-cli` rule 11; it changes no state.
+
+### review round 4 (2026-11-24, independent reviewer)
+
+Resumed review of `53d18a1d73f0f5aebaff6c4abcc8f7df6a554172` with the approver's N-021
+ruling (`docs/notices.md`). The approver reports `gates.yml`, scope `task`, run `45373223189`
+on that SHA concluded **failure**: coverage failed two of 5226 tests, both in
+`test/governance/backlog-tools.test.ts`:
+
+- `build_backlog.py writes the v0.3.1 partition, empty, and the checks accept it`;
+- `the committed generated backlog is up to date with a fresh build`.
+
+The reported error is `python package jsonschema not installed: schema not checked`; the
+checker therefore does not print `all checks passed`. N-021 reports green checks, contract,
+smoke, publish-smoke, both Chromium shards and own-specs Firefox/WebKit jobs. The cancelled
+push-triggered run `45373218285` is not gate evidence. These CI results are the approver's
+recorded evidence, not a fresh CI run by this reviewer.
+
+- `npm run test -- test/governance/check-releases.test.ts test/governance/backlog-tools.test.ts
+  test/governance/patch-release-review.test.ts` on the task head: 3 files, 21 tests passed
+  locally. This does not replace the failed CI gate.
+- Class search: `rg -n --glob '*.yml' 'setup-python|python-version|jsonschema|test:coverage|run:
+  npm test|run: npm run test$' .github/workflows` identifies the default-suite jobs in both
+  `gates.yml` and `publish.yml`. Both configure Python 3.12, but neither installs `jsonschema`.
+  `check_backlog.py` imports it and records its absence as an error; the two tests require
+  successful validation (`cat test/governance/backlog-tools.test.ts` and
+  `sed -n '1,65p' docs/03_backlog/X_tools/check_backlog.py`).
+
+**Rejected — R3 (undeclared test dependency / inconsistent CI environment).** The task adds
+default-suite tests that require Python's `jsonschema`, without provisioning it in CI. Per
+N-021, the structural solution is to install an exactly pinned `jsonschema` before the default
+suite in both `gates.yml`'s coverage job and `publish.yml`'s gate, and document the prerequisite
+in `test/README.md` (with its version/date updated). Keep the checker and its tests strict;
+do not skip validation or weaken the assertions. Rework test first, run the relevant targeted
+checks and `test:publish-smoke` for the publish workflow change, then request a fresh task-scope
+CI run on the corrected head before acceptance.
+
+**R4 (public-text hygiene), corrected here per N-021.** The review round 3 hand-off now uses
+`<runner home>` and `<line checkout>` in place of its two absolute local paths. The search
+`rg -n '/(home|Users)/|[A-Za-z]:\\'` on this task file returns no matches after the edit.
+
+No code or tests were changed in this review. This finding belongs to the task's own new
+tests and is tracked by the `memory park --reason` commit, without a separate bug. No linked
+bugs (`bug: []`); the rejection moves none. The review body is committed separately before
+parking, since park refuses uncommitted content (directive `wingfoil-cli`, W-24).
