@@ -15,6 +15,17 @@ command it names.
 
 <!-- runner:closed -->
 
+<!-- key:decision-trunk-task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/3 -->
+### N-021 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+
+- **Status:** closed 2026-11-24T11:44:03Z — approved by the approver: Done: pushed task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt at 53d18a1d73f0f5aebaff6c4abcc8f7df6a554172, gates.yml scope=task run 45373223189, conclusion failure. Green: checks, contract, smoke, publish-smoke, e2e-chromium 1 and 2, own-specs firefox and webkit. Red: coverage, 2 of 5226 tests, both in the task's new test/governance/backlog-tools.test.ts ('build_backlog.py writes the v0.3.1 partition, empty, and the checks accept it'; 'the committed generated backlog is up to date with a fresh build'): check_backlog.py prints 'python package jsonschema not installed: schema not checked' as an error, so no 'all checks passed'. CI sets up Python 3.12 (gates.yml actions/setup-python) without jsonschema; publish.yml's gate runs the same suite. The push-triggered run 45373218285 was cancelled and is not evidence. The approver's ruling: park the task with this finding; the build installs a pinned jsonschema in the CI jobs that run the default suite (gates.yml and publish.yml), documents it in test/README.md, runs test:publish-smoke for the publish.yml change, and does not weaken the test. Also replace the two absolute local paths in this task's Execution Notes (the review round 3 hand-off commands) with <runner home> and <line checkout>: the repository is public. Then ask again for the task-scope run.
+- **Kind:** decision
+- **Opened:** 2026-11-24T10:08:57Z
+- **Line:** trunk
+- **Element:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+- **Reason:** decision (run task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt/review/3): Will you push task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt at 53d18a1d73f0f5aebaff6c4abcc8f7df6a554172 using the recorded commands, dispatch gates.yml with scope=task, and provide its run id, head SHA and job results?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-021 --reason "<ruling>" [--reject]`
+
 <!-- key:halt-trunk-rejected-task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -->
 ### N-020 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
 

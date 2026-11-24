@@ -167,3 +167,94 @@ the implementation fixes it. This is within the task's own change; its tracked r
 
 No linked bugs (`bug: []`); this rejection moves none. Required CI evidence and phase-branch
 integration remain for the corrected head before acceptance; no heavy gate was run here.
+
+### review round 3 (2026-11-24, independent reviewer)
+
+Reviewed correction `ea15afd5` and the complete task diff against AC-1 … AC-4, dl-021, the
+spec-012 Process Notes and both previous reviews. The original `features` syntax now reaches
+the shared flow-list guard in both release loops (`git diff 628ca24a..ea15afd5 --
+docs/03_backlog/X_tools/check_releases.py`). R1 and R2 are resolved; no further correctness
+finding was identified in this review.
+
+- Before integration, `npm run test -- test/governance/check-releases.test.ts
+  test/governance/backlog-tools.test.ts test/governance/patch-release-review.test.ts` → 21 passed.
+  This includes the seven invalid patch-feature forms, the minor scalar regression, the real
+  `check_tasks.py v0.3.1` result (`12 tasks · 0 backlog items · 0 listed`, `OK`), patch partition
+  generation and the fresh-build comparison of the committed backlog.
+- Merged phase branch `design/dev-loop_v0.3.1` at `47605db7` into the task branch, without
+  conflicts, in `53d18a1d73f0f5aebaff6c4abcc8f7df6a554172`. `git merge-base --is-ancestor
+  design/dev-loop_v0.3.1 HEAD` → exit 0 before writing this review record. The merge imports the
+  phase branch's already committed changes, including runner 1.2.2; no runner file was edited
+  independently.
+- After `npm ci` on that merged head, `npm run test -- test/governance test/docs` → 8 files,
+  109 tests passed. `npm run typecheck`, `npm run lint`, `npm run format:check`,
+  `npm run docs:api` and `git diff --check` → exit 0. These are local checks; no heavy gate was
+  run here.
+- AC-3: the fresh-build test checks the generated output against its current sources. The
+  2026-11-24 spec-012 Process Note is present after integration (`sed -n '620,642p'
+  docs/04_memory/design/specs/spec-012-project-state-views-api.md`). AC-4: all four tool
+  docstrings describe patches; the task diff contains no CHANGELOG edit (`git diff
+  design/dev-loop_v0.3.1..HEAD --stat`, before this review record).
+
+**Pending CI, not yet accepted.** `wingfoil-cli` rule 12 requires a green `gates.yml` run for
+the task head before `memory submit`. No run evidence is supplied for the newly prepared head
+`53d18a1d73f0f5aebaff6c4abcc8f7df6a554172`. The approver's hand-off below pushes that exact
+task branch and dispatches scope `task`; report the run id, head SHA, conclusion and job results
+before review resumes. Run from the runner home in the approver's own terminal, after reviewing
+the changes to the runner's common files carried from the phase branch (rule 14):
+
+```sh
+cd "<runner home>"
+node scripts/runner/run.mjs --line trunk --check-git
+git fetch "<line checkout>" task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+git push origin FETCH_HEAD:refs/heads/task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+gh workflow run gates.yml --ref task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -f scope=task
+```
+
+No linked bugs (`bug: []`); no bug transition applies. The task remains `in-progress` pending
+the required CI evidence. This review record is committed separately, as required by
+`definition-of-done` 1.9 and `wingfoil-cli` rule 11; it changes no state.
+
+### review round 4 (2026-11-24, independent reviewer)
+
+Resumed review of `53d18a1d73f0f5aebaff6c4abcc8f7df6a554172` with the approver's N-021
+ruling (`docs/notices.md`). The approver reports `gates.yml`, scope `task`, run `45373223189`
+on that SHA concluded **failure**: coverage failed two of 5226 tests, both in
+`test/governance/backlog-tools.test.ts`:
+
+- `build_backlog.py writes the v0.3.1 partition, empty, and the checks accept it`;
+- `the committed generated backlog is up to date with a fresh build`.
+
+The reported error is `python package jsonschema not installed: schema not checked`; the
+checker therefore does not print `all checks passed`. N-021 reports green checks, contract,
+smoke, publish-smoke, both Chromium shards and own-specs Firefox/WebKit jobs. The cancelled
+push-triggered run `45373218285` is not gate evidence. These CI results are the approver's
+recorded evidence, not a fresh CI run by this reviewer.
+
+- `npm run test -- test/governance/check-releases.test.ts test/governance/backlog-tools.test.ts
+  test/governance/patch-release-review.test.ts` on the task head: 3 files, 21 tests passed
+  locally. This does not replace the failed CI gate.
+- Class search: `rg -n --glob '*.yml' 'setup-python|python-version|jsonschema|test:coverage|run:
+  npm test|run: npm run test$' .github/workflows` identifies the default-suite jobs in both
+  `gates.yml` and `publish.yml`. Both configure Python 3.12, but neither installs `jsonschema`.
+  `check_backlog.py` imports it and records its absence as an error; the two tests require
+  successful validation (`cat test/governance/backlog-tools.test.ts` and
+  `sed -n '1,65p' docs/03_backlog/X_tools/check_backlog.py`).
+
+**Rejected — R3 (undeclared test dependency / inconsistent CI environment).** The task adds
+default-suite tests that require Python's `jsonschema`, without provisioning it in CI. Per
+N-021, the structural solution is to install an exactly pinned `jsonschema` before the default
+suite in both `gates.yml`'s coverage job and `publish.yml`'s gate, and document the prerequisite
+in `test/README.md` (with its version/date updated). Keep the checker and its tests strict;
+do not skip validation or weaken the assertions. Rework test first, run the relevant targeted
+checks and `test:publish-smoke` for the publish workflow change, then request a fresh task-scope
+CI run on the corrected head before acceptance.
+
+**R4 (public-text hygiene), corrected here per N-021.** The review round 3 hand-off now uses
+`<runner home>` and `<line checkout>` in place of its two absolute local paths. The search
+`rg -n '/(home|Users)/|[A-Za-z]:\\'` on this task file returns no matches after the edit.
+
+No code or tests were changed in this review. This finding belongs to the task's own new
+tests and is tracked by the `memory park --reason` commit, without a separate bug. No linked
+bugs (`bug: []`); the rejection moves none. The review body is committed separately before
+parking, since park refuses uncommitted content (directive `wingfoil-cli`, W-24).
