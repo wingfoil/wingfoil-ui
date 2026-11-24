@@ -158,6 +158,70 @@ describe('check_releases.py', () => {
     expect(r.stdout).toContain('FAIL minor-v0.3.md: required field pillar empty');
   });
 
+  // task-093 AC-1: a patch release (`patch-*.md`) is read: it names a released minor of the line,
+  // carries no feature, and has its partition.
+  describe('a patch release', () => {
+    const patch = (over: Record<string, string> = {}, version = 'v0.2.1'): string => {
+      const f: Record<string, string> = {
+        id: `patch-${version}`,
+        type: 'release',
+        title: `"Release ${version}"`,
+        status: 'in-development',
+        kind: '"patch"',
+        'patch-of': '"minor-v0.2"',
+        version: `"${version}"`,
+        pillar: '"G"',
+        features: '[]',
+        wingfoil_min: '"0.2.2"',
+        requirements: `"docs/03_backlog/04_backlog/by-release/${version}.json"`,
+        'release-line': '"v1"',
+        sprint: '"sprint-002"',
+        ...over,
+      };
+      return ['---', ...Object.entries(f).map(([k, v]) => `${k}: ${v}`), '---', '', '## Scope', ''].join('\n');
+    };
+    const withPatch = (
+      text: string,
+      minors: Record<string, Release> = { ...BASE, 'v0.2': { status: 'released' } },
+    ): string => {
+      const root = tree(minors, ['minor-v0.1', 'minor-v0.2']);
+      mkdirSync(path.join(root, 'docs/03_backlog/04_backlog/by-release'), { recursive: true });
+      writeFileSync(path.join(root, 'docs/03_backlog/04_backlog/by-release/v0.2.1.json'), '[]\n');
+      writeFileSync(path.join(root, 'docs/04_memory/planning/v1/patch-v0.2.1.md'), text);
+      return root;
+    };
+
+    it('is accepted: a released minor, no feature, its partition', async () => {
+      const r = await check(withPatch(patch()));
+      expect(r.stdout).toContain('1 patch');
+      expect(r.code, r.stdout).toBe(0);
+    });
+
+    it('is refused when its minor is not released', async () => {
+      const r = await check(withPatch(patch(), BASE));
+      expect(r.code).toBe(1);
+      expect(r.stdout).toContain('FAIL patch-v0.2.1.md: patch-of minor-v0.2 is in-development, not released');
+    });
+
+    it('is refused when it names no minor of the line, or one of another version', async () => {
+      const none = await check(withPatch(patch({ 'patch-of': '"minor-v0.9"' })));
+      expect(none.code).toBe(1);
+      expect(none.stdout).toContain("FAIL patch-v0.2.1.md: patch-of 'minor-v0.9' is not a minor release of the line");
+      const other = await check(withPatch(patch({ 'patch-of': '"minor-v0.1"' })));
+      expect(other.stdout).toContain('FAIL patch-v0.2.1.md: version v0.2.1 is not a patch of v0.1');
+    });
+
+    it('is refused when it carries a feature or has no partition', async () => {
+      const feat = await check(withPatch(patch({ features: '[G1]' })));
+      expect(feat.code).toBe(1);
+      expect(feat.stdout).toContain('FAIL patch-v0.2.1.md: a patch carries no feature');
+      const part = await check(
+        withPatch(patch({ requirements: '"docs/03_backlog/04_backlog/by-release/v0.2.2.json"' })),
+      );
+      expect(part.stdout).toContain('is not the v0.2.1 partition');
+    });
+  });
+
   it('passes on this repository', async () => {
     const r = await check();
     expect(r.code, r.stdout).toBe(0);

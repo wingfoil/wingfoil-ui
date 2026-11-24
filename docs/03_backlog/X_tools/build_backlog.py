@@ -2,6 +2,9 @@
 """backlog-export: build docs/03_backlog/04_backlog/backlog.json and by-release/*.json from the
 story map, the BDD scenarios and the SARD. Deterministic: same inputs, same bytes.
 
+A patch release (patch-vX.Y.Z, task-093) has a partition too: `by-release/vX.Y.Z.json` with no
+item (a patch carries no feature), ranked right after its minor, `wingfoil_min` of its minor.
+
 Usage: python3 docs/03_backlog/X_tools/build_backlog.py
 """
 import json, pathlib, re
@@ -9,7 +12,7 @@ import json, pathlib, re
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 REQ = ROOT / "docs" / "02_requirements"
 OUT = ROOT / "docs" / "03_backlog" / "04_backlog"
-WINGFOIL_MIN = {"v0.1": "0.2.2", "v0.2": "0.2.2", "v0.3": "0.2.2", "v0.4": "0.3", "v1.0": "1.0"}
+WINGFOIL_MIN = {"v0.1": "0.2.2", "v0.2": "0.2.2", "v0.3": "0.2.2", "v0.3.1": "0.2.2", "v0.4": "0.3", "v1.0": "1.0"}
 RELEASES = list(WINGFOIL_MIN)
 
 # Technical-task order (map-dependencies): a task depends on the tasks it builds on.

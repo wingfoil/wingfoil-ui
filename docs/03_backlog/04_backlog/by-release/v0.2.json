@@ -3,7 +3,7 @@
   "release": "v0.2",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.7",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.13",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -3326,7 +3326,7 @@
       "requirement": "REQ-SEC-10",
       "description": "From v0.2 the gates of the WingFoil UI repository are passed from the UI; from v0.3 those of the WingFoil repository too.",
       "fit_criterion": "[percentage] Between the v0.2 and the v0.3 releases, ≥ 80 % of the approve/reject commits of this repository have their hash in the server's local action log (the list of commits the UI caused: hash and time, no other data); the same from v0.3 for the WingFoil repository.",
-      "verified_by": "retrospective (`wf(…)` history)",
+      "verified_by": "release validation (`pre-release-checks`, directive `release-conventions`), on both repositories",
       "stories": [
         "US-G-04"
       ],

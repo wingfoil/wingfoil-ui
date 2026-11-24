@@ -2,7 +2,8 @@
 """Stop-check of seeding a line (`release-conventions` › seed-releases): the release elements of
 rl-v1 against the sequencer.
 
-Checks, for every docs/04_memory/planning/v1/minor-*.md:
+Checks, for every docs/04_memory/planning/v1/minor-*.md (the patch releases, patch-*.md, have
+their own checks, below):
 - every required field of `release` in .wingfoil/memory.yaml is set (`kind` included);
 - `pillar` and `wingfoil_min` match the release heading of 07_sequencer.md;
 - `features` = the features the sequencer introduces in that release, and every MVP feature of
@@ -11,6 +12,18 @@ Checks, for every docs/04_memory/planning/v1/minor-*.md:
 - `release-line` = v1, status one of the `release` states of memory.yaml (`draft` at seeding; it
   advances through the packs' verbs — `sprint` › `plan-release`, `release-submit`,
   `release-publishing`).
+
+Patch releases (patch-vX.Y.Z.md, task-093; dl-021 *Actions*): a patch is not in the sequencer (it
+carries no feature) and is checked on its own:
+- the required fields of `release` are set as for a minor, `kind` is `patch`, `release-line` = v1;
+- `version` is `vX.Y.Z`, the file is `patch-vX.Y.Z.md`, and `patch-of` names an existing
+  `minor-vX.Y` of the same line in status `released` (a patch corrects a shipped minor);
+- `features` is the empty flow list `[]` (a missing field, `null`, a block list or any other form
+  fails; the same flow-list rule applies to the minors) and `wingfoil_min` is the patched minor's;
+- `requirements` points to the existing by-release partition of the patch's version
+  (`by-release/vX.Y.Z.json`, written by build_backlog.py, no item).
+The sequencer comparisons (pillar, features, MVP coverage) concern the minors only.
+check_tasks.py and check_backlog.py rank a patch right after its minor (v0.3 < v0.3.1 < v0.4).
 
 Required fields and their exemptions (task-051):
 - a field listed under `template.frontmatter.exempt` of the `release` type in memory.yaml
@@ -68,8 +81,22 @@ def fm(text):
     for line in text.split("---")[1].splitlines():
         m = re.match(r"^([\w-]+):\s*(.*?)\s*(?:#.*)?$", line)
         if m:
-            out[m.group(1)] = m.group(2).strip('"')
+            val = m.group(2)
+            # `features` keeps its raw syntax for feature_list's strict guard; any other value loses
+            # only a balanced pair of double quotes (an unmatched quote stays and fails comparisons)
+            if m.group(1) != "features" and len(val) >= 2 and val[0] == val[-1] == '"':
+                val = val[1:-1]
+            out[m.group(1)] = val
     return out
+
+def feature_list(name, f):
+    """The ids of `features`, read only from the flow-list form `[A1, B2]` (`[]` for none); a missing
+    field, `null`, an empty value (a block list) or any other form is an error (fails closed)."""
+    raw = f.get("features")
+    if raw is None or not re.fullmatch(r"\[\s*(?:[A-Z]\d+\s*(?:,\s*[A-Z]\d+\s*)*)?\]", raw):
+        errors.append(f"{name}: features {raw!r} is missing or not a flow list ([] or [A1, B2])")
+        return []
+    return re.findall(r"[A-Z]\d+", raw)
 
 seen = collections.Counter()
 files = sorted((ROOT / "docs/04_memory/planning/v1").glob("minor-*.md"))
@@ -88,7 +115,7 @@ for p in files:
     if v not in expected:
         errors.append(f"{p.name}: version {v} not in the sequencer"); continue
     e = expected[v]
-    feats = re.findall(r"[A-Z]\d+", f.get("features", ""))
+    feats = feature_list(p.name, f)
     seen.update(feats)
     if f.get("pillar") != e["pillar"]: errors.append(f"{p.name}: pillar {f.get('pillar')} != {e['pillar']}")
     if f.get("wingfoil_min") != e["wingfoil_min"]: errors.append(f"{p.name}: wingfoil_min {f.get('wingfoil_min')} != {e['wingfoil_min']}")
@@ -99,13 +126,45 @@ for p in files:
     if f.get("kind") != "minor" or f.get("release-line") != "v1" or f.get("status") not in RELEASE_STATES:
         errors.append(f"{p.name}: kind/release-line/status = {f.get('kind')}/{f.get('release-line')}/{f.get('status')}")
 
+minors = {p.stem: fm(p.read_text()) for p in files}
+patches = sorted((ROOT / "docs/04_memory/planning/v1").glob("patch-*.md"))
+for p in patches:
+    f = fm(p.read_text())
+    v = f.get("version", "")
+    for k in required:
+        if k == "features" or p.stem in exempt.get(k, ()):
+            continue
+        if k == "sprint" and f.get("status") == "draft":
+            continue
+        if not f.get(k):
+            errors.append(f"{p.name}: required field {k} empty")
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", v) or p.stem != f"patch-{v}":
+        errors.append(f"{p.name}: version {v!r} is not the vX.Y.Z of the file name")
+    base = minors.get(f.get("patch-of", ""))
+    if base is None:
+        errors.append(f"{p.name}: patch-of {f.get('patch-of')!r} is not a minor release of the line")
+    else:
+        if v.rsplit(".", 1)[0] != base.get("version"):
+            errors.append(f"{p.name}: version {v} is not a patch of {base.get('version')}")
+        if base.get("status") != "released":
+            errors.append(f"{p.name}: patch-of {f.get('patch-of')} is {base.get('status')}, not released")
+        if f.get("wingfoil_min") != base.get("wingfoil_min"):
+            errors.append(f"{p.name}: wingfoil_min {f.get('wingfoil_min')} != {base.get('wingfoil_min')} of {f.get('patch-of')}")
+    if feature_list(p.name, f):
+        errors.append(f"{p.name}: a patch carries no feature, features {f.get('features')}")
+    req = f.get("requirements", "")
+    if req != f"docs/03_backlog/04_backlog/by-release/{v}.json" or not (ROOT / req).is_file():
+        errors.append(f"{p.name}: requirements {req!r} is not the {v} partition")
+    if f.get("kind") != "patch" or f.get("release-line") != "v1" or f.get("status") not in RELEASE_STATES:
+        errors.append(f"{p.name}: kind/release-line/status = {f.get('kind')}/{f.get('release-line')}/{f.get('status')}")
+
 if sorted(expected) != sorted(fm(p.read_text()).get("version") for p in files):
     errors.append(f"releases {[p.name for p in files]} != sequencer {sorted(expected)}")
 errors += [f"feature {x} in {n} releases" for x, n in seen.items() if n > 1]
 errors += [f"MVP feature {x} in no release" for x in mvp if x not in seen]
 errors += [f"feature {x} not an MVP feature" for x in seen if x not in mvp]
 
-print(f"releases: {len(files)} · features: {sum(seen.values())} / {len(mvp)} MVP")
+print(f"releases: {len(files)} minor + {len(patches)} patch · features: {sum(seen.values())} / {len(mvp)} MVP")
 for e in errors:
     print("FAIL", e)
 print("OK" if not errors else f"{len(errors)} failure(s)")

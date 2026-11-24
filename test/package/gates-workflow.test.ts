@@ -449,6 +449,11 @@ describe('gates.yml — the jobs (task-071, AC-2, AC-3)', () => {
     expect(python).toBeGreaterThan(0);
     expect(python).toBeLessThan(run);
     expect(stepsOf(coverage)[python]!.with?.['python-version']).toBe('3.12');
+    // task-093: check_backlog.py needs `jsonschema`, installed pinned exactly between Python and the run.
+    const dep = runIndex(coverage, 'pip install jsonschema==');
+    expect(dep).toBeGreaterThan(python);
+    expect(dep).toBeLessThan(run);
+    expect(stepsOf(coverage)[dep]!.run).toMatch(/pip install jsonschema==\d+\.\d+\.\d+\s*$/);
     for (const [name, j] of Object.entries(jobs))
       if (name !== 'coverage')
         expect(
