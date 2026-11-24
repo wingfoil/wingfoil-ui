@@ -1,5 +1,5 @@
 // task-093 AC-1 / AC-2: independent review of the patch stop-check on actual inputs.
-import { cpSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../harness/cli.js';
@@ -20,7 +20,12 @@ afterAll(async () => ws?.dispose());
 describe('task-093 independent patch review', () => {
   it('AC-2 accepts the real v0.3.1 task list', async () => {
     const result = await ws.run('python3', [path.join(TOOLS, 'check_tasks.py'), 'v0.3.1'], { allowFailure: true });
-    expect(result.stdout).toContain('12 tasks · 0 backlog items · 0 listed');
+    // The count follows the release's task files, so a task added to v0.3.1 does not break the check.
+    const count = readdirSync(path.join(REPO_ROOT, 'docs/04_memory/v0.3.1')).filter((f) =>
+      /^task-\d+-.*\.md$/.test(f),
+    ).length;
+    expect(count).toBeGreaterThan(0);
+    expect(result.stdout).toContain(`${count} tasks · 0 backlog items · 0 listed`);
     expect(result.code, result.stdout + result.stderr).toBe(0);
   });
 
