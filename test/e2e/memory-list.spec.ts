@@ -65,6 +65,15 @@ function stateList(page: Page): Locator {
   return page.getByRole('list', { name: 'States' });
 }
 
+/**
+ * The state filter link of a bucket: its accessible name is the content "<name> <count> <unit>"
+ * (space-separated, `FilterLink`), so the name is matched up to the count.
+ */
+function bucketLink(page: Page, bucket: string): Locator {
+  const escaped = bucket.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+  return stateList(page).getByRole('link', { name: new RegExp(`^${escaped} \\d+ `) });
+}
+
 function rows(page: Page): Locator {
   return page.getByRole('list', { name: 'Elements' }).getByRole('link');
 }
@@ -108,8 +117,8 @@ test.describe('US-M-01 — Memory list', () => {
     await openConsole(page, c, { path: `/p/${c.pids[0]}/memory` });
     await expect(page.getByRole('heading', { level: 1, name: 'Memory' })).toBeVisible();
     await expect(rows(page).first()).toBeVisible({ timeout: COLD_READ_MS });
-    await expect(typeList(page).getByRole('link', { name: 'task, 4 elements' })).toBeVisible();
-    await expect(typeList(page).getByRole('link', { name: 'bug, 1 element' })).toBeVisible();
+    await expect(typeList(page).getByRole('link', { name: 'task 4 elements' })).toBeVisible();
+    await expect(typeList(page).getByRole('link', { name: 'bug 1 element' })).toBeVisible();
     await expect(
       page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Memory' }),
     ).toHaveAttribute('aria-current', 'page');
@@ -121,7 +130,7 @@ test.describe('US-M-01 — Memory list', () => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openList(page, c);
     // Keyboard: the type filter is a link reached and followed from the keyboard.
-    const task = typeList(page).getByRole('link', { name: 'task, 4 elements' });
+    const task = typeList(page).getByRole('link', { name: 'task 4 elements' });
     await task.focus();
     await expectFocusVisible(task);
     await page.keyboard.press('Enter');
@@ -142,10 +151,10 @@ test.describe('US-M-01 — Memory list', () => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openList(page, c);
     await typeList(page)
-      .getByRole('link', { name: /^All types,/ })
+      .getByRole('link', { name: /^All types / })
       .click();
     await stateList(page)
-      .getByRole('link', { name: /^To approve,/ })
+      .getByRole('link', { name: /^To approve / })
       .click();
     await expect.poll(() => listed(page)).toEqual(['bug-001-crash-on-save', 'task-001-login-form']);
     await expect(page).toHaveURL(/\?bucket=toApprove$/);
@@ -177,7 +186,7 @@ test.describe('US-M-01 — Memory list', () => {
     const c = await consoles.start({ projects: [await fixtures.get('kanban')] });
     await openList(page, c);
     // A type with no element comes from `GET /config` only, which may answer after the rows (bug-009).
-    const adr = typeList(page).getByRole('link', { name: 'adr, 0 elements' });
+    const adr = typeList(page).getByRole('link', { name: 'adr 0 elements' });
     await expect(adr).toBeVisible({ timeout: COLD_READ_MS });
     await adr.click();
     await expect(page.getByText('No adr yet', { exact: true })).toBeVisible();
@@ -190,8 +199,8 @@ test.describe('US-M-02 — unknown types and states', () => {
     const c = await consoles.start({ projects: [await fixtures.get('unknown')] });
     await openList(page, c);
     await expect.poll(() => filterNames(typeList(page)), { timeout: COLD_READ_MS }).toEqual(['story', 'note']);
-    await expect(typeList(page).getByRole('link', { name: 'story, 2 elements' })).toBeVisible();
-    await expect(typeList(page).getByRole('link', { name: 'note, 2 elements' })).toBeVisible();
+    await expect(typeList(page).getByRole('link', { name: 'story 2 elements' })).toBeVisible();
+    await expect(typeList(page).getByRole('link', { name: 'note 2 elements' })).toBeVisible();
     expect(await scanThemes(page)).toEqual([]);
   });
 
@@ -199,9 +208,9 @@ test.describe('US-M-02 — unknown types and states', () => {
     const c = await consoles.start({ projects: [await fixtures.get('unknown')] });
     await openList(page, c);
     await typeList(page)
-      .getByRole('link', { name: /^story,/ })
+      .getByRole('link', { name: /^story / })
       .click();
-    await expect(typeList(page).getByRole('link', { name: /^story,/ })).toHaveAttribute('aria-current', 'page');
+    await expect(typeList(page).getByRole('link', { name: /^story / })).toHaveAttribute('aria-current', 'page');
     await expect
       .poll(() => filterNames(stateList(page)), { timeout: COLD_READ_MS })
       .toEqual(['idea', 'shaping', 'ready-to-build', 'shipped']);
@@ -216,12 +225,8 @@ test.describe('US-M-02 — unknown types and states', () => {
     test(`M-02.2 — Group unknown states in generic buckets: ${bucket}`, async ({ page, fixtures, consoles }) => {
       const c = await consoles.start({ projects: [await fixtures.get('unknown')] });
       await openList(page, c);
-      await stateList(page)
-        .getByRole('link', { name: new RegExp(`^${bucket.replace('/', '\\/')},`) })
-        .click();
-      await expect(
-        stateList(page).getByRole('link', { name: new RegExp(`^${bucket.replace('/', '\\/')},`) }),
-      ).toHaveAttribute('aria-current', 'page');
+      await bucketLink(page, bucket).click();
+      await expect(bucketLink(page, bucket)).toHaveAttribute('aria-current', 'page');
       await expect.poll(async () => (await listed(page)).sort()).toEqual([...elements].sort());
       if (elements.length === 0) {
         await expect(page.getByText('No element matches these filters.', { exact: true })).toBeVisible();

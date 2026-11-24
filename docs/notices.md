@@ -11,20 +11,89 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
+<!-- key:halt-trunk-rejected-task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -->
+### N-020 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+
+- **Status:** closed 2026-11-24T10:01:43Z — resumed by the approver
+- **Kind:** halt
+- **Opened:** 2026-11-24T09:56:49Z
+- **Line:** trunk
+- **Element:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+- **Reason:** trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt rejected 2 times in review: rule it first (npx wingfoil memory history task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt)
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
+
+<!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-092-development-dependencies-refreshed-and-the-node-engine-aligned -->
+### N-019 · 2026-11-24 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** closed 2026-11-24T09:17:30Z — the approver ruled the gate
+- **Kind:** gate
+- **Opened:** 2026-11-24T09:10:07Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** backlog-item.approve@task:task-092-development-dependencies-refreshed-and-the-node-engine-aligned waits for the approver
+- **Ready:** yes
+- **Head:** f742d3af
+- **Evidence:** run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/8 completed
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-019 --reason 'Approved backlog-item.approve@task:task-092-development-dependencies-refreshed-and-the-node-engine-aligned at f742d3af: run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/8 completed'`
+
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/7 -->
+### N-018 · 2026-11-24 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** closed 2026-11-24T09:04:35Z — approved by the approver: Done: pushed task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned at 19fc88426b60e849badb35b556213cda6f3395a5, gates.yml scope=wave run 45356047825, conclusion success. All green: checks, coverage, contract, smoke, publish-smoke, e2e-wave chromium 1 and 2, firefox 1 and 2, webkit 1 and 2 (repeat, own-specs, e2e-chromium skipped by the wave scope). Both N-017 findings closed: M-02.2 passes on all three engines; no Firefox 'Page crashed' with @playwright/test kept at 1.63.0. The push-triggered run 45356039380 was cancelled and is not evidence.
+- **Kind:** decision
+- **Opened:** 2026-11-24T07:48:28Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/7): Will you push head 19fc88426b60e849badb35b556213cda6f3395a5 using these commands, dispatch the wave, and provide its run id, commit and job results?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-018 --reason "<ruling>" [--reject]`
+
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/5 -->
+### N-017 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** closed 2026-11-24T07:36:59Z — approved by the approver: Done: pushed at 1398b53f3ab808b9d4026f14cd86370ef8bff31a, gates.yml scope=wave run 45283632876, conclusion failure. Green: checks, coverage, contract, smoke, publish-smoke, e2e-wave chromium 1 and webkit 1. Red, two findings. (a) M-02.2 on all three engines (4 tests each): test/e2e/memory-list.spec.ts:220 still selects the bucket links with /^<bucket>,/ (the comma the label fix removed), so the click times out at 180 s; fix the selector to the new label. (b) Firefox only: 127 tests fail with 'Page crashed' across every spec (shard 1: 61, shard 2: 66; also in run 45219044794), with @playwright/test 1.65.1 and Firefox 159.0 (playwright firefox v1572); the approver's side kept @playwright/test at 1.63.0 exact in commit 90fba817 on the task branch (node_modules reinstalled): record it in the Execution Notes as a pin kept on purpose for AC-1 (cause inferred from the version change, to be confirmed by the next wave run) and in docs/publishing.md if it lists the kept pins. The approver's ruling: park the task with (a) and (b), then the build fixes (a) and asks again for the wave run.
+- **Kind:** decision
+- **Opened:** 2026-11-23T22:23:24Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/5): Will you push task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned at 1398b53f3ab808b9d4026f14cd86370ef8bff31a from the runner home, dispatch gates.yml with scope=wave, and provide the run id, commit and results?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-017 --reason "<ruling>" [--reject]`
+
+<!-- key:halt-trunk-rejected-task-092-development-dependencies-refreshed-and-the-node-engine-aligned -->
+### N-016 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** closed 2026-11-23T19:28:28Z — resumed by the approver
+- **Kind:** halt
+- **Opened:** 2026-11-23T19:08:11Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned rejected 2 times in review: rule it first (npx wingfoil memory history task-092-development-dependencies-refreshed-and-the-node-engine-aligned)
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
+
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/3 -->
+### N-015 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** closed 2026-11-23T19:04:29Z — approved by the approver: Done: task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned pushed at 81f33c247198a1cfa6d07fc5718e87f3831f9e63 and gates.yml dispatched with scope=wave: run 45219044794, conclusion failure. Green: checks, coverage, contract, smoke, publish-smoke; npm ci on Node 22.22.2 (checks job) added 715 packages, no EBADENGINE. Red: all six e2e-wave jobs (chromium, firefox, webkit x 2 shards), one cause only: axe-core 4.13.0 -> 4.14.1 (through @axe-core/playwright 4.14) reports label-content-name-mismatch (serious, WCAG 2.5.3) in accessibility.spec.ts X-06.4 (memory list, traceability) and X-08.1: the filter links and count buttons whose aria-label does not contain their visible text as is (a[aria-label='task, 4 elements'], 'All types, N elements', 'To approve, N elements', button 'In progress, 1 reference', the trace-toggle buttons). Logs: gh run view 45219044794 --log-failed. The approver's ruling: park the task with this finding; the build fixes the labels so the visible text is part of the accessible name (label in name), updates the tests that assert them, keeps axe-core 4.14, then asks again for the wave run.
+- **Kind:** decision
+- **Opened:** 2026-11-23T16:38:38Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/3): Will you push task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned at 81f33c247198a1cfa6d07fc5718e87f3831f9e63 from the runner home, dispatch gates.yml with scope=wave, and provide the run id, commit, gate results and Node 22.22.2 install log?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-015 --reason "<ruling>" [--reject]`
+
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1 -->
 ### N-013 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-23T16:22:10Z — approved by the approver: Yes, and it is no exception: cli-only-writes covers the states a verb owns, not the body. The approver committed the build's Execution Notes as they were ('docs(tasks): task-092 execution notes — build', status untouched). Now memory park the task with F-1 and its fix in --reason, and answer rejected. The CI evidence for the final head stays the approver's command (push of the task branch and the gates.yml dispatch): ask for it with RESULT: blocked decision when the review needs it.
 - **Kind:** decision
 - **Opened:** 2026-11-23T13:57:41Z
 - **Line:** trunk
 - **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 - **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/1): May the existing build notes for trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned be committed without changing state, as an exception to CLI-only writes, so memory park can record rejection F-1?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-013 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:diverged-trunk -->
 ### N-014 · 2026-11-23 · trunk:runner

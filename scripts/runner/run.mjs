@@ -3,7 +3,7 @@
 //   lock → fetch → notices → weekly mains → workflow status → gates → halts and budget → adapter
 //   → worktree → distinct_from → pre checks → headless launch → post checks → finalize → run
 //   record → push → unlock.
-// The same file runs in every DFD project: the project is read from package.json and dna.yaml.
+// The same file runs in every project that adopts the runner: the project is read from package.json and dna.yaml.
 //
 // Usage: node scripts/runner/run.mjs --line <line> [--dry-run] [--config <file>] [--resume] [--until-idle [--max-steps <n>]]
 //        node scripts/runner/run.mjs --line <line> --close <N-id> --how "<what solved it>"
@@ -21,7 +21,7 @@
 // Exit 0 when the run did something; 10 when it only waits; 11 when the line is halted; 1 on an
 // unexpected failure; 3 on a bad command line.
 import { spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, appendFileSync, mkdtempSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, appendFileSync, mkdtempSync } from 'node:fs';
 import { cpus, homedir, loadavg, tmpdir } from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
@@ -86,7 +86,8 @@ let versionShown = false;
 const showVersion = () => { if (!versionShown) { versionShown = true; console.log(versionLine()); } };
 // The line's name is coloured in a terminal only: a journal or a log file stays plain (1.2.0).
 const COLOUR = Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
-const print = (ctx, message) => { showVersion(); console.log(`${lib.logStamp()} [${ctx.project} ${lib.lineLabel(ctx.line.name, COLOUR)}] ${message}`); };
+const print = (ctx, message) => { showVersion(); console.log(`${lib.logStamp()} [${ctx.project} ${lib.lineLabel(ctx.line.name, COLOUR)}] ${lib.renderLabels(message, COLOUR)}`); };
+const S = (key) => lib.stepLabel(key);
 /** A line that says the run did something: what the run was waiting on is printed before it. */
 const log = (ctx, message) => {
   ctx.acted = true;
@@ -99,7 +100,7 @@ const waitLine = (ctx, message) => { (ctx.waiting ??= []).push(message); (ctx.wa
 /** At the end of a run: what it waited on, once; a run that acted starts the count again. */
 function finishOutput(ctx) {
   const lines = ctx.waiting ?? [];
-  const file = plainFile(join(ctx.line.checkout, '.git', 'dfd-runner.waiting'), ctx.line.checkout);
+  const file = plainFile(join(ctx.line.checkout, '.git', lib.markName('.waiting')), ctx.line.checkout);
   if (DRY) { lines.forEach((line) => print(ctx, line)); return; }
   if (ctx.acted || lines.length === 0) {
     lines.filter((line) => !ctx.shown?.has(line)).forEach((line) => print(ctx, line));
@@ -147,8 +148,9 @@ function commit(ctx, paths, subject, identity = ctx.lineIdentity) {
 
 /** The approver's rulings (lib.ledgerFile, outside any repository, signed): written by gate.mjs and --close. */
 let PROJECT = 'project';
-const readLedger = () => lib.readLedger(PROJECT);
-const appendLedger = (entry) => lib.appendLedger(PROJECT, entry);
+// A governance run reads no container ruling, a container run only its own (1.2.2, C-1).
+const readLedger = () => lib.ledgerForMode(lib.readLedger(PROJECT), CONTAINER);
+const appendLedger = (entry) => lib.appendLedger(PROJECT, { ...entry, container: CONTAINER || undefined });
 
 /**
  * A file the runner writes in the checkout: inside it, and with no symbolic link an agent could have
@@ -167,6 +169,8 @@ function plainFile(path, root) {
 
 /** The checkout's git config would run a program: nothing more is done in it, not even a notice's commit (N2). */
 class UnsafeCheckout extends Error {}
+/** A worktree's dependencies the runner will not install: a security refusal, which only the approver closes (1.2.1, R2-2). */
+class UnsafeLock extends Error {}
 function guardPath(path) {
   const listed = sh('git', ['-C', path, ...lib.GIT_CONFIG_LIST]);
   // A config git cannot even read is not judged safe (1.1.14, L-b).
@@ -214,6 +218,8 @@ function notice(ctx, { key, element, reason, command, packet = null }) {
   if (DRY) return;
   writeFileSync(noticesFile(ctx), text);
   commit(ctx, [ctx.set.notices], `docs(notices): ${lib.cite(ctx.line.name, element)} ${committed(reason)}`.slice(0, 100));
+  // Container mode: what the runner opened, signed, so waiting.json tells it from a notice an agent wrote (1.2.2, C-3).
+  if (CONTAINER) appendLedger({ kind: 'notice', line: ctx.line.name, notice: entry?.id ?? null, key });
   if (ctx.config.notify) sh(ctx.config.notify, [`${ctx.project} · ${ctx.line.name}`, `${reason}\n${runnable}`]);
 }
 
@@ -236,8 +242,22 @@ function closeNotices(ctx, keys, how) {
 
 // ---- lock ----------------------------------------------------------------------------------
 
+/** The approver asked --until-idle to stop: .git/wingfoil-runner.stop, or dfd-stop from before 1.2.1. */
+const stopAsked = (line) => [lib.markName('.stop'), 'dfd-stop'].some((name) => existsSync(join(line.checkout, '.git', name)));
+
+/** A lock a runner from before 1.2.1 holds under its old name: alive and not stale, it counts as held. */
+function legacyLockHeld(ctx, file) {
+  if (!existsSync(file)) return null;
+  let lock;
+  try { lock = JSON.parse(readFileSync(file, 'utf8')); } catch { return null; }
+  const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+  return lib.lockIsStale(lock, { staleMinutes: ctx.config.limits.lock_stale_minutes, alive }) ? null : lock;
+}
+
 function takeLock(ctx) {
-  const file = plainFile(join(ctx.line.checkout, '.git', 'dfd-runner.lock'), ctx.line.checkout);
+  const file = plainFile(join(ctx.line.checkout, '.git', lib.markName('.lock')), ctx.line.checkout);
+  const legacy = legacyLockHeld(ctx, join(ctx.line.checkout, '.git', lib.markName('.lock', true)));
+  if (legacy) { log(ctx, `a run of an older runner is in progress (pid ${legacy.pid}); exiting`); return null; }
   if (!DRY) {
     // Taken atomically (wx): two runs started together cannot both hold it (L1).
     try { writeFileSync(file, JSON.stringify({ pid: process.pid, started: now() }), { flag: 'wx' }); return file; } catch (error) { if (error.code !== 'EEXIST') throw error; }
@@ -247,7 +267,7 @@ function takeLock(ctx) {
     try { lock = JSON.parse(readFileSync(file, 'utf8')); } catch { lock = { pid: 0, started: '1970-01-01T00:00:00.000Z' }; }
     const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
     if (lib.lockIsStale(lock, { staleMinutes: ctx.config.limits.lock_stale_minutes, alive })) {
-      notice(ctx, { key: `lock-${ctx.line.name}-${lock.started}`, element: 'runner', reason: `stale lock (pid ${lock.pid}, since ${lock.started})`, command: `check that no runner runs (pgrep -af scripts/runner/run.mjs), then rm ${file}` });
+      notice(ctx, { key: `lock-${ctx.line.name}-${lock.started}`, element: 'runner', reason: `stale lock (pid ${lock.pid}, since ${lock.started})`, command: `check that no runner runs (pgrep -af scripts/runner/run.mjs), then rm ${lib.shellWord(file)}` });
     } else {
       log(ctx, `a run is in progress (pid ${lock.pid}); exiting`);
     }
@@ -360,18 +380,40 @@ function settlingElements(line, memoryYaml, element) {
 function ensureDependencies(ctx, path) {
   const lockfile = join(path, 'package-lock.json');
   const hash = existsSync(lockfile) ? createHash('sha256').update(readFileSync(lockfile)).digest('hex') : 'none';
-  const mark = join(git(path, ['rev-parse', '--absolute-git-dir']), 'dfd-dependencies');
+  const mark = join(git(path, ['rev-parse', '--absolute-git-dir']), lib.markName('.dependencies'));
   const complete = existsSync(join(path, 'node_modules/.bin/wingfoil')) && existsSync(mark) && readFileSync(mark, 'utf8') === hash;
   if (complete) return;
   rmSync(mark, { force: true });
-  const foreign = existsSync(lockfile) ? lib.foreignResolved(readFileSync(lockfile, 'utf8'), ctx.config.integration?.registries ?? ['registry.npmjs.org']) : [];
-  if (foreign.length) throw new Error(`package-lock.json in ${path} resolves packages from ${foreign.join(', ')}, outside integration.registries`);
+  const hosts = ctx.config.integration?.registries ?? ['registry.npmjs.org'];
+  // What npm ci reads besides the lock (1.2.1, L-1): a shrinkwrap wins over the lock, and a
+  // worktree .npmrc could choose the registry or the git program; link targets are real paths.
+  if (existsSync(join(path, 'npm-shrinkwrap.json'))) throw new UnsafeLock(`${path} has an npm-shrinkwrap.json, which npm ci would use in place of package-lock.json: the runner installs from package-lock.json only`);
+  const npmrc = existsSync(join(path, '.npmrc')) ? lib.npmrcProblems(readFileSync(join(path, '.npmrc'), 'utf8')) : [];
+  if (npmrc.length) throw new UnsafeLock(`${path}/.npmrc is refused: ${npmrc.join(', ')} (allowed keys: ${lib.NPMRC_KEYS.join(', ')})`);
+  const lockText = existsSync(lockfile) ? readFileSync(lockfile, 'utf8') : null;
+  const foreign = lockText === null ? [] : lib.foreignResolved(lockText, hosts);
+  if (foreign.length) throw new UnsafeLock(`package-lock.json in ${path} is refused, outside integration.registries or not pinned: ${foreign.join(', ')}`);
+  const root = realpathSync(path);
+  for (const link of lockText === null ? [] : lib.lockLinks(lockText)) {
+    let real = null;
+    try { real = realpathSync(join(path, link)); } catch { /* not there yet: npm creates nothing outside for it */ }
+    if (real && real !== root && !real.startsWith(`${root}/`)) throw new UnsafeLock(`package-lock.json in ${path} links ${link}, which is ${real}, outside the worktree`);
+  }
   // Install scripts are code from the lockfile's packages: they run only when the project says so.
   const [command, ...rest] = ctx.config.integration?.setup_command ?? ['npm', 'ci', '--silent', ...(ctx.config.integration?.install_scripts ? [] : ['--ignore-scripts'])];
-  const ci = sh(command, rest, { cwd: path, env: toolEnv() });
+  const ci = sh(command, rest, { cwd: path, env: toolEnv(lib.npmInstallEnv(hosts)) });
   if (ci.status !== 0) throw new Error(`${command} ${rest.join(' ')} in ${path}: ${firstLine(ci)}`);
   if (!existsSync(join(path, 'node_modules/.bin/wingfoil'))) throw new Error(`${path} has no node_modules/.bin/wingfoil after ${command} ${rest.join(' ')}`);
   writeFileSync(plainFile(mark, ctx.line.checkout), hash);
+}
+
+/**
+ * What a step left uncommitted (1.2.2): the files `git status` lists in the line's checkout and, when
+ * the step had a worktree of its own, in it, each named with where it is.
+ */
+function uncommittedAfter(ctx, worktree) {
+  const places = [[ctx.line.checkout, 'checkout'], ...(worktree && worktree !== ctx.line.checkout ? [[worktree, 'worktree']] : [])];
+  return places.flatMap(([path, label]) => lib.porcelainPaths(sh('git', ['-C', path, 'status', '--porcelain', '--untracked-files=all']).stdout).map((file) => `${label}:${file}`));
 }
 
 /** The live checks of a step, run by the runner outside any agent's sandbox, before the launch. */
@@ -386,7 +428,12 @@ function runLiveChecks(ctx, step, cwd) {
 }
 
 /** Where an agent's usage-limit hold is kept, per CLI. */
-const limitFile = (ctx, command) => join(ctx.line.checkout, '.git', `dfd-runner.limit-${command}`);
+const limitFile = (ctx, command, legacy = false) => join(ctx.line.checkout, '.git', lib.markName(`.limit-${command}`, legacy));
+/** The hold in force: the runner's own file, or one an older runner left under the old name. */
+function limitHeld(ctx, command) {
+  const read = (file) => { try { return Number(readFileSync(file, 'utf8')) || 0; } catch { return 0; } };
+  return Math.max(read(limitFile(ctx, command)), read(limitFile(ctx, command, true)));
+}
 
 function worktreeFor(ctx, element) {
   if (!(ctx.config.worktree_types ?? ['task', 'bug']).includes(element.type)) return { path: ctx.line.checkout, branch: ctx.line.branch };
@@ -398,7 +445,7 @@ function worktreeFor(ctx, element) {
     guardWorktree(ctx, path); // before any git there: the agent may have repointed its git folder (B)
     // A run killed halfway leaves its edits here: they are kept aside, never inherited by the next step.
     if (sh('git', ['-C', path, 'status', '--porcelain']).stdout.trim()) {
-      git(path, ['stash', 'push', '-u', '-q', '-m', `dfd-interrupted ${now()}`], identityEnv(ctx.lineIdentity));
+      git(path, ['stash', 'push', '-u', '-q', '-m', `${lib.MARK} interrupted ${now()}`], identityEnv(ctx.lineIdentity));
       log(ctx, `${element.ref}: uncommitted work of an interrupted run kept in the stash of ${path}`);
     }
     ensureDependencies(ctx, path);
@@ -441,7 +488,7 @@ function runChecks(ctx, checks, cwd, element, launch = {}) {
     const binding = bindings[check.token];
     const bound = binding?.run;
     if (!bound) { done.push({ token: check.token, ok: false, why: check.binding?.argv ? 'not bound in the runner home' : 'not bound' }); continue; }
-    const env = toolEnv({ ...lib.checkEnv({ line: ctx.line, element, ...launch }), DFD_RUNS: PATHS.runs, DFD_CLI: JSON.stringify(CLI), ...(launch.role ? { DFD_ROLE: launch.role } : {}) });
+    const env = toolEnv({ ...lib.checkEnv({ line: ctx.line, element, ...launch }), ...lib.withAliases({ RUNS: PATHS.runs, CLI: JSON.stringify(CLI), ROLE: launch.role || null }) });
     const argv = lib.checkArgv(bound, HOME_REPO, (p) => existsSync(p));
     const run = sh(argv[0], argv.slice(1), { cwd, env });
     const ok = run.status === 0 || binding.severity === 'warn';
@@ -568,7 +615,7 @@ function startDue(ctx, week) {
   // On a line: `adapt` once for every release sync merged into it (docs/pack-deviations.md D5).
   const adapt = config.adapt_workflow ?? 'adapt';
   if (line.name !== 'trunk' && adapt) {
-    const trailers = git(line.checkout, ['log', '--format=%(trailers:key=DFD-Sync,valueonly)', line.branch]);
+    const trailers = git(line.checkout, ['log', lib.syncTrailerFormat(), line.branch]);
     for (const id of lib.syncedReleases(trailers)) {
       if (existsSync(join(line.checkout, lib.memoryDir(PATHS.memoryYaml, 'plan'), `${adapt}-${id}-plan.md`))) continue;
       log(ctx, `starting ${adapt} for ${id}`);
@@ -675,10 +722,12 @@ function noticeIdClashes(ctx, before) {
  */
 function idLockFile(ctx) {
   const trunk = ctx.config.lines.trunk ? lib.lineConfig(ctx.config, 'trunk').checkout : ctx.line.checkout;
-  return join(trunk, '.git', 'dfd-runner.ids.lock');
+  return join(trunk, '.git', lib.markName('.ids.lock'));
 }
 function takeIdLock(ctx) {
   const file = idLockFile(ctx);
+  const legacy = legacyLockHeld(ctx, file.replace(/[^/]+$/, lib.markName('.ids.lock', true)));
+  if (legacy) return legacy.line ?? 'another line';
   const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -822,13 +871,17 @@ function switchLineBranch(ctx, current) {
   guardCheckout(ctx);
   const co = line.checkout;
   const gitDir = git(co, ['rev-parse', '--absolute-git-dir']);
-  if (['rebase-merge', 'rebase-apply', 'MERGE_HEAD', 'CHERRY_PICK_HEAD'].some((f) => existsSync(join(gitDir, f)))) return false;
+  if (['rebase-merge', 'rebase-apply', 'MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'BISECT_LOG', 'sequencer'].some((f) => existsSync(join(gitDir, f)))) return false;
   if (sh('git', ['-C', co, 'status', '--porcelain']).stdout.trim()) return false;
   const pushed = sh('git', ['-C', co, 'rev-list', '--count', `origin/${current}..${current}`]);
   if (pushed.status !== 0 || pushed.stdout.trim() !== '0') return false;
   if (!sh('git', ['-C', co, 'ls-remote', '--heads', 'origin', line.branch]).stdout.trim()) return false;
   git(co, ['remote', 'set-branches', '--add', 'origin', line.branch]);
   git(co, ['fetch', '-q', 'origin', line.branch]);
+  // An ignored file the target branch tracks would be overwritten by the switch (1.2.1, I-2).
+  const ignored = new Set(sh('git', ['-C', co, 'ls-files', '-o', '-i', '--exclude-standard', '-z']).stdout.split('\0').filter(Boolean));
+  const tracked = sh('git', ['-C', co, 'ls-tree', '-r', '-z', '--name-only', `origin/${line.branch}`]).stdout.split('\0').filter(Boolean);
+  if (tracked.some((f) => ignored.has(f))) return false;
   const local = sh('git', ['-C', co, 'rev-parse', '--verify', '--quiet', `refs/heads/${line.branch}`]).status === 0;
   git(co, local ? ['switch', '-q', line.branch] : ['switch', '-q', '-c', line.branch, '--track', `origin/${line.branch}`]);
   if (local) sh('git', ['-C', co, 'merge', '-q', '--ff-only', `origin/${line.branch}`]);
@@ -836,6 +889,21 @@ function switchLineBranch(ctx, current) {
   log(ctx, `switched the checkout from '${current}' to '${line.branch}' (lines.${line.name}.branch); nothing was left unpushed`);
   return true;
 }
+
+/**
+ * The checkout's origin is the runner home's (1.2.1, I-5): an agent that repoints origin to a
+ * repository it controls would choose what the runner merges and switches to.
+ */
+function originMismatch(ctx) {
+  if (CONTAINER) return null;
+  const url = (dir) => sh('git', ['-C', dir, 'remote', 'get-url', 'origin']).stdout.trim().replace(/\/+$/, '').replace(/\.git$/, '');
+  const home = url(HOME_REPO);
+  const own = url(ctx.line.checkout);
+  return home && own !== home ? { home, own } : null;
+}
+
+/** The branch notice written on an agent's branch, kept to be shown on the line's branch once back (1.2.1). */
+const branchMark = (ctx) => join(ctx.line.checkout, '.git', lib.markName('.branch-notice'));
 
 function runOnce(ctx) {
   const { line, config } = ctx;
@@ -846,13 +914,20 @@ function runOnce(ctx) {
   ensurePushGuard(ctx);
   pruneWorktrees(ctx);
   if (!DRY) {
+    const mismatch = originMismatch(ctx);
+    if (mismatch) {
+      notice(ctx, { key: `origin-${line.name}`, element: 'runner', reason: `the checkout's origin is ${JSON.stringify(mismatch.own)}, not the runner home's ${JSON.stringify(mismatch.home)}: nothing is fetched or merged from it`, command: `git ${lib.SAFE_GIT_FLAGS} -C ${lib.shellWord(line.checkout)} remote -v; if nothing there is yours: git ${lib.SAFE_GIT_FLAGS} -C ${lib.shellWord(line.checkout)} remote set-url origin ${lib.shellWord(mismatch.home)}` });
+      return;
+    }
+    closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `origin-${line.name}`), 'origin is the home\'s again');
     git(line.checkout, ['fetch', '-q', 'origin']);
     const branch = git(line.checkout, ['rev-parse', '--abbrev-ref', 'HEAD']);
     if (branch !== line.branch) {
       if (!switchLineBranch(ctx, branch)) {
         // The branch is the agent's to name: only a plain one reaches a command (1.1.19, H-1).
         if (!lib.safeRef(branch)) notice(ctx, { key: `branch-${line.name}`, element: 'runner', reason: `the checkout is on a branch whose name is not plain (${JSON.stringify(branch)}), not on '${line.branch}', and holds work origin does not have (or uncommitted files)`, command: `no command: an agent named this branch, and its name could run code in a shell. Inspect ${line.checkout} by hand without pasting the name, then put it back on ${line.branch}` });
-        else notice(ctx, { key: `branch-${line.name}`, element: 'runner', reason: `the checkout is on '${branch}', not on '${line.branch}', and holds work origin does not have (or uncommitted files)`, command: `${lib.approverGit({ home: HOME_REPO, line: line.name, checkout: line.checkout, commands: [['status', '--short'], ['log', '--oneline', `origin/${branch}..${branch}`]] })}; review it, then push it from the runner home (git -C ${HOME_REPO} fetch ${line.checkout} ${lib.shellWord(branch)} && git -C ${HOME_REPO} push origin ${lib.shellWord(`FETCH_HEAD:refs/heads/${branch}`)}) or drop it, then run the line again` });
+        if (!existsSync(branchMark(ctx))) writeFileSync(plainFile(branchMark(ctx), line.checkout), JSON.stringify({ branch: lib.safeRef(branch) ? branch : null, at: now() }));
+        if (lib.safeRef(branch)) notice(ctx, { key: `branch-${line.name}`, element: 'runner', reason: `the checkout is on '${branch}', not on '${line.branch}', and holds work origin does not have (or uncommitted files)`, command: `${lib.approverGit({ home: HOME_REPO, line: line.name, checkout: line.checkout, commands: [['status', '--short'], ['log', '--oneline', `origin/${branch}..${branch}`]] })}; review it, then push it from the runner home (git -C ${HOME_REPO} fetch ${line.checkout} ${lib.shellWord(branch)} && git -C ${HOME_REPO} push origin ${lib.shellWord(`FETCH_HEAD:refs/heads/${branch}`)}) or drop it, then run the line again` });
         return;
       }
     }
@@ -874,6 +949,15 @@ function runOnce(ctx) {
     closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `diverged-${line.name}`), 'origin merges again');
   }
   closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `branch-${line.name}`), 'the checkout is back on its branch');
+  // The branch notice went to the agent's branch: the line's own notices keep a closed copy of it.
+  if (!DRY && existsSync(branchMark(ctx))) {
+    let seen = {};
+    try { seen = JSON.parse(readFileSync(branchMark(ctx), 'utf8')); } catch { /* an unreadable mark: the copy says less */ }
+    rmSync(branchMark(ctx), { force: true });
+    const key = `branch-${line.name}-${String(seen.at ?? now()).replace(/[^0-9TZ]/g, '')}`;
+    notice(ctx, { key, element: 'runner', reason: `the checkout was on ${seen.branch ? `'${seen.branch}'` : 'a branch whose name was not plain'}, not on '${line.branch}', since ${seen.at ?? 'an earlier run'}; that notice was written on that branch`, command: 'nothing to do: the checkout is back on its branch' });
+    closeNotices(ctx, [key], 'the checkout is back on its branch');
+  }
   closeNotices(ctx, (config.known_duplicates ?? []).flatMap((number) => lib.openNoticeKeys(noticesText(ctx), `id-clash-${line.name}-${number}`)), 'declared in known_duplicates');
 
   // Budget notices that no longer hold are closed (the budget set, a new week).
@@ -916,7 +1000,7 @@ function runOnce(ctx) {
       dirty: sh('git', ['-C', line.checkout, 'status', '--porcelain']).stdout.split('\n').filter(Boolean).map((l) => l.slice(3)),
       openNotices: lib.notices(noticesText(ctx)).filter((n) => n.open && !n.key.startsWith('gate-') && n.text.includes(lib.cite(line.name, element.id))).map((n) => n.id),
     });
-    notice(ctx, { key: gateKey(gate), element: element.ref, reason: `${gate.key} waits for the approver`, packet, command: `cd ${HOME_REPO} && node scripts/runner/gate.mjs --line ${line.name} {id} --reason ${lib.shellQuote(packet?.reason ?? '')}` });
+    notice(ctx, { key: gateKey(gate), element: element.ref, reason: `${gate.key} waits for the approver`, packet, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/gate.mjs --line ${lib.shellWord(line.name)} {id} --reason ${lib.shellQuote(packet?.reason ?? '')}` });
   }
   const waiting = new Set(gates.map(gateKey));
   closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `gate-${line.name}-`).filter((k) => !waiting.has(k)), 'the approver ruled the gate');
@@ -948,26 +1032,26 @@ function runOnce(ctx) {
   }
   for (const candidate of AMEND_ORDER ? [] : steps) {
     if (lib.waitsForApprover(candidate) || lib.waitsOnMemory(candidate)) continue;
-    if (!lib.launchesOptional(candidate, ctx.set.optional)) { waitLine(ctx, `${candidate.key} is optional: passed over (launch.optional)`); continue; }
+    if (!lib.launchesOptional(candidate, ctx.set.optional)) { waitLine(ctx, `${S(candidate.key)} is optional: passed over (launch.optional)`); continue; }
     if (lib.stepMatches(ctx.set.manual, candidate)) {
       manual += 1;
-      notice(ctx, { key: `manual-${line.name}-${candidate.instance}-${candidate.key}`, element: lib.stepElement(candidate).ref, reason: `${candidate.key} is run by hand (launch.manual)`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --read workflow next ${candidate.instance}` });
+      notice(ctx, { key: `manual-${line.name}-${candidate.instance}-${candidate.key}`, element: lib.stepElement(candidate).ref, reason: `${candidate.key} is run by hand (launch.manual)`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --read workflow next ${lib.shellWord(candidate.instance)}` });
       continue;
     }
     const dependencies = lib.openDependencies(elementFields(line.checkout, lib.stepElement(candidate).type, lib.stepElement(candidate).id).depends_on, (id) => {
       const type = Object.keys(memoryYaml.types ?? {}).find((t) => elementFile(line.checkout, t, id));
       return { status: type ? elementFields(line.checkout, type, id).status : null, final: type ? lib.finalState(memoryYaml, type) : undefined };
     });
-    if (dependencies.length) { depending += 1; waitLine(ctx, `${candidate.key} waits for ${dependencies.join(', ')}`); continue; }
+    if (dependencies.length) { depending += 1; waitLine(ctx, `${S(candidate.key)} waits for ${dependencies.join(', ')}`); continue; }
     // A step that answered blocked waits for the approver to close its notice: it is not relaunched.
     const held = lib.blockedNotice(candidate, openBlocked, line.name);
-    if (held) { blocked += 1; waitLine(ctx, `${candidate.key} blocked by ${lib.notices(noticesText(ctx)).find((n) => n.open && n.key === held)?.id ?? held}`); continue; }
+    if (held) { blocked += 1; waitLine(ctx, `${S(candidate.key)} blocked by ${lib.notices(noticesText(ctx)).find((n) => n.open && n.key === held)?.id ?? held}`); continue; }
     const target = lib.stepElement(candidate);
     if (lib.limitedMove(candidate, target, memoryYaml)) {
       const probe = wingfoil(line.checkout, ['memory', 'submit', target.id, '--dry-run'], lineEnv);
       if (probe.status !== 0 && lib.wipRefused(`${probe.stdout}\n${probe.stderr}`)) {
         limited += 1;
-        waitLine(ctx, `${candidate.key} held by a WIP limit`);
+        waitLine(ctx, `${S(candidate.key)} held by a WIP limit`);
         continue;
       }
     }
@@ -1004,7 +1088,7 @@ function runOnce(ctx) {
     const allocates = lib.needsLineBranches(step, config.line_branches);
     const takes = lib.takesIds(step, { rule: config.line_branches, raises: lib.stepMatches(ctx.set.raising, step) });
     const holder = takes ? takeIdLock(ctx) : null;
-    if (holder) { waitLine(ctx, `${step.key} waits: line ${holder} is taking new ids`); return; }
+    if (holder) { waitLine(ctx, `${S(step.key)} waits: line ${holder} is taking new ids`); return; }
     lineBranches(ctx, allocates);
   }
 
@@ -1035,7 +1119,7 @@ function runOnce(ctx) {
   const manifestFile = ['custom', 'built-in'].map((kind) => join(HOME_REPO, '.wingfoil/agents', kind, `${adapter}.yaml`)).find(existsSync);
   if (!manifestFile) throw new Error(`adapter manifest '${adapter}' not found under ${HOME_REPO}/.wingfoil/agents/`);
   const manifest = yaml.load(readFileSync(manifestFile, 'utf8'));
-  const held = existsSync(limitFile(ctx, manifest.command)) ? Number(readFileSync(limitFile(ctx, manifest.command), 'utf8')) : 0;
+  const held = limitHeld(ctx, manifest.command);
   if (held > Date.now()) { waitLine(ctx, `${manifest.command} is at its usage limit: launches wait until ${lib.logStamp(new Date(held)).slice(11, 16)}`); return; }
   const worktree = worktreeFor(ctx, element);
   const session = manifest.session?.id === 'assign' ? randomUUID() : null;
@@ -1066,7 +1150,7 @@ function runOnce(ctx) {
   const exit = lib.exitLine(step, element, lib.nextState(memoryYaml, element.type, element.status));
   const prompt = lib.buildPrompt({ project: ctx.project, step, element, line, worktree: worktree.path, checkout: line.checkout, branch: worktree.branch, stateRef, returned, decided, exit, author: { email: identity.email, model: lib.adapterModel(manifest) }, amend, amended: amended ? { id: amended.id, head: lib.parseNotes(amended.notes).head, asked: amended.asked ?? null, since: amended.since ?? false } : null , push: Boolean(config.push), integrate: lib.stepMatches(ctx.set.integrate, step), raising: lib.stepMatches(ctx.set.raising, step), sessionContext: ctx.set.sessionContext, cli: CLI.join(' '), rulings, decisions, unblocked, merge: ctx.set.merge, elementPath: elementFile(line.checkout, element.type, element.id), liveResults, runsTests: ctx.set.testCommand.join(' '), versions: lib.versionCommands(CLI), lineBranchNames: Object.entries(config.lines).filter(([n]) => n !== 'trunk').map(([, e]) => e.branch) });
   const mcp = lib.mcpValues(CLI);
-  const tmp = mkdtempSync(join(tmpdir(), 'dfd-runner-'));
+  const tmp = mkdtempSync(join(tmpdir(), `${lib.MARK}-`));
   const mcpConfigText = lib.substitute([manifest.mcp?.template ?? ''], mcp)[0];
   const mcpFile = join(tmp, 'mcp.json');
   writeFileSync(mcpFile, mcpConfigText);
@@ -1110,13 +1194,13 @@ function runOnce(ctx) {
   const base = git(worktree.path, ['rev-parse', 'HEAD']);
   const statusBefore = elementStatus(line.checkout, element);
   const started = Date.now();
-  log(ctx, lib.launchLine(step, element, scripted ? 'the runner' : adapter));
+  log(ctx, lib.launchLine(step, element, scripted ? 'the runner' : adapter).replace(step.key, S(step.key)));
   // The agent commits as its own identity (directive git-conventions), whatever the checkout's
   // git configuration says.
   const minutes = config.limits.step_timeout_minutes;
   // `timeout` signals the whole process group: the tests a killed agent left running die with it.
   ctx.launched = true;
-  const launch = scripted ? integrateScripted(ctx, step, element, worktree) : sh('timeout', ['-k', '30', `${minutes}m`, manifest.command, ...argv], { cwd: worktree.path, env: lib.agentEnv(identityEnv(identity, { DFD_LINE: line.name, WINGFOIL_AGENT: identity.name })), timeout: (minutes + 2) * 60000 });
+  const launch = scripted ? integrateScripted(ctx, step, element, worktree) : sh('timeout', ['-k', '30', `${minutes}m`, manifest.command, ...argv], { cwd: worktree.path, env: lib.agentEnv(identityEnv(identity, { ...lib.withAliases({ LINE: line.name }), WINGFOIL_AGENT: identity.name })), timeout: (minutes + 2) * 60000 });
   const duration = Date.now() - started;
   rmSync(tmp, { recursive: true, force: true });
   guardAfterAgentCode(ctx, worktree.path); // before any git after the agent: it can write the checkout's .git and the worktree's (N2, B)
@@ -1156,6 +1240,11 @@ function runOnce(ctx) {
     outside = [...new Set(lib.roleScopeProblems([...committed, ...left], scope.allow))];
     if (outside.length && scope.mode !== 'report') checks.push({ token: 'role-scope', ok: false, why: `${step.role} changed ${outside.slice(0, 5).join(', ')}` });
   }
+  // Nothing a step changed is left uncommitted, in the line's checkout or the task's worktree (1.2.2):
+  // a checkout left dirty refuses every next transition and every ruling. Whatever the answer, the
+  // files are named in a notice; a step that answered completed is check-failed as well.
+  const uncommitted = scripted ? [] : uncommittedAfter(ctx, worktree.path);
+  if (uncommitted.length && result === 'completed') checks.push({ token: 'uncommitted', ok: false, why: `${uncommitted.slice(0, 5).join(', ')}${uncommitted.length > 5 ? ', …' : ''}` });
   // An integrating step that completed must leave the task's commits on the line's branch.
   if (result === 'completed' && lib.stepMatches(ctx.set.integrate, step) && worktree.path !== line.checkout && worktree.branch) {
     const cherry = sh('git', ['-C', line.checkout, 'cherry', line.branch, worktree.branch]).stdout;
@@ -1201,13 +1290,13 @@ function runOnce(ctx) {
   };
   appendFileSync(logFile, lib.runRecordLine(record));
   if (RECORD_DIR) {
-    // The caller's copy of the launch (R4): the record, the agent's whole stream, its exit.
-    mkdirSync(RECORD_DIR, { recursive: true });
-    writeFileSync(join(RECORD_DIR, `${record.id.replaceAll('/', '_')}.json`), `${JSON.stringify(lib.launchRecord({ record, line: line.name, step, adapter: record.adapter, model: out.model, stdout: launch.stdout, stderr: launch.stderr }), null, 2)}\n`);
+    // The caller's copy of the launch (R4): the record, the agent's whole stream, its exit; private,
+    // and never written through a link (1.2.2, C-4).
+    lib.writeRecordFile(RECORD_DIR, `${record.id.replaceAll('/', '_')}.json`, `${JSON.stringify(lib.launchRecord({ record, line: line.name, step, adapter: record.adapter, model: out.model, stdout: launch.stdout, stderr: launch.stderr }), null, 2)}\n`);
   }
   commit(ctx, [join(PATHS.runs, `${element.id}.jsonl`)], lib.recordSubject(record), identity);
   if (line.name !== 'trunk' && Object.keys(config.lines).length > 1) { lineBranches(ctx, false); noticeIdClashes(ctx, stateRef); }
-  log(ctx, lib.outcomeLine({ result, reason, durationMs: duration, tokens: out.tokens }));
+  log(ctx, `${S(step.key)} ${lib.outcomeLine({ result, reason, durationMs: duration, tokens: out.tokens })}`);
 
   // A failed post check after the step moved its element returns it: the step comes back onto the
   // frontier and is told why (lib.lastReturn), instead of the next step going on past the check.
@@ -1216,24 +1305,32 @@ function runOnce(ctx) {
   if (back === 'park') {
     const parked = wingfoil(line.checkout, ['memory', 'park', element.id, '--reason', lib.checkReturnReason(step.key, record.id, failed)], lineEnv);
     if (parked.status === 0) log(ctx, `${element.ref} parked back from ${statusAfter}: a post check failed`);
-    else notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks (${reason}); the park was refused: ${firstLine(parked)}`, command: `fix the step's commits, return ${element.ref} by hand (its history: cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --read memory history ${element.id}), then close this notice` });
+    else notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks (${reason}); the park was refused: ${firstLine(parked)}`, command: `fix the step's commits, return ${element.ref} by hand (its history: cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --read memory history ${lib.shellWord(element.id)}), then close this notice` });
   } else if (back === 'notice') {
-    notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks: ${reason}`, command: `fix the step's commits, return ${element.ref} by hand (its history: cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --read memory history ${element.id}), then close this notice` });
+    notice(ctx, { key: `check-failed-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} moved ${element.ref} to ${statusAfter}, then failed its post checks: ${reason}`, command: `fix the step's commits, return ${element.ref} by hand (its history: cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --read memory history ${lib.shellWord(element.id)}), then close this notice` });
   }
 
+  // A step that left files uncommitted waits on a notice that names them (1.2.2); the next run of the
+  // same step that leaves nothing behind closes it.
+  const leftBefore = scripted ? [] : lib.openNoticeKeys(noticesText(ctx), `uncommitted-${line.name}-${element.id}/${step.phase}/`);
+  if (leftBefore.length && !uncommitted.length && !uncommittedAfter(ctx, worktree.path).length) closeNotices(ctx, leftBefore, 'nothing is left uncommitted');
+  if (uncommitted.length) {
+    const files = uncommitted.map((f) => f.replace(/^checkout:/, `${line.checkout}/`).replace(/^worktree:/, `${worktree.path}/`));
+    notice(ctx, { key: `uncommitted-${line.name}-${record.id}`, element: element.ref, reason: `${step.key} left uncommitted files${result === 'check-failed' && failed.some((c) => c.token === 'uncommitted') ? ' after answering completed, so it is recorded as check-failed' : ` (it answered ${result})`}: ${uncommitted.slice(0, 8).join(', ')}${uncommitted.length > 8 ? ', …' : ''}`, command: `look at ${files.length === 1 ? 'the file' : 'the files'} (${lib.approverGit({ home: HOME_REPO, line: line.name, checkout: line.checkout, commands: [['status', '--short']] })}); commit what belongs to ${element.ref} (a Memory body edit included) or discard it, then run the line again: the step runs again and this notice closes when nothing is left uncommitted` });
+  }
   // A step that raised elements or wrote needs is held by dev-loop's gates, not by a notice; approvals have theirs.
   // nor is one that asked for a red amendment: the runner launches it on the next run.
   const notPulled = result === 'blocked' && step.phase === 'start' && lib.raisedIds(reason) && statusBefore === statusAfter;
   // A step that asks for the approver's ruling waits on a decision notice, ruled with gate.mjs.
   const question = result === 'blocked' && !ask ? lib.decisionQuestion(reason) : null;
-  if (question) notice(ctx, { key: `decision-${line.name}-${record.id}`, element: element.ref, reason: `decision (run ${record.id}): ${question}`, command: `cd ${HOME_REPO} && node scripts/runner/gate.mjs --line ${line.name} {id} --reason "<ruling>" [--reject]` });
-  if (result === 'blocked' && !question && !(lib.stepMatches(ctx.set.raising, step) && lib.heldByGates({ phase: step.phase, reason, statusBefore, statusAfter })) && !ask) notice(ctx, { key: `blocked-${line.name}-${record.id}`, element: element.ref, reason: `blocked (run ${record.id}): ${reason}${notPulled ? `; start left the task ${statusAfter}, so the gates do not hold it` : ''}`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --close {id} --how "<what solved it>"` });
+  if (question) notice(ctx, { key: `decision-${line.name}-${record.id}`, element: element.ref, reason: `decision (run ${record.id}): ${question}`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/gate.mjs --line ${lib.shellWord(line.name)} {id} --reason "<ruling>" [--reject]` });
+  if (result === 'blocked' && !question && !(lib.stepMatches(ctx.set.raising, step) && lib.heldByGates({ phase: step.phase, reason, statusBefore, statusAfter })) && !ask) notice(ctx, { key: `blocked-${line.name}-${record.id}`, element: element.ref, reason: `blocked (run ${record.id}): ${reason}${notPulled ? `; start left the task ${statusAfter}, so the gates do not hold it` : ''}`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --close {id} --how "<what solved it>"` });
   if (result === 'blocked' && element.type === 'task' && lib.raisedIds(reason)) {
     const own = needsTheTaskRaised(line.checkout, element);
-    if (own.length) notice(ctx, { key: `needs-raised-${line.name}-${element.id}`, element: element.ref, reason: `the needs of ${element.ref} list what the task raised (${own.join(', ')}): the gate over needs waits for elements no step can write`, command: `remove those ids from the task's needs in ${relative(line.checkout, elementFile(line.checkout, element.type, element.id))}, then cd ${HOME_REPO} && node scripts/runner/gate.mjs --line ${line.name} --element ${element.id} --amend --reason "<why>"` });
+    if (own.length) notice(ctx, { key: `needs-raised-${line.name}-${element.id}`, element: element.ref, reason: `the needs of ${element.ref} list what the task raised (${own.join(', ')}): the gate over needs waits for elements no step can write`, command: `remove those ids from the task's needs in ${lib.shellWord(relative(line.checkout, elementFile(line.checkout, element.type, element.id)))}, then cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/gate.mjs --line ${lib.shellWord(line.name)} --element ${lib.shellWord(element.id)} --amend --reason "<why>"` });
   }
-  if (forbidden.length) { ctx.halted = true; notice(ctx, { key: `halt-${line.name}-forbidden-${record.id.replaceAll('/', '-')}`, element: element.ref, reason: `${step.key} ran a command no role may run: ${forbidden[0].slice(0, 160)}`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${line.name} --resume` }); }
-  if (wrongModel) notice(ctx, { key: `halt-${line.name}-model-${adapter}`, element: element.ref, reason, command: `check adapter ${adapter} and the tier mapping of line ${line.name}, then node scripts/runner/run.mjs --line ${line.name} --resume` });
+  if (forbidden.length) { ctx.halted = true; notice(ctx, { key: `halt-${line.name}-forbidden-${record.id.replaceAll('/', '-')}`, element: element.ref, reason: `${step.key} ran a command no role may run: ${forbidden[0].slice(0, 160)}`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --resume` }); }
+  if (wrongModel) notice(ctx, { key: `halt-${line.name}-model-${adapter}`, element: element.ref, reason, command: `check adapter ${adapter} and the tier mapping of line ${line.name}, then node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --resume` });
   const haltAfter = lib.haltReason({ line, records: [...records, record], limits: config.limits, element: element.ref, resumedAt, repo: HOME_REPO });
   if (haltAfter) ctx.halted = true;
   if (haltAfter) notice(ctx, { key: haltAfter.key, element: element.ref, reason: haltAfter.reason, command: haltAfter.command });
@@ -1266,7 +1363,7 @@ function printStatus(config, project) {
     const text = noticesText(ctx);
     const open = lib.notices(text).filter((n) => n.open);
     const halted = open.some((n) => lib.noticeKind(n.key) === 'halt');
-    const running = existsSync(join(line.checkout, '.git', 'dfd-runner.lock'));
+    const running = [false, true].some((legacy) => existsSync(join(line.checkout, '.git', lib.markName('.lock', legacy))));
     const spent = lib.weekTokens(readRecords(line.checkout), name, week, ctx.set.weights);
     const waits = lib.gateWaits(text).sort((a, b) => a - b);
     const status = wingfoil(line.checkout, ['workflow', 'status']);
@@ -1274,7 +1371,7 @@ function printStatus(config, project) {
     const steps = status.value ? lib.frontier(status.value).steps.filter((s) => lib.stepMatches(ctx.set.allow, s) && lib.ownsStep(s, { line, lifeCycle: config.life_cycle ?? 'sw-life-cycle', releaseLineOfRelease: owner.releaseLineOfRelease, startedHere: owner.startedHere(s.instance) })) : [];
     const next = steps.find((s) => !lib.waitsForApprover(s) && !lib.waitsOnMemory(s));
     console.log(`\n${name}: ${running ? 'running' : halted ? 'HALTED' : open.length ? 'waiting' : next ? 'ready' : 'idle'}`);
-    console.log(`  next step: ${next?.key ?? 'none'}`);
+    console.log(`  next step: ${next ? lib.renderLabels(S(next.key), COLOUR) : 'none'}`);
     console.log(`  budget: ${spent} of ${line.weekly_token_budget ?? 'unset'} weighted tokens`);
     if (waits.length) console.log(`  gates closed: ${waits.length}, median wait ${waits[waits.length >> 1]} min`);
     for (const n of open) console.log(`  ${n.id} ${lib.noticeKind(n.key)}: ${/\*\*Reason:\*\* (.*)/.exec(n.text)?.[1] ?? n.key}`);
@@ -1288,7 +1385,7 @@ function printStatus(config, project) {
  * the trusted ref; or its own git config runs programs.
  */
 function homeProblems(config) {
-  return lib.homeTrustProblems({ config, home: HOME_REPO, repo: REPO, git: (args) => sh('git', ['-C', HOME_REPO, ...args]) });
+  return lib.homeTrustProblems({ config, home: HOME_REPO, repo: REPO, git: (args) => sh('git', ['-C', HOME_REPO, ...args]), drift: !CONTAINER });
 }
 
 function printDoctor(config, line) {
@@ -1354,13 +1451,16 @@ function main() {
   if (container.length) { console.error(`runner: ${container.join('\nrunner: ')}`); process.exit(2); }
   if (CONTAINER) {
     if (!RECORD_DIR) { console.error('runner: --container needs --record-dir <dir>: the caller reads the launches and what waits there'); process.exit(2); }
-    // No push, no notification, no budget, no trust checks of the home: the caller owns the run.
+    const records = lib.recordDirProblems(RECORD_DIR, config);
+    if (records.length) { console.error(`runner: ${records.join('\nrunner: ')}`); process.exit(2); }
+    // No push, no notification, no budget, no drift check of the home: the caller owns the run.
     Object.assign(config, { push: false, notify: null });
     for (const entry of Object.values(config.lines ?? {})) entry.weekly_token_budget = null;
   }
-  if (!DOCTOR && !STATUS && !CONTAINER) {
+  if (!DOCTOR && !STATUS) {
     // The runner trusts its home: it refuses to start from a line's checkout, from a home whose files
-    // differ from the trusted ref, or from one whose git config runs programs (N3, N4).
+    // differ from the trusted ref, or from one whose git config runs programs (N3, N4). In container
+    // mode only the drift is the caller's (1.2.2, C-2).
     const problems = homeProblems(config);
     if (problems.length) {
       console.error(`runner: ${problems.join('\nrunner: ')}`);
@@ -1446,7 +1546,7 @@ function main() {
     let runs = 0;
     do {
       let shown = [];
-      try { shown = DRY ? [] : JSON.parse(readFileSync(join(line.checkout, '.git', 'dfd-runner.waiting'), 'utf8')).signature.split('\n'); } catch { /* nothing shown yet */ }
+      try { shown = DRY ? [] : JSON.parse(readFileSync(join(line.checkout, '.git', lib.markName('.waiting')), 'utf8')).signature.split('\n'); } catch { /* nothing shown yet */ }
       refreshLock(lock);
       guardCheckout(ctx); // again before every step: the last one's agent may have changed it (N2)
       Object.assign(ctx, { acted: false, launched: false, halted: false, waiting: [], waits: [], shown: new Set(shown) });
@@ -1457,10 +1557,9 @@ function main() {
       // What a run wrote without launching (a notice, a closed instance) reaches origin as well.
       if (config.push && !DRY && ctx.acted && !ctx.launched) pushOrigin(ctx, ['--follow-tags'], [line.branch]);
       runs += 1;
-    } while (UNTIL_IDLE && !DRY && ctx.launched && !ctx.halted && runs < most && !existsSync(join(line.checkout, '.git', 'dfd-stop')));
-    const waiting = CONTAINER ? lib.waitingItems(noticesText(ctx), line.name, { home: HOME_REPO }) : [];
-    if (CONTAINER && !DRY) mkdirSync(RECORD_DIR, { recursive: true });
-    if (CONTAINER && !DRY) writeFileSync(join(RECORD_DIR, 'waiting.json'), `${JSON.stringify({ line: line.name, at: now(), items: waiting }, null, 2)}\n`);
+    } while (UNTIL_IDLE && !DRY && ctx.launched && !ctx.halted && runs < most && !stopAsked(line));
+    const waiting = CONTAINER ? lib.waitingItems(noticesText(ctx), line.name, { home: HOME_REPO, opened: lib.openedNotices(readLedger()) }) : [];
+    if (CONTAINER && !DRY) lib.writeRecordFile(RECORD_DIR, 'waiting.json', `${JSON.stringify({ line: line.name, at: now(), items: waiting }, null, 2)}\n`);
     // Container mode: 12 when the run stops on what its caller must rule (waiting.json).
     process.exitCode = DRY ? 0 : ctx.halted ? 11 : CONTAINER && waiting.length && !ctx.launched ? 12 : ctx.acted || runs > 1 ? 0 : 10;
   } catch (error) {
@@ -1476,7 +1575,13 @@ function main() {
     process.exitCode = 1;
     try {
       const said = ctx.set.noticePaths === 'relative' ? lib.publicText(error.message, noticePlaces(ctx)) : error.message;
-      notice(ctx, { key: `failure-${lineName}-${said.slice(0, 60).replace(/[^A-Za-z0-9.-]+/g, '_')}`, element: 'runner', reason: `runner failure: ${error.message.split('\n')[0]} (the notice closes by itself once the line runs again without a failure)`, command: `cd ${HOME_REPO} && node scripts/runner/run.mjs --line ${lineName} --dry-run` });
+      // A security refusal stays open until the approver closes it: a later run that does not reach
+      // the same point proves nothing about its cause (1.2.1, R2-2).
+      if (error instanceof UnsafeLock) {
+        notice(ctx, { key: `security-${lineName}-${said.slice(0, 60).replace(/[^A-Za-z0-9.-]+/g, '_')}`, element: 'runner', reason: `security refusal: ${error.message.split('\n')[0]} (it does not close by itself: remove the cause, then close it with run.mjs --line ${lineName} --close <its id> --how "<what you removed>")`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(lineName)} --dry-run` });
+        return;
+      }
+      notice(ctx, { key: `failure-${lineName}-${said.slice(0, 60).replace(/[^A-Za-z0-9.-]+/g, '_')}`, element: 'runner', reason: `runner failure: ${error.message.split('\n')[0]} (the notice closes by itself once the line runs again without a failure)`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(lineName)} --dry-run` });
     } catch { /* the notice itself failed: the exit code reports it */ }
   } finally {
     if (!DRY) rmSync(lock, { force: true });

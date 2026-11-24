@@ -51,21 +51,41 @@ export interface TraceabilityViewProps {
   header: ProjectHeader | undefined;
 }
 
-/** A toggle button of a filter group (`aria-pressed`, the count in its name, D67-8). */
+/** The space between the parts of a control's name (not text: the catalogue rule does not apply). */
+const WORD_SPACE = ' ';
+
+/**
+ * A toggle button of a filter group (`aria-pressed`, the count in its name, D67-8). No
+ * `aria-label`: the accessible name is the content, "<label> <count> <unit>", so that the visible
+ * text is part of it (label in name, WCAG 2.5.3); the unit is the visually hidden part.
+ */
 function Toggle({
   pressed,
-  label,
+  count,
   onPress,
   children,
 }: {
   pressed: boolean;
-  label: string;
+  /** The number of references the toggle selects; none for a toggle with no count (the scope). */
+  count?: number;
   onPress: () => void;
   children: ReactNode;
 }): ReactNode {
   return (
-    <button type="button" className="trace-toggle" aria-pressed={pressed} aria-label={label} onClick={onPress}>
-      {children}
+    <button type="button" className="trace-toggle" aria-pressed={pressed} onClick={onPress}>
+      {count === undefined ? (
+        children
+      ) : (
+        <>
+          <span>{children}</span>
+          {WORD_SPACE}
+          <span className="trace-count">{count}</span>
+          {WORD_SPACE}
+          <span className="visually-hidden">
+            <FormattedMessage id="traceability.filter.countUnit" values={{ count }} />
+          </span>
+        </>
+      )}
     </button>
   );
 }
@@ -210,10 +230,6 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
     const inCategory = data.references.filter((r) => applied.category === undefined || r.category === applied.category);
     const noFile = data.ui.source !== 'file';
     const offerPreset = data.ui.source === 'none' && header?.identity.kind === 'member';
-    const count = (name: string, n: number): string =>
-      intl.formatMessage({ id: 'traceability.filter.withCount' }, { name, count: n });
-    const statusLabel = (s: StatusFilter | 'all', n: number): string =>
-      intl.formatMessage({ id: 'traceability.status.withCount' }, { status: STATUS_SELECT[s], count: n });
     const statusName = (s: StatusFilter | 'all'): string =>
       intl.formatMessage({ id: 'traceability.status.option' }, { status: STATUS_SELECT[s] });
     body = (
@@ -277,45 +293,38 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
             <Group label={<FormattedMessage id="traceability.category.label" />}>
               <Toggle
                 pressed={applied.category === undefined}
-                label={intl.formatMessage(
-                  { id: 'traceability.category.allWithCount' },
-                  { count: data.references.length },
-                )}
+                count={data.references.length}
                 onPress={() => go(withFilter({ category: undefined }))}
               >
                 <FormattedMessage id="traceability.category.all" />
-                <span className="trace-count">{data.references.length}</span>
               </Toggle>
               {categories.map((c: { value: UiCategory; count: number }) => (
                 <Toggle
                   key={c.value}
                   pressed={applied.category === c.value}
-                  label={count(c.value, c.count)}
+                  count={c.count}
                   onPress={() => go(withFilter({ category: c.value }))}
                 >
                   {c.value}
-                  <span className="trace-count">{c.count}</span>
                 </Toggle>
               ))}
             </Group>
             <Group label={<FormattedMessage id="traceability.status.label" />}>
               <Toggle
                 pressed={applied.status === undefined}
-                label={statusLabel('all', inCategory.length)}
+                count={inCategory.length}
                 onPress={() => go(withFilter({ status: undefined }))}
               >
                 {statusName('all')}
-                <span className="trace-count">{inCategory.length}</span>
               </Toggle>
               {statuses.map((s) => (
                 <Toggle
                   key={s.value}
                   pressed={applied.status === s.value}
-                  label={statusLabel(s.value, s.count)}
+                  count={s.count}
                   onPress={() => go(withFilter({ status: s.value }))}
                 >
                   {statusName(s.value)}
-                  <span className="trace-count">{s.count}</span>
                 </Toggle>
               ))}
             </Group>
@@ -375,18 +384,10 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
       {shown && <UiYamlWarning status={shown.ui} />}
       {scopeElement !== undefined && (
         <Group label={<FormattedMessage id="traceability.scope.label" />} className="trace-scope">
-          <Toggle
-            pressed={!wholeProject}
-            label={intl.formatMessage({ id: 'traceability.scope.current' }, scopeElement)}
-            onPress={() => go(withFilter({ scope: undefined }))}
-          >
+          <Toggle pressed={!wholeProject} onPress={() => go(withFilter({ scope: undefined }))}>
             <FormattedMessage id="traceability.scope.current" values={scopeElement} />
           </Toggle>
-          <Toggle
-            pressed={wholeProject}
-            label={intl.formatMessage({ id: 'traceability.scope.project' })}
-            onPress={() => go(withFilter({ scope: 'project' }))}
-          >
+          <Toggle pressed={wholeProject} onPress={() => go(withFilter({ scope: 'project' }))}>
             <FormattedMessage id="traceability.scope.project" />
           </Toggle>
         </Group>

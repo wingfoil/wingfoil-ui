@@ -9,11 +9,11 @@ export { versionLine, VERSION_LINE } from './version.mjs';
 /** Where the code under check is: the check's working directory (a task's worktree, or the checkout). */
 export const ROOT = process.cwd();
 /**
- * Where Memory and the run records are: the line's checkout, given by the runner in DFD_CHECKOUT.
+ * Where Memory and the run records are: the line's checkout, given by the runner in WINGFOIL_RUNNER_CHECKOUT (DFD_CHECKOUT before 1.2.1).
  * The runner and the WingFoil CLI write them there, never on a task's branch, so a check run in a
  * task's worktree reads them from the checkout; run by hand, it reads them from its own directory.
  */
-export const MEMORY_ROOT = process.env.DFD_CHECKOUT || ROOT;
+export const MEMORY_ROOT = process.env.WINGFOIL_RUNNER_CHECKOUT || process.env.DFD_CHECKOUT || ROOT;
 
 /** The frontmatter of one Memory file, as an object (empty when it has none). */
 export function frontmatter(file) {
