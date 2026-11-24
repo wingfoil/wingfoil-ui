@@ -131,6 +131,11 @@ describe('publish.yml (task-029, AC-1)', () => {
     expect(python).toBeGreaterThanOrEqual(0);
     expect(python).toBeLessThan(coverage);
     expect(resolve(gate, gate.steps[python]!.with?.['python-version'])).toMatch(/^3\.\d+$/);
+    // task-093: check_backlog.py needs `jsonschema`, installed pinned exactly between Python and the run.
+    const dep = gate.steps.findIndex((s) => s.run?.includes('pip install jsonschema=='));
+    expect(dep).toBeGreaterThan(python);
+    expect(dep).toBeLessThan(coverage);
+    expect(gate.steps[dep]!.run).toMatch(/pip install jsonschema==\d+\.\d+\.\d+\s*$/);
     for (const name of ['stage', 'promote', 'release'])
       expect(
         jobs[name]!.steps.some((s) => s.uses?.startsWith('actions/setup-python@')),
