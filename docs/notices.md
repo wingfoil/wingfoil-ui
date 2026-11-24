@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/7 -->
+### N-018 · 2026-11-24 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-24T07:48:28Z
+- **Line:** trunk
+- **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
+- **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/7): Will you push head 19fc88426b60e849badb35b556213cda6f3395a5 using these commands, dispatch the wave, and provide its run id, commit and job results?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-018 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
