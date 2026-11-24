@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/7 -->
 ### N-018 · 2026-11-24 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-24T09:04:35Z — approved by the approver: Done: pushed task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned at 19fc88426b60e849badb35b556213cda6f3395a5, gates.yml scope=wave run 45356047825, conclusion success. All green: checks, coverage, contract, smoke, publish-smoke, e2e-wave chromium 1 and 2, firefox 1 and 2, webkit 1 and 2 (repeat, own-specs, e2e-chromium skipped by the wave scope). Both N-017 findings closed: M-02.2 passes on all three engines; no Firefox 'Page crashed' with @playwright/test kept at 1.63.0. The push-triggered run 45356039380 was cancelled and is not evidence.
 - **Kind:** decision
 - **Opened:** 2026-11-24T07:48:28Z
 - **Line:** trunk
 - **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 - **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/7): Will you push head 19fc88426b60e849badb35b556213cda6f3395a5 using these commands, dispatch the wave, and provide its run id, commit and job results?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-018 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/5 -->
 ### N-017 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
