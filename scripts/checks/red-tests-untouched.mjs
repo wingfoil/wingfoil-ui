@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Bound check red-tests-untouched (severity reject): the test files red wrote are unchanged since
 // red. Red's range comes from the element's red run records (docs/runs/<element>.jsonl under
-// MEMORY_ROOT, the line's checkout the runner gives in DFD_CHECKOUT): the base is the state_ref of
+// MEMORY_ROOT, the line's checkout the runner gives in WINGFOIL_RUNNER_CHECKOUT): the base is the state_ref of
 // its first red run, whatever its result, and the head the head= of its last completed one, so a
 // red run again with nothing left to commit does not narrow it. Red's test files are those the
 // commits reachable from the head, and from neither the base nor the line's branch
-// (DFD_LINE_BRANCH), changed: the line's commits a rebase brings in are not red's. --base/--head
+// (WINGFOIL_RUNNER_LINE_BRANCH), changed: the line's commits a rebase brings in are not red's. --base/--head
 // override the range. Red's test files are compared with the working tree, which tests-green runs.
 // A range with no test file fails: a completed red run, the first or an amendment, wrote or amended
 // red's test files, so the range is wrong.
@@ -23,14 +23,14 @@ const arg = (name) => {
   return at === -1 ? null : process.argv[at + 1];
 };
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
-const lineBranch = arg('--line-branch') ?? process.env.DFD_LINE_BRANCH ?? null;
+const lineBranch = arg('--line-branch') ?? process.env.WINGFOIL_RUNNER_LINE_BRANCH ?? process.env.DFD_LINE_BRANCH ?? null;
 
 let base = arg('--base');
 let head = arg('--head');
 if (!base || !head) {
   const id = elementArg();
   if (!id) fail('no element: pass --element <id> or set WINGFOIL_ELEMENT, or --base and --head');
-  const log = join(MEMORY_ROOT, process.env.DFD_RUNS ?? 'docs/runs', `${id}.jsonl`);
+  const log = join(MEMORY_ROOT, process.env.WINGFOIL_RUNNER_RUNS ?? process.env.DFD_RUNS ?? 'docs/runs', `${id}.jsonl`);
   if (!existsSync(log)) fail(`${log} is absent: no red run recorded for ${id}`);
   const reds = parseRunRecords(readFileSync(log, 'utf8'), log).filter((run) => run.phase === 'red');
   const last = reds.filter((run) => run.result === 'completed').at(-1);
