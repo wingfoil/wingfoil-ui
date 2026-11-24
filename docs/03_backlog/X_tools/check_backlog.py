@@ -3,6 +3,9 @@
 dependencies, dependencies never later than their dependant, every MVP story and every SARD
 requirement in exactly one release partition, output identical to a fresh build.
 
+Patch releases (task-093) have a partition by-release/vX.Y.Z.json (no item) and rank right after
+their minor in the dependency-order check (v0.3 < v0.3.1 < v0.4; `RANK` below).
+
 Usage: python3 docs/03_backlog/X_tools/check_backlog.py
 Exit status 0 when every check passes.
 """
