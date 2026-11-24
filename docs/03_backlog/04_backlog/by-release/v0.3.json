@@ -3,7 +3,7 @@
   "release": "v0.3",
   "generated_from": {
     "story_map": "docs/02_requirements/01_user_story_map/02_story-map.md v0.7",
-    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.12",
+    "bdd": "docs/02_requirements/02_bdd/00_conventions.md v0.13",
     "sard": "docs/02_requirements/03_sard/00_sard.md v0.11"
   },
   "items": [
@@ -250,7 +250,7 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Today",
             "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
-            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+            "And it shows \"Project completion 25 %\", \"Iterated: task 1/4\", \"Open: bug 1\" and \"Pending gates 3\""
           ]
         },
         {
@@ -374,7 +374,7 @@
         },
         {
           "id": "T-13.2",
-          "title": "Open the items behind \"Tasks 1/4\"",
+          "title": "Open the items behind \"Iterated: task 1/4\"",
           "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -383,7 +383,7 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
-            "When I select \"Tasks 1/4\" on the progress card",
+            "When I select \"Iterated: task 1/4\" on the progress card",
             "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         },
@@ -1281,7 +1281,7 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Today",
             "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
-            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+            "And it shows \"Project completion 25 %\", \"Iterated: task 1/4\", \"Open: bug 1\" and \"Pending gates 3\""
           ]
         },
         {
@@ -1404,7 +1404,7 @@
             "Given the custom fixture with the sw-life-cycle preset is open",
             "When I open Today",
             "Then the progress card shows the scope \"minor-v0.1\" with its state \"planning\"",
-            "And it shows \"Project completion 25 %\", \"Tasks 1/4\", \"Open bugs 1\" and \"Pending gates 3\""
+            "And it shows \"Project completion 25 %\", \"Iterated: task 1/4\", \"Open: bug 1\" and \"Pending gates 3\""
           ]
         },
         {
@@ -1474,7 +1474,7 @@
         },
         {
           "id": "T-13.2",
-          "title": "Open the items behind \"Tasks 1/4\"",
+          "title": "Open the items behind \"Iterated: task 1/4\"",
           "file": "docs/02_requirements/02_bdd/features/t/progress-card.feature",
           "release": "v0.3",
           "kind": "edge",
@@ -1483,7 +1483,7 @@
             "Given the console is running",
             "And I am Casey",
             "Given the custom fixture with the sw-life-cycle preset is open",
-            "When I select \"Tasks 1/4\" on the progress card",
+            "When I select \"Iterated: task 1/4\" on the progress card",
             "Then the Memory list shows the 4 tasks of release \"v0.1\", \"task-002-memory-list\" marked done"
           ]
         },

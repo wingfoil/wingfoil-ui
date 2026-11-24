@@ -31,7 +31,7 @@ MODULES = set(re.findall(r"^\s*- name: (\S+)",
 ITEMS = {i["id"]: i for i in json.loads(
     (ROOT / "docs/03_backlog/04_backlog/by-release" / f"{REL}.json").read_text())["items"]}
 backlog = set(ITEMS)
-RANK = {r: i for i, r in enumerate(["v0.1", "v0.2", "v0.3", "v0.4", "v1.0"])}
+RANK = {r: i for i, r in enumerate(["v0.1", "v0.2", "v0.3", "v0.3.1", "v0.4", "v1.0"])}
 STORY_RELEASE = {i["id"]: i["release"] for i in json.loads(
     (ROOT / "docs/03_backlog/04_backlog/backlog.json").read_text())["items"] if i["kind"] == "user-story"}
 

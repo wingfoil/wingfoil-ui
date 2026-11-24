@@ -11,7 +11,7 @@ import collections, json, pathlib, re, subprocess, sys
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 OUT = ROOT / "docs" / "03_backlog" / "04_backlog"
 REQ = ROOT / "docs" / "02_requirements"
-RANK = {r: i for i, r in enumerate(["v0.1", "v0.2", "v0.3", "v0.4", "v1.0"])}
+RANK = {r: i for i, r in enumerate(["v0.1", "v0.2", "v0.3", "v0.3.1", "v0.4", "v1.0"])}
 errors = []
 
 def load(p):
