@@ -52,7 +52,8 @@ if (process.argv.includes('--write')) {
   if (at !== -1) {
     // The digest of the manifest is the same whichever machine files a project left out.
     const digest = createHash('sha256').update(readFileSync(file)).digest('hex');
-    const expected = process.argv[at + 1];
+    // The value as it prints it, sha256:<hex>, or the bare hex (1.2.2, I-3).
+    const expected = process.argv[at + 1]?.replace(/^sha256:/i, '');
     if (expected && !expected.startsWith('--')) {
       if (expected.toLowerCase() !== digest) { console.error(`manifest sha256 ${digest}, not ${expected}`); process.exit(1); }
       console.log(`ok: manifest sha256 ${digest}`);
