@@ -61,3 +61,40 @@ Execution Notes.
 
 <!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. -->
+
+### build (2026-11-24, developer)
+
+Code commit on `task/task-093-…`: `bb04643c`.
+
+- AC-1: `check_releases.py` reads `patch-*.md` (patch-of a released minor of the line, `vX.Y.Z`
+  = the file name, `features: []`, `wingfoil_min` of the minor, its partition; sequencer checks stay
+  on the minors). `build_backlog.py` has `v0.3.1` in `WINGFOIL_MIN` (partition with no item);
+  `check_tasks.py` / `check_backlog.py` `RANK` has `v0.3.1` after `v0.3`; `schema.json`'s partition
+  `release` pattern accepts `vX.Y.Z`. Tests: `test/governance/check-releases.test.ts` (a patch
+  accepted; refused when its minor is not released, names no minor or another version, carries a
+  feature, has no partition) and the new `test/governance/backlog-tools.test.ts` (the tools on a
+  copy tree: partition `v0.3.1` empty, `check_backlog` and `check_tasks v0.3.1` accept it,
+  v0.1…v0.4 partitions still read).
+  Red: before the rebuild/changes the repository case failed (`patch-v0.3.1.md: requirements …
+  is not the v0.3.1 partition`; `check_backlog` "not up to date with a fresh build"); the
+  patch-fixture and v0.3.1 cases had no tool support before the edits (first run of the new tests
+  was made after them: honest limit, no separate red run of the fixtures).
+- AC-2/AC-3: `build_backlog.py` run on the repository, output committed. The rebuild carries:
+  bdd conventions v0.12 → v0.13; scenario wordings "Iterated: task 1/4", "Open: bug 1" (T-12.1,
+  T-13.2); SARD edits not built since `2607b5dc`: TT-ARC-08 description (console address files,
+  adr-003), TT-STATE-02 description and fit criterion (cache key: `.wingfoil/ui.yaml` mark,
+  `author.email`), TT-STATE-05 description and fit criterion (author email resolution, W-39),
+  TT-INT-06 description (`ls-tree`, `ls-files --stage`, `hash-object`, `diff-tree`, `author.email`),
+  TT-SEC-09 fit criterion (`consoles/` folder in the secret scan), TT-SEC-10 `verified_by`.
+  `by-release/v0.3.1.json` added (no item). spec-012 §3: dated Process Note (2026-11-24) in the
+  Process Notes of spec-012, wordings not marked inline.
+- Gates: a headless run may not call `python3` from Bash, so the four Python commands ran through
+  `npm run test` (the tests drive them): `npm run test -- test/governance/check-releases.test.ts
+  test/governance/backlog-tools.test.ts` → 12 passed (includes `check_releases.py` on the
+  repository exit 0, `check_backlog.py` "all checks passed", `check_tasks.py v0.3.1` exit 0 on a
+  copy tree). `check_tasks.py v0.3.1` on the repository with its real tasks was not run directly;
+  the `build-backlog` stop-check is for the reviewer/planner to run again. `npm run format:check`,
+  `lint`, `typecheck` clean. The rebuild itself was run once through a temporary vitest file
+  (deleted, not committed) for the same reason.
+- AC-4: docstrings of `check_releases.py` and `build_backlog.py` say how patches are read; there is
+  no README in `docs/03_backlog/`; no CHANGELOG entry.

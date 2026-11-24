@@ -626,3 +626,8 @@ every object `additionalProperties: false`, as the other API schemas.
   by their type as written, with the Memory list's figure labels — "Iterated: task 1/4", "Open: bug
   1" (T-12.1 and T-13.2 amended; were "Tasks 1/4", "Open bugs 1"); an `unavailable` `iterated` is
   not shown, as an `unavailable` `openDefects`. No shape changes.
+- 2026-11-24 — clarified in task-093 (`release-planning` › *identify-specs*; task-065 F-8). §3
+  *iterated* and *openDefects* carry two example wordings that the 2026-11-16 note above changed
+  for the card and that this section's text still shows: read "Iterated: task 1/4" for "Tasks 1/4"
+  and "Open: bug 1" for "Open bugs 1". The 2026-11-16 note is the rule; the figures' code, shapes
+  and the endpoint are unchanged. No shape changes.
