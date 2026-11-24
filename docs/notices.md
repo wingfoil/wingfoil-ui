@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/5 -->
 ### N-017 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 
-- **Status:** open
+- **Status:** closed 2026-11-24T07:36:59Z — approved by the approver: Done: pushed at 1398b53f3ab808b9d4026f14cd86370ef8bff31a, gates.yml scope=wave run 45283632876, conclusion failure. Green: checks, coverage, contract, smoke, publish-smoke, e2e-wave chromium 1 and webkit 1. Red, two findings. (a) M-02.2 on all three engines (4 tests each): test/e2e/memory-list.spec.ts:220 still selects the bucket links with /^<bucket>,/ (the comma the label fix removed), so the click times out at 180 s; fix the selector to the new label. (b) Firefox only: 127 tests fail with 'Page crashed' across every spec (shard 1: 61, shard 2: 66; also in run 45219044794), with @playwright/test 1.65.1 and Firefox 159.0 (playwright firefox v1572); the approver's side kept @playwright/test at 1.63.0 exact in commit 90fba817 on the task branch (node_modules reinstalled): record it in the Execution Notes as a pin kept on purpose for AC-1 (cause inferred from the version change, to be confirmed by the next wave run) and in docs/publishing.md if it lists the kept pins. The approver's ruling: park the task with (a) and (b), then the build fixes (a) and asks again for the wave run.
 - **Kind:** decision
 - **Opened:** 2026-11-23T22:23:24Z
 - **Line:** trunk
 - **Element:** trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
 - **Reason:** decision (run task-092-development-dependencies-refreshed-and-the-node-engine-aligned/review/5): Will you push task/task-092-development-dependencies-refreshed-and-the-node-engine-aligned at 1398b53f3ab808b9d4026f14cd86370ef8bff31a from the runner home, dispatch gates.yml with scope=wave, and provide the run id, commit and results?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-017 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:halt-trunk-rejected-task-092-development-dependencies-refreshed-and-the-node-engine-aligned -->
 ### N-016 · 2026-11-23 · trunk:task-092-development-dependencies-refreshed-and-the-node-engine-aligned
