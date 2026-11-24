@@ -258,3 +258,57 @@ No code or tests were changed in this review. This finding belongs to the task's
 tests and is tracked by the `memory park --reason` commit, without a separate bug. No linked
 bugs (`bug: []`); the rejection moves none. The review body is committed separately before
 parking, since park refuses uncommitted content (directive `wingfoil-cli`, W-24).
+
+### review round 5 (2026-11-24, independent reviewer)
+
+Reviewed correction `6d003e1a6c874a977273ae286d769b86e9f905a0` against N-021 and R3,
+and rechecked the complete task diff against AC-1 … AC-4. No further correctness finding was
+identified. R3's implementation is present: both default-suite CI jobs install
+`jsonschema==4.23.0` after Python setup and before coverage; the two workflow tests check the
+step's presence, exact pin syntax and order. `test/README.md` 0.106 documents the prerequisite.
+The class search (`rg -n --glob '*.yml' 'setup-python|python-version|jsonschema|test:coverage|run:
+npm test|run: npm run test$' .github/workflows`) finds both affected jobs. R4's sanitized
+hand-off paths remain in the current task text.
+
+- Before integration, `npm run test -- test/governance test/docs
+  test/package/gates-workflow.test.ts test/package/publish-workflow.test.ts` → 10 files,
+  175 tests passed. This includes the patch-feature regression cases, the real
+  `check_tasks.py v0.3.1` invocation, the empty patch partition, schema validation and the
+  committed-backlog comparison with a fresh build.
+- Merged phase branch `design/dev-loop_v0.3.1` at `85b81041` into the task branch, without
+  conflicts, as `a4aa6e8bee5d0d04d305c6f0ba1a0ddc683709a3`. The merge carries only the
+  phase branch's committed task notes, notices and run records (`git diff
+  HEAD...design/dev-loop_v0.3.1 --stat` before the merge). `git merge-base --is-ancestor
+  design/dev-loop_v0.3.1 HEAD` → exit 0 after the merge. The same targeted test command on
+  the merged head again passed all 175 tests.
+- `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` and
+  `git diff --check` → exit 0. No implementation or test file was changed in this review.
+- AC-3: the dated 2026-11-24 spec-012 Process Note is present (`sed -n '620,644p'
+  docs/04_memory/design/specs/spec-012-project-state-views-api.md`). AC-4: all four tool
+  docstrings describe patches; `git diff design/dev-loop_v0.3.1..HEAD --name-only` lists
+  no CHANGELOG edit.
+- The GitHub connector's read of `GET /repos/wingfoil/wingfoil-ui/actions/runs` filtered to
+  this task branch returns two runs only: `45373223189` (failure) and `45373218285`
+  (cancelled), both on `53d18a1d73f0f5aebaff6c4abcc8f7df6a554172`. There is no run on
+  the correction or the newly merged head. The first workflow-specific URL form was refused
+  by the connector; the repository-wide runs endpoint with the branch filter succeeded.
+
+**Pending CI, not yet accepted.** `wingfoil-cli` rule 12 requires a green `gates.yml` run on
+the task head before `memory submit`. N-021 also requires `test:publish-smoke` for the publish
+workflow change; it is included in the required task-scope run. No heavy gate was run locally.
+The approver's hand-off is now the following, from their own terminal in the runner home,
+after checking the clone's git configuration (rule 14):
+
+```sh
+cd "<runner home>"
+node scripts/runner/run.mjs --line trunk --check-git
+git fetch "<line checkout>" task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+git push origin FETCH_HEAD:refs/heads/task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
+gh workflow run gates.yml --ref task/task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -f scope=task
+```
+
+Expected pushed head: `a4aa6e8bee5d0d04d305c6f0ba1a0ddc683709a3`. Provide the run id,
+head SHA, conclusion and job results before review resumes. The task stays `in-progress`;
+`memory submit` and `bug.sync_state` have not run. There are no linked bugs (`bug: []`).
+This body-only review record is committed separately under `wingfoil-cli` rule 11 and
+`definition-of-done` 1.9.
