@@ -39,6 +39,50 @@ the scope with the approver. Length: two weeks (`methodology/scrum`, `sprint_len
 first Sprint planned and run through the script runner (`wingfoil-cli` › *The script runner*,
 dl-023).
 
+## Wave gates
+
+### Wave 1 gate — 2026-11-24
+
+Wave 1 (*the tools and the ground*): task-093, task-092, task-091, all `done`. The gate ran outside
+the script runner (the v0.3.1 planning predates the gate tasks of `release-planning` 1.5; the Wave 2
+and Wave 3 gates are runner tasks). Phase branch `design/dev-loop_v0.3.1` at `24309852`.
+
+- **The wave scope on CI:** `gates.yml` `workflow_dispatch` `scope=wave` on `24309852`, run
+  45436485768: success at the first attempt — checks, contract, coverage, smoke, publish-smoke,
+  e2e-wave Chromium 1 and 2, Firefox 1 and 2, WebKit 1 and 2; e2e-chromium, own-specs and repeat
+  skipped by the scope. The push-triggered run 45436423460 is not evidence.
+- **Timing:** `npm run test:timing` alone through the machine-free slot on a clean checkout of
+  `24309852` (Node 24.22.3, after `npm ci`), 2026-11-24 16:46–17:12 UTC: Vitest 5 files, 6 tests
+  passed; Playwright 32 passed (8.5 min); load average 3.43 at the start, 1.69 at the end (12 cores).
+- **Runtime audit:** `npm audit --omit=dev` on the same checkout: 0 vulnerabilities.
+- **Into `main`:** merge `286228ba` (`--no-ff`); `git diff 24309852 286228ba` changes only
+  `docs/05_plans/governance-evolution/governance-evolution-12-plan.md`, which only `main` carries
+  (`5b4c9866`, `e90888f0`).
+- **The wave:** from 2026-11-21 14:46 (task-091 `start`) to 2026-11-24 17:19 (task-093 `done`),
+  4 active days (commits on 11-21, 11-22, 11-23, 11-24); 3 tasks closed.
+- **Review rounds** (the runner's run records, `docs/runs/`): task-091 4 verdicts (3 rejected, 1
+  accepted), task-092 4 (3 rejected, 1 accepted), task-093 4 (3 rejected, 1 accepted; one more review
+  run ended in an agent error and was rerun). Every reject was a finding in the task's own change.
+- **Bugs:** bug-053 resolved by task-091 (close note in the bug); the approver's `resolved → closed`
+  is pending.
+- **Seen in the wave, carried forward:**
+  - M-02.2 *Group unknown states in generic buckets: To approve* (`test/e2e/memory-list.spec.ts:229`)
+    failed once on Firefox (run 45414655791 attempt 1, task-093's own specs: the bucket link's click
+    did not navigate) and passed on the rerun and in this gate's run; the code and the spec are
+    task-092's (`d0ad607a`, `7529d8c4`). Raised as bug-054 (below). The `repeat` input runs Chromium
+    only, so a Firefox repetition is not available on CI today.
+  - **Deviation — TDD inside one step.** `definition-of-done` › *build* runs design → red → green →
+    refactor inside the one `build` step, so one agent, in one context, wrote the tests and then the
+    code: task-091's design and reproduction are recorded after the fact, task-092 has no red for the
+    counted-filter fix (`745e103b`), task-093 records "no separate red run of the fixtures". The
+    approver rules this not acceptable; the fix is the next `governance-evolution` run (design, red,
+    green and refactor as separate steps, the same agent in distinct fresh sessions), before Wave 2.
+  - A headless runner launch may not call `python3` from Bash, so task-093's four Python commands
+    ran only through `npm run test` (the tests drive them; `check_tasks.py v0.3.1` on a copy tree).
+    Run directly at this gate on `24309852`: `python3 docs/03_backlog/X_tools/check_tasks.py v0.3.1`
+    "12 tasks … OK", `check_releases.py` "5 minor + 1 patch … OK", `check_backlog.py` "all checks
+    passed" (the v0.3.1 exit criteria of task-093 and of planning finding 4).
+
 ## Sprint Review
 
 <!-- What the Increment showed the stakeholders, and what changes in the Product Backlog. -->
