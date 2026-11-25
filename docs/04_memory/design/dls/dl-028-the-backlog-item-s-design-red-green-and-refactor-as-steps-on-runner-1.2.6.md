@@ -3,7 +3,7 @@ id: dl-028-the-backlog-item-s-design-red-green-and-refactor-as-steps-on-runner-1
 type: decision-log
 title: "The backlog item's design, red, green and refactor as steps, on runner 1.2.6"              # REQUIRED — e.g. "Retrospective v0.1" or "Initialise WingFoil before inception"
 status: draft          # auto-set by wingfoil
-context: ""            # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
+context: "governance"          # optional — short label for the context, e.g. "retrospective", "planning", "ad-hoc"
 release: ""            # optional — implementation release this DL is assigned to (stamped at release-planning/build-backlog), e.g. "v0.1"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -12,20 +12,94 @@ tmpl_version: 260703   # Orignal template version
 
 ## Context
 
-<!-- The situation or question that prompted this decision. -->
+`backlog-item` runs a task as `start · build · review · approve · done`; directive
+`definition-of-done` puts design → red → green → refactor inside `build`, which the script runner
+launches as one run: one agent, in one context, writes the tests and then the code that passes them.
+Facts on 2026-11-25 (`governance-evolution-13-plan` › *Assessment*):
+
+- Wave 1 of v0.3.1 shows it: task-091's design is a "retrospective reconstruction", task-092's fix
+  changed code and tests in one commit with no red, task-093 has one `### build` section with "no
+  separate red run". The approver ruled on 2026-11-24 that this is not acceptable, that the phases
+  run as steps by the same agent in distinct fresh sessions, and that Wave 2 and Wave 3 of v0.3.1
+  start after the change.
+- The runner already enforces `distinct_from` (WingFoil 0.3.2 only validates it), runs a phase's
+  `checks.post` tokens bound in the home's `.wingfoil/workflows/bindings.yaml`, and handles red
+  amendments; its common `red-tests-untouched.mjs` fails when red wrote no test file, and its
+  `tests.mjs` runs `npm test` (vitest) only, while a red-first criterion here is often an e2e spec.
+- A custom workflow cannot take a pack workflow's name (`E_WORKFLOW_DUPLICATE_NAME`): the change is
+  made in place, as R-10 was.
+- Gate tasks (task-096, task-097) and characterization-only tasks have no red-first criterion.
+  Routing them to a second workflow through a second iteration of `sprint.development` deadlocks:
+  phases run in sequence, and Wave 3 depends on task-096 (a throwaway probe, 2026-11-25). WingFoil
+  0.3.2 has no per-element phase condition; it is planned for v1.0 (spec-003 `optional`, skipped
+  when its `checks.pre` are unmet, P4.12), not v0.4.
+- `runner-1.2.5` (tag commit `3980a49`, manifest sha256
+  `dd187600967c4898ea90f5a2b6ee896da29f63ab63c775bb7be14ac294eef1df`) brings, with 1.2.3 and 1.2.4,
+  signed notices, the runner's own `memory submit` after an accepted review, `sources_read_only`
+  (here `server/`, `web/`, `contracts/`: `qa` still writes `test/`), and a forbidden-command check that
+  reads only what runs. An independent read-only review of `git diff runner-1.2.2 runner-1.2.5 --
+  common`: adoptable with conditions; G-1 (medium) interpreters, `find -exec`, pipes into `sh` and
+  wrappers hide a forbidden command 1.2.4 caught; G-2 (medium) an agent can pre-write a gate's notice
+  block, which the runner then never signs, and `gate.mjs` prints the `--unsigned <seal>` to use;
+  G-3 (low) `gate.mjs --amend` refuses a plan under a nested scope; G-4 (low) the default open states
+  of a need. The runner's maintainers confirmed G-1 … G-4 and put them, with a per-element optional
+  step that this repository asked for, in `runner-1.2.6`, not tagged on 2026-11-25.
 
 ## Decision
 
-<!-- What was decided. State it directly, in the present tense.
-     Do NOT mark the body as unratified (no "proposed, not yet ratified" preamble): `status:` already
-     says whether the decision is `in-discussion` or `ready`, and `memory approve` changes only
-     `status`, so a body marker would stay wrong. Where options are still open, present them as
-     options; the approver's choice is recorded in the approve commit's `Reason:`. -->
+1. **`backlog-item` version 2, deviation R-11** of `methodology/scrum@1.0.0` (seven deviations):
+   `start` (unchanged) · `design` (developer as architect) · `red` (qa, `mode: fresh`) · `green`
+   (developer, `mode: fresh`, `distinct_from: [red]`) · `refactor` (developer) · `review` (reviewer,
+   `mode: fresh`, `distinct_from: [red, green, refactor]`, actions unchanged) · `approve` (`fallback:
+   { step: green }`) · `done` (unchanged). Same agent per line, distinct sessions; no per-phase agent.
+2. **Bound checks**, in a new `.wingfoil/workflows/bindings.yaml`: `design` post `commit-trailers`;
+   `red` post `tests-red`, `commit-trailers`; `green` and `refactor` post `tests-green`,
+   `red-tests-untouched`, `commit-trailers`. `tests-red`, `tests-green` and `red-tests-untouched` are
+   bound to project checks (outside the runner's manifest, with their own tests) that run red's own
+   files — vitest files through `npm test -- <files>`, specs through `playwright test
+   --project=chromium <files>` — red expecting them to fail, green expecting `npm test` and red's specs
+   to pass; the heavy gates stay on `gates.yml` (dl-016).
+3. **The `direct` path.** A task field `flow` (optional; absent reads as TDD), `direct` with its
+   reason for a task with no red-first criterion, set at `release-planning` › *build-backlog* and
+   approved with the task; task-096 and task-097 get it by the approver's `memory amend`. Every task
+   stays in the one `backlog-item`, so the waves keep their order.
+   - With a runner that skips an optional step per element (1.2.6): `red` is `optional: true` with
+     `checks.pre: [flow-tdd]`, bound to a project check that fails for `flow: direct`; a `direct` task
+     goes from `design` to `green`.
+   - With 1.2.5: `red` runs for every task; on a `direct` task it checks the classification and
+     answers that no criterion is red-first, and the project checks pass and say so. Never a
+     fabricated red.
+   - A gate task's work runs in `green`.
+4. **Runner 1.2.6 if tagged before the apply, else 1.2.5**, through
+   `patches/from-1.2.2-to-<v>.patch` (no machine patch), checked by `manifest.mjs --check` and
+   `--digest` against the tag's sha256. With 1.2.5, decision 3's empty `red` session and G-1 stay
+   open until 1.2.6. No configuration key changes in either.
+5. **The approver's rules** (`wingfoil-cli`): rules 11 and 12 and `definition-of-done` › review — the
+   reviewer accepts by answering `completed` and the runner runs `memory submit`; rule 14 — the
+   duplicate-N-id check and the `cat -v` read relax to what `gate.mjs` enforces, and a prompt for
+   `--unsigned <seal>` on a notice opened after the adoption is tampering: the notice is closed,
+   never confirmed (G-2); rule 15 re-checked.
+6. **Directives and docs:** `definition-of-done` (one section per step, the `direct` path),
+   `release-planning` (*build-backlog* sets `flow`), `.wingfoil/README.md` (R-11), `memory.yaml` and
+   the task template (`flow`), `CLAUDE.md`, `AGENTS.md`, `test/README.md`; a WingFoil feedback note
+   for the missing per-element phase condition until the version with P4.12.
+7. **Where:** on `main` and on `design/dev-loop_v0.3.1`; the approver fast-forwards the runner home,
+   which holds `bindings.yaml`, between two steps; Wave 2 starts after.
 
 ## Rationale
 
-<!-- Why this option was chosen over alternatives. Include the key trade-offs considered. -->
+- Red and green in distinct sessions, with red's tests checked untouched, make "the tests came
+  first" a fact the runner checks, not a line in the notes.
+- One workflow for every task keeps the order the waves depend on; the `direct` path is declared and
+  approved, never inferred by the agent that would benefit from it.
+- The runner, not WingFoil, closes the gap until P4.12: the workflow is already written in WingFoil
+  v1.0's terms (`optional` + `checks.pre`), so the move to a WingFoil that skips on its own changes
+  no step.
 
 ## Actions
 
-<!-- Optional: follow-up actions that result from this decision, with owners and deadlines. -->
+- Facilitator (the agent), `governance-evolution-13-plan` step 4: decisions 1–6 on
+  `design/governance-evolution-13`; the probes of the plan; `gates.yml` on the pushed branch; the
+  `--no-ff` merges into `main` and into `design/dev-loop_v0.3.1`; `workflow end`.
+- Approver: the `memory amend` of task-096 and task-097; the pushes; then `git pull --ff-only` in the
+  runner home, between two steps.
