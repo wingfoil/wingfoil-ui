@@ -3,7 +3,8 @@
 # Composed from the wingfoil-templates packs base@2.0.1, software@1.0.0 and methodology/scrum@1.0.0
 # (traceability, scrum, determinism, definition-of-done, claim-sources and the packs' globals), with
 # this repository's own bindings re-added (governance-alignment-rel-v0.3-plan step 3);
-# `release-planning` bound to architect, product-owner and tech-lead by task-049.
+# `release-planning` bound to architect, product-owner and tech-lead by task-049; `determinism` and
+# `cli-only-writes` bound to qa, which runs `backlog-item` › red as a step of its own (dl-028).
 format: 1
 version: 1
 
@@ -32,6 +33,8 @@ assignments:
     - definition-of-done
   qa:
     - testing
+    - determinism
+    - cli-only-writes
     - accessibility
     - definition-of-done
     - release-conventions

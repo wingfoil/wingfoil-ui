@@ -9,11 +9,11 @@ tags: [custom, release, planning, scrum]
 
 # Directive — Release planning of WingFoil UI
 
-**Version:** 1.5 · **Date:** 2026-11-21 (1.0: this repository's `release-planning` procedure folded
+**Version:** 1.6 · **Date:** 2026-11-25 (1.0: this repository's `release-planning` procedure folded
 into a directive, its file removed — task-049, adoption decision 2, RP3-13; 1.1: review round 1 of
 task-049: the release's submits are `plan-release`'s (product-owner), `plan-sprint` adds only the
 first Sprint, the stage plan names a sub workflow, the `memory add --type … --title` forms; 1.2:
-*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018; 1.3: each exit criterion names its check, the size check at *build-backlog*, *Deferrals*, the next Sprint at `next-sprint` — dl-022, dl-020 actions 1, 4, 5; 1.4: *Checkpoints under the runner*, the runner's line switched to the phase branch at *Review* — `governance-evolution-8-plan`, the runner adoption; 1.5: the waves as `depends_on`, the phase-branch task and a gate task per wave at *build-backlog* — `governance-evolution-10-plan`, dl-025)
+*Review*: the phase branch and `PHASE_BRANCH` — `governance-evolution-5-plan`, dl-018; 1.3: each exit criterion names its check, the size check at *build-backlog*, *Deferrals*, the next Sprint at `next-sprint` — dl-022, dl-020 actions 1, 4, 5; 1.4: *Checkpoints under the runner*, the runner's line switched to the phase branch at *Review* — `governance-evolution-8-plan`, the runner adoption; 1.5: the waves as `depends_on`, the phase-branch task and a gate task per wave at *build-backlog* — `governance-evolution-10-plan`, dl-025; 1.6: the task's `flow` set at *build-backlog* — `governance-evolution-13-plan`, dl-028)
 
 Applies to the product-owner, the tech-lead and the architect when a release is planned. It says
 how each step is done in this repository; the packs' phases and the verbs own every transition
@@ -159,10 +159,16 @@ plan, to a task or a rule.
   or `"n/a — <reason>"`), `module`, `priority`, `ref`, the `**Backlog items:**` line, the Acceptance
   Criteria citing the scenarios; ids continue the numbering of the type. Then `memory submit`
   (`draft → pending`). Stop-check: `python3 docs/03_backlog/X_tools/check_tasks.py vX.Y`.
+- **The flow** (dl-028): a task with no red-first criterion — a governance task below, a
+  characterization-only task (a dependency refresh with no new behaviour) — gets `flow: "direct —
+  <reason>"` in its draft, so the runner skips its red (`definition-of-done` › *The `direct`
+  path*); every other task leaves `flow` out and runs red. The approver approves it with the task;
+  a `flow` found wrong later is the approver's `memory amend`.
 - **Size:** the one-active-day check of `definition-of-done` › *design* also runs here: a task found
   too large is split before the Sprint starts (dl-020 action 4).
 - **The order is `depends_on`** (dl-025): the script runner honours no other ordering. Two
-  governance tasks, with no `module` and no red or green (`definition-of-done` › *done*):
+  governance tasks, with no `module`, `flow: "direct — <reason>"` and no red (`definition-of-done` ›
+  *done*):
   - **"Phase branch — vX.Y.Z"**, the first of the Sprint Backlog: its Acceptance Criteria are
     *Review*'s phase branch — `design/dev-loop_v<version>` from `main`, its `PHASE_BRANCH` commit, a
     green `gates.yml` run on its tip, pushed, and the runner's line switched to it (`wingfoil-cli`

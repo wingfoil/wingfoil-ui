@@ -5,13 +5,16 @@
 //   record → push → unlock.
 // The same file runs in every project that adopts the runner: the project is read from package.json and dna.yaml.
 //
-// Usage: node scripts/runner/run.mjs --line <line> [--dry-run] [--config <file>] [--resume] [--until-idle [--max-steps <n>]]
+// Usage: node scripts/runner/run.mjs --line <line> [--dry-run] [--config <file>] [--resume] [--until-idle [--max-steps <n>] [--stop-on-notice]]
 //        node scripts/runner/run.mjs --line <line> --close <N-id> --how "<what solved it>"
 //        node scripts/runner/run.mjs --line <line> --renumber <element id>   a number another branch took
 //        node scripts/runner/run.mjs --status
+//        node scripts/runner/run.mjs --migrate-state   move the state folder dfd-runner to wingfoil-runner, leaving a link
 //        node scripts/runner/run.mjs --line <line> --doctor   what the project still lacks to run
 //          [--red-amend <task id> --files <file>[,<file>…] --because <decision id> [--note "<text>"]]
 //   --dry-run  read the next step and print what the run would do; launch and write nothing
+//   --stop-on-notice  with --until-idle, stop after a step whose run opened a new notice (a notice
+//              already open and seen again does not count)
 //   --config   another runner configuration (default: config/runner.yaml)
 //   --resume   close the line's halt notices (two review rejects, errors in a row, a wrong
 //              model): the approver's command, after ruling the cause; never the runner's
@@ -41,6 +44,7 @@ function arg(name, fallback = null) {
 const DRY = process.argv.includes('--dry-run');
 const RESUME = process.argv.includes('--resume');
 const UNTIL_IDLE = process.argv.includes('--until-idle');
+const STOP_ON_NOTICE = process.argv.includes('--stop-on-notice');
 const CLOSE = arg('--close');
 const CHECK_GIT = process.argv.includes('--check-git');
 const CONTAINER = process.argv.includes('--container');
@@ -49,6 +53,7 @@ const READ = process.argv.includes('--read') ? process.argv.slice(process.argv.i
 const RENUMBER = arg('--renumber');
 const STATUS = process.argv.includes('--status');
 const DOCTOR = process.argv.includes('--doctor');
+const MIGRATE_STATE = process.argv.includes('--migrate-state');
 const AMEND_TASK = arg('--red-amend');
 const AMEND_ORDER = AMEND_TASK
   ? { decision: arg('--because'), files: String(arg('--files') ?? '').split(',').map((f) => f.trim()).filter(Boolean), by: 'the approver', note: arg('--note') ?? null }
@@ -210,16 +215,28 @@ function notice(ctx, { key, element, reason, command, packet = null }) {
   const committed = (text) => (ctx.set.noticePaths === 'relative' ? lib.publicText(text, noticePlaces(ctx)) : text);
   const { text, added } = lib.addNotice(noticesText(ctx), { key, at: now(), line: ctx.line.name, element, reason: committed(reason), command: committed(String(command).replaceAll('npx wingfoil', CLI.join(' '))), packet: packet ? { ...packet, evidence: committed(packet.evidence) } : null });
   const entry = lib.notices(added ? text : noticesText(ctx)).find((n) => n.open && n.key === key);
-  if (!added) { waitLine(ctx, `${entry?.id ?? key} open: ${reason}`); return; }
-  log(ctx, `notice ${entry?.id ?? key}: ${reason}`);
-  (ctx.waits ??= []).push(`${entry?.id ?? key} open: ${reason}`); // what the next run would repeat
+  const label = lib.noticeLabel(entry?.id ?? key, key);
+  if (!added) {
+    // An open block under the runner's key that the runner never signed is not its own (1.2.6, G-2):
+    // an agent may have written it, with a Ready or an evidence of its own, to mislead the approver.
+    const signed = readLedger();
+    if (entry && !key.startsWith('security-') && lib.noticeTrust(lib.openedNotices(signed), entry) && !lib.legacyNotice(signed, ctx.line.name, entry.id)) {
+      notice(ctx, { key: `security-${ctx.line.name}-unsigned-${entry.id}`, element: 'runner', reason: `security refusal: ${entry.id} is open under the runner's key ${key}, but the runner never signed it: an agent may have written it (it does not close by itself: read it in ${ctx.set.notices}, remove it if the runner did not open it, then close this notice with run.mjs --line ${ctx.line.name} --close <its id> --how "<what you found>")`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(ctx.line.name)} --read memory history ${lib.shellWord(element)}` });
+    }
+    waitLine(ctx, `${label} open: ${reason}`);
+    return;
+  }
+  log(ctx, `notice ${label}: ${reason}`);
+  ctx.noticed = true; // a new notice: --stop-on-notice ends the loop after this run (1.2.5)
+  (ctx.waits ??= []).push(`${label} open: ${reason}`); // what the next run would repeat
   const runnable = String(command).replaceAll('{id}', entry?.id ?? '').replaceAll('npx wingfoil', CLI.join(' '));
   print(ctx, `  → ${runnable}`);
   if (DRY) return;
   writeFileSync(noticesFile(ctx), text);
   commit(ctx, [ctx.set.notices], `docs(notices): ${lib.cite(ctx.line.name, element)} ${committed(reason)}`.slice(0, 100));
-  // Container mode: what the runner opened, signed, so waiting.json tells it from a notice an agent wrote (1.2.2, C-3).
-  if (CONTAINER) appendLedger({ kind: 'notice', line: ctx.line.name, notice: entry?.id ?? null, key });
+  // What the runner opened, signed with the seal of its text, so gate.mjs and waiting.json tell it from
+  // a notice an agent wrote (1.2.2 container, C-3; every mode since 1.2.3, F-1).
+  if (entry) appendLedger({ kind: 'notice', line: ctx.line.name, notice: entry.id, key, seal: lib.noticeSeal(entry.text) });
   if (ctx.config.notify) sh(ctx.config.notify, [`${ctx.project} · ${ctx.line.name}`, `${reason}\n${runnable}`]);
 }
 
@@ -231,12 +248,14 @@ function closeNotices(ctx, keys, how) {
   const open = lib.notices(text);
   for (const key of keys) {
     const r = lib.closeNotice(text, key, { at: now(), how });
-    if (r.closed) { text = r.text; closed.push(key); ids.push(open.find((n) => n.open && n.key === key)?.id ?? key); }
+    if (r.closed) { text = r.text; closed.push(key); ids.push(lib.noticeLabel(open.find((n) => n.open && n.key === key)?.id ?? key, key)); }
   }
   if (closed.length === 0) return;
   log(ctx, `closed ${ids.join(', ')}: ${how}`);
   if (DRY) return;
   writeFileSync(noticesFile(ctx), text);
+  // A closed notice is no longer trusted (1.2.3, F-1): its block copied back under Open is not the runner's.
+  for (const key of closed) appendLedger({ kind: 'notice-closed', line: ctx.line.name, notice: open.find((n) => n.open && n.key === key)?.id ?? null, key });
   commit(ctx, [ctx.set.notices], `docs(notices): close ${closed.join(', ')}`.slice(0, 100));
 }
 
@@ -331,6 +350,12 @@ function elementFields(checkout, type, id) {
   return fm ? yaml.load(fm[1]) ?? {} : {};
 }
 
+/** An element's status and its type's final state, found by id among the Memory types (1.2.5). */
+function memoryState(checkout, memoryYaml, id) {
+  const type = Object.keys(memoryYaml?.types ?? {}).find((t) => elementFile(checkout, t, id));
+  return { status: type ? elementFields(checkout, type, id).status ?? null : null, final: type ? lib.finalState(memoryYaml, type) : undefined };
+}
+
 function elementStatus(checkout, element) {
   return elementFields(checkout, element.type, element.id).status ?? null;
 }
@@ -413,7 +438,13 @@ function ensureDependencies(ctx, path) {
  */
 function uncommittedAfter(ctx, worktree) {
   const places = [[ctx.line.checkout, 'checkout'], ...(worktree && worktree !== ctx.line.checkout ? [[worktree, 'worktree']] : [])];
-  return places.flatMap(([path, label]) => lib.porcelainPaths(sh('git', ['-C', path, 'status', '--porcelain', '--untracked-files=all']).stdout).map((file) => `${label}:${file}`));
+  // Memory's folders are looked at with the ignored files too (1.2.3, F-11): an ignore rule hides no element.
+  const memory = [...new Set(Object.keys(PATHS.memoryYaml?.types ?? {}).map((type) => lib.memoryDir(PATHS.memoryYaml, type)))].filter((d) => d && d !== '.');
+  return places.flatMap(([path, label]) => {
+    const files = lib.porcelainPaths(sh('git', ['-C', path, 'status', '--porcelain', '--untracked-files=all']).stdout);
+    const hidden = memory.length ? lib.porcelainPaths(sh('git', ['-C', path, 'status', '--porcelain', '--untracked-files=all', '--ignored=matching', '--', ...memory]).stdout) : [];
+    return [...new Set([...files, ...hidden])].map((file) => `${label}:${file}`);
+  });
 }
 
 /** The live checks of a step, run by the runner outside any agent's sandbox, before the launch. */
@@ -468,6 +499,38 @@ function homeBindings() {
   return existsSync(file) ? (yaml.load(readFileSync(file, 'utf8'))?.checks ?? {}) : {};
 }
 
+/** The phase names of a workflow, in order, from the line's checkout (1.2.6: what "later" means). */
+function phaseNames(line, workflow) {
+  const file = ['custom', 'built-in'].map((kind) => join(line.checkout, '.wingfoil/workflows', kind, `${workflow}.yaml`)).find(existsSync);
+  if (!file) return [];
+  try { return (yaml.load(readFileSync(file, 'utf8')).phases ?? []).map((p) => p.name); } catch { return []; }
+}
+
+/**
+ * An optional step whose bound pre checks fail is skipped for its element (1.2.6, WingFoil v1.0's
+ * semantics, P4.12): a signed `skip` entry with the tokens and what they said, a log line, and the
+ * next step of the element is chosen. A step with an unbound pre token, or no pre check, is never
+ * skipped. Its pre checks run again only once the element ran a step since its last skip.
+ */
+function skipOptional(ctx, step, element, records) {
+  const pre = step.checks?.pre ?? [];
+  if (!pre.length) return false;
+  const bindings = homeBindings();
+  if (pre.some((c) => !bindings[c.token]?.run)) return false;
+  const lastRun = Math.max(0, ...records.filter((r) => r.element === element.ref).map((r) => Date.parse(lib.parseNotes(r.notes).at ?? '') || 0));
+  const earlier = lib.skipsOf(readLedger(), ctx.line.name, element.ref).find((k) => k.step === step.key && k.instance === step.instance && Date.parse(k.at) > lastRun);
+  if (earlier) { waitLine(ctx, `${S(step.key)} skipped for ${element.ref}: pre ${(earlier.tokens ?? []).join(', ')} failed`); return true; }
+  const checks = runChecks(ctx, pre, ctx.line.checkout, element);
+  guardAfterAgentCode(ctx, ctx.line.checkout);
+  const failed = checks.filter((c) => !c.ok);
+  if (!failed.length) return false;
+  const why = failed.map((c) => `${c.token}: ${c.why}`).join('; ').slice(0, 300);
+  log(ctx, `${S(step.key)} skipped for ${element.ref}: pre ${failed.map((c) => c.token).join(', ')} failed — ${why}`);
+  if (!DRY) appendLedger({ kind: 'skip', line: ctx.line.name, element: element.ref, instance: step.instance, step: step.key, phase: step.phase, tokens: failed.map((c) => c.token), why });
+  ctx.acted = true;
+  return true;
+}
+
 /** Red's bound post checks, from the step's own workflow and the home's bindings (a red amendment). */
 function redChecks(line, workflow) {
   const file = ['custom', 'built-in'].map((kind) => join(line.checkout, '.wingfoil/workflows', kind, `${workflow}.yaml`)).find(existsSync);
@@ -488,7 +551,7 @@ function runChecks(ctx, checks, cwd, element, launch = {}) {
     const binding = bindings[check.token];
     const bound = binding?.run;
     if (!bound) { done.push({ token: check.token, ok: false, why: check.binding?.argv ? 'not bound in the runner home' : 'not bound' }); continue; }
-    const env = toolEnv({ ...lib.checkEnv({ line: ctx.line, element, ...launch }), ...lib.withAliases({ RUNS: PATHS.runs, CLI: JSON.stringify(CLI), ROLE: launch.role || null }) });
+    const env = toolEnv({ ...lib.checkEnv({ line: ctx.line, element, skipped: lib.skipsOf(readLedger(), ctx.line.name, element.ref), ...launch }), ...lib.withAliases({ RUNS: PATHS.runs, CLI: JSON.stringify(CLI), ROLE: launch.role || null }) });
     const argv = lib.checkArgv(bound, HOME_REPO, (p) => existsSync(p));
     const run = sh(argv[0], argv.slice(1), { cwd, env });
     const ok = run.status === 0 || binding.severity === 'warn';
@@ -834,20 +897,31 @@ function integrateScripted(ctx, step, element, worktree) {
   const integration = `integration/${element.id}`;
   const answer = (text) => ({ status: 0, signal: null, stderr: '', stdout: JSON.stringify({ type: 'result', result: text, is_error: false }) });
   const undo = () => { sh('git', ['-C', co, 'rebase', '--abort']); sh('git', ['-C', co, 'merge', '--abort']); sh('git', ['-C', co, 'switch', '-q', line.branch]); sh('git', ['-C', co, 'branch', '-q', '-D', integration]); };
+  // Back on the line's branch, its own dependencies again (1.2.4): the mark holds the lock's hash, so
+  // only a lock that differs installs anything. A failure here is logged: the next run tries again.
+  const restoreDependencies = () => { try { ensureDependencies(ctx, co); } catch (error) { log(ctx, `the dependencies of ${line.branch} in ${co} are not restored: ${error.message.split('\n')[0]}`); } };
   const run = (args) => sh('git', ['-C', co, ...args], { env });
   const update = ctx.set.update === 'merge' ? ['merge', '-q', '--no-edit', line.branch] : ['rebase', '-q', line.branch];
   for (const args of [['switch', '-q', '--create', integration, worktree.branch], update]) {
     const done = run(args);
     if (done.status !== 0) { undo(); return answer(`RESULT: blocked git ${args[0]} of ${worktree.branch}: ${firstLine(done)}`); }
   }
+  // The tests run with the integration branch's dependencies (1.2.4): a task that adds one has it in
+  // its lock. The lock is judged as in a worktree; a refusal puts the checkout back on its branch first.
+  try { ensureDependencies(ctx, co); } catch (error) {
+    undo();
+    restoreDependencies();
+    if (error instanceof UnsafeLock) throw error;
+    return answer(`RESULT: blocked the dependencies of ${integration} could not be installed: ${error.message.split('\n')[0]}`);
+  }
   const [command, ...rest] = ctx.set.testCommand;
   const tests = sh(command, rest, { cwd: co, env: lib.safeGitEnv(lib.agentEnv(env)), timeout: ctx.config.limits.step_timeout_minutes * 60000 });
   guardPath(co); // the tests are the agent's code: judged again before the merge (C)
-  if (tests.status !== 0) { undo(); return answer(`RESULT: blocked the tests fail after the rebase onto ${line.branch} (${ctx.set.testCommand.join(' ')}, exit ${tests.status})`); }
+  if (tests.status !== 0) { undo(); restoreDependencies(); return answer(`RESULT: blocked the tests fail after the rebase onto ${line.branch} (${ctx.set.testCommand.join(' ')}, exit ${tests.status})`); }
   const merge = ctx.set.merge === 'no-ff' ? ['merge', '-q', '--no-ff', '-m', `merge: ${element.id}`, integration] : ['merge', '-q', '--ff-only', integration];
   const moved = run(['switch', '-q', line.branch]);
   const merged = moved.status === 0 ? run(merge) : moved;
-  if (merged.status !== 0) { undo(); return answer(`RESULT: blocked the merge into ${line.branch} failed: ${firstLine(merged)}`); }
+  if (merged.status !== 0) { undo(); restoreDependencies(); return answer(`RESULT: blocked the merge into ${line.branch} failed: ${firstLine(merged)}`); }
   run(['branch', '-q', '-D', integration]);
   if ((step.actions ?? []).some((a) => a.token === 'memory.submit')) {
     const submitted = wingfoil(co, ['memory', 'submit', element.id], env);
@@ -999,6 +1073,8 @@ function runOnce(ctx) {
       step: gate, element, records, head: git(line.checkout, ['rev-parse', 'HEAD']),
       dirty: sh('git', ['-C', line.checkout, 'status', '--porcelain']).stdout.split('\n').filter(Boolean).map((l) => l.slice(3)),
       openNotices: lib.notices(noticesText(ctx)).filter((n) => n.open && !n.key.startsWith('gate-') && n.text.includes(lib.cite(line.name, element.id))).map((n) => n.id),
+      resolvedRuns: lib.resolvedRuns(readLedger(), line.name),
+      skips: lib.skipsOf(readLedger(), line.name, element.ref),
     });
     notice(ctx, { key: gateKey(gate), element: element.ref, reason: `${gate.key} waits for the approver`, packet, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/gate.mjs --line ${lib.shellWord(line.name)} {id} --reason ${lib.shellQuote(packet?.reason ?? '')}` });
   }
@@ -1030,22 +1106,31 @@ function runOnce(ctx) {
     step = steps.find((s) => lib.stepElement(s).id === AMEND_TASK && s.role) ?? null;
     if (!step) { log(ctx, `--red-amend ${AMEND_TASK}: no open step of that task on the frontier`); return; }
   }
-  for (const candidate of AMEND_ORDER ? [] : steps) {
+  for (const candidate of AMEND_ORDER ? [] : lib.optionalFirst(steps)) {
     if (lib.waitsForApprover(candidate) || lib.waitsOnMemory(candidate)) continue;
     if (!lib.launchesOptional(candidate, ctx.set.optional)) { waitLine(ctx, `${S(candidate.key)} is optional: passed over (launch.optional)`); continue; }
+    // An optional step runs before the later steps of its element, or is skipped for it (1.2.6).
+    if (candidate.optional) {
+      const target = lib.stepElement(candidate);
+      if (lib.laterStepRan({ records, element: target, step: candidate, phases: phaseNames(line, candidate.workflow) })) { waitLine(ctx, `${S(candidate.key)} is optional: passed over, a later step of ${target.ref} already ran`); continue; }
+      if (skipOptional(ctx, candidate, target, records)) continue;
+    }
     if (lib.stepMatches(ctx.set.manual, candidate)) {
       manual += 1;
       notice(ctx, { key: `manual-${line.name}-${candidate.instance}-${candidate.key}`, element: lib.stepElement(candidate).ref, reason: `${candidate.key} is run by hand (launch.manual)`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --read workflow next ${lib.shellWord(candidate.instance)}` });
       continue;
     }
-    const dependencies = lib.openDependencies(elementFields(line.checkout, lib.stepElement(candidate).type, lib.stepElement(candidate).id).depends_on, (id) => {
-      const type = Object.keys(memoryYaml.types ?? {}).find((t) => elementFile(line.checkout, t, id));
-      return { status: type ? elementFields(line.checkout, type, id).status : null, final: type ? lib.finalState(memoryYaml, type) : undefined };
-    });
+    const stateOf = (id) => memoryState(line.checkout, memoryYaml, id);
+    const fields = elementFields(line.checkout, lib.stepElement(candidate).type, lib.stepElement(candidate).id);
+    const dependencies = lib.openDependencies(fields.depends_on, stateOf);
     if (dependencies.length) { depending += 1; waitLine(ctx, `${S(candidate.key)} waits for ${dependencies.join(', ')}`); continue; }
+    // An element waits, whatever its workflow's gates (1.2.5): while an element its needs list is
+    // open, and after a run that answered blocked on what it raised or needs, until each is closed.
+    const waitsFor = lib.heldFor({ needs: fields.needs, last: records.filter((r) => r.element === lib.stepElement(candidate).ref).at(-1), stateOf, openStates: ctx.set.openStates });
+    if (waitsFor.length) { depending += 1; waitLine(ctx, `${S(candidate.key)} waits for ${waitsFor.join(', ')}`); continue; }
     // A step that answered blocked waits for the approver to close its notice: it is not relaunched.
     const held = lib.blockedNotice(candidate, openBlocked, line.name);
-    if (held) { blocked += 1; waitLine(ctx, `${S(candidate.key)} blocked by ${lib.notices(noticesText(ctx)).find((n) => n.open && n.key === held)?.id ?? held}`); continue; }
+    if (held) { blocked += 1; waitLine(ctx, `${S(candidate.key)} blocked by ${lib.noticeLabel(lib.notices(noticesText(ctx)).find((n) => n.open && n.key === held)?.id ?? held, held)}`); continue; }
     const target = lib.stepElement(candidate);
     if (lib.limitedMove(candidate, target, memoryYaml)) {
       const probe = wingfoil(line.checkout, ['memory', 'submit', target.id, '--dry-run'], lineEnv);
@@ -1157,9 +1242,16 @@ function runOnce(ctx) {
   const values = { bootstrap: prompt, mcp_config_file: mcpFile, mcp_config: mcpConfigText.trim(), session_id: session ?? '', worktree: worktree.path, checkout: line.checkout };
   const extra = structuredClone(config.adapter_extra_args?.[adapter] ?? { position: 'end', args: [] });
   const gitDir = existsSync(join(worktree.path, '.git')) ? git(worktree.path, ['rev-parse', '--absolute-git-dir']) : join(line.checkout, '.git', 'worktrees', basename(worktree.path));
-  extra.args = [...lib.withoutToolLists(extra.args ?? []), ...lib.worktreeGitArgs({ command: manifest.command, worktree: worktree.path, checkout: line.checkout, gitDir }), ...lib.permissionArgs({ command: manifest.command, role: step.role, cli: CLI, sources: dna().paths?.sources ?? [], extra: ctx.set.extraTools })];
+  // The adapter's own permission fragment when it declares one (WingFoil 0.4), with the runner's
+  // denies after it; else the runner's list of tools (1.2.5).
+  const fragment = lib.adapterPermissions(manifest, step.role);
+  const access = { role: step.role, cli: CLI, sources: dna().paths?.sources ?? [], sourcesReadOnly: ctx.set.sourcesReadOnly, readDeny: ctx.set.readDeny?.[step.role] ?? [] };
+  const toolArgs = fragment ? (manifest.command === 'claude' ? ['--disallowedTools', ...lib.runnerDenies(access)] : []) : lib.permissionArgs({ command: manifest.command, extra: ctx.set.extraTools, ...access });
+  extra.args = [...lib.withoutToolLists(extra.args ?? []), ...lib.worktreeGitArgs({ command: manifest.command, worktree: worktree.path, checkout: line.checkout, gitDir }), ...toolArgs];
   if (session) extra.args = [...extra.args, ...(manifest.session.assign_args ?? [])];
-  const argv = lib.launchArgs(manifest, extra, values);
+  const argv = lib.launchArgs(manifest, extra, values, fragment ?? []);
+  const bypass = lib.bypassArgs(argv);
+  if (bypass.length) { rmSync(tmp, { recursive: true, force: true }); throw new Error(`adapter ${adapter} would launch with ${bypass.join(' ')}, which turns the agent CLI's permission checks or sandbox off: the runner never launches it`); }
   if (DRY) {
     showVersion();
     console.log(JSON.stringify({ line: line.name, step: step.key, amend, instance: step.instance, element: element.ref, agent, adapter, model: lib.adapterModel(manifest), worktree: worktree.path, command: manifest.command, argv: argv.map((a) => (a === prompt ? '<prompt>' : a)) }, null, 2));
@@ -1222,6 +1314,14 @@ function runOnce(ctx) {
   const after = lib.distinctViolation(records, element.ref, step.distinctFrom, { ...who, session: ranSession });
   if (result === 'completed' && after) { result = 'error'; reason = `distinct_from: ${after}`; }
 
+  // A reviewer step that moves the element (1.2.4, N7): the runner submits it after an answer
+  // completed, while the element is where the step found it; a park stays a reject (below).
+  if (result === 'completed' && !scripted && lib.runnerSubmits(step) && elementStatus(line.checkout, element) === statusBefore) {
+    const submitted = wingfoil(line.checkout, ['memory', 'submit', element.id], identityEnv(identity));
+    if (submitted.status !== 0) { result = 'blocked'; reason = `memory submit ${element.id} after the review: ${firstLine(submitted)}`; }
+    else log(ctx, `${element.ref}: memory submit after the accepted review`);
+  }
+
   const checksStarted = Date.now();
   const checks = result === 'completed' ? runChecks(ctx, step.checks?.post ?? [], worktree.path, element, { base, model: expected, role: step.role }) : [];
   if (checks.length) guardAfterAgentCode(ctx, worktree.path); // the checks ran the agent's code (C)
@@ -1239,6 +1339,13 @@ function runOnce(ctx) {
     const left = sh('git', ['-C', worktree.path, 'status', '--porcelain']).stdout.split('\n').map((l) => l.slice(3));
     outside = [...new Set(lib.roleScopeProblems([...committed, ...left], scope.allow))];
     if (outside.length && scope.mode !== 'report') checks.push({ token: 'role-scope', ok: false, why: `${step.role} changed ${outside.slice(0, 5).join(', ')}` });
+  }
+  // What a role may not read (config permissions.read_deny, 1.2.5). Claude Code is denied the paths
+  // at the launch; the commands a CLI reports having run (Codex) are audited here, best effort.
+  const readDeny = scripted ? [] : ctx.set.readDeny?.[step.role] ?? [];
+  if (readDeny.length && result === 'completed') {
+    const read = lib.readScopeCommands(out.commands, readDeny, { roots: [worktree.path, line.checkout] });
+    if (read.length) checks.push({ token: 'read-scope', ok: false, why: `${step.role} read under ${readDeny.join(', ')}: ${read[0].slice(0, 120)}` });
   }
   // Nothing a step changed is left uncommitted, in the line's checkout or the task's worktree (1.2.2):
   // a checkout left dirty refuses every next transition and every ruling. Whatever the answer, the
@@ -1280,13 +1387,19 @@ function runOnce(ctx) {
   const version = sh(manifest.command, manifest.version_args ?? ['--version']).stdout.trim().split('\n')[0];
   // Green or refactor may ask for a red amendment in its blocked answer: read from the full reason.
   const ask = result === 'blocked' && !amend && ['green', 'refactor'].includes(step.phase) ? lib.parseAmendment(reason) : null;
+  // A step that answered blocked on what it raised or needs waits for those elements: the runner
+  // holds the element itself until each is closed, whether or not the workflow has a gate over them
+  // (1.2.5). Ids it cannot find, or ids already closed, hold nothing: the run opens a blocked notice.
+  const named = result === 'blocked' && !ask && lib.stepMatches(ctx.set.raising, step) ? lib.raisedIds(reason) : null;
+  const awaited = named ? lib.waitingIds(named, (id) => memoryState(line.checkout, memoryYaml, id), ctx.set.openStates) : null;
+  const holds = Boolean(awaited && !awaited.unknown.length && awaited.open.length);
   const record = {
     id: lib.nextRunId(own, element.id, step.phase), element: element.ref, workflow: step.workflow, phase: step.phase,
     role: step.role, mode: step.mode ?? 'fresh', agent: scripted ? 'runner' : agent, adapter: scripted ? 'script' : adapter, agent_version: scripted ? lib.NOT_REPORTED : version || lib.NOT_REPORTED,
     model: out.model, session: scripted ? lib.NOT_REPORTED : ranSession ?? lib.NOT_REPORTED, tokens: out.tokens,
     wingfoil: wf(line.checkout, ['--version']).stdout.trim() || lib.NOT_REPORTED,
     state_ref: base, duration_ms: duration, exit_status: launch.status ?? `signal:${launch.signal ?? 'SIGKILL'}`,
-    result, notes: lib.formatNotes({ line: line.name, week, at: now(), started: new Date(started).toISOString(), check_ms: checksMs, changed: sh('git', ['-C', worktree.path, 'diff', '--shortstat', base, head]).stdout.trim().replace(/[^0-9,]+/g, '-'), step: step.key, instance: step.instance, head, amend: amend?.decision, limit: atLimit ? 1 : undefined, outside: outside.length || undefined, ask: lib.askNote(ask), checks: checks.map((c) => `${c.token}:${c.ok ? 'pass' : 'fail'}`).join(','), reason: ctx.set.noticePaths === 'relative' ? lib.publicText(reason, noticePlaces(ctx)) : reason }),
+    result, notes: lib.formatNotes({ line: line.name, week, at: now(), started: new Date(started).toISOString(), check_ms: checksMs, changed: sh('git', ['-C', worktree.path, 'diff', '--shortstat', base, head]).stdout.trim().replace(/[^0-9,]+/g, '-'), step: step.key, instance: step.instance, head, amend: amend?.decision, held: holds ? awaited.open.join(',') : undefined, limit: atLimit ? 1 : undefined, outside: outside.length || undefined, ask: lib.askNote(ask), checks: checks.map((c) => `${c.token}:${c.ok ? 'pass' : 'fail'}`).join(','), reason: ctx.set.noticePaths === 'relative' ? lib.publicText(reason, noticePlaces(ctx)) : reason }),
   };
   appendFileSync(logFile, lib.runRecordLine(record));
   if (RECORD_DIR) {
@@ -1320,11 +1433,12 @@ function runOnce(ctx) {
   }
   // A step that raised elements or wrote needs is held by dev-loop's gates, not by a notice; approvals have theirs.
   // nor is one that asked for a red amendment: the runner launches it on the next run.
-  const notPulled = result === 'blocked' && step.phase === 'start' && lib.raisedIds(reason) && statusBefore === statusAfter;
   // A step that asks for the approver's ruling waits on a decision notice, ruled with gate.mjs.
   const question = result === 'blocked' && !ask ? lib.decisionQuestion(reason) : null;
   if (question) notice(ctx, { key: `decision-${line.name}-${record.id}`, element: element.ref, reason: `decision (run ${record.id}): ${question}`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/gate.mjs --line ${lib.shellWord(line.name)} {id} --reason "<ruling>" [--reject]` });
-  if (result === 'blocked' && !question && !(lib.stepMatches(ctx.set.raising, step) && lib.heldByGates({ phase: step.phase, reason, statusBefore, statusAfter })) && !ask) notice(ctx, { key: `blocked-${line.name}-${record.id}`, element: element.ref, reason: `blocked (run ${record.id}): ${reason}${notPulled ? `; start left the task ${statusAfter}, so the gates do not hold it` : ''}`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --close {id} --how "<what solved it>"` });
+  if (holds) log(ctx, `${element.ref} waits for ${awaited.open.join(', ')}: not launched again before ${awaited.open.length > 1 ? 'they are' : 'it is'} closed`);
+  const unheld = named && !holds ? (awaited.unknown.length ? `; ${awaited.unknown.join(', ')} not found, so nothing holds the step` : '; what it names is already closed, so nothing holds the step') : '';
+  if (result === 'blocked' && !question && !holds && !ask) notice(ctx, { key: `blocked-${line.name}-${record.id}`, element: element.ref, reason: `blocked (run ${record.id}): ${reason}${unheld}`, command: `cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/run.mjs --line ${lib.shellWord(line.name)} --close {id} --how "<what solved it>"` });
   if (result === 'blocked' && element.type === 'task' && lib.raisedIds(reason)) {
     const own = needsTheTaskRaised(line.checkout, element);
     if (own.length) notice(ctx, { key: `needs-raised-${line.name}-${element.id}`, element: element.ref, reason: `the needs of ${element.ref} list what the task raised (${own.join(', ')}): the gate over needs waits for elements no step can write`, command: `remove those ids from the task's needs in ${lib.shellWord(relative(line.checkout, elementFile(line.checkout, element.type, element.id)))}, then cd ${lib.shellWord(HOME_REPO)} && node scripts/runner/gate.mjs --line ${lib.shellWord(line.name)} --element ${lib.shellWord(element.id)} --amend --reason "<why>"` });
@@ -1414,7 +1528,7 @@ function printDoctor(config, line) {
     if (other.checkout && inside(HOME_REPO, other.checkout)) problems.push(`the runner home ${HOME_REPO} is line ${name}'s checkout, which agents write: set paths.runner to the runner's own home, a clone no agent works in`);
     if (other.worktrees && inside(HOME_REPO, other.worktrees)) problems.push(`the runner home ${HOME_REPO} is inside line ${name}'s worktrees`);
   }
-  const program = RUNNER_CLI[0] === 'node' ? RUNNER_CLI[1] : RUNNER_CLI[0];
+  const program = lib.cliProgram(RUNNER_CLI);
   if (program.startsWith('/') && !existsSync(program)) problems.push(`the WingFoil CLI is not installed in the runner home: ${program}`);
   try { problems.push(...lib.identityProblems((yaml.load(readFileSync(join(HOME_REPO, '.wingfoil/dna.yaml'), 'utf8')) ?? {}).team)); } catch { problems.push(`${HOME_REPO}/.wingfoil/dna.yaml cannot be read`); }
   if (exists) problems.push(...lib.unsafeGitConfig(sh('git', ['-C', co, ...lib.GIT_CONFIG_LIST]).stdout).map((l) => `the checkout's git config runs a program: ${l}`));
@@ -1432,6 +1546,12 @@ function walkYaml(dir) {
 }
 
 function main() {
+  if (MIGRATE_STATE) {
+    if (lib.AGENT_MARKERS.some((name) => process.env[name])) { console.error('--migrate-state is the approver\'s: it is never run from an agent\'s shell'); process.exit(3); }
+    const moved = lib.migrateStateFolder();
+    console.log(`runner: ${moved.why}`);
+    process.exit(moved.done ? 0 : 2);
+  }
   const lineName = arg('--line') ?? (STATUS ? 'trunk' : null);
   if (!lineName) { console.error('usage: run.mjs --line <line> [--dry-run] [--config <file>] [--resume] [--red-amend <task id> --files <f>[,<f>…] --because <decision id> [--note "<text>"]]'); process.exit(3); }
   if (AMEND_ORDER && (!AMEND_ORDER.decision || !AMEND_ORDER.files.length)) { console.error('--red-amend needs --files <file>[,<file>…] and --because <decision id>'); process.exit(3); }
@@ -1443,7 +1563,7 @@ function main() {
   // runner runs is the home's copy (H1, H2). The agents keep the project's own CLI.
   Object.assign(process.env, lib.safeGitEnv(process.env));
   RUNNER_CLI = lib.trustedCli(CLI, HOME_REPO);
-  const program = RUNNER_CLI[0] === 'node' ? RUNNER_CLI[1] : RUNNER_CLI[0];
+  const program = lib.cliProgram(RUNNER_CLI);
   if (program.startsWith('/') && !existsSync(program)) { console.error(`runner: the WingFoil CLI is not installed in the runner home: ${program} (npm ci in ${HOME_REPO})`); process.exit(2); }
   PROJECT = JSON.parse(readFileSync(join(HOME_REPO, 'package.json'), 'utf8')).name;
   // Container mode: the caller's, never a configuration's (lib.containerProblems).
@@ -1457,6 +1577,9 @@ function main() {
     Object.assign(config, { push: false, notify: null });
     for (const entry of Object.values(config.lines ?? {})) entry.weekly_token_budget = null;
   }
+  // A state folder that would give a new key and an empty ledger stops the run (1.2.3, F-5).
+  const stateProblems = lib.stateFolderProblems(process.env);
+  if (stateProblems.length) { console.error(`runner: ${stateProblems.join('\nrunner: ')}`); if (!DOCTOR && !STATUS) process.exit(2); }
   if (!DOCTOR && !STATUS) {
     // The runner trusts its home: it refuses to start from a line's checkout, from a home whose files
     // differ from the trusted ref, or from one whose git config runs programs (N3, N4). In container
@@ -1549,7 +1672,7 @@ function main() {
       try { shown = DRY ? [] : JSON.parse(readFileSync(join(line.checkout, '.git', lib.markName('.waiting')), 'utf8')).signature.split('\n'); } catch { /* nothing shown yet */ }
       refreshLock(lock);
       guardCheckout(ctx); // again before every step: the last one's agent may have changed it (N2)
-      Object.assign(ctx, { acted: false, launched: false, halted: false, waiting: [], waits: [], shown: new Set(shown) });
+      Object.assign(ctx, { acted: false, launched: false, halted: false, noticed: false, waiting: [], waits: [], shown: new Set(shown) });
       try { runOnce(ctx); } finally { releaseIdLock(ctx); }
       // A step that runs to its end clears the failures the line had before (1.1.19).
       closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `failure-${line.name}-`), 'the line ran again without a failure');
@@ -1557,7 +1680,8 @@ function main() {
       // What a run wrote without launching (a notice, a closed instance) reaches origin as well.
       if (config.push && !DRY && ctx.acted && !ctx.launched) pushOrigin(ctx, ['--follow-tags'], [line.branch]);
       runs += 1;
-    } while (UNTIL_IDLE && !DRY && ctx.launched && !ctx.halted && runs < most && !stopAsked(line));
+    } while (UNTIL_IDLE && !DRY && ctx.launched && !ctx.halted && !(STOP_ON_NOTICE && ctx.noticed) && runs < most && !stopAsked(line));
+    if (UNTIL_IDLE && STOP_ON_NOTICE && ctx.noticed && !DRY) log(ctx, 'stopped: the run opened a new notice (--stop-on-notice)');
     const waiting = CONTAINER ? lib.waitingItems(noticesText(ctx), line.name, { home: HOME_REPO, opened: lib.openedNotices(readLedger()) }) : [];
     if (CONTAINER && !DRY) lib.writeRecordFile(RECORD_DIR, 'waiting.json', `${JSON.stringify({ line: line.name, at: now(), items: waiting }, null, 2)}\n`);
     // Container mode: 12 when the run stops on what its caller must rule (waiting.json).

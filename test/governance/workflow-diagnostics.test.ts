@@ -3,7 +3,9 @@
 // baseline, counted per file and code. A new diagnostic — or one more of a code already there —
 // fails, so that known warnings cannot hide a new one; a diagnostic that went away fails too, until
 // the baseline says so in the same change. Since task-049 (the procedures folded into directives)
-// the baseline is the two warnings of `service-ingest.yaml`.
+// the baseline is the two warnings of `service-ingest.yaml`; since dl-028 (`backlog-item` version 2,
+// its `build` phase removed) also the 37 orphan records of `backlog-item.build` in the life cycle's plan
+// (`wingfoil-cli` W-57).
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
