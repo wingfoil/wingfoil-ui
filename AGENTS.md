@@ -65,6 +65,10 @@ above says otherwise, this section is right:
   planned Sprint stops at the approver's gate `confirm-end-of-life` (`.wingfoil/README.md`, R-8, R-9).
 - **The script runner** launches the agents `claude` and `codex` one step at a time and stops
   wherever the approver must act; a step it launches follows `wingfoil-cli` › *The script runner*.
+- **A task runs test first, step by step** (`backlog-item` version 2, deviation R-11): design, red,
+  green and refactor are steps of their own, each a fresh session — the session that writes the
+  tests never writes the code. A task with `flow: "direct — <reason>"`, approved with it, skips red
+  (directive `definition-of-done`).
 - **Your git identity.** The approver gives agent sessions an identity of their own (task-050):
   the Claude Code `env` of the main checkout's git-ignored `.claude/settings.local.json`, on the
   approver's machine. It reaches only Claude Code sessions whose working directory is in this

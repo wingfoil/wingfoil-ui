@@ -52,6 +52,8 @@ launch:
   - sprint
   - retrospective
   manual: []
+  optional:
+  - backlog-item.red
 phases:
   integrate:
   - backlog-item.done

@@ -1,12 +1,12 @@
 # `.wingfoil/` — WingFoil configuration of WingFoil UI
 
-**Version:** 0.15 · **Date:** 2026-11-21 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
+**Version:** 0.16 · **Date:** 2026-11-25 (0.1: release v0.1, `user-docs` `align-agent-docs`; 0.2:
 W-25, W-26 — dl-007; 0.3: `release-submit`, `release-publishing`, `retrospective` tailored — dl-008;
 0.4: the packs `base@2.0.1`, `software@1.0.0`, `methodology/scrum@1.0.0` adopted —
 governance-alignment-rel-v0.3-plan step 3; 0.5: the deviations from the packs — GA3-11; 0.6: their residuals, the accepted limits, `traceability-chain`, `release-conventions` on facilitator — the adoption's review round 1; 0.7: the deprecate rule for every role — round 2; 0.8: R-3 cites the `wingfoil-cli` deprecate rule
 — review round 3 nit; 0.9: the accepted limits cite `wingfoil-cli` 1.15 (W-34, W-40) —
 governance-alignment-rel-v0.3-plan step 4; 0.10: the five procedures folded into directives, the
-directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019; 0.13: the phases `next-sprint` and `confirm-end-of-life`, deviations R-8 and R-9 — dl-022; 0.14: the runner's agents, `agents/custom/`, the pin `wingfoil@0.3.2` — `governance-evolution-8-plan`; 0.15: deviation R-10, a task's bugs moved at `start` and `review` — `governance-evolution-10-plan`, dl-025) ·
+directive `release-planning` — task-049; 0.11: a closed bug's `release` — task-051; 0.12: the `ui.yaml` row of *Files* — dl-019; 0.13: the phases `next-sprint` and `confirm-end-of-life`, deviations R-8 and R-9 — dl-022; 0.14: the runner's agents, `agents/custom/`, the pin `wingfoil@0.3.2` — `governance-evolution-8-plan`; 0.15: deviation R-10, a task's bugs moved at `start` and `review` — `governance-evolution-10-plan`, dl-025; 0.16: deviation R-11, `backlog-item` version 2, `workflows/bindings.yaml` — `governance-evolution-13-plan`, dl-028) ·
 **Checked against:** `wingfoil@0.3.2` (the devDependency pin)
 
 This folder makes the WingFoil UI repository a project **governed by WingFoil**: its DNA, its Memory
@@ -54,6 +54,13 @@ step's actions:
 |---|----------|--------|------|-----|
 | R-10 | `backlog-item` | `start` and `review` move only the task | `bug.sync_state(for_each: task.bug)` at `start` (each bug `planned → in-progress`) and at `review` (`in-progress → in-review`), done with `memory submit <bug>` for each bug `workflow next` names | at the pilot's first `start` the agent moved the task and not its bug, which `definition-of-done` names; not at `done`, where WingFoil would target the bug's last state, `closed`, past the approver's gates (`wingfoil-cli` W-55) |
 
+Decided by the approver on 2026-11-25 (dl-028), so that the tests come first as a fact the runner
+checks:
+
+| # | Workflow | Pack's | Here | Why |
+|---|----------|--------|------|-----|
+| R-11 | `backlog-item` (version 2) | `start · build · review · approve · done`: design, red, green and refactor inside one `build` run | `start · design · red · green · refactor · review · approve · done`, the same agent in distinct fresh sessions; red as `qa`, `optional: true` with the pre check `flow-tdd`; `distinct_from` on green and review; the checks bound in `workflows/bindings.yaml`; a reject goes back to `green` | in one run one context wrote the tests and the code that passes them (Wave 1 of v0.3.1). WingFoil 0.3.2 runs no check and has no per-element phase condition: the script runner (1.2.6) enforces `distinct_from`, runs the bound checks and skips red for a task with `flow: direct` — WingFoil v1.0's `optional` semantics (P4.12), a gap noted in `docs/wingfoil-feedback/`. A custom workflow cannot take the pack's name (`E_WORKFLOW_DUPLICATE_NAME`): the change is in place |
+
 **Accepted limits** (not deviations; the adoption design §11, the review round 1):
 
 - `memory deprecate` needs no approval: any git identity, team member or not, deprecates any element
@@ -83,7 +90,8 @@ Also this repository's own, not a pack's change: its templates, the custom `defi
 | `memory.yaml` | the Memory element types: path, id pattern, template, required fields, state machine |
 | `memory/templates/` | this repository's templates (`adr`, `bug`, `decision-log`, `plan`, `release-line`, `release`, `service`, `task`, `tech-spec`); `built-in/` the packs' (only `sprint` is in use) |
 | `workflows.yaml` | the main workflow configuration: the `include` list of the workflow files |
-| `workflows/built-in/` | the 16 workflows of the packs, unchanged but for `delivery`, `sprint` and `sw-life-cycle` (R-8, R-9) |
+| `workflows/built-in/` | the 16 workflows of the packs, unchanged but for `delivery`, `sprint`, `sw-life-cycle` (R-8, R-9) and `backlog-item` (R-10, R-11) |
+| `workflows/bindings.yaml` | the check tokens of `backlog-item` bound to scripts (`flow-tdd`, `tests-red`, `tests-green`, `red-tests-untouched`, `commit-trailers`); validated by WingFoil 0.3.2, run only by the script runner from its home's copy (dl-028) |
 | `workflows/custom/` | this repository's one workflow, `service-ingest` |
 | `roles.yaml` | role → directive bindings and the global directives |
 | `ui.yaml` | the console's configuration (spec-005): taxonomy, progress, holds, artifacts; written by *Use preset* or by hand; ignored by the CLI (`wingfoil-cli` W-11) |

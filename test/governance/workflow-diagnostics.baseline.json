@@ -1,5 +1,11 @@
 [
   {
+    "file": "docs/05_plans/sw-life-cycle/sw-life-cycle-1-plan.md",
+    "code": "W_PROVENANCE_ORPHAN",
+    "severity": "warning",
+    "count": 37
+  },
+  {
     "file": "workflows/custom/service-ingest.yaml",
     "code": "W_WORKFLOW_UNBOUND_TOKEN",
     "severity": "warning",

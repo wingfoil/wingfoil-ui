@@ -2,7 +2,7 @@
 // choice, launch arguments, run records, budget, stop conditions, notices. No process is spawned
 // and no file is written here, so every rule is tested by scripts/runner/runner.test.mjs.
 // The same file runs in every project that adopts the runner: nothing in it names a project.
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import { posix } from 'node:path';
@@ -99,13 +99,27 @@ export function publicText(text, places) {
   return pairs.reduce((out, [path, name]) => out.split(path).join(name), String(text ?? ''));
 }
 
-/** The line's configuration, with its paths expanded; throws on an unknown line. */
+/** The groups of lines that declare the same branch (1.2.5): each group has two names or more. */
+export function sameBranchLines(config) {
+  const byBranch = new Map();
+  for (const [name, entry] of Object.entries(config?.lines ?? {})) {
+    if (entry?.branch === undefined) continue;
+    byBranch.set(entry.branch, [...(byBranch.get(entry.branch) ?? []), name]);
+  }
+  return [...byBranch.values()].filter((names) => names.length > 1);
+}
+
+/** The line's configuration, with its paths expanded; throws on an unknown line or a shared branch. */
 export function lineConfig(config, line) {
   const entry = config.lines?.[line];
   if (!entry) throw new Error(`unknown line '${line}': config/runner.yaml declares ${Object.keys(config.lines ?? {}).join(', ')}`);
   for (const key of ['branch', 'agent', 'tiers', 'checkout', 'worktrees']) {
     if (entry[key] === undefined) throw new Error(`line '${line}' has no '${key}' in config/runner.yaml or config/runner.local.yaml`);
   }
+  // Two lines on one branch would take the same steps and integrate into two copies of it that no
+  // run brings back together (1.2.5): a line is its own branch and release-line.
+  const twins = sameBranchLines(config).find((names) => names.includes(line));
+  if (twins) throw new Error(`lines ${twins.map((n) => `'${n}'`).join(' and ')} are all on branch '${entry.branch}': give each line its own branch (and release_line) in config/runner.yaml`);
   return { name: line, ...entry, checkout: expandHome(entry.checkout), worktrees: expandHome(entry.worktrees) };
 }
 
@@ -158,6 +172,11 @@ export function settings(config = {}) {
     pushGuard: config.push_guard ?? true,
     cli: config.cli ?? ['npx', '--no-install', 'wingfoil'],
     extraTools: config.permissions?.extra ?? [],
+    // The roles that never edit the project's sources (paths.sources), and the paths each role may
+    // not read (1.2.5): config permissions.sources_read_only and permissions.read_deny.
+    sourcesReadOnly: config.permissions?.sources_read_only ?? ['reviewer', 'qa'],
+    readDeny: config.permissions?.read_deny ?? {},
+    openStates: config.needs?.open_states ?? OPEN_STATES,
   };
 }
 
@@ -219,6 +238,32 @@ export function memoryDir(memoryYaml, type) {
   if (!pattern) return `docs/memory/${type}`;
   const fixed = pattern.slice(0, pattern.includes('{') ? pattern.indexOf('{') : pattern.length);
   return fixed.replace(/\/[^/]*$/, '') || '.';
+}
+
+/**
+ * Whether a path is where Memory keeps the element `id` (1.2.3, F-4): one of the types' `path`
+ * patterns of memory.yaml, `{id}` as the id and every other placeholder as one folder name, or
+ * `docs/memory/<type>/<id>.md` for a type without a pattern.
+ */
+export function isMemoryPath(memoryYaml, path, id) {
+  if (!safeId(id)) return false;
+  const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return Object.entries(memoryYaml?.types ?? {}).some(([type, def]) => {
+    const pattern = def?.path ?? `docs/memory/${type}/{id}.md`;
+    // Any placeholder but {id} may span folders (1.2.6, G-3): a plan under {scope} = rl-v1/rel-v0.3.
+    const source = String(pattern).split(/(\{[^}]*\})/).map((part) => (part === '{id}' ? escape(id) : /^\{[^}]*\}$/.test(part) ? '[^/]+(?:/[^/]+)*' : escape(part))).join('');
+    return new RegExp(`^${source}$`).test(path);
+  });
+}
+
+/**
+ * The one tracked file that is the element's Memory file (1.2.6, G-3), or null: a placeholder may span
+ * folders, so a second tracked file that also matches the id (planted elsewhere) makes it ambiguous,
+ * and nothing is taken as the element's own file (1.2.3, F-4).
+ */
+export function ownMemoryFile(memoryYaml, tracked, id) {
+  const matches = (tracked ?? []).filter((path) => isMemoryPath(memoryYaml, path, id));
+  return matches.length === 1 ? matches[0] : null;
 }
 
 /** The run log's folder (`paths.runs` of dna.yaml). */
@@ -654,6 +699,49 @@ export function stateDir(env = process.env, exists = (f) => require('node:fs').e
   const legacy = `${homedir()}/.local/state/${LEGACY_MARK}`;
   return exists(own) || !exists(legacy) ? own : legacy;
 }
+/**
+ * Why the state folder cannot be trusted as it is (1.2.3, F-5): the folder named after the runner
+ * exists without a key while the one from before 1.2.1 holds one, so every run would sign with a new
+ * key and read an empty ledger. Nothing is said when WINGFOIL_RUNNER_STATE (or its alias) names the folder.
+ */
+export function stateFolderProblems(env = process.env, exists = (f) => require('node:fs').existsSync(f)) {
+  if (runnerEnv('STATE', env)) return [];
+  const own = `${homedir()}/.local/state/${MARK}`;
+  const legacy = `${homedir()}/.local/state/${LEGACY_MARK}`;
+  if (!exists(own) || !exists(legacy)) return [];
+  const fs = require('node:fs');
+  let same;
+  try { same = fs.realpathSync(own) === fs.realpathSync(legacy); } catch { same = false; }
+  if (same) return [];
+  if (!exists(`${own}/ledger.key`) && exists(`${legacy}/ledger.key`)) {
+    return [`${own} exists without a key, and ${legacy} holds the key and the ledgers: the runner would sign with a new key and read no ruling. Remove the empty ${own} (rmdir ${own}), or move the old folder into its place with: node scripts/runner/run.mjs --migrate-state`];
+  }
+  return [];
+}
+
+/**
+ * The state folder moved to its own name (1.2.3, F-5): dfd-runner becomes wingfoil-runner, and the old
+ * name is left as a link to it, so a project still on a runner older than 1.2.1 keeps its key and its
+ * ledger. Refused when the new folder holds anything, or when the old one is already a link.
+ */
+const STATE_FOLDER = '.local/state';
+export function migrateStateFolder({ home = homedir(), fs = require('node:fs') } = {}) {
+  const own = [home, STATE_FOLDER, MARK].join('/');
+  const legacy = [home, STATE_FOLDER, LEGACY_MARK].join('/');
+  let st;
+  try { st = fs.lstatSync(legacy); } catch { return { done: false, why: `${legacy} does not exist: nothing to move` }; }
+  if (st.isSymbolicLink()) return { done: false, why: `${legacy} is already a link (to ${fs.readlinkSync(legacy)}): nothing to move` };
+  if (!st.isDirectory()) return { done: false, why: `${legacy} is not a folder` };
+  if (fs.existsSync(own)) {
+    if (fs.lstatSync(own).isSymbolicLink() || !fs.lstatSync(own).isDirectory()) return { done: false, why: `${own} exists and is not a plain folder: move it away by hand first` };
+    if (fs.readdirSync(own).length) return { done: false, why: `${own} is not empty: move what it holds by hand, then run this again` };
+    fs.rmdirSync(own);
+  }
+  fs.renameSync(legacy, own);
+  fs.symlinkSync(MARK, legacy);
+  return { done: true, why: `${legacy} moved to ${own}; ${legacy} is now a link to it, for the projects on a runner older than 1.2.1` };
+}
+
 export function ledgerFile(project, env = process.env) {
   return `${stateDir(env)}/${String(project).replace(/[^\w.@-]+/g, '_')}/rulings.jsonl`;
 }
@@ -707,6 +795,29 @@ export function appendLedger(project, entry, env = process.env) {
   const keyFile = ledgerKeyFile(env);
   try { fs.writeFileSync(keyFile, require('node:crypto').randomBytes(32).toString('hex'), { flag: 'wx', mode: 0o600 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
   fs.appendFileSync(ledgerFile(project, env), ledgerLine(fs.readFileSync(keyFile, 'utf8').trim(), { at: new Date().toISOString(), project, ...entry }), { mode: 0o600 });
+}
+
+/**
+ * The runs the approver solved after they ended blocked (1.2.4, N7): their blocked notice closed with
+ * run.mjs --close, or their decision ruled with gate.mjs, from the ledger.
+ */
+export function resolvedRuns(entries, line) {
+  const prefix = `blocked-${line}-`;
+  return new Set((entries ?? []).flatMap((e) => {
+    if (e.line !== line) return [];
+    if (e.kind === 'close' && String(e.key ?? '').startsWith(prefix)) return [e.key.slice(prefix.length)];
+    if (e.kind === 'decision' && e.run) return [e.run];
+    return [];
+  }));
+}
+
+/**
+ * Whether the runner moves the element after the step (1.2.4, N7): a reviewer step whose action is
+ * `memory.submit`, as kanban's work-item review is. The reviewer never holds submit, so the runner
+ * runs it after an answer completed, as it does when it integrates.
+ */
+export function runnerSubmits(step) {
+  return step?.role === 'reviewer' && (step.actions ?? []).some((a) => a.token === 'memory.submit');
 }
 
 /** The gate rulings for a step's instance and element since a moment, from the ledger: [{ step, reason, at }]. */
@@ -767,10 +878,12 @@ export function substitute(args, values) {
  * arguments for that adapter at their position (`end`, or `before-prompt` for a CLI that reads
  * nothing after its prompt), every placeholder filled.
  */
-export function launchArgs(manifest, extra, values) {
+export function launchArgs(manifest, extra, values, permissions = []) {
   const headless = manifest.launch?.headless;
   if (!headless) throw new Error(`adapter '${manifest.name}' declares no launch.headless profile`);
-  const args = [...headless.args];
+  // The adapter's permission fragment comes right after its args, as WingFoil's engine puts it
+  // (spec-016 §3.3 step 14); it holds no placeholder (1.2.5).
+  const args = [...headless.args, ...permissions];
   const more = extra?.args ?? [];
   if (extra?.position === 'before-prompt') {
     const at = args.indexOf('{bootstrap}');
@@ -804,10 +917,12 @@ export const FORBIDDEN_WF = Object.freeze(['memory approve', 'memory reject', 'w
 
 /**
  * The tools of a Claude Code launch for a role, listed one by one: no generic git, node or WingFoil.
- * A reviewer and a qa cannot edit the project's sources (`paths.sources` of dna.yaml). Other CLIs
- * have no per-command allowlist: their commands are audited after the run (forbiddenCommands).
+ * The roles of `sourcesReadOnly` (reviewer and qa unless the configuration says otherwise) cannot
+ * edit the project's sources (`paths.sources` of dna.yaml), and a role reads none of the paths
+ * `readDeny` names. Other CLIs have no per-command allowlist: their commands are audited after the
+ * run (forbiddenCommands, readScopeCommands).
  */
-export function permissionArgs({ command, role, cli, sources = [], extra = [] }) {
+export function permissionArgs({ command, role, cli, sources = [], extra = [], sourcesReadOnly = ['reviewer', 'qa'], readDeny = [] }) {
   if (command !== 'claude') return [];
   // Read-only version checks, matched exactly (no `:*`): nothing else opens with them (1.2.0).
   const versions = versionCommands(cli).map((c) => `Bash(${c})`);
@@ -817,10 +932,49 @@ export function permissionArgs({ command, role, cli, sources = [], extra = [] })
   const reviewing = role === 'reviewer';
   const allow = ['Read', 'Glob', 'Grep', 'Edit', 'Write', 'Bash(npm test:*)', 'Bash(npm run:*)', ...git(GIT_READ), ...git(GIT_RECORD), ...wf(WF_READ),
     ...wf(reviewing ? WF_REVIEW : WF_WRITE), ...(reviewing ? [] : git(GIT_WRITE)), ...versions, ...extra];
-  const deny = ['Bash(git push:*)', 'Bash(git -C:*)', 'Bash(git remote:*)', 'Bash(git config:*)', 'Bash(npm publish:*)', ...wf(FORBIDDEN_WF),
+  return ['--allowedTools', ...allow, '--disallowedTools', ...runnerDenies({ role, cli, sources, sourcesReadOnly, readDeny })];
+}
+
+/**
+ * What the runner denies a Claude Code role whatever its allowlist says: publishing, git outside the
+ * worktree or on its remotes and config, the approver's verbs, the runner's own scripts, the sources
+ * for the roles that only read them, and the paths the role may not read. A deny wins over any allow
+ * in Claude Code, so these hold under an adapter's own permission fragment as well (1.2.5). A Read
+ * rule covers Claude Code's Grep and Glob too; it does not cover a Bash command that reads the file
+ * (git show, git grep, npm run): ADOPTION.md lists those limits.
+ */
+export function runnerDenies({ role, cli, sources = [], sourcesReadOnly = ['reviewer', 'qa'], readDeny = [] }) {
+  const forms = [...new Set([cli.join(' '), 'npx wingfoil', 'npx --no-install wingfoil'])];
+  const glob = (path) => `${String(path).replace(/\/+$/, '')}/**`;
+  return ['Bash(git push:*)', 'Bash(git -C:*)', 'Bash(git remote:*)', 'Bash(git config:*)', 'Bash(npm publish:*)',
+    ...forms.flatMap((form) => FORBIDDEN_WF.map((verb) => `Bash(${form} ${verb}:*)`)),
     ...RUNNER_SCRIPTS.flatMap((script) => [`Bash(node ${script}:*)`, `Bash(${script}:*)`]),
-    ...(['reviewer', 'qa'].includes(role) ? sources.flatMap((path) => { const glob = `${String(path).replace(/\/+$/, '')}/**`; return [`Edit(${glob})`, `Write(${glob})`]; }) : [])];
-  return ['--allowedTools', ...allow, '--disallowedTools', ...deny];
+    ...((sourcesReadOnly ?? []).includes(role) ? sources.flatMap((path) => [`Edit(${glob(path)})`, `Write(${glob(path)})`]) : []),
+    ...(readDeny ?? []).map((path) => `Read(${glob(path)})`)];
+}
+
+/**
+ * The permission fragment an adapter declares for a role (`launch.headless.permissions`, WingFoil 0.4,
+ * spec-016 §2.2), chosen as the engine chooses it (launchPermissions): a plain argv for every role; in
+ * a role map, the role's own entry, else `default`. Null when the adapter declares none (WingFoil
+ * 0.3.2 refuses the field), and the runner then lists the tools itself (permissionArgs).
+ */
+export function adapterPermissions(manifest, role) {
+  const permissions = manifest?.launch?.headless?.permissions;
+  if (permissions === undefined || permissions === null) return null;
+  if (Array.isArray(permissions)) return permissions.map(String);
+  if (typeof permissions !== 'object') throw new Error(`adapter '${manifest.name}': launch.headless.permissions is neither an argv nor a role map`);
+  // An own key only: a role named like an Object.prototype member takes default, as in the engine.
+  const fragment = Object.hasOwn(permissions, role) ? permissions[role] : permissions.default;
+  return Array.isArray(fragment) ? fragment.map(String) : [];
+}
+
+/** The arguments of a launch that turn the agent CLI's permission checks or sandbox off (1.2.5). */
+export function bypassArgs(argv) {
+  const words = (argv ?? []).map(String);
+  return words.filter((word, i) => /^--(?:allow-)?dangerously-skip-permissions$|^--dangerously-bypass-approvals-and-sandbox$|^--yolo$/.test(word)
+    || /^--permission-mode=bypassPermissions$/.test(word) || (word === '--permission-mode' && words[i + 1] === 'bypassPermissions')
+    || /danger-full-access/.test(word) && (/^--sandbox=|sandbox_mode/.test(word) || ['--sandbox', '-s'].includes(words[i - 1])));
 }
 
 /**
@@ -852,10 +1006,254 @@ export function agentEnv(env, extra = {}) {
 /** The runner's own commands: an agent never runs them, the approver's gate.mjs above all (1.2.1, I-1). */
 export const RUNNER_SCRIPTS = Object.freeze(['scripts/runner/gate.mjs', 'scripts/runner/run.mjs']);
 
-/** The commands of a run that no role may run. */
+/** The programs that read a script: their `-c` argument, a heredoc or a here-string is run. */
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash', 'ksh', 'fish']);
+/** The programs that run the command after their own options (env, xargs, timeout…). */
+const WRAPPERS = new Set(['env', 'command', 'exec', 'nohup', 'time', 'nice', 'sudo', 'xargs', 'timeout', 'stdbuf', 'builtin', 'then', 'do', 'else', 'elif', 'if', 'while', 'until', '!', '{', '}', 'setsid']);
+/** The options of a wrapper that take the next word as their value. */
+const WRAPPER_VALUES = { nice: ['-n'], xargs: ['-I', '-i', '-n', '-P', '-L', '-d', '-E', '-s', '-a'], timeout: ['-s', '-k', '--signal', '--kill-after'], sudo: ['-u', '-g', '-C', '-D'], env: ['-u', '-C', '-S'], stdbuf: ['-i', '-o', '-e'] };
+
+const base = (word) => String(word).split('/').pop();
+
+/**
+ * The simple commands a shell text runs, each as its argv with the quotes removed (1.2.5): a heredoc
+ * or a here-string is dropped unless a shell reads it, and the scripts of `bash -c`, `eval`,
+ * `$(…)` and backquotes are opened. Null when the text does not parse (an unclosed quote): the caller
+ * then judges the whole text.
+ */
+export function shellCommands(text, depth = 0) {
+  if (depth > 8) return null;
+  const src = String(text ?? '');
+  const commands = [];
+  const nested = [];
+  const heredocs = [];
+  let argv = [];
+  let word = null;
+  let pendingHeredocs = [];
+  let hereString = false;
+  const endWord = () => {
+    if (word === null) return;
+    if (hereString) { if (argv.isShell === undefined) argv.hereStrings = [...(argv.hereStrings ?? []), word]; hereString = false; word = null; return; }
+    if (argv.heredocNext) { pendingHeredocs.push({ delim: word, strip: argv.heredocNext === '<<-', argv }); argv.heredocNext = null; word = null; return; }
+    argv.push(word);
+    word = null;
+  };
+  // The command a pipe feeds (`… | sh`): its words and heredoc are a script when a shell reads it (1.2.6).
+  let pipedFrom = null;
+  const endCommand = (pipe = false) => {
+    endWord();
+    if (argv.length || argv.hereStrings) { if (pipedFrom) argv.pipedFrom = pipedFrom; commands.push(argv); }
+    pipedFrom = pipe && (argv.length || argv.hereStrings) ? argv : null;
+    argv = [];
+  };
+  // The text of a `$(…)` from position i (just after `$(`): up to its closing parenthesis.
+  const closing = (i) => {
+    let level = 1;
+    let quote = null;
+    for (let j = i; j < src.length; j += 1) {
+      const c = src[j];
+      if (quote) { if (c === '\\' && quote === '"') { j += 1; continue; } if (c === quote) quote = null; continue; }
+      if (c === "'" || c === '"') { quote = c; continue; }
+      if (c === '\\') { j += 1; continue; }
+      if (c === '(') level += 1;
+      if (c === ')') { level -= 1; if (level === 0) return j; }
+    }
+    return -1;
+  };
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i];
+    if (c === '\n') {
+      endCommand();
+      i += 1;
+      // The heredocs started on this line: their bodies follow, up to each delimiter line.
+      for (const doc of pendingHeredocs) {
+        const lines = [];
+        for (;;) {
+          if (i >= src.length) break;
+          const end = src.indexOf('\n', i);
+          const line = src.slice(i, end === -1 ? src.length : end);
+          i = end === -1 ? src.length : end + 1;
+          if ((doc.strip ? line.replace(/^\t+/, '') : line) === doc.delim) break;
+          lines.push(line);
+        }
+        heredocs.push({ argv: doc.argv, body: lines.join('\n') });
+      }
+      pendingHeredocs = [];
+      continue;
+    }
+    if (c === ' ' || c === '\t') { endWord(); i += 1; continue; }
+    if (c === '#' && word === null) { while (i < src.length && src[i] !== '\n') i += 1; continue; }
+    if (c === '\\') { if (src[i + 1] === '\n') { i += 2; continue; } word = (word ?? '') + (src[i + 1] ?? ''); i += 2; continue; }
+    if (c === "'") { const end = src.indexOf("'", i + 1); if (end === -1) return null; word = (word ?? '') + src.slice(i + 1, end); i = end + 1; continue; }
+    if (c === '"') {
+      let j = i + 1;
+      let out = '';
+      for (; j < src.length && src[j] !== '"'; j += 1) {
+        if (src[j] === '\\' && j + 1 < src.length) { out += src[j + 1]; j += 1; continue; }
+        if (src[j] === '$' && src[j + 1] === '(') { const end = closing(j + 2); if (end === -1) return null; nested.push(src.slice(j + 2, end)); j = end; continue; }
+        if (src[j] === '`') { const end = src.indexOf('`', j + 1); if (end === -1) return null; nested.push(src.slice(j + 1, end)); j = end; continue; }
+        out += src[j];
+      }
+      if (j >= src.length) return null;
+      word = (word ?? '') + out;
+      i = j + 1;
+      continue;
+    }
+    if (c === '$' && src[i + 1] === '(') { const end = closing(i + 2); if (end === -1) return null; nested.push(src.slice(i + 2, end)); word = (word ?? '') + '$()'; i = end + 1; continue; }
+    if (c === '`') { const end = src.indexOf('`', i + 1); if (end === -1) return null; nested.push(src.slice(i + 1, end)); word = (word ?? '') + '``'; i = end + 1; continue; }
+    if (c === '<' && src[i + 1] === '<') {
+      endWord();
+      if (src[i + 2] === '<') { hereString = true; i += 3; continue; }
+      argv.heredocNext = src[i + 2] === '-' ? '<<-' : '<<';
+      i += argv.heredocNext.length;
+      continue;
+    }
+    // `&` is a separator unless it belongs to a redirection (2>&1, >&2, &>file).
+    if (c === '&' && (src[i + 1] === '>' || src[i - 1] === '>' || src[i - 1] === '<')) { word = (word ?? '') + c; i += 1; continue; }
+    if (c === '|' && src[i + 1] !== '|' && src[i - 1] !== '|') { endCommand(true); i += src[i + 1] === '&' ? 2 : 1; continue; }
+    if (c === ';' || c === '&' || c === '|' || c === '(' || c === ')') { endCommand(); i += 1; continue; }
+    word = (word ?? '') + c;
+    i += 1;
+  }
+  endCommand();
+  if (pendingHeredocs.length) for (const doc of pendingHeredocs) heredocs.push({ argv: doc.argv, body: '' });
+  const out = [];
+  const open = (script) => { const inner = shellCommands(script, depth + 1); if (inner === null) throw new Error('unparsed'); out.push(...inner); };
+  try {
+    for (const script of nested) open(script);
+    for (const command of commands) {
+      const run = unwrapCommand(command);
+      if (!run.length && !command.hereStrings) continue;
+      const shell = SHELLS.has(base(run[0] ?? ''));
+      if (shell) {
+        const flag = run.findIndex((w, k) => k > 0 && /^-[a-zA-Z]*c[a-zA-Z]*$/.test(w));
+        // `bash -c -- '<script>'`: the script follows the end of the options (1.2.6, G-1).
+        const at = flag === -1 ? -1 : run[flag + 1] === '--' ? flag + 2 : flag + 1;
+        if (at !== -1 && run[at] !== undefined) { open(run[at]); continue; }
+        for (const s of command.hereStrings ?? []) open(s);
+        // A shell reading a pipe runs what the command before it writes (1.2.6, G-1).
+        if (command.pipedFrom) {
+          const from = unwrapCommand(command.pipedFrom);
+          open(from.slice(1).join(' '));
+          for (const doc of heredocs) if (doc.argv === command.pipedFrom) open(doc.body);
+        }
+      }
+      if (run[0] === 'eval') { open(run.slice(1).join(' ')); continue; }
+      if (run.length) out.push(run);
+    }
+    for (const doc of heredocs) if (SHELLS.has(base(unwrapCommand(doc.argv)[0] ?? ''))) open(doc.body);
+  } catch {
+    return null;
+  }
+  return out;
+}
+
+/** A command without its leading assignments and wrappers (env, xargs, timeout…): what it runs. */
+export function unwrapCommand(argv) {
+  let words = [...argv];
+  for (let guard = 0; guard < 16; guard += 1) {
+    while (words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[0])) words = words.slice(1);
+    const name = base(words[0] ?? '');
+    if (!WRAPPERS.has(name)) break;
+    words = words.slice(1);
+    const values = WRAPPER_VALUES[name] ?? [];
+    while (words.length && (words[0].startsWith('-') || (name === 'env' && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[0])))) {
+      const option = words[0];
+      words = words.slice(values.includes(option) ? 2 : 1);
+    }
+    if (name === 'timeout' && /^\d/.test(words[0] ?? '')) words = words.slice(1);
+  }
+  return words;
+}
+
+/**
+ * Whether an argv only reads or prints its arguments (1.2.6, G-1): its text may cite a forbidden
+ * command without running it. A short list, each with the options that would run something: rg
+ * without --pre, grep, cat, head, tail, wc, echo, printf, and git commit, tag, log, show, diff, grep
+ * or status without a global option (-c, --config-env, --exec-path), --ext-diff, --textconv or
+ * grep's -O. sed (its `e` command, `w`) and less (`!`) run commands: they are not readers.
+ */
+function readsOnly(words) {
+  const name = base(words[0] ?? '');
+  if (['grep', 'egrep', 'fgrep', 'cat', 'head', 'tail', 'wc', 'echo', 'printf'].includes(name)) return true;
+  if (name === 'rg') return !words.some((w) => /^--pre(?:-glob)?(?:=|$)/.test(w));
+  if (name === 'git') {
+    if (words[1]?.startsWith('-')) return false;
+    if (!['commit', 'tag', 'log', 'show', 'diff', 'grep', 'status'].includes(words[1])) return false;
+    return !words.some((w) => /^--(?:ext-diff|textconv|exec)(?:=|$)/.test(w) || (words[1] === 'grep' && /^(?:-O|--open-files-in-pager)/.test(w)));
+  }
+  return false;
+}
+
+/**
+ * Whether an argv runs what no role may run: git push, npm publish, an approver's verb, a runner
+ * script. The known forms are read word by word; besides, any argv but a reader's (readsOnly) is
+ * judged on its whole text (1.2.6, G-1): `python3 -c`, `node -e`, `find -exec`, `flock` or a program
+ * the runner does not know may run the command they cite.
+ */
+function forbiddenArgv(argv) {
+  let words = argv;
+  if (base(words[0] ?? '') === 'npx') { words = words.slice(1); while (words.length && words[0].startsWith('-')) words = words.slice(['-p', '--package'].includes(words[0]) ? 2 : 1); }
+  const name = base(words[0] ?? '');
+  if (name === 'git') {
+    let k = 1;
+    while (k < words.length && words[k].startsWith('-')) k += ['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--exec-path'].includes(words[k]) ? 2 : 1;
+    if (words[k] === 'push') return true;
+  }
+  if (name === 'npm') {
+    const verb = words.slice(1).find((w) => !w.startsWith('-'));
+    if (verb === 'publish') return true;
+  }
+  // The CLI, then an approver's verb anywhere after it (`npm run -s wingfoil -- memory approve t-1`).
+  const cli = words.findIndex((w) => /wingfoil/.test(w) || /(?:^|\/)cli\.js$/.test(w));
+  if (cli !== -1 && words.slice(cli + 1).some((w, k, rest) => FORBIDDEN_WF.includes(`${w} ${rest[k + 1]}`))) return true;
+  // The CLI with a verb a role may run reads its arguments as text (a title, a reason).
+  if (cli !== -1 && (cli === 0 || ['node', 'npx'].includes(name)) && [...WF_READ, ...WF_WRITE].includes(`${words[cli + 1]} ${words[cli + 2]}`)) return false;
+  if (readsOnly(words)) return false;
+  return FORBIDDEN_TEXT().test(words.join(' '));
+}
+
+const FORBIDDEN_TEXT = () => new RegExp(`\\bgit(?:\\s+-[cC]\\s+\\S+|\\s+--?[a-z][\\w-]*(?:=\\S+)?)*\\s+push\\b|\\bnpm\\s+publish\\b|wingfoil(?:\\S*)\\s+(?:${FORBIDDEN_WF.join('|')})\\b|cli\\.js\\s+(?:${FORBIDDEN_WF.join('|')})\\b|(?:^|[\\s/])runner\\/(?:gate|run)\\.mjs(?![\\w.])`);
+
+/**
+ * The commands of a run that no role may run. A heredoc's prose that no shell reads, a commit message
+ * or a search pattern that cites `git push` is not running it (1.2.5); any other command is judged on
+ * its whole text (1.2.6, G-1). A command whose text does not parse is judged on its whole text.
+ */
 export function forbiddenCommands(commands) {
-  const rule = new RegExp(`\\bgit(?:\\s+-[cC]\\s+\\S+|\\s+--?[a-z][\\w-]*(?:=\\S+)?)*\\s+push\\b|\\bnpm\\s+publish\\b|wingfoil(?:\\S*)\\s+(?:${FORBIDDEN_WF.join('|')})\\b|cli\\.js\\s+(?:${FORBIDDEN_WF.join('|')})\\b|(?:^|[\\s/])runner\\/(?:gate|run)\\.mjs(?![\\w.])`);
-  return (commands ?? []).filter((command) => rule.test(String(command)));
+  const rule = FORBIDDEN_TEXT();
+  return (commands ?? []).filter((command) => {
+    const parsed = shellCommands(command);
+    return parsed === null ? rule.test(String(command)) : parsed.some(forbiddenArgv);
+  });
+}
+
+/**
+ * The commands of a run that name a path the role may not read (config permissions.read_deny,
+ * 1.2.5): a best-effort audit of a CLI with no per-command allowlist (Codex). A word counts when it is
+ * the path or under it, after a `./`, the worktree's or checkout's own prefix, an `--option=` or a
+ * git `<rev>:` are taken off. A command that reads everything without naming the path
+ * (`rg foo .`) is not seen.
+ */
+export function readScopeCommands(commands, paths, { roots = [] } = {}) {
+  const denied = (paths ?? []).map((p) => String(p).replace(/^\.\//, '').replace(/\/+$/, '')).filter(Boolean);
+  if (!denied.length) return [];
+  const prefixes = roots.filter(Boolean).map((r) => `${String(r).replace(/\/+$/, '')}/`);
+  const forms = (word) => {
+    const out = [word];
+    const option = /^--?[\w-]+=(.*)$/.exec(word);
+    if (option) out.push(option[1]);
+    const rev = /^[^/:]*:(.+)$/.exec(word);
+    if (rev) out.push(rev[1]);
+    return out.map((w) => { let v = w.replace(/^\.\//, ''); for (const p of prefixes) if (v.startsWith(p)) v = v.slice(p.length); return v.replace(/^\.\//, ''); });
+  };
+  const hits = (word) => forms(word).some((w) => denied.some((d) => w === d || w.startsWith(`${d}/`)));
+  return (commands ?? []).filter((command) => {
+    const parsed = shellCommands(command);
+    const words = parsed === null ? String(command).split(/[\s'"`;|&()<>]+/) : parsed.flat();
+    return words.some(hits);
+  });
 }
 
 // ---- steps --------------------------------------------------------------------------------------
@@ -960,7 +1358,7 @@ export function launchRecord({ record, line, step, adapter, model, stdout = '', 
 export function waitingItems(noticesText, lineName, { home, opened = null }) {
   return notices(noticesText).filter((n) => n.open && (/\*\*Line:\*\* (\S+)/.exec(n.text)?.[1] ?? null) === lineName).map((n) => {
     const kind = noticeKind(n.key);
-    const verified = opened === null || opened.has(n.key);
+    const verified = opened === null || noticeTrust(opened, n) === null;
     const ruled = ['gate', 'decision'].includes(kind);
     return {
       id: n.id, key: n.key, kind, verified,
@@ -975,9 +1373,53 @@ export function waitingItems(noticesText, lineName, { home, opened = null }) {
   });
 }
 
-/** The notice keys the runner opened, from a container's ledger (1.2.2, C-3). */
+/** A notice's seal (1.2.3, F-1): the sha256 of its block as the runner wrote it, trailing space aside. */
+export function noticeSeal(text) {
+  return createHash('sha256').update(String(text ?? '').trimEnd()).digest('hex');
+}
+
+/**
+ * The notices the runner opened and has not closed, from the ledger (1.2.2 container, every mode since
+ * 1.2.3): their key to the latest signed { notice, sha }. A container entry from 1.2.2 carries no seal.
+ */
 export function openedNotices(entries) {
-  return new Set((entries ?? []).filter((e) => e.kind === 'notice').map((e) => e.key));
+  const opened = new Map();
+  for (const e of entries ?? []) {
+    if (e.kind === 'notice') opened.set(e.key, { notice: e.notice ?? null, sha: e.seal ?? null, line: e.line ?? null });
+    else if (e.kind === 'notice-closed' && opened.get(e.key)?.notice === e.notice) opened.delete(e.key);
+  }
+  return opened;
+}
+
+/**
+ * Whether an open notice is the one the runner opened (1.2.3, F-1, F-3): a signed entry with its key,
+ * its N-id and the seal of its block. Null when it is; otherwise why not.
+ */
+export function noticeTrust(opened, notice) {
+  const signed = opened?.get(notice.key);
+  if (!signed) return 'the runner signed no notice with this key';
+  if (signed.notice !== notice.id) return `the runner signed this key as ${signed.notice ?? 'no N-id'}, not ${notice.id}`;
+  if (signed.sha !== null && signed.sha !== noticeSeal(notice.text)) return 'its text is not the one the runner wrote';
+  return null;
+}
+
+/**
+ * Whether an unsigned notice may come from a runner older than 1.2.3 (1.2.6, G-2): its number is
+ * below the first notice the runner signed on that line. Notice numbers run in sequence and every
+ * number below that one is already in the file, so a block an agent writes later takes a higher
+ * number, or a taken one (a duplicate, refused). Its `Opened:` date is the agent's text: not used.
+ */
+export function legacyNotice(entries, line, id) {
+  const number = (n) => Number(/^N-(\d+)$/.exec(String(n ?? ''))?.[1] ?? NaN);
+  const signed = (entries ?? []).filter((e) => e.kind === 'notice' && e.line === line).map((e) => number(e.notice)).filter(Number.isFinite);
+  return !signed.length || number(id) < Math.min(...signed);
+}
+
+/** The N-ids that more than one notice carries, open or closed (1.2.3, F-1). */
+export function duplicateNoticeIds(text) {
+  const seen = new Map();
+  for (const n of notices(text)) if (n.id) seen.set(n.id, (seen.get(n.id) ?? 0) + 1);
+  return [...seen].filter(([, count]) => count > 1).map(([id]) => id);
 }
 
 /**
@@ -987,13 +1429,17 @@ export function openedNotices(entries) {
  */
 export function writeRecordFile(dir, name, text) {
   const fs = require('node:fs');
+  if (/[/\\]/.test(name) || name.startsWith('.')) throw new Error(`${name} is not a plain record name`);
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   if (fs.lstatSync(dir).isSymbolicLink()) throw new Error(`${dir} is a symbolic link: the runner does not write records through it`);
-  fs.chmodSync(dir, 0o700);
-  if (/[/\\]/.test(name) || name.startsWith('.')) throw new Error(`${name} is not a plain record name`);
-  const tmp = `${dir}/.${name}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmp, text, { flag: 'wx', mode: 0o600 });
-  fs.renameSync(tmp, `${dir}/${name}`);
+  // Resolved once, and used from then on (1.2.3, F-6): a link swapped into a parent later is not followed.
+  const real = fs.realpathSync(dir);
+  fs.chmodSync(real, 0o700);
+  const tmp = `${real}/.${name}.${process.pid}.${Date.now()}.tmp`;
+  const { O_WRONLY, O_CREAT, O_EXCL, O_NOFOLLOW } = fs.constants;
+  const fd = fs.openSync(tmp, O_WRONLY | O_CREAT | O_EXCL | (O_NOFOLLOW ?? 0), 0o600);
+  try { fs.writeSync(fd, text); } finally { fs.closeSync(fd); }
+  fs.renameSync(tmp, `${real}/${name}`);
 }
 
 /** Why the caller's --record-dir cannot be used (1.2.2, C-4): inside a line's checkout or worktrees. */
@@ -1003,11 +1449,25 @@ export function recordDirProblems(dir, config) {
 }
 
 /**
+ * Text an agent or the project's code wrote, safe to print or to quote (1.2.3, F-2, F-7): line ends
+ * made \n, and without C0 and C1 control characters (tab and newline aside), DEL, the bidirectional
+ * overrides and isolates (U+202A–U+202E, U+2066–U+2069) and the Unicode line and paragraph separators.
+ */
+export function plainText(text) {
+  return [...String(text ?? '').replace(/\r\n?/g, '\n')].filter((c) => {
+    const n = c.codePointAt(0);
+    if (n === 9 || n === 10) return true;
+    if (n < 32 || n === 127 || (n >= 128 && n < 160)) return false;
+    return !((n >= 0x202a && n <= 0x202e) || (n >= 0x2066 && n <= 0x2069) || n === 0x2028 || n === 0x2029);
+  }).join('');
+}
+
+/**
  * A live check's output for the next prompt (1.2.2): it is the project's code talking, so it is
  * fenced as data, without control characters, at most 20 lines of 300 characters and 4000 in all.
  */
 export function liveTail(text, { lines = 20, width = 300, total = 4000 } = {}) {
-  const clean = String(text ?? '').replace(/\r\n?/g, '\n').split('').filter((c) => { const n = c.charCodeAt(0); return n === 9 || n === 10 || (n >= 32 && n !== 127 && !(n >= 128 && n < 160)); }).join('');
+  const clean = plainText(text);
   let tail = clean.trim().split('\n').slice(-lines).map((l) => (l.length > width ? `${l.slice(0, width)}…` : l)).join('\n');
   if (tail.length > total) tail = `…${tail.slice(-total)}`;
   return tail.replaceAll('```', "'''");
@@ -1050,7 +1510,28 @@ export function stepLabel(name) {
   return `\uE000${name}\uE001`;
 }
 export function renderLabels(text, colour = false) {
-  return String(text).replace(/\uE000([^\uE001]*)\uE001/g, colour ? '\u001b[1m$1\u001b[0m' : '$1');
+  return String(text)
+    .replace(/\uE002([\d;]+)\uE003([^\uE001]*)\uE001/g, colour ? '\u001b[$1m$2\u001b[0m' : '$2')
+    .replace(/\uE000([^\uE001]*)\uE001/g, colour ? '\u001b[1m$1\u001b[0m' : '$1');
+}
+
+/**
+ * A notice's colour in a terminal, by its kind (1.2.3): red for what stops the line or concerns its
+ * safety, yellow for what holds a step until someone looks, magenta for what waits for the approver's
+ * ruling, and bold alone for the rest.
+ */
+const NOTICE_COLOURS = {
+  security: '1;31', failure: '1;31', halt: '1;31', diverged: '1;31',
+  blocked: '1;33', uncommitted: '1;33', check: '1;33', branch: '1;33', origin: '1;33', push: '1;33', pre: '1;33',
+  id: '1;33', renumbered: '1;33', lock: '1;33', distinct: '1;33', needs: '1;33', budget: '1;33', codex: '1;33',
+  gate: '1;35', decision: '1;35', manual: '1;35',
+};
+export function noticeColour(key) {
+  return NOTICE_COLOURS[noticeKind(key)] ?? '1';
+}
+/** A notice's id in a log line, bold and coloured by its kind in a terminal, marked as stepLabel is. */
+export function noticeLabel(id, key) {
+  return `\uE002${noticeColour(key)}\uE003${id}\uE001`;
 }
 
 /** The notice key of a step waiting for the approver. */
@@ -1071,17 +1552,63 @@ export function gateArgv(step, reason, { reject = false } = {}) {
 export const AGENT_MARKERS = Object.freeze(['WINGFOIL_AGENT', 'CLAUDE_CODE_CHILD_SESSION', 'CLAUDECODE', 'CODEX_SANDBOX']);
 
 /** What a gate's packet says: whether it is ready, the evidence, and a reason ready to use. */
-export function gatePacket({ step, element, head, dirty = [], records = [], openNotices = [] }) {
+export function gatePacket({ step, element, head, dirty = [], records = [], openNotices = [], resolvedRuns = new Set(), skips = [] }) {
   const last = records.filter((r) => r.element === element.ref).at(-1) ?? null;
   const notes = last ? parseNotes(last.notes) : {};
   const problems = [];
+  // A blocked run whose notice the approver closed, or whose decision was ruled, holds the gate no
+  // longer (1.2.4, N7): the approver has solved what it was blocked on.
+  const resolved = Boolean(last && last.result === 'blocked' && resolvedRuns.has(last.id));
   if (dirty.length) problems.push(`uncommitted files: ${dirty.slice(0, 3).join(', ')}`);
-  if (last && last.result !== 'completed') problems.push(`the last run ${last.id} ended ${last.result}`);
+  if (last && last.result !== 'completed' && !resolved) problems.push(`the last run ${last.id} ended ${last.result}`);
   if (String(notes.checks ?? '').includes(':fail')) problems.push(`failed checks in ${last.id}`);
   if (openNotices.length) problems.push(`open notices: ${openNotices.join(', ')}`);
-  const evidence = last ? `run ${last.id} ${last.result}${notes.checks ? `, checks ${notes.checks}` : ''}` : 'no run recorded on this element';
+  // The optional steps the runner skipped on this element, as the approver must see them (1.2.6).
+  const skipped = (skips ?? []).map((k) => `${k.phase ?? k.step} skipped: pre ${(k.tokens ?? []).join(', ')} failed — ${k.why ?? ''}`.trim());
+  const ran = last ? `run ${last.id} ${last.result}${resolved ? ', solved by the approver' : ''}${notes.checks ? `, checks ${notes.checks}` : ''}` : 'no run recorded on this element';
+  const evidence = [ran, ...skipped].join('; ');
   const short = String(head ?? '').slice(0, 8);
   return { ready: problems.length === 0, problems, head: short, evidence, reason: `Approved ${step.key} at ${short}: ${evidence}`.replace(/"/g, "'") };
+}
+
+/**
+ * The optional steps the runner skipped on an element (1.2.6): its signed `skip` entries on the line,
+ * the latest per step, oldest first.
+ */
+export function skipsOf(entries, line, elementRef) {
+  const latest = new Map();
+  for (const e of entries ?? []) if (e.kind === 'skip' && e.line === line && e.element === elementRef) latest.set(e.step, e);
+  return [...latest.values()];
+}
+
+/**
+ * Whether a later step of the element already ran in this pass of its workflow, so its optional
+ * step is never launched now (1.2.6): a run of a later phase newer than every run of this phase or
+ * an earlier one, and than the last rejected run (a review reject starts a new pass, back at red).
+ * `phases` is the workflow's phase names in order.
+ */
+export function laterStepRan({ records, element, step, phases }) {
+  const at = (phases ?? []).indexOf(step.phase);
+  if (at === -1) return false;
+  const own = (records ?? []).filter((r) => r.element === element.ref && r.workflow === step.workflow);
+  const time = (r) => Date.parse(parseNotes(r.notes).at ?? '') || 0;
+  const since = Math.max(0, ...own.filter((r) => { const k = phases.indexOf(r.phase); return (k !== -1 && k <= at) || r.result === 'rejected'; }).map(time));
+  return own.some((r) => phases.indexOf(r.phase) > at && r.result !== 'rejected' && time(r) > since);
+}
+
+/**
+ * The frontier with each optional step moved before the other steps of its element and instance
+ * (1.2.6): its pre checks decide whether it runs or is skipped before a later step is chosen.
+ */
+export function optionalFirst(steps) {
+  const out = [...(steps ?? [])];
+  for (const optional of out.filter((s) => s.optional)) {
+    const own = (s) => s.instance === optional.instance && stepElement(s).ref === stepElement(optional).ref;
+    const from = out.indexOf(optional);
+    const first = out.findIndex(own);
+    if (first < from) { out.splice(from, 1); out.splice(first, 0, optional); }
+  }
+  return out;
 }
 
 /** The minutes each closed gate waited, from docs/notices.md. */
@@ -1342,10 +1869,13 @@ export function sandboxCheck(command, line, { setup = null, home: runnerHome = n
  * HEAD before it (BASE: the commits the step added are those reachable from HEAD and from neither
  * BASE nor the line's branch) and the adapter's model (MODEL).
  */
-export function checkEnv({ line, element, base = null, model = null }) {
+export function checkEnv({ line, element, base = null, model = null, skipped = null }) {
   return {
     WINGFOIL_ELEMENT: element.id,
-    ...withAliases({ ELEMENT: element.ref, LINE: line.name, CHECKOUT: line.checkout, LINE_BRANCH: line.branch || null, BASE: base || null, MODEL: model || null }),
+    // The element's optional steps the runner skipped, as `<phase>:<token>,…` (1.2.6): a check run by
+    // the runner may count on them (red-tests-untouched); unset when the approver runs it by hand.
+    ...withAliases({ ELEMENT: element.ref, LINE: line.name, CHECKOUT: line.checkout, LINE_BRANCH: line.branch || null, BASE: base || null, MODEL: model || null,
+      SKIPPED: skipped?.length ? skipped.map((k) => `${k.phase}:${(k.tokens ?? []).join('+')}`).join(',') : null }),
   };
 }
 
@@ -1540,6 +2070,7 @@ export function exitLine(step, element, next) {
   const missing = step.evidence?.missing ?? [];
   if (!missing.length) return '';
   const parts = missing.map((kind) => {
+    if (kind === 'state' && runnerSubmits(step)) return `${element.ref} reaches ${next ?? 'its next state'} when the runner runs memory submit ${element.id} after your answer completed: do not run it yourself`;
     if (kind === 'state') {
       const verb = (step.actions ?? []).map((a) => a.token).find((t) => /^memory\.(submit|approve|park)$/.test(t)) ?? 'memory.submit';
       return `${element.ref} must reach ${next ?? 'its next state'}: run npx wingfoil ${verb.replace('.', ' ')} ${element.id} once the work is done`;
@@ -1687,7 +2218,7 @@ export function buildPrompt({ project, step, element, line, worktree, checkout, 
     'Do not run workflow finalize, memory approve or memory reject, and do not push: the runner finalizes after its bound checks, and the approver approves.',
     pushText(step, { push, checkout, lines: lineBranchNames }),
     step.phase === 'review'
-      ? `Review: to accept, leave the element as it is and answer completed. To reject, in ${checkout} run npx wingfoil memory park ${element.id} --reason "<the reasons>" and answer rejected with the reasons. Name each finding's class and, when one exists, the structural solution that removes the class; look for the other cases of each class first (directive code-review). A finding inside this element's own change is recorded in the memory park --reason: the park commit is its tracked record (directive code-review), so it needs no bug. If the reject needs an adr, a decision-log, or a bug for a defect outside this element's change, raise it first (as below), cite its id in the reasons, then park and answer rejected: dev-loop holds the task until it is closed. If a finding's cause is a test red wrote that contradicts an accepted decision (an adr, a decision-log, the specification), the solution is a red amendment: add to the reasons the line Red amendment (${line.name}:<decision id>): <file>[, <file>…] naming those test files, and never ask green or refactor to change red's files.`
+      ? `Review: to accept, ${runnerSubmits(step) ? `answer completed: the runner then runs memory submit ${element.id}, so do not move the element yourself` : 'leave the element as it is and answer completed'}. To reject, in ${checkout} run npx wingfoil memory park ${element.id} --reason "<the reasons>" and answer rejected with the reasons. Name each finding's class and, when one exists, the structural solution that removes the class; look for the other cases of each class first (directive code-review). A finding inside this element's own change is recorded in the memory park --reason: the park commit is its tracked record (directive code-review), so it needs no bug. If the reject needs an adr, a decision-log, or a bug for a defect outside this element's change, raise it first (as below), cite its id in the reasons, then park and answer rejected: dev-loop holds the task until it is closed. If a finding's cause is a test red wrote that contradicts an accepted decision (an adr, a decision-log, the specification), the solution is a red amendment: add to the reasons the line Red amendment (${line.name}:<decision id>): <file>[, <file>…] naming those test files, and never ask green or refactor to change red's files.`
       : '',
     checks.length ? `After you, the runner runs the bound checks: ${checks.join(', ')}.` : '',
     '',
@@ -1709,8 +2240,8 @@ export function parseResult(text) {
 /**
  * The elements a step raised or found it needs (`RESULT: blocked raised <id>[, <id>…]`: an adr, a
  * decision-log or a bug whose `origin` is the step's element; `RESULT: blocked needs <id>[, <id>…]`:
- * ids added to the task's `needs`). dev-loop's gates hold the element until each is closed, so such
- * a result opens no blocked notice. `null` for any other reason.
+ * ids added to the task's `needs`). The runner holds the element until each is closed (heldFor,
+ * 1.2.5), so such a result opens no blocked notice. `null` for any other reason.
  */
 export function raisedIds(reason) {
   const match = /^(?:raised|needs)\s+(.+)$/i.exec(String(reason ?? '').trim());
@@ -1753,12 +2284,39 @@ export function decisionRulings(log, { element, phase, since = null }) {
 }
 
 /**
- * Whether dev-loop's gates hold a step that answered blocked raised or blocked needs. A start that
- * left its task where it was is not held by them: the gates come after start.
+ * The states in which an element an other one needs or raised is still open (config
+ * needs.open_states): the list of need-closed, a pack's gate over needs, with the states a task, a
+ * plan or a release still works in (1.2.6, G-4: approved, active, planning, in-development, releasing).
+ * Any other state closes it: a task done, an adr accepted, a bug resolved, a release released, an
+ * element deprecated.
  */
-export function heldByGates({ phase, reason, statusBefore, statusAfter }) {
-  if (!raisedIds(reason)) return false;
-  return !(phase === 'start' && statusBefore === statusAfter);
+export const OPEN_STATES = Object.freeze(['draft', 'pending', 'in-discussion', 'backlog', 'in-progress', 'in-review', 'approved', 'open', 'triaged', 'planned',
+  'active', 'planning', 'in-development', 'releasing']);
+
+/**
+ * Of the ids an element waits for, the open ones (status in `openStates`) and the unknown ones (no
+ * element has that id) (1.2.5).
+ */
+export function waitingIds(ids, stateOf, openStates = OPEN_STATES) {
+  const open = [];
+  const unknown = [];
+  for (const id of ids ?? []) {
+    const { status } = stateOf(id);
+    if (!status) unknown.push(id);
+    else if (openStates.includes(status)) open.push(id);
+  }
+  return { open, unknown };
+}
+
+/**
+ * What an element waits for before the runner launches its next step (1.2.5), whatever its workflow's
+ * gates: each id of its `needs` still open (OPEN_STATES) or not found (`<id> (not found)`), and, when its last run
+ * answered blocked on what it raised or needs (the record's `held`), each of those still open.
+ */
+export function heldFor({ needs, last, stateOf, openStates = OPEN_STATES }) {
+  const own = waitingIds(Array.isArray(needs) ? needs : [], stateOf, openStates);
+  const held = last?.result === 'blocked' ? String(parseNotes(last.notes).held ?? '').split(',').filter(Boolean) : [];
+  return [...new Set([...own.open, ...own.unknown.map((id) => `${id} (not found)`), ...waitingIds(held, stateOf, openStates).open])];
 }
 
 /**
@@ -2102,6 +2660,17 @@ export function lastResume(text, line) {
 // ---- lock ---------------------------------------------------------------------------------------
 
 /** Whether a lock is stale: its process is gone, or it is older than the limit. */
+/**
+ * A lock file's lock while it holds (1.2.3, F-10): null when the file is missing, unreadable, or its
+ * process is gone or too old, so that a file left behind blocks nothing.
+ */
+export function liveLock(file, { staleMinutes, alive, read = (f) => require('node:fs').readFileSync(f, 'utf8') }) {
+  let lock;
+  try { lock = JSON.parse(read(file)); } catch { return null; }
+  if (!Number.isInteger(lock?.pid)) return null;
+  return lockIsStale(lock, { staleMinutes, alive }) ? null : lock;
+}
+
 export function lockIsStale(lock, { now = Date.now(), staleMinutes, alive }) {
   if (!alive(lock.pid)) return true;
   return now - Date.parse(lock.started) > staleMinutes * 60000;
