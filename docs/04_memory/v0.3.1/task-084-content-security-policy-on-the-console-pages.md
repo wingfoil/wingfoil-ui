@@ -55,3 +55,64 @@ Execution Notes.
 
 <!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. -->
+
+### design (2026-11-25)
+
+Read: this task; bug-039; `server/src/http/app.ts` (static plugin, `setNotFoundHandler` serving
+`index.html` for client routes, error handler), `server/src/http/events.ts`, `web/index.html`,
+`web/vite.config.ts`; spec-004 (no header list; §5 Responses, *Process Notes*); `depends_on` tasks
+091, 092, 093 are not touched by this change (no shared file). No spec is missing: the policy is a
+constant set written in spec-004 as a Process Note (AC-3), not a new format.
+
+**Decisions**
+
+- **Where.** One `onSend` hook in `createApp` (`server/src/http/app.ts`), after the guards, adds
+  `Content-Security-Policy` to every response whose `content-type` starts with `text/html`: the
+  static `index.html`, the client-route fallback (`reply.sendFile('index.html')`) and the HTML an
+  error or 404 might carry. JSON and the event stream do not get it (they render nothing).
+- **Policy** (one constant in a new `server/src/http/csp.ts`): `default-src 'none'; script-src
+  'self' 'sha256-<theme script>'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src
+  'self'; img-src 'self'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri
+  'none'; form-action 'none'`. `img-src 'self'` (no `data:`, no remote): the only image is
+  `/wingfoil-mark.svg`; `web/src` has no `data:` or `blob:` use.
+- **Styles — the choice recorded:** `'unsafe-inline'` for `style-src`, not nonces. Reason: the app's
+  `style={{ width }}` props (`Completion.tsx`, `Figures.tsx`, `Toasts.tsx`) and React Aria set styles
+  at run time; a nonce would need the server to rewrite `index.html` per response and cannot cover
+  style attributes anyway. Inline style cannot run script; scripts stay strict. Green may try a
+  tighter `style-src 'self'` and keeps it only if no violation shows on Chromium, Firefox and WebKit.
+- **Theme script hash.** Computed by the server at start from the `index.html` it serves: the text
+  of `<script id="wfui-theme">…</script>` → `sha256-<base64>`; no `index.html`, or no such script,
+  gives the policy without the hash (the theme script would then be blocked: the test below fails
+  on a build that lost it). A test computes the hash independently from the real `web/index.html`
+  and asserts the header carries it, so an edit of the script cannot silently break the theme.
+  `title.app` is written by the build outside the script, so the hash does not depend on it.
+- **Security probes:** not needed — the header narrows page loads; no verb, no git read/write, no
+  child process changes. No parser of repository text.
+
+**Classification**
+
+- AC-1 — red-first (new behaviour): header on each page response.
+- AC-2 — characterization of the existing e2e suite (+ a red-first check below that the policy
+  is the strict one); checked at green by `npm run test:e2e:chromium` and the own specs on Firefox and
+  WebKit on `gates.yml`; no new e2e file, but green adds a Playwright assertion that the console
+  collects no `securitypolicyviolation` on the main screens if the e2e harness has a console-error
+  hook (qa/green decides, `test/README.md` *e2e*).
+- AC-3 — docs (spec-004 Process Note, `CHANGELOG.md` *[0.3.1]*, Version/Date bumps), done in green.
+
+**Test plan for red** (`test/server/http/csp.test.ts`, new, vitest; the app built with a temp
+`staticDir` holding a copy of the real `web/index.html`):
+
+1. `GET /` carries `Content-Security-Policy` with `script-src 'self' 'sha256-<hash of the theme
+   script computed in the test>'` and no `'unsafe-inline'` in `script-src`.
+2. `GET /projects/x/memory` (a client route, fallback path) and `GET /index.html` carry the same header.
+3. The header has `object-src 'none'`, `frame-src 'none'`, `default-src 'none'`, and no `http:`/`https:`
+   source and no `data:` in `img-src`.
+4. `GET /api/…` (JSON) and the event stream carry no CSP header (scope), `GET /assets/missing.js`
+   (404 JSON) likewise.
+5. Staticdir without `index.html` → no header on the JSON 404, no crash.
+6. Hash of an `index.html` whose theme script is edited changes with it (the policy follows the
+   served file).
+
+Green: `csp.ts`, the hook, spec-004 Process Note, CHANGELOG, then `typecheck`, `lint`,
+`format:check`, `npm test -- test/server/http/csp.test.ts`, heavy gates on `gates.yml`.
+Size: under one active day.
