@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-task-084-content-security-policy-on-the-console-pages/red/1 -->
+### N-024 · 2026-11-25 · trunk:task-084-content-security-policy-on-the-console-pages
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-25T19:27:58Z
+- **Line:** trunk
+- **Element:** trunk:task-084-content-security-policy-on-the-console-pages
+- **Reason:** blocked (run task-084-content-security-policy-on-the-console-pages/red/1): write access to `test/server/http/csp.test.ts` in the worktree is denied by the permission settings (Write tool and Bash heredoc both refused), so the red test cannot be created or committed
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-024 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
