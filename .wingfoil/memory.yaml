@@ -78,7 +78,7 @@ types:
     path: "docs/04_memory/{release}/{id}.md"
     id_pattern: "task-{n}-{slug}"
     name: Task
-    description: A unit of development work delivered inside a release, on one module (server, web, contracts) — the Product Backlog item of Scrum. Workflow — created at the Sprint's planning (directive `release-planning` › *build-backlog*); iterated by the Sprint's `development` (`backlog-item`). A fix task lists the bugs it closes in `bug:`; `sprint` names its Sprint, or `n/a — <reason>` until a Sprint selects it.
+    description: A unit of development work delivered inside a release, on one module (server, web, contracts) — the Product Backlog item of Scrum. Workflow — created at the Sprint's planning (directive `release-planning` › *build-backlog*); iterated by the Sprint's `development` (`backlog-item`). A fix task lists the bugs it closes in `bug:`; `sprint` names its Sprint, or `n/a — <reason>` until a Sprint selects it; `flow` (optional) is `direct — <reason>` for a task with no red-first criterion, whose red the script runner skips (dl-028), and absent otherwise.
     tags: [ task, backlog ]
     amendable: true
     template:

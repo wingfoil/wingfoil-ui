@@ -9,12 +9,15 @@
 // override the range. Red's test files are compared with the working tree, which tests-green runs.
 // A range with no test file fails: a completed red run, the first or an amendment, wrote or amended
 // red's test files, so the range is wrong.
+// A red the runner skipped (1.2.6: an optional red whose bound pre checks failed, signed in its
+// ledger and passed in WINGFOIL_RUNNER_SKIPPED) wrote no test: with no red run, the check passes and
+// says so. With no red run and no skip it fails as before, and so does a completed red with no test.
 // Usage: node scripts/checks/red-tests-untouched.mjs [--element <id>] [--base <rev> --head <rev>] [--line-branch <ref>]
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { elementArg, verdict, fail, MEMORY_ROOT, versionLine } from '../lib/memory.mjs';
-import { parseRunRecords, parseNotes } from '../runner/lib.mjs';
+import { parseRunRecords, parseNotes, runnerEnv } from '../runner/lib.mjs';
 
 console.log(versionLine());
 
@@ -31,8 +34,10 @@ if (!base || !head) {
   const id = elementArg();
   if (!id) fail('no element: pass --element <id> or set WINGFOIL_ELEMENT, or --base and --head');
   const log = join(MEMORY_ROOT, process.env.WINGFOIL_RUNNER_RUNS ?? process.env.DFD_RUNS ?? 'docs/runs', `${id}.jsonl`);
+  const reds = existsSync(log) ? parseRunRecords(readFileSync(log, 'utf8'), log).filter((run) => run.phase === 'red') : [];
+  const skip = String(runnerEnv('SKIPPED') ?? '').split(',').map((k) => k.split(':')).find(([phase]) => phase === 'red');
+  if (!reds.length && skip) verdict([], `red skipped (${skip[1] || 'pre checks'}): no red test file to keep`);
   if (!existsSync(log)) fail(`${log} is absent: no red run recorded for ${id}`);
-  const reds = parseRunRecords(readFileSync(log, 'utf8'), log).filter((run) => run.phase === 'red');
   const last = reds.filter((run) => run.result === 'completed').at(-1);
   if (!last) fail(`no completed red run in ${log}`);
   base = reds[0].state_ref;

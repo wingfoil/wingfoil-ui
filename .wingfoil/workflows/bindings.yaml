@@ -1,0 +1,29 @@
+# Layer 3 token bindings (dl-028). WingFoil 0.3.2 validates and shows them but runs none: the script
+# runner runs the copy in its home (wingfoil-cli › The script runner) — a pre check before an optional
+# step, a post check after a step — in the element's worktree but with the scripts of the home, with
+# the element id in WINGFOIL_ELEMENT and the line's checkout, where Memory and the run records are, in
+# WINGFOIL_RUNNER_CHECKOUT; after a launch also the worktree's HEAD before it in WINGFOIL_RUNNER_BASE,
+# and the element's skipped optional steps in WINGFOIL_RUNNER_SKIPPED.
+# - tests-red, tests-green: this repository's own check (scripts/project-checks/, outside the runner's
+#   manifest), which runs red's own files: vitest files through `npm test -- <files>`, specs through
+#   `npm run -s test:e2e:chromium -- <files>`; the heavy gates stay on gates.yml (dl-016).
+# - flow-tdd: passes unless the task's `flow` is `direct`, so the optional red is skipped only then.
+# - red-tests-untouched, commit-trailers: the runner's common checks (scripts/checks/).
+format: 1
+version: 1
+checks:
+  flow-tdd:
+    run: [node, scripts/project-checks/flow-tdd.mjs]
+    severity: reject
+  tests-red:
+    run: [node, scripts/project-checks/task-tests.mjs, --expect, red]
+    severity: reject
+  tests-green:
+    run: [node, scripts/project-checks/task-tests.mjs, --expect, green]
+    severity: reject
+  red-tests-untouched:
+    run: [node, scripts/checks/red-tests-untouched.mjs]
+    severity: reject
+  commit-trailers:
+    run: [node, scripts/checks/commit-trailers.mjs]
+    severity: reject

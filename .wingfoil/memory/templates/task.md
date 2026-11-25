@@ -15,6 +15,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts and in-progress -> in-review at its review (`bug.sync_state`, R-10, dl-025), then the approver's approves
 depends_on: []         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+flow: ""               # optional — "direct — <reason>" for a task with no red-first criterion (a gate task, a characterization-only task): the runner skips its red (dl-028); empty = test-first
 tmpl_version: 260703   # Orignal template version
 ---
 

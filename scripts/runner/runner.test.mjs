@@ -86,6 +86,12 @@ test('permissionArgs lists what a role may run, and never publishing or the appr
   const developer = lib.permissionArgs({ command: 'claude', role: 'developer', cli, sources: ['src/'] });
   assert.ok(developer.includes('Bash(git merge:*)') && !developer.includes('Edit(src/**)'));
   assert.deepEqual(lib.permissionArgs({ command: 'codex', role: 'reviewer', cli }), []);
+  // The roles that only read the sources, and the paths a role may not read, come from the
+  // configuration (1.2.5): reviewer and qa unless it names others.
+  const tester = lib.permissionArgs({ command: 'claude', role: 'tester', cli, sources: ['src/'], sourcesReadOnly: ['reviewer', 'qa', 'tester'], readDeny: ['src/', 'dist'] });
+  for (const rule of ['Edit(src/**)', 'Write(src/**)', 'Read(src/**)', 'Read(dist/**)']) assert.ok(tester.slice(tester.indexOf('--disallowedTools')).includes(rule), rule);
+  assert.ok(!lib.permissionArgs({ command: 'claude', role: 'tester', cli, sources: ['src/'] }).includes('Edit(src/**)'));
+  assert.deepEqual(lib.settings({}).sourcesReadOnly, ['reviewer', 'qa']);
 });
 
 test('withoutToolLists drops an older allowlist and keeps the rest', () => {
@@ -105,6 +111,100 @@ test('forbiddenCommands finds publishing and the approver verbs', () => {
   const bad = ['git push https://x/y main', 'git -C /c push origin main', 'npm publish', 'npx --no-install wingfoil memory approve dl-1', 'node node_modules/wingfoil-released/dist/cli.js workflow finalize p --step s'];
   assert.deepEqual(lib.forbiddenCommands(bad), bad);
   assert.deepEqual(lib.forbiddenCommands(['git status', 'git log --grep push', 'npx wingfoil memory submit t-1']).length, 1 - 1 + 0);
+  // What a command runs counts, however it is wrapped (1.2.5).
+  const wrapped = ["bash -lc 'git push origin main'", 'env A=1 git push', 'echo $(git push)', 'echo "`npm publish`"', 'bash <<EOF\ngit push\nEOF', 'eval "git push"',
+    'xargs -I{} git push {}', 'timeout 5 git push', 'cd x && npm publish --dry-run', 'git -c a=b --no-pager push', 'node scripts/runner/gate.mjs --line t', 'sh -c "npx wingfoil memory reject t-1"'];
+  assert.deepEqual(lib.forbiddenCommands(wrapped), wrapped);
+  // Prose, a message or a pattern that cites a forbidden command runs nothing.
+  const cited = ["cat <<'EOF' > note.md\nnever run npx --no-install wingfoil memory approve\nEOF", 'rg -n "npm publish" docs', "git commit -m 'no git push here'",
+    "bash -lc 'rg \"git push\" docs'", 'cat scripts/runner/gate.mjs', 'git log 2>&1 | head', 'git status &> /dev/null && echo ok'];
+  assert.deepEqual(lib.forbiddenCommands(cited), []);
+  // A text that does not parse is judged whole, as before.
+  assert.deepEqual(lib.forbiddenCommands(['echo "git push']), ['echo "git push']);
+});
+
+test('1.2.5: readScopeCommands finds the commands that name a path the role may not read', () => {
+  const commands = ['cat src/a.ts', 'git show HEAD:src/a.ts', 'rg foo .', "bash -lc 'sed -n 1,9p ./src/x'", 'ls /w/t1/src/', 'cat test/a.ts', 'cat srcx/a', 'rg --glob=src/** x'];
+  assert.deepEqual(lib.readScopeCommands(commands, ['src/'], { roots: ['/w/t1'] }), ['cat src/a.ts', 'git show HEAD:src/a.ts', "bash -lc 'sed -n 1,9p ./src/x'", 'ls /w/t1/src/', 'rg --glob=src/** x']);
+  assert.deepEqual(lib.readScopeCommands(commands, [], {}), []);
+});
+
+test('1.2.5: the permission fragment of an adapter is chosen as the engine of WingFoil chooses it', () => {
+  const manifest = { name: 'a', launch: { headless: { args: ['exec', '{bootstrap}'], permissions: { default: ['--sandbox', 'read-only'], qa: ['--sandbox', 'workspace-write'] } } } };
+  assert.deepEqual(lib.adapterPermissions(manifest, 'qa'), ['--sandbox', 'workspace-write']);
+  assert.deepEqual(lib.adapterPermissions(manifest, 'tester'), ['--sandbox', 'read-only']);
+  assert.deepEqual(lib.adapterPermissions(manifest, 'toString'), ['--sandbox', 'read-only'], 'an inherited key is never a role');
+  assert.deepEqual(lib.adapterPermissions({ launch: { headless: { permissions: ['-x'] } } }, 'any'), ['-x']);
+  assert.equal(lib.adapterPermissions({ launch: { headless: { args: [] } } }, 'qa'), null, 'WingFoil 0.3.2: none declared');
+  // The fragment comes right after the adapter's args, before the runner's extra arguments at the end.
+  assert.deepEqual(lib.launchArgs(manifest, { position: 'end', args: ['--add-dir', '/c'] }, { bootstrap: 'P' }, ['--sandbox', 'workspace-write']), ['exec', 'P', '--sandbox', 'workspace-write', '--add-dir', '/c']);
+  // The runner's own denies stay after a Claude fragment; a launch that turns the checks off is refused.
+  const denies = lib.runnerDenies({ role: 'developer', cli: ['npx', 'wingfoil'], sources: ['src/'] });
+  for (const rule of ['Bash(git push:*)', 'Bash(git -C:*)', 'Bash(node scripts/runner/gate.mjs:*)', 'Bash(npx wingfoil memory approve:*)']) assert.ok(denies.includes(rule), rule);
+  assert.deepEqual(lib.bypassArgs(['-p', 'x', '--dangerously-skip-permissions']), ['--dangerously-skip-permissions']);
+  assert.equal(lib.bypassArgs(['--permission-mode', 'bypassPermissions']).length, 1);
+  assert.equal(lib.bypassArgs(['exec', '-s', 'danger-full-access']).length, 1);
+  assert.equal(lib.bypassArgs(['-c', 'sandbox_mode="danger-full-access"']).length, 1);
+  assert.deepEqual(lib.bypassArgs(['--permission-mode', 'dontAsk', '--sandbox', 'workspace-write']), []);
+});
+
+test('1.2.6: forbiddenCommands judges every command but a reader on its whole text (G-1)', () => {
+  const caught = [`python3 -c "import os;os.system('git push')"`, `node -e "require('child_process').execSync('git push')"`, 'find . -exec git push \\;', 'echo "git push" | sh',
+    'cat <<EOF | bash\ngit push\nEOF', '{ git push; }', 'flock f git push', 'setsid git push', 'bash -c -- "git push"', 'python3 scripts/runner/gate.mjs',
+    'npm run -s wingfoil -- memory approve t-1', "rg --pre 'git push' x .", "sed -n '1e git push' f", "sed -n 's/x/git push/e' f", 'git -c alias.x="!git push" x', 'cat <<EOF | sh\nnpm publish\nEOF'];
+  assert.deepEqual(caught.filter((c) => !lib.forbiddenCommands([c]).length), []);
+  const cited = ["cat <<'EOF' > note.md\nnever run npx --no-install wingfoil memory approve\nEOF", 'rg -n "npm publish" docs', "git commit -m 'no git push here'",
+    `bash -lc 'rg "git push" docs'`, 'cat scripts/runner/gate.mjs', 'echo "never git push" > notes.txt', 'grep -rn "runner/gate.mjs" docs | head -3',
+    'npx wingfoil memory add --type bug --title "git push fails on the mirror"', 'git log --ext-diff -p | head'];
+  assert.deepEqual(lib.forbiddenCommands(cited), []);
+});
+
+test('1.2.6: an unsigned notice is a legacy one only below the first signed number (G-2)', () => {
+  const entries = [{ kind: 'notice', line: 'trunk', notice: 'N-012' }, { kind: 'notice', line: 'trunk', notice: 'N-015' }, { kind: 'notice', line: 'other', notice: 'N-002' }];
+  assert.equal(lib.legacyNotice(entries, 'trunk', 'N-011'), true);
+  assert.equal(lib.legacyNotice(entries, 'trunk', 'N-013'), false, 'a block an agent wrote after signing began');
+  assert.equal(lib.legacyNotice(entries, 'trunk', 'N-099'), false);
+  assert.equal(lib.legacyNotice([], 'trunk', 'N-099'), true, 'no notice signed yet');
+});
+
+test('1.2.6: a placeholder spans folders in a Memory path (G-3), and approved or releasing is open (G-4)', () => {
+  const memoryYaml = { types: { plan: { path: 'docs/05_plans/{scope}/{id}.md' }, task: { path: 'docs/memory/task/{id}.md' } } };
+  assert.ok(lib.isMemoryPath(memoryYaml, 'docs/05_plans/rl-v1/rel-v0.3/plan-7.md', 'plan-7'));
+  assert.ok(lib.isMemoryPath(memoryYaml, 'docs/05_plans/rl-v1/plan-7.md', 'plan-7'));
+  assert.ok(!lib.isMemoryPath(memoryYaml, 'docs/05_plans/plan-7.md', 'plan-7'));
+  assert.ok(!lib.isMemoryPath(memoryYaml, 'docs/memory/task/x/task-1.md', 'task-1'), '{id} is one name');
+  for (const state of ['approved', 'active', 'planning', 'in-development', 'releasing']) assert.ok(lib.OPEN_STATES.includes(state), state);
+  for (const state of ['done', 'accepted', 'resolved', 'released', 'deprecated']) assert.ok(!lib.OPEN_STATES.includes(state), state);
+});
+
+test('1.2.6: an optional step runs before its element\'s later steps, or is skipped for it', () => {
+  const phases = ['start', 'design', 'red', 'green', 'refactor', 'review'];
+  const red = { key: 'ge13.red@task:t-1', workflow: 'ge13', phase: 'red', instance: 'i', optional: true, scope: { element: { type: 'task', id: 't-1' } } };
+  const green = { ...red, key: 'ge13.green@task:t-1', phase: 'green', optional: false };
+  const other = { ...green, key: 'ge13.green@task:t-2', scope: { element: { type: 'task', id: 't-2' } } };
+  assert.deepEqual(lib.optionalFirst([other, green, red]).map((s) => s.key), [other.key, red.key, green.key]);
+  const element = { ref: 'task:t-1' };
+  const run = (phase, at, result = 'completed') => ({ element: 'task:t-1', workflow: 'ge13', phase, result, notes: lib.formatNotes({ at }) });
+  assert.equal(lib.laterStepRan({ records: [run('design', '2026-11-25T10:00:00Z')], element, step: red, phases }), false);
+  assert.equal(lib.laterStepRan({ records: [run('design', '2026-11-25T10:00:00Z'), run('green', '2026-11-25T11:00:00Z')], element, step: red, phases }), true);
+  // A review reject starts a new pass: red may run again.
+  const pass2 = [run('red', '2026-11-25T10:00:00Z'), run('green', '2026-11-25T11:00:00Z'), run('review', '2026-11-25T12:00:00Z', 'rejected')];
+  assert.equal(lib.laterStepRan({ records: pass2, element, step: red, phases }), false);
+  assert.equal(lib.laterStepRan({ records: [...pass2, run('green', '2026-11-25T13:00:00Z')], element, step: red, phases }), true);
+  // The skip is signed, shown at the gate and given to the checks the runner runs.
+  const skips = lib.skipsOf([{ kind: 'skip', line: 'trunk', element: 'task:t-1', step: red.key, phase: 'red', tokens: ['flow-tdd'], why: 'flow-tdd: direct' }, { kind: 'skip', line: 'other', element: 'task:t-1', step: red.key }], 'trunk', 'task:t-1');
+  assert.equal(skips.length, 1);
+  const packet = lib.gatePacket({ step: { key: 'ge13.approve' }, element, head: 'abcdef12', records: [run('review', '2026-11-25T12:00:00Z')], skips });
+  assert.match(packet.evidence, /red skipped: pre flow-tdd failed — flow-tdd: direct/);
+  assert.equal(lib.checkEnv({ line: { name: 'trunk', checkout: '/c' }, element: { id: 't-1', ref: 'task:t-1' }, skipped: skips }).WINGFOIL_RUNNER_SKIPPED, 'red:flow-tdd');
+  assert.equal(lib.checkEnv({ line: { name: 'trunk', checkout: '/c' }, element: { id: 't-1', ref: 'task:t-1' } }).WINGFOIL_RUNNER_SKIPPED, undefined);
+});
+
+test('1.2.5: two lines on one branch are refused', () => {
+  const two = { lines: { trunk: { branch: 'main', agent: 'a', tiers: {}, checkout: '/a', worktrees: '/w' }, next: { branch: 'main', agent: 'a', tiers: {}, checkout: '/b', worktrees: '/x' } } };
+  assert.throws(() => lib.lineConfig(two, 'next'), /lines 'trunk' and 'next' are all on branch 'main'/);
+  assert.deepEqual(lib.sameBranchLines({ lines: { trunk: { branch: 'main' }, l: { branch: 'line/l' } } }), []);
+  for (const line of Object.keys(config.lines)) assert.deepEqual(lib.sameBranchLines(config).filter((g) => g.includes(line)), [], `this project's line ${line}`);
 });
 
 test('the prompt and the MCP server use the project CLI', () => {
@@ -239,7 +339,9 @@ test('every role maps to a tier, and every line maps it to an adapter that exist
       const manifest = adapter(name);
       assert.equal(manifest.name, name);
       assert.ok(lib.adapterModel(manifest), `${name} names its model`);
-      assert.equal(manifest.command === 'claude' ? 'claude' : 'codex', agent, `${name} is ${agent}'s`);
+      // The line's agent is an identity, not the adapter's command (1.2.3, N6): only the CLI is checked.
+      assert.ok(['claude', 'codex'].includes(manifest.command), `${name} runs claude or codex, not ${manifest.command}`);
+      assert.ok(agent, `${line.name} names the agent of ${role}`);
     }
   }
 });
@@ -258,10 +360,15 @@ test('every agent of a line has its own git identity in dna.yaml, never an appro
   }
 });
 
-test('the trunk is written by claude and reviewed by codex', () => {
-  const trunk = lines.find((l) => l.name === 'trunk');
-  assert.equal(lib.pickAdapter(config, trunk, 'developer').agent, 'claude');
-  assert.equal(lib.pickAdapter(config, trunk, 'reviewer').agent, 'codex');
+// Which agent writes and which reviews is the project's (1.2.3, N6): a common test reads it from the
+// configuration, and a project that wants one topology tests it in its own tests.
+test('every line\'s reviewer is its reviewer_agent when it names one, its own agent otherwise', () => {
+  for (const line of lines) {
+    for (const role of Object.keys(config.roles)) {
+      const expected = role === 'reviewer' ? line.reviewer_agent ?? line.agent : line.agent;
+      assert.equal(lib.pickAdapter(config, line, role).agent, expected, `${line.name}'s ${role}`);
+    }
+  }
 });
 
 test('every adapter of a line has its extra arguments, and the prompt stays where the CLI reads it', () => {
@@ -480,7 +587,9 @@ test('stale locks: a dead process or an old lock', () => {
 });
 
 test('a trunk step gets the lines\' branches only when it allocates ids or works on the lines', () => {
-  const rule = config.line_branches;
+  // The rule's own default, not this project's line_branches (1.2.3, N6), whose shape is checked apart.
+  const rule = lib.DEFAULT_LINE_BRANCHES;
+  for (const field of ['actions', 'workflows']) assert.ok((config.line_branches?.[field] ?? []).every((v) => typeof v === 'string'), `line_branches.${field}`);
   assert.ok(lib.needsLineBranches({ workflow: 'release-flow', actions: [{ token: 'memory.add(type: task)' }, { token: 'memory.submit' }] }, rule));
   assert.ok(!lib.needsLineBranches({ workflow: 'dev-loop', actions: [{ token: 'memory.submit' }] }, rule));
   assert.ok(!lib.needsLineBranches({ workflow: 'weekly-report', actions: [{ token: 'agent.execute' }] }, rule));
@@ -490,9 +599,10 @@ test('a trunk step gets the lines\' branches only when it allocates ids or works
 });
 
 test('sync and branch need push on; a line adapts each release sync merged into it, once', () => {
-  assert.ok(lib.needsPush({ workflow: 'sync' }, config.push_workflows));
-  assert.ok(lib.needsPush({ workflow: 'x', trail: [{ workflow: 'branch' }] }, config.push_workflows));
-  assert.ok(!lib.needsPush({ workflow: 'dev-loop' }, config.push_workflows));
+  assert.ok((config.push_workflows ?? []).every((v) => typeof v === 'string'), 'push_workflows');
+  assert.ok(lib.needsPush({ workflow: 'sync' }));
+  assert.ok(lib.needsPush({ workflow: 'x', trail: [{ workflow: 'branch' }] }));
+  assert.ok(!lib.needsPush({ workflow: 'dev-loop' }));
   assert.deepEqual(lib.syncedReleases('rel-0.3.0\n\nrel-0.2.0\nnot an id\nrel-0.2.0\n'), ['rel-0.2.0', 'rel-0.3.0']);
   assert.deepEqual(lib.syncedReleases(''), []);
 });
@@ -584,12 +694,24 @@ test('a raised id may hold a dot inside it, never at its end', () => {
   assert.equal(lib.raisedIds('raised adr-006-the-toolchain.'), null);
 });
 
-test('the gates hold a blocked step, but not a start that left its task where it was', () => {
-  const raised = 'raised adr-006-x';
-  assert.equal(lib.heldByGates({ phase: 'start', reason: raised, statusBefore: 'backlog', statusAfter: 'in-progress' }), true);
-  assert.equal(lib.heldByGates({ phase: 'start', reason: raised, statusBefore: 'backlog', statusAfter: 'backlog' }), false);
-  assert.equal(lib.heldByGates({ phase: 'review', reason: raised, statusBefore: 'in-review', statusAfter: 'in-review' }), true);
-  assert.equal(lib.heldByGates({ phase: 'green', reason: 'the sandbox failed', statusBefore: 'in-progress', statusAfter: 'in-progress' }), false);
+test('the runner holds a blocked step until what it names is closed, whatever the workflow (1.2.5)', () => {
+  const states = { 'task-005-x': 'in-progress', 'task-002-y': 'done', 'adr-1-z': 'deprecated', 'adr-2-a': 'accepted', 'bug-3-b': 'resolved', 'dl-4-c': 'in-discussion' };
+  const stateOf = (id) => ({ status: states[id] ?? null });
+  // Closed is any state but the open ones, as need-closed reads it: an adr accepted, a bug resolved.
+  assert.deepEqual(lib.waitingIds(['task-005-x', 'task-002-y', 'adr-1-z', 'adr-2-a', 'bug-3-b', 'dl-4-c', 'bug-9-w'], stateOf), { open: ['task-005-x', 'dl-4-c'], unknown: ['bug-9-w'] });
+  assert.deepEqual(lib.waitingIds(['adr-2-a'], stateOf, ['accepted']).open, ['adr-2-a'], 'needs.open_states');
+  // A reported case: task-006 in progress needs task-005, still in progress, and its red answered
+  // blocked needs task-005: no step of it is launched again while task-005 is open.
+  const blocked = record({ id: 'task-006-v/red/1', element: 'task:task-006-v', phase: 'red', result: 'blocked', notes: lib.formatNotes({ reason: 'needs task-005-x', held: 'task-005-x' }) });
+  assert.deepEqual(lib.heldFor({ needs: ['task-002-y', 'task-005-x'], last: blocked, stateOf }), ['task-005-x']);
+  assert.deepEqual(lib.heldFor({ needs: [], last: blocked, stateOf }), ['task-005-x']);
+  states['task-005-x'] = 'done';
+  assert.deepEqual(lib.heldFor({ needs: ['task-002-y', 'task-005-x'], last: blocked, stateOf }), []);
+  // A task whose need is open does not start; a need no element has waits too.
+  states['task-005-x'] = 'backlog';
+  assert.deepEqual(lib.heldFor({ needs: ['task-005-x', 'task-404-q'], last: null, stateOf }), ['task-005-x', 'task-404-q (not found)']);
+  // A later run that did not end blocked releases what an earlier one held.
+  assert.deepEqual(lib.heldFor({ needs: [], last: { ...blocked, result: 'completed' }, stateOf }), []);
 });
 
 test('the needs of a task that list what the task raised are named', () => {
@@ -671,6 +793,20 @@ test('a resumed step is given the decisions closed since its return', () => {
   assert.ok(!/adr-3-v/.test(prompt));
   assert.ok(!/Decided since that return/.test(lib.buildPrompt(args)));
   assert.ok(!/Decided since that return/.test(lib.buildPrompt({ ...args, returned: null, decided: [after] })));
+});
+
+test('1.2.6: red-tests-untouched passes a red the runner skipped, and only with no red run', () => {
+  const memory = mkdtempSync(join(tmpdir(), 'runner-skip-'));
+  const repo = mkdtempSync(join(tmpdir(), 'runner-skip-repo-'));
+  const check = (extra) => spawnSync('node', [new URL('scripts/checks/red-tests-untouched.mjs', root).pathname], { cwd: repo, encoding: 'utf8',
+    env: { ...withoutRunnerEnv(), WINGFOIL_RUNNER_CHECKOUT: memory, WINGFOIL_ELEMENT: 'task-1-x', ...extra } });
+  try {
+    const skipped = check({ WINGFOIL_RUNNER_SKIPPED: 'red:flow-tdd' });
+    assert.equal(skipped.status, 0, skipped.stderr);
+    assert.match(skipped.stdout, /red skipped \(flow-tdd\)/);
+    assert.notEqual(check({}).status, 0, 'no red run and no skip still fails');
+    assert.notEqual(check({ WINGFOIL_RUNNER_SKIPPED: 'design:x' }).status, 0, 'a skip of another phase is not red');
+  } finally { rmSync(memory, { recursive: true, force: true }); rmSync(repo, { recursive: true, force: true }); }
 });
 
 test('red-tests-untouched spans every red run, not the line, and fails on an empty range', () => {
@@ -1478,7 +1614,7 @@ test('1.2.2: waiting.json gives argv and a cwd, and flags the notices the runner
   let text = NOTICES;
   text = lib.addNotice(text, { key: 'decision-trunk-task-1/review/1', at: 't', line: 'trunk', element: 'task:task-1', reason: 'decision (run task-1/review/1): may I?', command: 'x' }).text;
   text = lib.addNotice(text, { key: 'decision-trunk-task-2/review/1', at: 't', line: 'trunk', element: 'task:task-2', reason: 'decision (run task-2/review/1): $(touch PWN)', command: 'x' }).text;
-  const items = lib.waitingItems(text, 'trunk', { home: '/w/my home', opened: lib.openedNotices([{ kind: 'notice', key: 'decision-trunk-task-1/review/1' }]) });
+  const items = lib.waitingItems(text, 'trunk', { home: '/w/my home', opened: lib.openedNotices([{ kind: 'notice', key: 'decision-trunk-task-1/review/1', notice: 'N-001' }]) });
   assert.equal(items.length, 2);
   items.sort((a, b) => a.key.localeCompare(b.key));
   assert.equal(items[0].verified, true);
@@ -1488,7 +1624,7 @@ test('1.2.2: waiting.json gives argv and a cwd, and flags the notices the runner
   assert.equal(items[1].verified, false);
   assert.ok(!('argv' in items[1]), 'no command for a decision the runner did not open');
   // A gate keeps its command: gate.mjs rules only a step still waiting on the frontier.
-  const gate = lib.waitingItems(lib.addNotice(NOTICES, { key: 'gate-trunk-p-1-a.approve', at: 't', line: 'trunk', element: 'plan:p-1', reason: 'r', command: 'c' }).text, 'trunk', { home: '/h', opened: new Set() })[0];
+  const gate = lib.waitingItems(lib.addNotice(NOTICES, { key: 'gate-trunk-p-1-a.approve', at: 't', line: 'trunk', element: 'plan:p-1', reason: 'r', command: 'c' }).text, 'trunk', { home: '/h', opened: new Map() })[0];
   assert.equal(gate.verified, false);
   assert.equal(gate.argv[1], 'scripts/runner/gate.mjs');
 });
@@ -1526,4 +1662,118 @@ test('1.2.2: a dirty checkout: the files a step left, and gate.mjs names the way
   assert.match(refusal, /uncommitted files/);
   assert.match(refusal, /commit what belongs to an element .* or discard it, then run this command again/);
   assert.match(refusal, /--check-git/);
+});
+
+test('1.2.3: a ruling binds to the notice the runner opened and signed, never to a copy (F-1, F-3)', () => {
+  let text = NOTICES;
+  text = lib.addNotice(text, { key: 'gate-trunk-i-1-a.approve', at: '2026-11-24T10:00:00Z', line: 'trunk', element: 'plan:p-1', reason: 'approve the plan', command: 'c {id}' }).text;
+  const real = lib.notices(text).find((n) => n.key === 'gate-trunk-i-1-a.approve');
+  const ledger = [{ kind: 'notice', line: 'trunk', notice: real.id, key: real.key, seal: lib.noticeSeal(real.text) }];
+  assert.equal(lib.noticeTrust(lib.openedNotices(ledger), real), null);
+  // Its question rewritten, its N-id moved to another key, or a key the runner never signed: refused.
+  assert.match(lib.noticeTrust(lib.openedNotices(ledger), { ...real, text: real.text.replace('approve the plan', 'approve everything') }), /not the one the runner wrote/);
+  assert.match(lib.noticeTrust(lib.openedNotices(ledger), { ...real, id: 'N-099' }), /not N-099/);
+  assert.match(lib.noticeTrust(lib.openedNotices(ledger), { ...real, key: 'gate-trunk-i-1-b.approve' }), /signed no notice/);
+  // Closed by the runner, it is no longer trusted; a 1.2.2 container entry without a seal checks the N-id.
+  assert.match(lib.noticeTrust(lib.openedNotices([...ledger, { kind: 'notice-closed', key: real.key, notice: real.id }]), real), /signed no notice/);
+  assert.equal(lib.noticeTrust(lib.openedNotices([{ kind: 'notice', key: real.key, notice: real.id }]), real), null);
+  // An N-id carried twice, here by a block an agent added above the real one.
+  const forged = text.replace('<!-- runner:open -->', `<!-- runner:open -->\n\n<!-- key:gate-trunk-i-1-z.approve -->\n### ${real.id} · 2026-11-24 · plan:p-1\n\n- **Status:** open\n- **Line:** trunk\n`);
+  assert.deepEqual(lib.duplicateNoticeIds(forged), [real.id]);
+  assert.deepEqual(lib.duplicateNoticeIds(text), []);
+  const items = lib.waitingItems(forged, 'trunk', { home: '/h', opened: lib.openedNotices(ledger) });
+  assert.deepEqual(items.map((i) => i.verified).sort(), [false, true]);
+});
+
+test('1.2.3: the decision exception and --amend take the element\'s own Memory file only (F-4)', () => {
+  const memoryYaml = { types: { task: { path: 'docs/04_memory/{release}/{id}.md' }, adr: { path: 'docs/memory/adr/{id}.md' }, bug: {} } };
+  assert.ok(lib.isMemoryPath(memoryYaml, 'docs/04_memory/v0.3/task-9.md', 'task-9'));
+  assert.ok(lib.isMemoryPath(memoryYaml, 'docs/memory/adr/adr-1.md', 'adr-1'));
+  assert.ok(lib.isMemoryPath(memoryYaml, 'docs/memory/bug/bug-2.md', 'bug-2'));
+  for (const path of ['src/task-9.md', '.wingfoil/directives/custom/task-9.md', 'docs/04_memory/v0.3/task-90.md']) assert.ok(!lib.isMemoryPath(memoryYaml, path, 'task-9'), path);
+  // A placeholder spans folders since 1.2.6 (G-3); a second tracked file with the same id, planted
+  // elsewhere, makes the element's own file ambiguous, and none is taken.
+  assert.equal(lib.ownMemoryFile(memoryYaml, ['docs/04_memory/v0.3/task-9.md', 'src/a.ts'], 'task-9'), 'docs/04_memory/v0.3/task-9.md');
+  assert.equal(lib.ownMemoryFile(memoryYaml, ['docs/04_memory/v0.3/task-9.md', 'docs/04_memory/a/b/task-9.md'], 'task-9'), null);
+  assert.ok(!lib.isMemoryPath(memoryYaml, 'docs/memory/adr/x.md', '$(x)'));
+});
+
+test('1.2.3: text from an agent or the project prints without control, bidi or separator characters (F-2, F-7)', () => {
+  assert.equal(lib.plainText('a\u001b[2Jb\u202ec\u2028d\u2066e\tf\r\ng\u009bh\u007f'), 'a[2Jbcde\tf\ngh');
+  assert.ok(!lib.liveTail('x\u202ey').includes('\u202e'));
+});
+
+test('1.2.3: a lock file whose process is gone holds nothing (F-10)', () => {
+  const files = { live: JSON.stringify({ pid: 1, started: new Date().toISOString() }), dead: JSON.stringify({ pid: 2, started: new Date().toISOString() }), junk: 'not json' };
+  const read = (f) => { if (!(f in files)) throw new Error('missing'); return files[f]; };
+  const limits = { staleMinutes: 60, alive: (pid) => pid === 1, read };
+  assert.equal(lib.liveLock('live', limits).pid, 1);
+  assert.equal(lib.liveLock('dead', limits), null);
+  assert.equal(lib.liveLock('junk', limits), null);
+  assert.equal(lib.liveLock('missing', limits), null);
+});
+
+test('1.2.3: the state folder: a new empty one beside the old key stops the run, and the move leaves a link (F-5)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'state-'));
+  try {
+    const env = withoutRunnerEnv();
+    const state = join(dir, '.local/state');
+    mkdirSync(join(state, 'dfd-runner'), { recursive: true });
+    writeFileSync(join(state, 'dfd-runner/ledger.key'), 'k');
+    const home = process.env.HOME;
+    process.env.HOME = dir;
+    try {
+      assert.deepEqual(lib.stateFolderProblems(env), []);
+      mkdirSync(join(state, 'wingfoil-runner'));
+      assert.match(lib.stateFolderProblems(env).join(''), /new key and read no ruling.*--migrate-state/);
+      assert.deepEqual(lib.stateFolderProblems({ ...env, WINGFOIL_RUNNER_STATE: '/w/state' }), []);
+      writeFileSync(join(state, 'wingfoil-runner/x'), '');
+      assert.match(lib.migrateStateFolder({ home: dir }).why, /not empty/);
+      rmSync(join(state, 'wingfoil-runner/x'));
+      assert.equal(lib.migrateStateFolder({ home: dir }).done, true);
+      assert.equal(readFileSync(join(state, 'wingfoil-runner/ledger.key'), 'utf8'), 'k');
+      assert.equal(readFileSync(join(state, 'dfd-runner/ledger.key'), 'utf8'), 'k');
+      assert.deepEqual(lib.stateFolderProblems(env), []);
+      assert.match(lib.migrateStateFolder({ home: dir }).why, /already a link/);
+    } finally { process.env.HOME = home; }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('1.2.3: a notice id is bold and coloured by its kind in a terminal, plain elsewhere', () => {
+  const line = `notice ${lib.noticeLabel('N-001', 'security-trunk-x')}, ${lib.noticeLabel('N-002', 'gate-trunk-i-a')}, ${lib.noticeLabel('N-003', 'blocked-trunk-t')}, ${lib.noticeLabel('N-004', 'other-x')} for ${lib.stepLabel('a.b')}`;
+  assert.equal(lib.renderLabels(line), 'notice N-001, N-002, N-003, N-004 for a.b');
+  assert.equal(lib.renderLabels(line, true), 'notice \u001b[1;31mN-001\u001b[0m, \u001b[1;35mN-002\u001b[0m, \u001b[1;33mN-003\u001b[0m, \u001b[1mN-004\u001b[0m for \u001b[1ma.b\u001b[0m');
+});
+
+test('1.2.4: a reviewer step whose action is memory.submit is submitted by the runner, never by the reviewer (N7)', () => {
+  const kanban = { key: 'work-item.review@task:t-1', workflow: 'work-item', phase: 'review', instance: 'i', role: 'reviewer', actions: [{ token: 'memory.submit' }], evidence: { missing: ['state'] } };
+  const devLoop = { ...kanban, key: 'dev-loop.review@task:t-1', workflow: 'dev-loop', actions: [{ token: 'agent.execute' }] };
+  assert.equal(lib.runnerSubmits(kanban), true);
+  assert.equal(lib.runnerSubmits(devLoop), false);
+  assert.equal(lib.runnerSubmits({ ...kanban, role: 'developer' }), false);
+  const element = { ref: 'task:t-1', id: 't-1' };
+  assert.match(lib.exitLine(kanban, element, 'in-review'), /when the runner runs memory submit t-1 after your answer completed: do not run it yourself/);
+  assert.match(lib.exitLine({ ...kanban, role: 'developer' }, element, 'in-review'), /run npx wingfoil memory submit t-1 once the work is done/);
+  const prompt = (step) => lib.buildPrompt({ project: 'p', step, element, line: { name: 'trunk', branch: 'main' }, worktree: '/c', checkout: '/c', branch: 'main' });
+  assert.match(prompt(kanban), /Review: to accept, answer completed: the runner then runs memory submit t-1, so do not move the element yourself\./);
+  assert.match(prompt(devLoop), /Review: to accept, leave the element as it is and answer completed\./);
+  // The reviewer's allowlist keeps no submit.
+  const allow = lib.permissionArgs({ command: 'claude', role: 'reviewer', cli: ['npx', 'wingfoil'] }).join(' ');
+  assert.ok(!allow.includes('memory submit:*'), 'no submit for a reviewer');
+});
+
+test('1.2.4: a blocked run the approver solved no longer holds the gate (N7)', () => {
+  const step = { key: 's.approve', instance: 'i' };
+  const element = { ref: 'task:t-1' };
+  const blocked = { element: 'task:t-1', id: 't-1/review/1', result: 'blocked', notes: '' };
+  const ledger = [{ kind: 'close', line: 'trunk', key: 'blocked-trunk-t-1/review/1' }, { kind: 'decision', line: 'trunk', run: 't-1/red/2' }, { kind: 'close', line: 'other', key: 'blocked-other-x/y/1' }];
+  const solved = lib.resolvedRuns(ledger, 'trunk');
+  assert.deepEqual([...solved].sort(), ['t-1/red/2', 't-1/review/1']);
+  const packet = lib.gatePacket({ step, element, head: 'abcdef1234', records: [blocked], resolvedRuns: solved });
+  assert.equal(packet.ready, true);
+  assert.match(packet.evidence, /blocked, solved by the approver/);
+  assert.equal(lib.gatePacket({ step, element, head: 'abcdef1234', records: [blocked] }).ready, false);
+  // Solved or not, an open notice, failed checks or a dirty checkout still hold it.
+  assert.equal(lib.gatePacket({ step, element, head: 'a', records: [blocked], resolvedRuns: solved, openNotices: ['N-1'] }).ready, false);
+  assert.equal(lib.gatePacket({ step, element, head: 'a', records: [{ ...blocked, result: 'error' }], resolvedRuns: new Set(['t-1/review/1']) }).ready, false);
 });
