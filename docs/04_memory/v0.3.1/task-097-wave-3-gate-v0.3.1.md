@@ -15,6 +15,7 @@ bug: []                # optional — LIST of bug ids this task closes. Two case
                        # the approver's `memory approve` triaged -> planned, `memory submit` planned -> in-progress when
                        # this task starts and in-progress -> in-review at its review (`bug.sync_state`, R-10, dl-025), then the approver's approves
 depends_on: ["task-088-bounded-rendering-of-markdown-bodies-with-lazy-line-quotes", "task-090-hoverable-completion-and-chip-tooltips", "task-086-header-user-name-without-sideways-scroll-at-a-narrow-width", "task-089-notification-bell-rows-keyed-by-element", "task-095-feature-pattern-of-the-ui-configuration-matching-this-repository-feature-ids"]         # optional — ids of tasks whose Execution Notes constrain this one; authored at planning time, may be appended during design
+flow: "direct — a wave gate task: no red-first criterion, its checks run in green"
 tmpl_version: 260703   # Orignal template version
 ---
 
