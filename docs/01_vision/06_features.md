@@ -1,7 +1,7 @@
 # Features — WingFoil UI
 
-**Version:** 0.9
-**Date:** 2026-10-17 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6; 0.7: S3 supported range rule — dev-loop task-006; 0.8: S8 content fingerprint, Key Decisions rows split — audit follow-up of the Wave 2 amendments; 0.9: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8)
+**Version:** 0.10
+**Date:** 2026-11-26 (0.2: journey coverage completed by the coherence audit; 0.3: external review — session 7; 0.4: S8 row completed — specification session 1; 0.5: permissions left to WingFoil — specification session 3; 0.6: X4 wording — coherence audit of the specification — session 6; 0.7: S3 supported range rule — dev-loop task-006; 0.8: S8 content fingerprint, Key Decisions rows split — audit follow-up of the Wave 2 amendments; 0.9: *Update* is `git pull --ff-only`, the automatic update a fast-forward `merge --ff-only` of the fetched upstream — dev-loop task-040, D40-8; 0.10: L10 the git worktrees of one repository read as one project, in v0.3.3 — dl-013, dl-021, dl-030)
 **Status:** Accepted in lean-inception session 4 (2026-10-01)
 **Input:** `05_journeys.md` (steps and gaps) · `04_personas.md` · `02_product-vision.md` ·
 `03_is-isnot.md` · **Evidence:** `docs/00_reference/ux-reference.md`, the prototype,
@@ -119,7 +119,7 @@ know how to build it (H/M/L).
 | L7 | WingFoil core settings page | WingFoil core settings (request) | Git, approvals, workflow, agents, notifications |
 | L8 | Second UI language | — | Built on X2 |
 | L9 | Multi-user / remote deployment | — | Out of the MVP (`03_is-isnot.md`) |
-| L10 | Worktrees and parallel branches | — | Several working copies of one repository (refused in the MVP, Q3) |
+| L10 | Worktrees and parallel branches | — | The git worktrees of one repository read as one project, in v0.3.3 (dl-013, dl-021, dl-030); several clones of one repository stay refused (Q3) |
 
 ---
 
