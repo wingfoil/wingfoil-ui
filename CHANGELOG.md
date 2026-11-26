@@ -8,6 +8,14 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
 
 ## [Unreleased]
 
+### Security
+
+- **Content Security Policy on the console pages** (task-084, bug-039): every HTML response carries a
+  `Content-Security-Policy` header — scripts, styles, fonts, images and connections from the console's
+  own origin only, the inline theme script allowed by its hash (computed from the served
+  `index.html`), no object, frame or remote image; styles keep `'unsafe-inline'` (spec-004 *Process
+  Notes*, 2026-11-26).
+
 ### Changed
 
 - **Development dependencies refreshed** (task-092): `npm update` within ranges and `verdaccio`
