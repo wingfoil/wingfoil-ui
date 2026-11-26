@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:blocked-trunk-task-084-content-security-policy-on-the-console-pages/red/1 -->
 ### N-024 · 2026-11-25 · trunk:task-084-content-security-policy-on-the-console-pages
 
-- **Status:** open
+- **Status:** closed 2026-11-26T10:13:26Z — Runner 1.2.7 anchors the source denies at the worktree root (dl-029): test/server/ is writable to qa.
 - **Kind:** blocked
 - **Opened:** 2026-11-25T19:27:58Z
 - **Line:** trunk
 - **Element:** trunk:task-084-content-security-policy-on-the-console-pages
 - **Reason:** blocked (run task-084-content-security-policy-on-the-console-pages/red/1): write access to `test/server/http/csp.test.ts` in the worktree is denied by the permission settings (Write tool and Bash heredoc both refused), so the red test cannot be created or committed
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-024 --how "<what solved it>"`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt -->
 ### N-023 · 2026-11-24 · trunk:task-093-backlog-tools-read-patch-releases-and-the-generated-backlog-rebuilt
