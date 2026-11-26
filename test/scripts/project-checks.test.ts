@@ -3,11 +3,13 @@
 // direct`) and `scripts/project-checks/task-tests.mjs` (tests-red, tests-green on red's own files),
 // on a throwaway repository whose `npm test` and `test:e2e:chromium` are a fake that fails on a file
 // holding the word FAIL, and fails a full run while a `full-fails` file exists.
+// bug-055: these tests pass when the runner itself runs them (tests-green runs `npm test` with the
+// runner's variables, the line's branch among them).
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { REPO_ROOT } from '../harness/cli.js';
-import { harnessEnv } from '../harness/fixtures/index.js';
+import { harnessEnv, RUNNER_VARIABLE } from '../harness/fixtures/index.js';
 import { git } from '../harness/run.js';
 import { TempWorkspace } from '../harness/temp-workspace.js';
 
@@ -210,5 +212,44 @@ describe('scripts/project-checks/task-tests.mjs', () => {
     expect(res.stderr).toContain('npm test failed (exit 1)');
     await rm(path.join(repo, 'full-fails'));
     await calls();
+  });
+});
+
+describe('bug-055 — the runner variables of the run that starts the tests', () => {
+  // What `scripts/runner/lib.mjs` `checkEnv` and `withAliases` give a check, with the older names.
+  const RUNNER = {
+    WINGFOIL_ELEMENT: 'task-084-the-line-s-task',
+    WINGFOIL_RUNNER_ELEMENT: 'task:task-084-the-line-s-task',
+    WINGFOIL_RUNNER_LINE: 'trunk',
+    WINGFOIL_RUNNER_CHECKOUT: '/nowhere/line-checkout',
+    WINGFOIL_RUNNER_LINE_BRANCH: 'design/a-line-branch',
+    WINGFOIL_RUNNER_RUNS: 'docs/runs',
+    DFD_LINE_BRANCH: 'design/a-line-branch',
+    DFD_ELEMENT: 'task:task-084-the-line-s-task',
+  };
+
+  it('reach no process of a throwaway repository, and the checks run there as by hand', async () => {
+    const saved = Object.fromEntries(Object.keys(RUNNER).map((key) => [key, process.env[key]]));
+    Object.assign(process.env, RUNNER);
+    let inherited: NodeJS.ProcessEnv;
+    try {
+      inherited = (await harnessEnv(path.join(ws.dir, 'runner-env'))).env;
+    } finally {
+      for (const [key, value] of Object.entries(saved)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+    expect(Object.keys(inherited).filter((key) => RUNNER_VARIABLE.test(key))).toEqual([]);
+    const base = await head();
+    await commitFile('test/web/e.test.ts', 'FAIL\n', 'test: red unit e');
+    const res = await ws.run(process.execPath, [TESTS, '--expect', 'red'], {
+      cwd: repo,
+      env: { ...inherited, WINGFOIL_ELEMENT: TASK, WINGFOIL_RUNNER_CHECKOUT: repo, WINGFOIL_RUNNER_BASE: base },
+      allowFailure: true,
+    });
+    expect(res.stderr).not.toContain('bad revision');
+    expect(res.code).toBe(0);
+    expect(await calls()).toEqual([{ tool: 'unit', files: ['test/web/e.test.ts'] }]);
   });
 });
