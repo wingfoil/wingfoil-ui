@@ -3,12 +3,12 @@ id: bug-055-the-runner-s-variables-reach-the-throwaway-repositories-of-the-tests
 type: bug
 title: "The runner's variables reach the throwaway repositories of the tests"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
+release: "v0.3.1"            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+wingfoil_version: "0.3.2"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,56 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The script runner's `tests-green` check fails a green that passes: it runs `npm test` with the
+runner's variables, `harnessEnv` passes them on, and the four `task-tests.mjs` tests of
+`test/scripts/project-checks.test.ts` read the line's branch inside their throwaway repository.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. On `design/dev-loop_v0.3.1` (since dl-028), in a checkout with `node_modules`, set the variables
+   the runner gives a check (`scripts/runner/lib.mjs` `checkEnv`): at least
+   `WINGFOIL_RUNNER_LINE_BRANCH=design/dev-loop_v0.3.1`.
+2. Run `npx vitest run test/scripts/project-checks.test.ts`.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The suite passes as it does by hand: a test's throwaway repository reads only what the test sets.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+Four tests fail (`red: passes when red's vitest file and spec fail…`, `red: rejects a red file that
+already passes`, `red: rejects a red that wrote no test a tool runs`, `green: runs npm test, then
+red's specs on Chromium…`): `task-tests.mjs` runs `git log … --not design/dev-loop_v0.3.1` in the
+throwaway repository and stops on `fatal: bad revision 'design/dev-loop…'`. Under the runner,
+task-084's green ended `check-failed` twice (runs `green/1` and `green/2`, `tests-green:fail`); the
+run record's reason is the first line of the output, a jsdom warning (`Not implemented: Window's
+scrollTo() method`), not the failure.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- The check as the runner runs it (the home's `task-tests.mjs`, the environment built with the
+  home's `lib.mjs`, Node 22.23.5) on task-084's worktree at `eb85f7f7`: 4 failed, 5239 passed, 3 skipped (the four
+  tests above).
+- The same worktree, `npx vitest run` by hand on Node 22.23.5 and 24.22.3: 5243 passed, 3 skipped.
+- `test/scripts/project-checks.test.ts` with `WINGFOIL_RUNNER_LINE_BRANCH` set: 5 failed without the
+  fix, 13 passed with it.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+**Cause.** `test/harness/fixtures/builder.ts` `harnessEnv` removes the inherited `GIT_*` and `XDG_*`
+variables, not the runner's (`WINGFOIL_RUNNER_*`, the older `DFD_*`, `WINGFOIL_ELEMENT`).
+`task-tests.mjs` takes the line's branch from `WINGFOIL_RUNNER_LINE_BRANCH` when `--line-branch` is
+not given. A run by hand, or inside the agent's session, has no such variable, so the defect shows
+only in the runner's check.
+
+**Fix.** `harnessEnv` removes the runner's variables too (`RUNNER_VARIABLE`); a test of
+`test/scripts/project-checks.test.ts` sets them in the environment that starts the run and checks
+that none reaches the throwaway repository and that `tests-red` runs there as by hand.
+`test/README.md` says so.
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- capture (bug-ingest): severity `medium` — every green of Wave 2 under the runner fails its
+  `tests-green` with no fault of its own; no product code is involved. The fix is in the test
+  harness, on `fix/bug-055-the-runner-s-variables-reach-the-throwaway-repositories-of-the-tests`, merged into `main`, `design/dev-loop_v0.3.1` and task-084's branch,
+  with no fix task (as bug-051).
