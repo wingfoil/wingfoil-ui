@@ -576,3 +576,12 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   missing: 404 `not-found` under `/assets/`, the application for any other path (bug-031). §2: the
   fragment is removed by rebuilding the page's whole URL without it (absolute, of the page's
   origin), never from `pathname + search` (task-063 AC-8, the approver: "stripFragment a").
+- 2026-11-26 — amended in task-084 (bug-039; design decision of 2026-11-25): §1 / §5 response
+  headers — every `text/html` response (the application, the client-route fallback) carries
+  `Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-<theme script>';
+  style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self';
+  object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action
+  'none'`. The hash is that of `<script id="wfui-theme">` in the `index.html` served, computed at
+  start (`server/src/http/csp.ts`); styles keep `'unsafe-inline'` (React Aria and `style` props set
+  styles at run time; a nonce cannot cover style attributes), scripts stay strict. JSON and the
+  event stream carry no policy.
