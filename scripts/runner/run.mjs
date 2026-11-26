@@ -11,6 +11,9 @@
 //        node scripts/runner/run.mjs --status
 //        node scripts/runner/run.mjs --migrate-state   move the state folder dfd-runner to wingfoil-runner, leaving a link
 //        node scripts/runner/run.mjs --line <line> --doctor   what the project still lacks to run
+//        node scripts/runner/run.mjs --update <patch> --digest sha256:<hex> [--branch <name>]   the approver's update of
+//          the runner: the patch applied on a branch of its own from the trusted ref, the digest checked; tests,
+//          review and merge are the workflow's
 //          [--red-amend <task id> --files <file>[,<file>…] --because <decision id> [--note "<text>"]]
 //   --dry-run  read the next step and print what the run would do; launch and write nothing
 //   --stop-on-notice  with --until-idle, stop after a step whose run opened a new notice (a notice
@@ -54,6 +57,7 @@ const RENUMBER = arg('--renumber');
 const STATUS = process.argv.includes('--status');
 const DOCTOR = process.argv.includes('--doctor');
 const MIGRATE_STATE = process.argv.includes('--migrate-state');
+const UPDATE = arg('--update');
 const AMEND_TASK = arg('--red-amend');
 const AMEND_ORDER = AMEND_TASK
   ? { decision: arg('--because'), files: String(arg('--files') ?? '').split(',').map((f) => f.trim()).filter(Boolean), by: 'the approver', note: arg('--note') ?? null }
@@ -353,7 +357,7 @@ function elementFields(checkout, type, id) {
 /** An element's status and its type's final state, found by id among the Memory types (1.2.5). */
 function memoryState(checkout, memoryYaml, id) {
   const type = Object.keys(memoryYaml?.types ?? {}).find((t) => elementFile(checkout, t, id));
-  return { status: type ? elementFields(checkout, type, id).status ?? null : null, final: type ? lib.finalState(memoryYaml, type) : undefined };
+  return { type: type ?? null, status: type ? elementFields(checkout, type, id).status ?? null : null, final: type ? lib.finalState(memoryYaml, type) : undefined };
 }
 
 function elementStatus(checkout, element) {
@@ -732,8 +736,9 @@ function ensureMergeRules(ctx) {
  * WingFoil counts ids on every local and remote-tracking branch, and WIP limits on the same ones.
  * So for a step that needs them (config line_branches: one that allocates ids, or one of sync,
  * branch, converge, which work on the lines) each line's checkout on this machine is fetched
- * into the trunk's clone as a remote, and the lines' new ids are seen even while nothing is pushed;
- * for every other step those branches are removed, so a line's tasks in progress never block the
+ * into the trunk's clone as a remote, and the lines' new ids are seen even while nothing is pushed.
+ * From 1.2.7 (R2-24) a step that may raise an element gets them too, unless it moves into a WIP limit
+ * (lib.wantsLineBranches). For every other step those branches are removed, so a line's tasks in progress never block the
  * trunk's. The trunk's clone is single-branch on origin (main only), so the lines' branches pushed
  * to origin never reach it by a fetch of origin (directive agent-branches).
  */
@@ -1106,7 +1111,12 @@ function runOnce(ctx) {
     step = steps.find((s) => lib.stepElement(s).id === AMEND_TASK && s.role) ?? null;
     if (!step) { log(ctx, `--red-amend ${AMEND_TASK}: no open step of that task on the frontier`); return; }
   }
-  for (const candidate of AMEND_ORDER ? [] : lib.optionalFirst(steps)) {
+  // Before the approver's sitting (gate_windows, R2-19) the steps that lead to a gate go first, so
+  // that the gates are ready when the sitting opens; notices and notifications are never delayed.
+  const lead = lib.inGateLead(ctx.set.gateWindows);
+  if (lead) waitLine(ctx, 'a gate window opens soon: the steps that lead to a gate go first');
+  const ordered = lead ? lib.gateFirst(steps, (s) => lib.leadsToGate(s, lib.stepElement(s), memoryYaml)) : steps;
+  for (const candidate of AMEND_ORDER ? [] : lib.optionalFirst(ordered)) {
     if (lib.waitsForApprover(candidate) || lib.waitsOnMemory(candidate)) continue;
     if (!lib.launchesOptional(candidate, ctx.set.optional)) { waitLine(ctx, `${S(candidate.key)} is optional: passed over (launch.optional)`); continue; }
     // An optional step runs before the later steps of its element, or is skipped for it (1.2.6).
@@ -1166,15 +1176,16 @@ function runOnce(ctx) {
     notice(ctx, { key: `push-${line.name}-${step.instance}-${step.key}`, element: element.ref, reason: `${step.key} writes the lines' branches and needs push on`, command: 'set push: true in config/runner.yaml (docs/pack-deviations.md D5)' });
     return;
   }
-  closeNotices(ctx, lib.openNoticeKeys(noticesText(ctx), `push-${line.name}-`), 'push is on');
+  closeNotices(ctx, lib.pushNoticesToClose(noticesText(ctx), line.name, config.push), 'push is on');
   if (!DRY && Object.keys(config.lines).length > 1) {
     // A step that may raise an adr, a decision-log or a bug takes ids too: it holds the lock, and a
     // number it takes that another line already gives is renumbered after it (noticeIdClashes).
-    const allocates = lib.needsLineBranches(step, config.line_branches);
-    const takes = lib.takesIds(step, { rule: config.line_branches, raises: lib.stepMatches(ctx.set.raising, step) });
+    const raises = lib.stepMatches(ctx.set.raising, step);
+    const takes = lib.takesIds(step, { rule: config.line_branches, raises });
     const holder = takes ? takeIdLock(ctx) : null;
     if (holder) { waitLine(ctx, `${S(step.key)} waits: line ${holder} is taking new ids`); return; }
-    lineBranches(ctx, allocates);
+    // A step that may raise sees the other lines' ids too (1.2.7, R2-24), unless it moves into a WIP limit.
+    lineBranches(ctx, lib.wantsLineBranches(step, { rule: config.line_branches, raises, limited: lib.limitedMove(step, element, memoryYaml) }));
   }
 
   // A step resumed after a park or a reject is told why; every step is told how it completes.
@@ -1545,6 +1556,51 @@ function walkYaml(dir) {
   });
 }
 
+/**
+ * The approver's update of the runner (1.2.7): the patch applied in a worktree of the
+ * home at the trusted ref, the new manifest checked against the digest the release announced, the
+ * result committed on a branch of its own and pushed when push is on. The home itself is not touched:
+ * the branch goes through the project's workflow (tests, review, merge) like any task's.
+ */
+function updateRunner(config, patchFile, digest, branchName) {
+  if (lib.AGENT_MARKERS.some((name) => process.env[name])) { console.error('--update is the approver\'s: it is never run from an agent\'s shell'); return 3; }
+  const plan = lib.updatePlan({ patch: patchFile, digest, branch: branchName });
+  if (plan.problem) { console.error(`runner: --update: ${plan.problem}`); return 3; }
+  const patch = resolve(patchFile);
+  if (!existsSync(patch)) { console.error(`runner: --update: no patch at ${patch}`); return 3; }
+  const ref = config.paths?.trusted_ref ?? 'origin/main';
+  const home = HOME_REPO;
+  if (/^origin\//.test(ref)) sh('git', ['-C', home, 'fetch', '-q', 'origin']);
+  const tmp = mkdtempSync(join(tmpdir(), `${lib.MARK}-update-`));
+  const wt = join(tmp, 'wt');
+  try {
+    git(home, ['worktree', 'add', '-q', '--detach', wt, ref]);
+    const fits = sh('git', ['-C', wt, 'apply', '--check', patch]);
+    if (fits.status !== 0) { console.error(`runner: --update: the patch does not apply on ${ref}:\n${fits.stderr.trim()}`); return 2; }
+    git(wt, ['apply', '--index', patch]);
+    const version = readFileSync(join(wt, 'scripts/runner/VERSION'), 'utf8').trim();
+    const verify = sh(process.execPath, [join(wt, 'scripts/runner/manifest.mjs'), '--digest', digest], { cwd: wt });
+    if (verify.status !== 0) { console.error(`runner: --update: runner ${version} does not match ${digest}:\n${`${verify.stdout}\n${verify.stderr}`.trim()}`); return 2; }
+    const branch = plan.branch ?? lib.updateBranch(version);
+    if (sh('git', ['-C', home, 'rev-parse', '--verify', '--quiet', `refs/heads/${branch}`]).status === 0) { console.error(`runner: --update: the branch ${branch} exists already in ${home}`); return 2; }
+    git(wt, ['switch', '-q', '-c', branch]);
+    git(wt, ['commit', '-q', '-m', lib.updateMessage({ version, digest, patch: basename(patch), ref })]);
+    console.log(`runner: ${branch} holds runner ${version} on ${ref} (${digest.slice(0, 19)}…, ${basename(patch)})`);
+    if (config.push) {
+      git(home, ['push', '-q', 'origin', `refs/heads/${branch}:refs/heads/${branch}`]);
+      console.log(`runner: pushed ${branch} to origin`);
+    } else console.log(`runner: push is off: cd ${lib.shellWord(home)} && git push origin ${lib.shellWord(branch)}`);
+    console.log('runner: next, the workflow: a task on that branch, its tests, its review and its merge');
+    return 0;
+  } catch (error) {
+    console.error(`runner: --update: ${error.message}`);
+    return 1;
+  } finally {
+    sh('git', ['-C', home, 'worktree', 'remove', '--force', wt]);
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 function main() {
   if (MIGRATE_STATE) {
     if (lib.AGENT_MARKERS.some((name) => process.env[name])) { console.error('--migrate-state is the approver\'s: it is never run from an agent\'s shell'); process.exit(3); }
@@ -1552,7 +1608,7 @@ function main() {
     console.log(`runner: ${moved.why}`);
     process.exit(moved.done ? 0 : 2);
   }
-  const lineName = arg('--line') ?? (STATUS ? 'trunk' : null);
+  const lineName = arg('--line') ?? (STATUS || UPDATE ? 'trunk' : null);
   if (!lineName) { console.error('usage: run.mjs --line <line> [--dry-run] [--config <file>] [--resume] [--red-amend <task id> --files <f>[,<f>…] --because <decision id> [--note "<text>"]]'); process.exit(3); }
   if (AMEND_ORDER && (!AMEND_ORDER.decision || !AMEND_ORDER.files.length)) { console.error('--red-amend needs --files <file>[,<file>…] and --because <decision id>'); process.exit(3); }
   const config = lib.readConfig(arg('--config', join(REPO, 'config/runner.yaml')));
@@ -1591,6 +1647,7 @@ function main() {
       process.exit(2);
     }
   }
+  if (UPDATE) { process.exitCode = updateRunner(config, UPDATE, arg('--digest'), arg('--branch')); return; }
   let line;
   try { line = lib.lineConfig(config, lineName); } catch (error) { console.error(`runner: ${error.message}`); process.exit(2); }
   const ctx = { config, line, project, set: lib.settings(config) };
@@ -1667,6 +1724,7 @@ function main() {
     }
     const most = Number(arg('--max-steps', 20));
     let runs = 0;
+    let loop;
     do {
       let shown = [];
       try { shown = DRY ? [] : JSON.parse(readFileSync(join(line.checkout, '.git', lib.markName('.waiting')), 'utf8')).signature.split('\n'); } catch { /* nothing shown yet */ }
@@ -1680,8 +1738,9 @@ function main() {
       // What a run wrote without launching (a notice, a closed instance) reaches origin as well.
       if (config.push && !DRY && ctx.acted && !ctx.launched) pushOrigin(ctx, ['--follow-tags'], [line.branch]);
       runs += 1;
-    } while (UNTIL_IDLE && !DRY && ctx.launched && !ctx.halted && !(STOP_ON_NOTICE && ctx.noticed) && runs < most && !stopAsked(line));
-    if (UNTIL_IDLE && STOP_ON_NOTICE && ctx.noticed && !DRY) log(ctx, 'stopped: the run opened a new notice (--stop-on-notice)');
+      loop = lib.untilIdleNext({ untilIdle: UNTIL_IDLE, dry: DRY, stopOnNotice: STOP_ON_NOTICE, launched: ctx.launched, halted: ctx.halted, noticed: ctx.noticed, runs, most, stopAsked: () => stopAsked(line) });
+    } while (loop.next);
+    if (loop.why) log(ctx, loop.why);
     const waiting = CONTAINER ? lib.waitingItems(noticesText(ctx), line.name, { home: HOME_REPO, opened: lib.openedNotices(readLedger()) }) : [];
     if (CONTAINER && !DRY) lib.writeRecordFile(RECORD_DIR, 'waiting.json', `${JSON.stringify({ line: line.name, at: now(), items: waiting }, null, 2)}\n`);
     // Container mode: 12 when the run stops on what its caller must rule (waiting.json).

@@ -82,15 +82,19 @@ test('permissionArgs lists what a role may run, and never publishing or the appr
   assert.ok(!allow.includes('Bash(git:*)') && !allow.includes('Bash(node:*)'));
   assert.ok(allow.includes('Bash(node node_modules/wingfoil-released/dist/cli.js memory park:*)'));
   assert.ok(!allow.some((a) => /memory (submit|approve|reject)|workflow finalize|git (merge|tag|push):/.test(a)));
-  for (const rule of ['Bash(git push:*)', 'Bash(npm publish:*)', 'Bash(npx wingfoil memory approve:*)', 'Edit(src/**)', 'Write(web/**)']) assert.ok(deny.includes(rule), rule);
+  for (const rule of ['Bash(git push:*)', 'Bash(npm publish:*)', 'Bash(npx wingfoil memory approve:*)', 'Edit(/src/**)', 'Write(/web/**)']) assert.ok(deny.includes(rule), rule);
   const developer = lib.permissionArgs({ command: 'claude', role: 'developer', cli, sources: ['src/'] });
-  assert.ok(developer.includes('Bash(git merge:*)') && !developer.includes('Edit(src/**)'));
+  assert.ok(developer.includes('Bash(git merge:*)') && !developer.includes('Edit(/src/**)'));
   assert.deepEqual(lib.permissionArgs({ command: 'codex', role: 'reviewer', cli }), []);
   // The roles that only read the sources, and the paths a role may not read, come from the
   // configuration (1.2.5): reviewer and qa unless it names others.
   const tester = lib.permissionArgs({ command: 'claude', role: 'tester', cli, sources: ['src/'], sourcesReadOnly: ['reviewer', 'qa', 'tester'], readDeny: ['src/', 'dist'] });
-  for (const rule of ['Edit(src/**)', 'Write(src/**)', 'Read(src/**)', 'Read(dist/**)']) assert.ok(tester.slice(tester.indexOf('--disallowedTools')).includes(rule), rule);
-  assert.ok(!lib.permissionArgs({ command: 'claude', role: 'tester', cli, sources: ['src/'] }).includes('Edit(src/**)'));
+  for (const rule of ['Edit(/src/**)', 'Write(/src/**)', 'Read(/src/**)', 'Read(/dist/**)']) assert.ok(tester.slice(tester.indexOf('--disallowedTools')).includes(rule), rule);
+  assert.ok(!lib.permissionArgs({ command: 'claude', role: 'tester', cli, sources: ['src/'] }).includes('Edit(/src/**)'));
+  // Anchored at the worktree root (1.2.7): a nested test/src/ is not covered, whatever the spelling.
+  const spelled = lib.runnerDenies({ role: 'qa', cli, sources: ['server', './server/', '/server'], readDeny: ['dist/'] });
+  assert.deepEqual(spelled.filter((r) => /^(Edit|Write|Read)\(/.test(r)), ['Edit(/server/**)', 'Write(/server/**)', 'Edit(/server/**)', 'Write(/server/**)', 'Edit(/server/**)', 'Write(/server/**)', 'Read(/dist/**)']);
+  assert.ok(!spelled.some((r) => /\((?!\/)[^)]*server/.test(r)), 'no rule that matches at any depth');
   assert.deepEqual(lib.settings({}).sourcesReadOnly, ['reviewer', 'qa']);
 });
 
@@ -603,6 +607,10 @@ test('sync and branch need push on; a line adapts each release sync merged into 
   assert.ok(lib.needsPush({ workflow: 'sync' }));
   assert.ok(lib.needsPush({ workflow: 'x', trail: [{ workflow: 'branch' }] }));
   assert.ok(!lib.needsPush({ workflow: 'dev-loop' }));
+  const held = lib.addNotice(NOTICES, { key: 'push-trunk-rel-0.1.0-sync.merge-into-lines', at: '2026-11-25T10:00:00.000Z', line: 'trunk', element: 'release:rel-0.1.0', reason: 'r', command: 'c' }).text;
+  assert.deepEqual(lib.pushNoticesToClose(held, 'trunk', false), [], 'push off: another step leaves the push notice open');
+  assert.deepEqual(lib.pushNoticesToClose(held, 'trunk', true), ['push-trunk-rel-0.1.0-sync.merge-into-lines']);
+  assert.deepEqual(lib.pushNoticesToClose(held, 'twin', true), []);
   assert.deepEqual(lib.syncedReleases('rel-0.3.0\n\nrel-0.2.0\nnot an id\nrel-0.2.0\n'), ['rel-0.2.0', 'rel-0.3.0']);
   assert.deepEqual(lib.syncedReleases(''), []);
 });
@@ -694,12 +702,82 @@ test('a raised id may hold a dot inside it, never at its end', () => {
   assert.equal(lib.raisedIds('raised adr-006-the-toolchain.'), null);
 });
 
+test('a step that may raise sees the other lines\u2019 ids, unless it moves into a WIP limit (1.2.7, R2-24)', () => {
+  const red = { key: 'dev-loop.red', workflow: 'dev-loop', actions: [{ token: 'memory.add' }] };
+  const green = { key: 'dev-loop.green', workflow: 'dev-loop', actions: [{ token: 'tests.run' }] };
+  const start = { key: 'dev-loop.start', workflow: 'dev-loop', actions: [{ token: 'memory.submit' }] };
+  assert.ok(lib.wantsLineBranches(red), 'memory.add: as before');
+  assert.ok(!lib.wantsLineBranches(green), 'nothing raised: as before');
+  assert.ok(lib.wantsLineBranches(green, { raises: true }));
+  assert.ok(!lib.wantsLineBranches(start, { raises: true, limited: true }), 'a WIP-limited move runs without them');
+  assert.ok(lib.wantsLineBranches({ workflow: 'sync' }, { raises: true, limited: true }), 'sync needs them whatever');
+  const memoryYaml = { types: { task: { states: { sequence: ['backlog', 'in-progress', 'done'], limits: { 'in-progress': 2 } } } } };
+  assert.ok(lib.limitedMove(start, { type: 'task', status: 'backlog' }, memoryYaml));
+  assert.ok(!lib.limitedMove(green, { type: 'task', status: 'in-progress' }, memoryYaml));
+});
+
+test('gate windows: before the sitting the steps that lead to a gate go first (1.2.7, R2-19)', () => {
+  assert.equal(lib.settings({}).gateWindows, null, 'off by default');
+  const windows = lib.gateWindowsOf(['08:00-12:00', '00:30-01:00']);
+  assert.deepEqual(windows, { windows: [{ start: 480, end: 720 }, { start: 30, end: 60 }], lead: 120 });
+  assert.equal(lib.gateWindowsOf({ windows: ['9:00-10:00'], lead_minutes: 30 }).lead, 30);
+  assert.throws(() => lib.gateWindowsOf(['8-12']), /HH:MM-HH:MM/);
+  const at = (h, m) => new Date(2026, 10, 25, h, m);
+  assert.ok(lib.inGateLead(windows, at(6, 30)));
+  assert.ok(!lib.inGateLead(windows, at(8, 0)), 'the sitting itself is not the lead');
+  assert.ok(!lib.inGateLead(windows, at(5, 59)));
+  assert.ok(lib.inGateLead(windows, at(23, 45)), 'across midnight');
+  assert.ok(!lib.inGateLead(null, at(6, 30)));
+  const memoryYaml = { defaults: { states: { sequence: ['draft', 'pending', 'approved'], gates: { pending: { reject: 'draft' } } } },
+    types: { task: { states: { sequence: ['backlog', 'in-progress', 'in-review', 'done'], gates: { 'in-review': {} } } } } };
+  const green = { key: 'dev-loop.green', instance: 'a', actions: [{ token: 'memory.submit' }], scope: { element: { type: 'task', id: 'task-1-a', status: 'in-progress' } } };
+  const red = { key: 'dev-loop.red', instance: 'b', actions: [{ token: 'tests.run' }], scope: { element: { type: 'task', id: 'task-2-b', status: 'in-progress' } } };
+  const adr = { key: 'adr.propose', instance: 'c', actions: [{ token: 'memory.submit' }], scope: { element: { type: 'adr', id: 'adr-3-c', status: 'draft' } } };
+  assert.ok(lib.leadsToGate(green, lib.stepElement(green), memoryYaml));
+  assert.ok(!lib.leadsToGate(red, lib.stepElement(red), memoryYaml));
+  assert.ok(lib.leadsToGate(adr, lib.stepElement(adr), memoryYaml), 'the defaults gate pending');
+  assert.deepEqual(lib.gateFirst([red, green, adr], (s) => lib.leadsToGate(s, lib.stepElement(s), memoryYaml)).map((s) => s.instance), ['a', 'c', 'b']);
+});
+
+test('--update takes a patch, the announced digest and an optional branch (1.2.7)', () => {
+  const digest = `sha256:${'a'.repeat(64)}`;
+  assert.deepEqual(lib.updatePlan({ patch: 'p.patch', digest }), { patch: 'p.patch', digest, branch: null, problem: null });
+  assert.match(lib.updatePlan({ patch: null, digest }).problem, /name the patch/);
+  for (const bad of ['', 'sha256:abc', 'a'.repeat(64), `sha256:${'A'.repeat(64)}`]) assert.match(lib.updatePlan({ patch: 'p', digest: bad }).problem, /--digest/, bad);
+  for (const bad of ['-x', 'a..b', 'a//b', 'x.', 'x/', 'a b', 'a@{1}']) assert.match(lib.updatePlan({ patch: 'p', digest, branch: bad }).problem, /not a branch name/, bad);
+  assert.equal(lib.updatePlan({ patch: 'p', digest, branch: 'task/claude/task-190-runner' }).problem, null);
+  assert.equal(lib.updateBranch('1.2.7'), 'runner-update-1.2.7');
+  assert.match(lib.updateMessage({ version: '1.2.7', digest, patch: 'from-1.2.6-to-1.2.7.patch', ref: 'origin/main' }), /^chore\(runner\): update to runner 1\.2\.7\n\nApplied from-1\.2\.6-to-1\.2\.7\.patch on origin\/main/);
+});
+
+test('--until-idle goes on after a launch; --stop-on-notice stops it after a new notice (1.2.7)', () => {
+  const base = { untilIdle: true, dry: false, launched: true, halted: false, stopOnNotice: false, noticed: false, runs: 1, most: 20 };
+  assert.deepEqual(lib.untilIdleNext(base), { next: true, why: null });
+  assert.equal(lib.untilIdleNext({ ...base, noticed: true }).next, true, 'a notice alone does not stop the loop');
+  assert.deepEqual(lib.untilIdleNext({ ...base, stopOnNotice: true, noticed: true }), { next: false, why: 'stopped: the run opened a new notice (--stop-on-notice)' });
+  assert.deepEqual(lib.untilIdleNext({ ...base, stopOnNotice: true }), { next: true, why: null });
+  assert.equal(lib.untilIdleNext({ ...base, stopOnNotice: true, noticed: true, untilIdle: false }).why, null, 'one run: nothing to stop');
+  assert.equal(lib.untilIdleNext({ ...base, stopOnNotice: true, noticed: true, dry: true }).why, null);
+  for (const stop of [{ launched: false }, { halted: true }, { runs: 20 }]) assert.equal(lib.untilIdleNext({ ...base, ...stop }).next, false, JSON.stringify(stop));
+  assert.equal(lib.untilIdleNext({ ...base, stopAsked: () => true }).next, false, 'the stop file');
+});
+
 test('the runner holds a blocked step until what it names is closed, whatever the workflow (1.2.5)', () => {
   const states = { 'task-005-x': 'in-progress', 'task-002-y': 'done', 'adr-1-z': 'deprecated', 'adr-2-a': 'accepted', 'bug-3-b': 'resolved', 'dl-4-c': 'in-discussion' };
   const stateOf = (id) => ({ status: states[id] ?? null });
   // Closed is any state but the open ones, as need-closed reads it: an adr accepted, a bug resolved.
   assert.deepEqual(lib.waitingIds(['task-005-x', 'task-002-y', 'adr-1-z', 'adr-2-a', 'bug-3-b', 'dl-4-c', 'bug-9-w'], stateOf), { open: ['task-005-x', 'dl-4-c'], unknown: ['bug-9-w'] });
   assert.deepEqual(lib.waitingIds(['adr-2-a'], stateOf, ['accepted']).open, ['adr-2-a'], 'needs.open_states');
+  // Open states per type (1.2.7): a campaign running is open, a decision-log in its final approved is not.
+  const typed = { 'camp-1-a': { type: 'campaign', status: 'running', final: 'published' }, 'dl-5-b': { type: 'decision-log', status: 'approved', final: 'approved' },
+    'task-7-c': { type: 'task', status: 'approved', final: 'done' } };
+  const typedOf = (id) => typed[id] ?? { status: null };
+  const perType = { campaign: ['draft', 'pending', 'approved', 'running', 'scored', 'reviewed'] };
+  assert.deepEqual(lib.waitingIds(['camp-1-a', 'dl-5-b', 'task-7-c'], typedOf, perType).open, ['camp-1-a', 'task-7-c'], 'campaign by its own list, the rest by OPEN_STATES');
+  assert.deepEqual(lib.waitingIds(['camp-1-a', 'dl-5-b', 'task-7-c'], typedOf).open, ['task-7-c'], 'a final state is never open');
+  assert.deepEqual(lib.openStatesFor({ default: ['x'] }, 'task'), ['x']);
+  assert.deepEqual(lib.openStatesFor({ campaign: ['y'] }, 'toString'), lib.OPEN_STATES, 'an inherited key is never a type');
+  assert.deepEqual(lib.openStatesFor(['z'], 'task'), ['z']);
   // A reported case: task-006 in progress needs task-005, still in progress, and its red answered
   // blocked needs task-005: no step of it is launched again while task-005 is open.
   const blocked = record({ id: 'task-006-v/red/1', element: 'task:task-006-v', phase: 'red', result: 'blocked', notes: lib.formatNotes({ reason: 'needs task-005-x', held: 'task-005-x' }) });
