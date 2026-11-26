@@ -116,3 +116,11 @@ constant set written in spec-004 as a Process Note (AC-3), not a new format.
 Green: `csp.ts`, the hook, spec-004 Process Note, CHANGELOG, then `typecheck`, `lint`,
 `format:check`, `npm test -- test/server/http/csp.test.ts`, heavy gates on `gates.yml`.
 Size: under one active day.
+
+### green (2026-11-26)
+
+Done: `server/src/http/csp.ts` and the `onSend` hook in `server/src/http/app.ts` (commit `eb85f7f7`);
+spec-004 Process Note (`ca0d5eaa`); `CHANGELOG.md` *[Unreleased]* › Security. Checks run:
+`npm run test -- test/server/http/csp.test.ts` 8 passed; `npm run typecheck`, `npm run lint`,
+`npm run format:check` clean. `style-src` kept `'unsafe-inline'` as designed (no tighter try).
+The heavy gates (e2e on three engines, no CSP violation) run on `gates.yml` after the push.
