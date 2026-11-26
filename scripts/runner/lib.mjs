@@ -177,6 +177,8 @@ export function settings(config = {}) {
     sourcesReadOnly: config.permissions?.sources_read_only ?? ['reviewer', 'qa'],
     readDeny: config.permissions?.read_deny ?? {},
     openStates: config.needs?.open_states ?? OPEN_STATES,
+    // The approver's sittings for the gates (1.2.7, R2-19): off unless the configuration names them.
+    gateWindows: gateWindowsOf(config.gate_windows),
   };
 }
 
@@ -941,11 +943,14 @@ export function permissionArgs({ command, role, cli, sources = [], extra = [], s
  * for the roles that only read them, and the paths the role may not read. A deny wins over any allow
  * in Claude Code, so these hold under an adapter's own permission fragment as well (1.2.5). A Read
  * rule covers Claude Code's Grep and Glob too; it does not cover a Bash command that reads the file
- * (git show, git grep, npm run): ADOPTION.md lists those limits.
+ * (git show, git grep, npm run): ADOPTION.md lists those limits. Each path is anchored at the worktree
+ * root (`/src/**`), so a folder of the same name deeper down (test/src/) stays writable and readable.
  */
 export function runnerDenies({ role, cli, sources = [], sourcesReadOnly = ['reviewer', 'qa'], readDeny = [] }) {
   const forms = [...new Set([cli.join(' '), 'npx wingfoil', 'npx --no-install wingfoil'])];
-  const glob = (path) => `${String(path).replace(/\/+$/, '')}/**`;
+  // Anchored at the worktree, where the step is launched (1.2.7): Claude Code reads a rule without a
+  // leading slash at any depth, so `src/**` would also deny test/src/….
+  const glob = (path) => `/${String(path).replace(/^(?:\.\/)+/, '').replace(/^\/+|\/+$/g, '')}/**`;
   return ['Bash(git push:*)', 'Bash(git -C:*)', 'Bash(git remote:*)', 'Bash(git config:*)', 'Bash(npm publish:*)',
     ...forms.flatMap((form) => FORBIDDEN_WF.map((verb) => `Bash(${form} ${verb}:*)`)),
     ...RUNNER_SCRIPTS.flatMap((script) => [`Bash(node ${script}:*)`, `Bash(${script}:*)`]),
@@ -1597,6 +1602,50 @@ export function laterStepRan({ records, element, step, phases }) {
 }
 
 /**
+ * The approver's gate windows (1.2.7, R2-19), from config `gate_windows`: a list of `HH:MM-HH:MM`
+ * (local time), or `{ windows: [...], lead_minutes: <n> }` (default 120). Null when none is named.
+ */
+export function gateWindowsOf(value) {
+  if (value === undefined || value === null) return null;
+  const spec = Array.isArray(value) ? { windows: value } : value;
+  const windows = (spec.windows ?? []).map((w) => {
+    const m = /^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/.exec(String(w).trim());
+    if (!m || Number(m[1]) > 23 || Number(m[3]) > 24 || Number(m[2]) > 59 || Number(m[4]) > 59) throw new Error(`gate_windows: '${w}' is not HH:MM-HH:MM`);
+    return { start: Number(m[1]) * 60 + Number(m[2]), end: Number(m[3]) * 60 + Number(m[4]) };
+  });
+  const lead = Number(spec.lead_minutes ?? 120);
+  if (!Number.isFinite(lead) || lead < 0) throw new Error('gate_windows: lead_minutes is not a number of minutes');
+  return windows.length ? { windows, lead } : null;
+}
+
+/**
+ * Whether `date` falls in the lead before a gate window opens (1.2.7, R2-19): from `lead` minutes
+ * before a window's start up to the start, across midnight too.
+ */
+export function inGateLead(gateWindows, date = new Date()) {
+  if (!gateWindows) return false;
+  const minute = date.getHours() * 60 + date.getMinutes();
+  return gateWindows.windows.some(({ start }) => { const until = (start - minute + 1440) % 1440; return until > 0 && until <= gateWindows.lead; });
+}
+
+/**
+ * Whether a step leads to a gate (1.2.7, R2-19): it submits its element into a state that has a gate
+ * in `.wingfoil/memory.yaml` (`states.gates`, of the type or of the defaults).
+ */
+export function leadsToGate(step, element, memoryYaml) {
+  if (!(step.actions ?? []).some((a) => a.token === 'memory.submit')) return false;
+  const next = nextState(memoryYaml, element.type, element.status);
+  const gates = memoryYaml?.types?.[element.type]?.states?.gates ?? memoryYaml?.defaults?.states?.gates ?? {};
+  return next !== null && Object.hasOwn(gates, next);
+}
+
+/** The frontier with the steps that lead to a gate first, the rest in their order (1.2.7, R2-19). */
+export function gateFirst(steps, leads) {
+  const list = [...(steps ?? [])];
+  return [...list.filter(leads), ...list.filter((s) => !leads(s))];
+}
+
+/**
  * The frontier with each optional step moved before the other steps of its element and instance
  * (1.2.6): its pre checks decide whether it runs or is skipped before a later step is chosen.
  */
@@ -1665,6 +1714,17 @@ export function needsLineBranches(step, rule = DEFAULT_LINE_BRANCHES) {
  */
 export function takesIds(step, { rule = DEFAULT_LINE_BRANCHES, raises = false } = {}) {
   return raises || needsLineBranches(step, rule);
+}
+
+/**
+ * Whether a step runs with the other lines' branches fetched (1.2.7, R2-24): one that needs them
+ * (needsLineBranches), and one that may raise an adr, a decision-log or a bug, so that WingFoil gives
+ * it a number no other line holds from the start, instead of a clash renumbered after the step. A
+ * raising step that moves its element into a WIP-limited state runs without them, since WingFoil
+ * would count the other lines' tasks against the limit; its clashes are still renumbered after it.
+ */
+export function wantsLineBranches(step, { rule = DEFAULT_LINE_BRANCHES, raises = false, limited = false } = {}) {
+  return needsLineBranches(step, rule) || (raises && !limited);
 }
 
 /**
@@ -1791,6 +1851,14 @@ export function statusOf(text) {
 /** Whether a step needs push on (config `push_workflows`: sync and branch write the lines). */
 export function needsPush(step, workflows = ['sync', 'branch']) {
   return workflows.includes(step.workflow) || (step.trail ?? []).some((t) => workflows.includes(t.workflow));
+}
+
+/**
+ * The push notices of a line that a launch may close: all of them once push is on, none while it is
+ * off (a step that needs no push says nothing about the ones that do).
+ */
+export function pushNoticesToClose(text, line, push) {
+  return push ? openNoticeKeys(text, `push-${line}-`) : [];
 }
 
 /**
@@ -2301,16 +2369,36 @@ export function waitingIds(ids, stateOf, openStates = OPEN_STATES) {
   const open = [];
   const unknown = [];
   for (const id of ids ?? []) {
-    const { status } = stateOf(id);
+    const { status, type, final } = stateOf(id);
     if (!status) unknown.push(id);
-    else if (openStates.includes(status)) open.push(id);
+    else if (isOpenState(openStates, { type, status, final })) open.push(id);
   }
   return { open, unknown };
 }
 
 /**
+ * The open states of a type (1.2.7): `needs.open_states` is a list for every type, or a map of a type
+ * to its own list, with `default` (else OPEN_STATES) for the types it does not name.
+ */
+export function openStatesFor(openStates, type) {
+  if (Array.isArray(openStates)) return openStates;
+  const map = openStates && typeof openStates === 'object' ? openStates : {};
+  const own = type && Object.hasOwn(map, type) ? map[type] : map.default;
+  return Array.isArray(own) ? own : OPEN_STATES;
+}
+
+/**
+ * Whether an element is still open: its status is among its type's open states and is not the type's
+ * final state, which closes it whatever a list says (a decision-log whose sequence ends in approved).
+ */
+export function isOpenState(openStates, { type, status, final }) {
+  if (!status || (final && status === final)) return false;
+  return openStatesFor(openStates, type).includes(status);
+}
+
+/**
  * What an element waits for before the runner launches its next step (1.2.5), whatever its workflow's
- * gates: each id of its `needs` still open (OPEN_STATES) or not found (`<id> (not found)`), and, when its last run
+ * gates: each id of its `needs` still open (its type's open states, openStatesFor) or not found (`<id> (not found)`), and, when its last run
  * answered blocked on what it raised or needs (the record's `held`), each of those still open.
  */
 export function heldFor({ needs, last, stateOf, openStates = OPEN_STATES }) {
@@ -2548,6 +2636,39 @@ export function notices(text) {
     out.push({ key: m[1], id: /### (N-\d+)/.exec(block)?.[1] ?? null, open: closedAt === -1 || i < closedAt, start: i, end, text: block, closedAt: closed?.[1] ?? null });
   }
   return out;
+}
+
+/**
+ * Whether `--until-idle` runs another step after this one, and the line it prints when it stops on
+ * its own (1.2.7, from run.mjs): it goes on after a launch, unless the run halted, `--stop-on-notice`
+ * met a new notice, `--max-steps` is reached or the approver's stop file is there.
+ */
+export function untilIdleNext({ untilIdle, dry, launched, halted, stopOnNotice, noticed, runs, most, stopAsked = () => false }) {
+  if (!untilIdle || dry) return { next: false, why: null };
+  if (stopOnNotice && noticed) return { next: false, why: 'stopped: the run opened a new notice (--stop-on-notice)' };
+  if (!launched || halted || runs >= most) return { next: false, why: null };
+  return stopAsked() ? { next: false, why: null } : { next: true, why: null };
+}
+
+/**
+ * What `--update` takes (1.2.7): a patch file, the digest the release announced (`sha256:<hex>`) and,
+ * optionally, the branch to put it on (else updateBranch). `problem` when one is wrong.
+ */
+export function updatePlan({ patch, digest, branch = null }) {
+  if (!patch) return { problem: 'name the patch: --update <patch> --digest sha256:<hex>' };
+  if (!/^sha256:[0-9a-f]{64}$/.test(String(digest ?? ''))) return { problem: '--digest takes the release\'s sha256:<64 hex>' };
+  if (branch !== null && !/^(?!-)(?!.*\.\.)(?!.*\/\/)(?!.*@\{)[A-Za-z0-9._/-]+(?<![./])$/.test(String(branch))) return { problem: `--branch '${branch}' is not a branch name` };
+  return { patch, digest, branch, problem: null };
+}
+
+/** The branch an update goes on when the approver names none. */
+export function updateBranch(version) {
+  return `runner-update-${version}`;
+}
+
+/** The commit of an update: the version, the patch, the base and the digest it was checked against. */
+export function updateMessage({ version, digest, patch, ref }) {
+  return `chore(runner): update to runner ${version}\n\nApplied ${patch} on ${ref}; scripts/runner/MANIFEST.sha256 matches ${digest}.`;
 }
 
 /** The keys of the open notices, optionally only those starting with a prefix. */

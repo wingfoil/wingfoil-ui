@@ -1,6 +1,6 @@
 # SARD — 3. State & Context
 
-**Version:** 0.11 · **Date:** 2026-11-07 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41; 0.8: REQ-STATE-08 the 0.2.2 derivation on every version in v0.3, held gates — release-planning v0.3, RP3-14 D2, D5; its review rounds 1–2, F8, m2; 0.9: REQ-STATE-08 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver; 0.10: REQ-STATE-02 the mark of `.wingfoil/ui.yaml` whatever its git status — task-068 design, Q1 (a), decided by the approver; 0.11: REQ-STATE-02, REQ-STATE-05 the identity read as the CLI resolves the author — task-055, bug-029, Q4-a) · **Status:** Draft — specification-downcast session 4
+**Version:** 0.12 · **Date:** 2026-11-26 (0.2: coherence audit fixes — session 6; 0.3: REQ-STATE-08 last non-archived state — initial-design session 6; 0.4: REQ-STATE-06 v0.1 scope — release-planning v0.1 session 4 (audit A4); 0.5: REQ-STATE-02 content fingerprint in the state key — dev-loop task-010; 0.6: REQ-STATE-09 fetch interval and action-log cap as settings — release-planning v0.2 session 2, RP-19/RP-26; 0.7: REQ-STATE-04 rationale worded for the automatic `merge --ff-only` — RP-41; 0.8: REQ-STATE-08 the 0.2.2 derivation on every version in v0.3, held gates — release-planning v0.3, RP3-14 D2, D5; its review rounds 1–2, F8, m2; 0.9: REQ-STATE-08 the scenarios of spec-011 §8, spec-012 §11 and adr-003 traced — release-planning v0.3 build-backlog (B3), decided by the approver; 0.10: REQ-STATE-02 the mark of `.wingfoil/ui.yaml` whatever its git status — task-068 design, Q1 (a), decided by the approver; 0.11: REQ-STATE-02, REQ-STATE-05 the identity read as the CLI resolves the author — task-055, bug-029, Q4-a; 0.12: REQ-STATE-07 rationale, the worktrees of one repository read as one project — dl-013, dl-021, dl-030) · **Status:** Draft — specification-downcast session 4
 
 Shell and conventions: `00_sard.md`.
 
@@ -78,7 +78,7 @@ Shell and conventions: `00_sard.md`.
 |-------|--|
 | Release | v0.1 |
 | Description | A repository is in the list at most once (same path, same remote, or a working copy of a listed remote); only folders with `.wingfoil/` are added; a failed add or clone leaves nothing; a missing folder or CLI marks the entry unavailable without blocking the others. |
-| Rationale | Q3; one project never shows twice (worktrees: L10). |
+| Rationale | Q3; one project never shows twice: a repository's git worktrees are read as one project (L10, dl-013, v0.3.3 by dl-021), several clones of one repository stay refused (dl-030). |
 | Traceability | US-S-03, US-S-04, US-S-05, US-S-06, US-S-07, US-S-10, US-S-18, US-S-19 · S-03.2, S-04.3, S-05.1, S-05.2, S-06.1, S-06.2, S-07.1, S-07.2, S-07.3, S-18.1, S-19.1, S-19.2, S-10.2 · S2 |
 | Fit criterion | [boolean] Every listed scenario passes; after each refused add the list and the file system are unchanged. |
 | Verified by | e2e |

@@ -70,11 +70,20 @@ export interface HarnessEnv {
 }
 
 /**
+ * The script runner's variables (`scripts/runner/lib.mjs` `checkEnv`, `withAliases`): a check the
+ * runner starts gives them to `npm test`, and a script a test runs on a throwaway repository would
+ * read the line's, e.g. `WINGFOIL_RUNNER_LINE_BRANCH` (bug-055).
+ */
+export const RUNNER_VARIABLE = /^(WINGFOIL_RUNNER_|DFD_|WINGFOIL_ELEMENT$)/;
+
+/**
  * Environment for every process of a fixture under `root`: git reads only the repository's own
  * configuration plus `root/.gitconfig` (no user or system settings such as commit signing; the
  * author name {@link HARNESS_GIT_NAME}, no email, `user.useConfigOnly`), no
- * inherited `GIT_*` variable (e.g. `GIT_INDEX_FILE` from a hook), and the home and XDG
- * directories point into `root/home` (default clone folder `~/projects`, OS state directory).
+ * inherited `GIT_*` variable (e.g. `GIT_INDEX_FILE` from a hook), no variable of the script runner
+ * (`WINGFOIL_RUNNER_*`, its older `DFD_*` names, `WINGFOIL_ELEMENT`: a bound check that runs
+ * `npm test` passes them on, bug-055), and the home and XDG directories point into `root/home`
+ * (default clone folder `~/projects`, OS state directory).
  */
 export async function harnessEnv(root: string): Promise<HarnessEnv> {
   await mkdir(root, { recursive: true });
@@ -93,6 +102,7 @@ export async function harnessEnv(root: string): Promise<HarnessEnv> {
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of Object.keys(env)) {
     if (key.startsWith('GIT_') || key.startsWith('XDG_')) delete env[key];
+    if (RUNNER_VARIABLE.test(key)) delete env[key];
   }
   // bug-030: the run-wide state directory of the temporary root is not inherited: a console started
   // with this environment resolves its own, under this home (spec-006 §1), as before.
