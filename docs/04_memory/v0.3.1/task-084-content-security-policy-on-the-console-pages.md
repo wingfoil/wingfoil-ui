@@ -124,3 +124,44 @@ spec-004 Process Note (`ca0d5eaa`); `CHANGELOG.md` *[Unreleased]* › Security. 
 `npm run test -- test/server/http/csp.test.ts` 8 passed; `npm run typecheck`, `npm run lint`,
 `npm run format:check` clean. `style-src` kept `'unsafe-inline'` as designed (no tighter try).
 The heavy gates (e2e on three engines, no CSP violation) run on `gates.yml` after the push.
+
+### review (2026-11-27)
+
+Independent review of `084f68ffa3f04c53d6341d69f4a793acfd7e8e85` for
+`trunk:task-084-content-security-policy-on-the-console-pages`. Read the reviewer directives,
+the current task in the line checkout, bug-039 and spec-004's dated Process Note; inspected
+`git diff design/dev-loop_v0.3.1...HEAD` and the server and browser test paths.
+
+Checks run in the task worktree: `npm run test -- test/server/http/csp.test.ts` passed all 8
+tests; `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` and
+`git diff --check` exited 0. The CSP tests map to AC-1; the spec-004 Process Note in the line
+checkout and `CHANGELOG.md` Security entry cover the documentation change of AC-3.
+
+**F-1 — Test coverage: AC-2's browser CSP guarantee is not asserted.** The only tests this
+change adds are HTTP injection tests (`test/server/http/csp.test.ts`); they inspect a header
+and do not execute the built application in a browser. Searched all browser specs and shared
+helpers with `rg -n 'securitypolicyviolation|content-security-policy|CSP' test/e2e`: no match.
+The two console listeners found by
+`rg -n '\.on\(.+(console|pageerror)|securitypolicyviolation|content-security-policy' test/e2e`
+are in `shell.spec.ts` and `session-recovery.spec.ts`; their assertions check token leakage,
+not CSP violations. A blocked optional resource can therefore leave the existing functional
+checks green without establishing AC-2's no-violation condition.
+
+Structural solution: add browser coverage for this task using the normal served build and
+the shared screen inventory (`test/e2e/support/screens.ts`), install a CSP violation collector
+before navigation, assert the document response carries the enforced policy, and fail on any
+unexpected violation after each screen and its interactions settle. Exercise theme changes
+and runtime inline styles as well. Keep this coverage on actual server responses: the
+key-rendering helper fulfills HTML itself (`test/e2e/support/console.ts`) without the server's
+CSP header. Demonstrate that the collector detects a deliberately blocked operation, so an
+empty collection cannot be a disabled check. No red amendment is needed: this adds missing
+browser coverage without changing red's HTTP test file.
+
+CI evidence is also outstanding: the GitHub connector's GET of
+`https://api.github.com/repos/wingfoil/wingfoil-ui/actions/runs?branch=task%2Ftask-084-content-security-policy-on-the-console-pages&per_page=10`
+returned `total_count: 0`. After the coverage is added, AC-2 requires the full three-engine
+`gates.yml` run (`scope=wave`), with run id, head SHA and results; a task-scope run with no own
+browser specs would skip Firefox and WebKit. No browser/axe result is claimed by this review.
+
+Outcome: reject for F-1, tracked in the task's `memory park --reason`; no separate bug for a
+finding in this change. The task and bug are not submitted for review by this session.
