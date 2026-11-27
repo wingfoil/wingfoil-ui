@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { Button, Label, ListBox, ListBoxItem, Popover, Select, SelectValue } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Chevron } from '../shell/icons.js';
+import { keyText } from '../text/key-text.js';
 import { facetsOf, type CardFilter, type FacetKey } from './model.js';
 
 /** The key of *All*; a value's key is prefixed, so no value can equal it. */
@@ -40,7 +41,7 @@ function FacetSelect({
     { id: ALL, text: intl.formatMessage({ id: 'today.filter.all' }, { count: rows.length }) },
     ...facetsOf(rows, facet).map((f) => ({
       id: keyOf(f.value),
-      text: intl.formatMessage({ id: 'today.filter.option' }, { value: f.value, count: f.count }),
+      text: intl.formatMessage({ id: 'today.filter.option' }, { value: keyText(f.value), count: f.count }),
     })),
   ];
   return (

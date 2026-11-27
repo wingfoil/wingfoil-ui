@@ -29,6 +29,7 @@ import { HeaderEnd } from '../shell/header-slot.js';
 import { NotificationBell } from '../shell/NotificationBell.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { Chevron, WarningSign } from '../shell/icons.js';
+import { keyText } from '../text/key-text.js';
 import { useHowToJoin } from './HowToJoin.js';
 import { readOnlyNotices, supportedRange, userView, versionOf, type ReadOnlyNotice } from './model.js';
 import './project-header.css';
@@ -262,10 +263,10 @@ function CurrentUser({ header }: { header: HeaderData }): ReactNode {
   const role = user.kind === 'memberRole' ? user.role : undefined;
   const label = intl.formatMessage(
     { id: 'shell.user.label' },
-    { kind: user.kind, name: name ?? '', role: role ?? '', email: email ?? '' },
+    { kind: user.kind, name: name ?? '', role: keyText(role ?? ''), email: email ?? '' },
   );
   let main: ReactNode;
-  let sub: ReactNode = role;
+  let sub: ReactNode = role === undefined ? undefined : keyText(role);
   let badge: ReactNode;
   switch (user.kind) {
     case 'memberRole':
@@ -346,8 +347,8 @@ function RoleViewSelect({ roles, current, busy, onChange }: RoleViewSelectProps)
         </p>
         <ListBox className="menu" items={roles.map((r) => ({ id: r }))}>
           {(item) => (
-            <ListBoxItem id={item.id} className="menu-item" textValue={item.id}>
-              {item.id}
+            <ListBoxItem id={item.id} className="menu-item" textValue={keyText(item.id)}>
+              {keyText(item.id)}
             </ListBoxItem>
           )}
         </ListBox>

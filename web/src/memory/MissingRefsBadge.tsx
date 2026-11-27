@@ -8,6 +8,7 @@
 import type { UiCategory } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { keyText } from '../text/key-text.js';
 
 /** Props of {@link MissingRefsBadge}. */
 export interface MissingRefsBadgeProps {
@@ -21,7 +22,7 @@ export function MissingRefsBadge({ categories, descriptionId }: MissingRefsBadge
   const intl = useIntl();
   const description = intl.formatMessage(
     { id: 'memory.missingRefs.description' },
-    { categories: intl.formatList(categories, { type: 'conjunction' }) },
+    { categories: intl.formatList(categories.map(keyText), { type: 'conjunction' }) },
   );
   return (
     <>

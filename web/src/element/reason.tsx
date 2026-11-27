@@ -8,6 +8,7 @@ import type { DisabledReason } from '@wingfoil-ui/contracts';
 import { createContext, useContext, type ReactNode } from 'react';
 import { defineMessages, FormattedMessage, type MessageDescriptor } from 'react-intl';
 import { UpdateLink } from '../repository/UpdateLink.js';
+import { keyText } from '../text/key-text.js';
 
 /** The catalogue texts of the disabled reasons (spec-003 §6, spec-008 §4 `<area>.reason.<code>`). */
 const REASONS = defineMessages({
@@ -51,7 +52,7 @@ export function reasonMessage(reason: DisabledReason): {
     case 'version-unsupported':
       return { descriptor: REASONS[reason.code], values: { range: reason.range } };
     case 'state-limit':
-      return { descriptor: REASONS[reason.code], values: { state: reason.state, limit: reason.limit } };
+      return { descriptor: REASONS[reason.code], values: { state: keyText(reason.state), limit: reason.limit } };
     case 'copy-behind':
       return {
         descriptor: REASONS[reason.code],

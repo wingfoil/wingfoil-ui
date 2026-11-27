@@ -9,6 +9,7 @@
 import type { Tone } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
 import { defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
+import { keyText } from '../text/key-text.js';
 import { stateChips, type ChipPosition } from './model.js';
 
 /** The accessible text of a chip: its state and its position (the visible name is hidden from it). */
@@ -50,10 +51,10 @@ export function StateMachine({ sequence, current, tone, final = false }: StateMa
           data-position={chip.position}
           aria-current={chip.position === 'current' ? 'step' : undefined}
         >
-          <span aria-hidden="true">{chip.name}</span>
+          <span aria-hidden="true">{keyText(chip.name)}</span>
           <span className="visually-hidden">
             {intl.formatMessage(final && chip.position === 'current' ? FINAL : POSITION[chip.position], {
-              state: chip.name,
+              state: keyText(chip.name),
             })}
           </span>
         </li>

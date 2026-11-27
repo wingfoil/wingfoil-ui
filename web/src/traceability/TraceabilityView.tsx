@@ -16,6 +16,7 @@ import { useEffect, useId, useMemo, useRef, useState, type FocusEvent, type Reac
 import { FormattedMessage, useIntl } from 'react-intl';
 import { QueryError } from '../docs/QueryError.js';
 import { UiYamlWarning } from '../shell/UiYamlWarning.js';
+import { keyText } from '../text/key-text.js';
 import { Figures } from './Figures.js';
 import { MissingSection } from './MissingSection.js';
 import {
@@ -305,7 +306,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
                   count={c.count}
                   onPress={() => go(withFilter({ category: c.value }))}
                 >
-                  {c.value}
+                  {keyText(c.value)}
                 </Toggle>
               ))}
             </Group>
