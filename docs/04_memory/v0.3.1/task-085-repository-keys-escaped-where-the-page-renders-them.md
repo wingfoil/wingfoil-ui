@@ -114,3 +114,71 @@ length growth linear: every unsafe char adds a bounded escape). **Strict identit
 **Size:** about half a day (bug-041's estimate holds): one helper, one parity test, ~25 one-line
 JSX changes, one test per site; no split proposed. No gap or contradiction between the task and its
 specs beyond the AC-3 wording the Process Note resolves.
+
+### review (2026-11-27, independent reviewer, Codex) — rejected
+
+Reviewed `trunk:task-085-repository-keys-escaped-where-the-page-renders-them` at task-branch
+`4ad3d498` against the authoritative task body in the line's clone. Read the reviewer directives,
+spec-004 §5 and its D72-1 Process Note, bug-041, and the affected UX reference sections.
+`npx --no-install wingfoil workflow next sw-life-cycle-1-plan` in the line's clone names this
+review. `git var GIT_AUTHOR_IDENT` returned the agent's required address.
+
+**Checks run in the task worktree:** `npm run typecheck`, `npm run lint`, and
+`npm run format:check` each exited 0; `npm run test -- test/web/text/key-text.test.ts
+test/web/text/key-sites.test.tsx` passed 2 files, 9 tests. These establish the implemented subset,
+not AC-1's whole-site coverage or AC-2's e2e/contract gates.
+
+**Independent boundary probes:** a temporary `test/web/text/key-review-probe.test.tsx` imported
+the real `dnaBody` and `repositoryText` serializers, stubbed `/config` with `dnaBody` output, and
+rendered `/p/p_fx/dna` through `renderApp`. `npm run test --
+test/web/text/key-review-probe.test.tsx` exited 1, 2 tests failed:
+
+- Input module path, methodology phase and DNA path value `src` + U+202E + `/` + ESC + U+200B:
+  expected the single `repositoryText` escape in all three text nodes; received doubled
+  backslashes in all three. `dnaBody` already escapes these fields (only `DNA_KEYS` stay raw).
+- Input path category `sources` + U+202E + ESC + U+200B with value `plain/`: expected the category
+  shown escaped; the `<dt>` retained all three raw characters. Object keys stay raw in `dnaBody`.
+
+The temporary probe was removed after the run; `git status --short` in the task worktree was
+empty. Product code and red's tests were not edited.
+
+**Findings (also recorded in the park reason):**
+
+- **F1 — major; incomplete rendering-boundary coverage (AC-1).** `git diff --name-status
+  design/dev-loop_v0.3.1...HEAD` lists only Memory, DNA, Team, Directives and the helper/tests.
+  A repository sweep (`rg -n keyText web/src` plus inspection of the D85-3 sites) still finds raw
+  keys in Today rows/filters/roles/progress/recent activity, the notification bell, element
+  page/panel/state machine/candidates/directives/footer, Traceability and Configuration. Even DNA
+  still renders `AgentLine`'s `executes_as` and path category keys raw. Examples:
+  `TodayView.tsx:124,142`, `NotificationBell.tsx:193,264`, `StateMachine.tsx:53,56`,
+  `Candidates.tsx:44,47,49`, `ReferenceTable.tsx:66,97`, `ProgressView.tsx:123`,
+  `DnaView.tsx:96,225`. Complete the raw-key rendering inventory, apply the shared helper at each
+  text/accessible-name boundary while preserving raw operational values, and add hostile-key and
+  plain-key coverage per site, including the serialized-response boundary. The path-category
+  probe above reproduces one missed site inside an already changed screen.
+- **F2 — minor; display text escaped twice / fixture contradicts the API contract (AC-2).**
+  `DnaView.tsx:122,164,233` applies `keyText` to module paths, methodology phases and path values
+  already escaped by `dnaBody` (`serialise.ts`, `DNA_KEYS` and `displayLeaves`). The original DNA
+  site test feeds raw values in these display fields and therefore rewards a second escape.
+  Preserve the accepted single escape for display fields, and escape only raw keys in the web.
+  Amend the red fixture to use the accepted serialized values and assert exactly one escape;
+  cover backslashes as well as hostile characters.
+
+  Red amendment (trunk:spec-004-server-http-api-and-event-stream): test/web/text/key-sites.test.tsx
+
+- **F3 — minor; missing behavior documentation (AC-3).** The branch diff has no spec-004 Process
+  Note or changelog entry, and `serialise.ts` still says keys shown by the page stay raw
+  (bug-041). Add the dated Process Note choosing the web rendering rule, the v0.3.1 fix entry,
+  and the corresponding class-table comment, consistent with display fields remaining escaped
+  once by the server.
+- **F4 — minor; missing execution and acceptance evidence (definition-of-done).** The current
+  task body before this review contains design notes only: no red, green or refactor execution
+  records, no screen-scenario closure table and no gate commands/results. Record actual results
+  for each phase and map the acceptance scenarios to tests. Supply the required e2e, contract
+  and coverage evidence (CI run id, tested commit and result where `gates.yml` applies). Those
+  heavy gates were not independently verified in this rejected review; a CI hand-off is left
+  until the implementation findings are fixed.
+
+All findings concern this task's own implementation or missing acceptance work and are tracked
+by its park commit; no separate bug is needed. Rejection moves no linked bug and does not submit
+the task. The runner owns the later review submit after acceptance.
