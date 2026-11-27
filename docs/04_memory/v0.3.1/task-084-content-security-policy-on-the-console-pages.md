@@ -296,3 +296,22 @@ placeholders, with no absolute local path in the task text.
 linked-bug action is `memory submit bug-039-the-console-serves-its-pages-without-a-content-security-policy`
 (`in-progress → in-review`). The task's own submit is left to the runner after this session's
 completed answer; this session does not submit the task or finalize the workflow.
+
+### review — final verification (2026-11-27)
+
+Rechecked `trunk:task-084-content-security-policy-on-the-console-pages` at the unchanged
+`b2c4a400b7fc905401753629ec05ddb02ed47e07` (`git rev-parse HEAD`), its complete diff and the
+reviewer directives. No finding remains. The GitHub connector's GET of run `45983473359` and
+`/jobs?per_page=100` confirms success on that head; the six browser job logs independently
+confirm Chromium 260 + 259, Firefox 252 + 251 and WebKit 252 + 251 passed, with no failed or
+flaky summary. The normal-build CSP spec and the per-screen axe assertions are included by
+the wave command and `playwright.config.ts`.
+
+Fresh local checks: `npm run test -- test/server/http/csp.test.ts test/docs/public-text.test.ts`
+passed 2 files and 75 tests; `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api` and `git diff --check design/dev-loop_v0.3.1...HEAD` all exited 0.
+The hand-off already uses `<runner-home>` and `<line-clone>`; `rg -n '/[h]ome/|/[U]sers/'` on this
+task returns no matches. `memory search` lists bug-039 as `in-review`, and `git show ce3671ec`
+confirms its earlier CLI submit, so the linked-bug action is satisfied without another move.
+Outcome remains completed; the task is still `in-progress` for the runner's submit after this
+answer. No source or test file changed.
