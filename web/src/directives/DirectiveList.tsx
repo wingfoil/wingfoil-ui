@@ -11,6 +11,7 @@ import { useId, type ReactNode } from 'react';
 import { ToggleButton, ToggleButtonGroup } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { RoleChips, RulesError } from '../dna/DnaView.js';
+import { keyText } from '../text/key-text.js';
 import { effectiveShow, SHOW_ALL, shownDirectives, type ListedDirective } from './model.js';
 import '../dna/rules.css';
 
@@ -54,7 +55,7 @@ function Row({ pid, entry, current }: { pid: string; entry: ListedDirective; cur
         >
           {entry.frontmatter.title}
         </Link>
-        <span className="rules-path">{entry.frontmatter.id}</span>
+        <span className="rules-path">{keyText(entry.frontmatter.id)}</span>
       </div>
       <DirectiveRoles entry={entry} current={current} />
     </li>

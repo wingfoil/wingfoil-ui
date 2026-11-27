@@ -11,6 +11,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { Checkbox, Input, Label, SearchField } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { AgentLine, RoleChips, RulesError, Section } from '../dna/DnaView.js';
+import { keyText } from '../text/key-text.js';
 import { filterCards, memberCards, roleFilters, searchOf, type MemberCard, type TeamFilters } from './model.js';
 import '../dna/rules.css';
 
@@ -138,7 +139,7 @@ function Filters({
               search={searchOf({ ...withoutRole, role: r })}
               activeOptions={{ exact: true, includeSearch: true }}
             >
-              {r}
+              {keyText(r)}
             </Link>
           </li>
         ))}

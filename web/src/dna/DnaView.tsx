@@ -12,6 +12,7 @@ import { useId, type ReactNode } from 'react';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
+import { keyText } from '../text/key-text.js';
 import './rules.css';
 
 /** Props of {@link DnaView}. */
@@ -82,7 +83,7 @@ export function RoleChips({ roles, current }: { roles: readonly string[]; curren
     <ul className="role-chips">
       {roles.map((r) => (
         <li key={r} className="role-chip" {...(r === current ? { 'data-current': 'true' } : {})}>
-          {r}
+          {keyText(r)}
         </li>
       ))}
     </ul>
@@ -118,7 +119,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
                 {m.description !== undefined && m.description !== '' && (
                   <span className="rules-text">{m.description}</span>
                 )}
-                {m.path !== undefined && <span className="rules-path">{m.path}</span>}
+                {m.path !== undefined && <span className="rules-path">{keyText(m.path)}</span>}
               </li>
             ))}
           </ul>
@@ -160,7 +161,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
             {methodologies.map((m) => (
               <li key={m.name} className="rules-item">
                 <span className="rules-name">{m.name}</span>
-                {m.phase !== undefined && <span className="rules-meta">{m.phase}</span>}
+                {m.phase !== undefined && <span className="rules-meta">{keyText(m.phase)}</span>}
               </li>
             ))}
           </ul>
@@ -189,7 +190,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
           <ul className="rules-list">
             {dna.team.roles.map((r) => (
               <li key={r.name} className="rules-item">
-                <span className="role-chip">{r.name}</span>
+                <span className="role-chip">{keyText(r.name)}</span>
                 {r.description !== undefined && <span className="rules-text">{r.description}</span>}
               </li>
             ))}
@@ -229,7 +230,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
                 ) : (
                   values.map((v) => (
                     <dd key={v} className="rules-path">
-                      {v}
+                      {keyText(v)}
                     </dd>
                   ))
                 )}
