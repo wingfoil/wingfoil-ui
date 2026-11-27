@@ -51,7 +51,8 @@ export const ALLOWED: readonly AllowEntry[] = [
   exact(String.raw`/dev/(?:null|zero)(?:/post-checkout)?`, 'standard device files; git probes a hook below /dev/null when it is the hooks path'),
   exact(String.raw`/etc(?:/hosts|/passwd)?`, 'standard system files, read-outside-the-repository probes'),
   exact(String.raw`/proc(?:/loadavg|/net|/…)?(?:/\$)?`, 'the process filesystem (load average, sockets, process tables)'),
-  exact(String.raw`/usr/(?:bin/(?:env|git|wingfoil)|local/bin)|/bin(?:/sh|/wingfoil)?`, 'standard program locations'),
+  // `/bin/bash_-lc` is how a run record of the script runner writes a quoted `/bin/bash -lc` (bug-056).
+  exact(String.raw`/usr/(?:bin/(?:env|git|wingfoil)|local/bin)|/bin(?:/sh|/bash(?:_-l?c)?|/wingfoil)?`, 'standard program locations'),
   // npm's global layout below a `<prefix>` placeholder (`<prefix>/lib/node_modules/wingfoil/…`).
   entry(String.raw`/lib/node_modules/wingfoil`, "npm's global package layout, shown below a prefix placeholder"),
   entry(String.raw`[A-Z]:\\Windows\\win\.ini`, 'a standard Windows file, a read-outside-the-repository probe', 'i'),
