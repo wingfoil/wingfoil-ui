@@ -24,6 +24,7 @@ import { memoryEventsQuery } from '../api/queries.js';
 import { forgetOpener, panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { updateLine, type UpdateLine } from '../shell/notifications.js';
+import { keyText } from '../text/key-text.js';
 import { durationOf } from './model.js';
 import './recent-activity.css';
 
@@ -65,7 +66,7 @@ function ActivityRow({ line, now }: { line: UpdateLine; now: number }): ReactNod
                   forgetOpener(event);
                 }}
               >
-                {line.id}
+                {keyText(line.id)}
               </Link>
             ),
             // Text, not an element: the transition (or the operation) and the name stay one text with

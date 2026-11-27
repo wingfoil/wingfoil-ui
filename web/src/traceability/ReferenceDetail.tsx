@@ -12,11 +12,14 @@ import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/co
 import type { ReactNode } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { namesSomeone, WhoMustAct } from '../element/WhoMustAct.js';
+import { keyText } from '../text/key-text.js';
 
 /** The state pill of an element, its tone as data. */
 export function StatePill({ element }: { element: TraceabilityElement }): ReactNode {
   const tone = element.descriptor?.tone;
-  return <span className={tone === undefined ? 'state-pill' : `state-pill tone-${tone}`}>{element.status}</span>;
+  return (
+    <span className={tone === undefined ? 'state-pill' : `state-pill tone-${tone}`}>{keyText(element.status)}</span>
+  );
 }
 
 /** One linked element: a link to its element page with who must act. */
@@ -34,14 +37,14 @@ function DetailItem({
     return (
       <li>
         <Link className="trace-detail-item" to="/p/$pid/e/$eid" params={{ pid, eid: id }}>
-          <span className="trace-detail-id">{id}</span>
+          <span className="trace-detail-id">{keyText(id)}</span>
         </Link>
       </li>
     );
   }
   const descriptor = element.descriptor;
   const values = {
-    id: <span className="trace-detail-id">{element.shortId ?? id}</span>,
+    id: <span className="trace-detail-id">{keyText(element.shortId ?? id)}</span>,
     title: <span className="trace-detail-title">{element.title}</span>,
     state: <StatePill element={element} />,
   };
@@ -85,9 +88,9 @@ export function ReferenceDetail({ pid, id, reference, elements }: ReferenceDetai
     <tr className="trace-detail-row" id={id}>
       <td colSpan={3}>
         <div className="trace-detail">
-          <h2 className="trace-detail-heading">{reference.id}</h2>
+          <h2 className="trace-detail-heading">{keyText(reference.id)}</h2>
           <div className="trace-detail-head">
-            <span className="type-tag trace-category">{reference.category}</span>
+            <span className="type-tag trace-category">{keyText(reference.category)}</span>
             {target && <span className="trace-ref-title">{target.title}</span>}
             {target && <StatePill element={target} />}
             {reference.element && (

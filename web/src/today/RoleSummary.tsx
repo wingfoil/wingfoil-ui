@@ -16,6 +16,7 @@ import type { TodaySummaryLine } from '@wingfoil-ui/contracts';
 import { useId, type ReactNode } from 'react';
 import { Button } from 'react-aria-components';
 import { FormattedMessage } from 'react-intl';
+import { keyText } from '../text/key-text.js';
 
 /** Props of {@link RoleSummary}. */
 export interface RoleSummaryProps {
@@ -42,7 +43,9 @@ export function RoleSummary({ lines, view, onSwitch }: RoleSummaryProps): ReactN
         <ul className="today-summary-tags">
           {lines.map((line) => {
             const current = line.role === view;
-            const label = <FormattedMessage id="today.summary.line" values={{ role: line.role, count: line.count }} />;
+            const label = (
+              <FormattedMessage id="today.summary.line" values={{ role: keyText(line.role), count: line.count }} />
+            );
             return (
               <li key={line.role} className="today-summary-tag" {...(current ? { 'aria-current': 'true' } : {})}>
                 {current ? (

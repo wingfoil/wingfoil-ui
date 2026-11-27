@@ -21,6 +21,7 @@ import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/co
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link as AriaLink, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { keyText } from '../text/key-text.js';
 import { Bar } from './Figures.js';
 import { referenceKey } from './model.js';
 import { ReferenceDetail, StatePill } from './ReferenceDetail.js';
@@ -55,15 +56,15 @@ function Chip({ pid, id, element }: { pid: string; id: string; element: Traceabi
         href={`/p/${encodeURIComponent(pid)}/e/${encodeURIComponent(id)}`}
         aria-label={intl.formatMessage(
           { id: 'traceability.chip.name' },
-          { id: short, title: element?.title ?? id, state: element?.status ?? '' },
+          { id: keyText(short), title: element?.title ?? id, state: keyText(element?.status ?? '') },
         )}
       >
-        {short}
+        {keyText(short)}
       </AriaLink>
       <Tooltip className="trace-tooltip" placement="top">
         <span className="trace-tooltip-title">{element?.title ?? id}</span>
-        <span className="trace-tooltip-id">{id}</span>
-        {element && <span className="trace-tooltip-state">{element.status}</span>}
+        <span className="trace-tooltip-id">{keyText(id)}</span>
+        {element && <span className="trace-tooltip-state">{keyText(element.status)}</span>}
       </Tooltip>
     </TooltipTrigger>
   );
@@ -84,17 +85,17 @@ function ReferenceCell({
   return (
     <td className="trace-ref">
       {toggle}
-      <span className="type-tag trace-category">{reference.category}</span>
+      <span className="type-tag trace-category">{keyText(reference.category)}</span>
       {reference.element ? (
         <span className="trace-ref-element">
           <Link className="trace-ref-id" to="/p/$pid/e/$eid" params={{ pid, eid: reference.id }}>
-            {element?.shortId ?? reference.id}
+            {keyText(element?.shortId ?? reference.id)}
           </Link>
           {element && <span className="trace-ref-title">{element.title}</span>}
           {element && <StatePill element={element} />}
         </span>
       ) : (
-        <span className="trace-ref-id">{reference.id}</span>
+        <span className="trace-ref-id">{keyText(reference.id)}</span>
       )}
     </td>
   );
@@ -149,7 +150,7 @@ function ReferenceRow({
               ref={toggleRef}
               type="button"
               className="trace-row-toggle"
-              aria-label={intl.formatMessage({ id: 'traceability.detail.toggle' }, { id: reference.id })}
+              aria-label={intl.formatMessage({ id: 'traceability.detail.toggle' }, { id: keyText(reference.id) })}
               aria-expanded={expanded}
               {...(expanded ? { 'aria-controls': detailId } : {})}
               onClick={() => onToggle(key)}

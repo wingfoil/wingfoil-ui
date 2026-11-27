@@ -93,7 +93,7 @@ export function RoleChips({ roles, current }: { roles: readonly string[]; curren
 /** "executes as … · never approves" for an agent (ux-reference §4.10). */
 export function AgentLine({ agent, area }: { agent: DnaAgent; area: 'dna' | 'team' }): ReactNode {
   const intl = useIntl();
-  const roles = intl.formatList(agent.executes_as, { type: 'unit', style: 'short' });
+  const roles = intl.formatList(agent.executes_as.map(keyText), { type: 'unit', style: 'short' });
   const approves = agent.approval_authority === true;
   const message =
     area === 'dna' ? (approves ? AGENT.dnaApproves : AGENT.dna) : approves ? AGENT.teamApproves : AGENT.team;
@@ -119,7 +119,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
                 {m.description !== undefined && m.description !== '' && (
                   <span className="rules-text">{m.description}</span>
                 )}
-                {m.path !== undefined && <span className="rules-path">{keyText(m.path)}</span>}
+                {m.path !== undefined && <span className="rules-path">{m.path}</span>}
               </li>
             ))}
           </ul>
@@ -161,7 +161,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
             {methodologies.map((m) => (
               <li key={m.name} className="rules-item">
                 <span className="rules-name">{m.name}</span>
-                {m.phase !== undefined && <span className="rules-meta">{keyText(m.phase)}</span>}
+                {m.phase !== undefined && <span className="rules-meta">{m.phase}</span>}
               </li>
             ))}
           </ul>
@@ -222,7 +222,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
           <dl className="rules-paths">
             {paths.map(([category, values]) => (
               <div key={category} className="rules-item">
-                <dt className="rules-name">{category}</dt>
+                <dt className="rules-name">{keyText(category)}</dt>
                 {values.length === 0 ? (
                   <dd className="muted">
                     <FormattedMessage id="dna.paths.none" />
@@ -230,7 +230,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
                 ) : (
                   values.map((v) => (
                     <dd key={v} className="rules-path">
-                      {keyText(v)}
+                      {v}
                     </dd>
                   ))
                 )}

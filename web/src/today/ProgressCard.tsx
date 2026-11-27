@@ -28,6 +28,7 @@ import { ProgressCompletion } from '../progress/Completion.js';
 import { PhaseReadOnly, phaseValues, phaseWithoutVersion } from '../progress/PhaseReadOnly.js';
 import { ErrorText } from '../shell/ErrorText.js';
 import { UiYamlWarning } from '../shell/UiYamlWarning.js';
+import { keyText } from '../text/key-text.js';
 import { cardFigures, scopeName, type CardFigure } from './progress.js';
 
 /** The `label` and `value` tags of a figure message, as elements. */
@@ -78,12 +79,17 @@ function scopeTexts(intl: IntlShape, progress: Progress, texts: Map<string, stri
       joined(
         intl.formatMessage(
           { id: 'today.progress.scope.current' },
-          { id: current.shortId ?? current.id, title: current.title, mono: (chunks: string[]) => chunks.join('') },
+          {
+            id: keyText(current.shortId ?? current.id),
+            title: current.title,
+            mono: (chunks: string[]) => chunks.join(''),
+          },
         ),
       ),
     );
-    texts.set('scopeState', current.status);
-  } else if (type !== null) texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.none' }, { type }));
+    texts.set('scopeState', keyText(current.status));
+  } else if (type !== null)
+    texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.none' }, { type: keyText(type) }));
   else texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.whole' }));
 }
 
@@ -105,7 +111,7 @@ function completionText(intl: IntlShape, progress: Progress): string {
 function scopeNameText(intl: IntlShape, scope: string | null): string {
   return scope === null
     ? intl.formatMessage({ id: 'progress.completion.noLinkedProject' })
-    : intl.formatMessage({ id: 'progress.completion.noLinked' }, { scope });
+    : intl.formatMessage({ id: 'progress.completion.noLinked' }, { scope: keyText(scope) });
 }
 
 /**
@@ -147,16 +153,16 @@ function Scope({ progress }: { progress: Progress }): ReactNode {
             <FormattedMessage
               id="today.progress.scope.current"
               values={{
-                id: current.shortId ?? current.id,
+                id: keyText(current.shortId ?? current.id),
                 title: current.title,
                 mono: (chunks: ReactNode[]) => <span className="today-id">{chunks}</span>,
               }}
             />
           </Link>
-          <span className={`state-pill tone-${current.tone}`}>{current.status}</span>
+          <span className={`state-pill tone-${current.tone}`}>{keyText(current.status)}</span>
         </>
       ) : type !== null ? (
-        <FormattedMessage id="today.progress.scope.none" values={{ type }} />
+        <FormattedMessage id="today.progress.scope.none" values={{ type: keyText(type) }} />
       ) : (
         <FormattedMessage id="today.progress.scope.whole" />
       )}

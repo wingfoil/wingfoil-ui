@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { isPathSyntaxId } from '../element/queries.js';
 import '../memory/memory.css';
+import { keyText } from '../text/key-text.js';
 import { selectorOf } from './selector.js';
 import { Origin, UiFrame } from './UiFrame.js';
 
@@ -101,7 +102,7 @@ function Current({ pid, scope }: { pid: string; scope: UiConfig['progress']['sco
   // The short id of spec-011 §1 (N4, as Today's rows), else the full id; the link keeps the full id.
   const names = current ? (
     <>
-      <span className="element-id">{current.shortId ?? current.id}</span>
+      <span className="element-id">{keyText(current.shortId ?? current.id)}</span>
       <span className="config-current-title">{current.title}</span>
     </>
   ) : null;
@@ -120,11 +121,14 @@ function Current({ pid, scope }: { pid: string; scope: UiConfig['progress']['sco
               {names}
             </Link>
           )}
-          <span className={`state-pill tone-${current.tone}`}>{current.status}</span>
+          <span className={`state-pill tone-${current.tone}`}>{keyText(current.status)}</span>
         </>
       ) : (
         <span className="config-none">
-          <FormattedMessage id="settings.progress.scope.noCurrent" values={{ type: scope.value?.type ?? '' }} />
+          <FormattedMessage
+            id="settings.progress.scope.noCurrent"
+            values={{ type: keyText(scope.value?.type ?? '') }}
+          />
         </span>
       )}
       <Origin origin="derived" />
@@ -156,7 +160,7 @@ function ProgressRows({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode {
                 <FormattedMessage id="settings.progress.scope.whole" />
               </span>
             ) : (
-              <code>{scope.value.type}</code>
+              <code>{keyText(scope.value.type)}</code>
             )}
             <Origin origin={scope.origin} />
           </span>
@@ -211,7 +215,13 @@ function ProgressRows({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode {
                   <li key={`${h.type}\u0000${h.state}`}>
                     <FormattedMessage
                       id="settings.progress.hold"
-                      values={{ code, type: h.type, state: h.state, rule: selectorOf(h.approve), approve: h.approve }}
+                      values={{
+                        code,
+                        type: keyText(h.type),
+                        state: keyText(h.state),
+                        rule: selectorOf(h.approve),
+                        approve: h.approve,
+                      }}
                     />
                   </li>
                 ))}

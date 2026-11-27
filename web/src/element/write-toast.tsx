@@ -17,6 +17,7 @@ import { FormattedMessage } from 'react-intl';
 import type { ApiError } from '../api/client.js';
 import type { ElementWriteVariables } from '../api/writes.js';
 import { ErrorText } from '../shell/ErrorText.js';
+import { keyText } from '../text/key-text.js';
 import type { ToastInput } from '../shell/toasts.js';
 
 /** Characters of a commit hash shown in a toast (`git log --oneline`'s minimum). */
@@ -78,7 +79,7 @@ export function writeSuccessToast(v: ElementWriteVariables, data: WriteResponse)
     key: writeToastKey(v),
     tone: 'success',
     ...(failed ? { sticky: true } : {}),
-    title: <FormattedMessage id="element.write.done" values={{ verb: v.verb, id: v.eid }} />,
+    title: <FormattedMessage id="element.write.done" values={{ verb: v.verb, id: keyText(v.eid) }} />,
     body: <WriteResultBody data={data} />,
   };
 }
@@ -88,7 +89,7 @@ export function writeRefusalToast(v: ElementWriteVariables, error: ApiError): To
   return {
     key: writeToastKey(v),
     tone: 'error',
-    title: <FormattedMessage id="element.write.refused" values={{ verb: v.verb, id: v.eid }} />,
+    title: <FormattedMessage id="element.write.refused" values={{ verb: v.verb, id: keyText(v.eid) }} />,
     body: <ErrorText error={error} />,
   };
 }

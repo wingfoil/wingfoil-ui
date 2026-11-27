@@ -13,6 +13,7 @@ import { FormattedMessage } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { panelDirectives } from '../directives/model.js';
 import { ErrorText } from '../shell/ErrorText.js';
+import { keyText } from '../text/key-text.js';
 import '../dna/rules.css';
 
 /** Props of {@link ElementDirectives}. */
@@ -62,7 +63,7 @@ export function ElementDirectives({ pid, directives, header }: ElementDirectives
                   <Link to="/p/$pid/directives/$did" params={{ pid, did: e.frontmatter.id }}>
                     {e.frontmatter.title}
                   </Link>
-                  <span className="field-value">{e.frontmatter.id}</span>
+                  <span className="field-value">{keyText(e.frontmatter.id)}</span>
                 </li>
               ))}
             </ul>

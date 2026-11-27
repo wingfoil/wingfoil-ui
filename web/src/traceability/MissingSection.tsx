@@ -12,6 +12,7 @@ import { useId, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { MissingRefsBadge } from '../memory/MissingRefsBadge.js';
 import { MISSING_REFS } from '../memory/model.js';
+import { keyText } from '../text/key-text.js';
 
 function MissingRow({
   pid,
@@ -34,13 +35,13 @@ function MissingRow({
         params={{ pid, eid: id }}
         aria-describedby={descriptionId}
       >
-        {element && <span className="type-tag">{element.type}</span>}
-        <span className="trace-missing-id">{element?.shortId ?? id}</span>
+        {element && <span className="type-tag">{keyText(element.type)}</span>}
+        <span className="trace-missing-id">{keyText(element?.shortId ?? id)}</span>
         {element && <span className="trace-missing-title">{element.title}</span>}
         <span className="trace-missing-needs">
           <FormattedMessage
             id="traceability.missing.needs"
-            values={{ categories: intl.formatList(categories, { type: 'conjunction' }) }}
+            values={{ categories: intl.formatList(categories.map(keyText), { type: 'conjunction' }) }}
           />
         </span>
         <MissingRefsBadge categories={categories} descriptionId={descriptionId} />

@@ -19,6 +19,7 @@ import { ElementDirectives } from './Directives.js';
 import { ElementFooter } from './ElementFooter.js';
 import { ElementContent, QueryError } from './ElementView.js';
 import { isFinal } from './footer.js';
+import { keyText } from '../text/key-text.js';
 import { StateMachine } from './StateMachine.js';
 
 /** Props of {@link ElementPage}. */
@@ -80,10 +81,10 @@ export function ElementPage({
     >
       <div className="element-page-header">
         <div className="drawer-topline">
-          {shown && <span className="type-tag">{shown.element.type}</span>}
+          {shown && <span className="type-tag">{keyText(shown.element.type)}</span>}
           {/* The address's value is isolated from the text around it (bidi; task-078 AC-7, as the side
               panel's, task-077 F-5). */}
-          <span className="element-id">{shown ? shown.element.id : <bdi>{eid}</bdi>}</span>
+          <span className="element-id">{shown ? keyText(shown.element.id) : <bdi>{keyText(eid)}</bdi>}</span>
           <Button className="button button-quiet" onPress={onClose}>
             <FormattedMessage id="common.action.close" />
           </Button>
@@ -91,7 +92,13 @@ export function ElementPage({
         <h1 id={titleId} ref={heading} className="page-title drawer-title" tabIndex={-1}>
           {/* While the read is pending the heading says so, not the address's id (the topline shows it,
               review F-3); a refusal keeps the address's id as the heading. */}
-          {shown ? shown.element.title : element.error ? <bdi>{eid}</bdi> : <FormattedMessage id="element.loading" />}
+          {shown ? (
+            shown.element.title
+          ) : element.error ? (
+            <bdi>{keyText(eid)}</bdi>
+          ) : (
+            <FormattedMessage id="element.loading" />
+          )}
         </h1>
         {shown && (
           <StateMachine

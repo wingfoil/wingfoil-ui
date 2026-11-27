@@ -6,10 +6,11 @@
 import type { TodayElement } from '@wingfoil-ui/contracts';
 import { useId, type ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { keyText } from '../text/key-text.js';
 
 /** The element's short id, or its full id when it has none (T-02.7). */
 export function RowId({ element }: { element: TodayElement }): ReactNode {
-  return <span className="today-id">{element.shortId ?? element.id}</span>;
+  return <span className="today-id">{keyText(element.shortId ?? element.id)}</span>;
 }
 
 /**
