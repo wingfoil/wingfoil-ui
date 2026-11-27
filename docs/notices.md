@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-task-084-content-security-policy-on-the-console-pages/done/1 -->
+### N-028 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-27T14:59:09Z
+- **Line:** trunk
+- **Element:** trunk:task-084-content-security-policy-on-the-console-pages
+- **Reason:** blocked (run task-084-content-security-policy-on-the-console-pages/done/1): `npm test` on the rebased integration branch failed: 1 test in 1 file (5243 passed); the failing test was not identified
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-028 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
