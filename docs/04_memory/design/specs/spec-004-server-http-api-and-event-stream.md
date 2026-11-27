@@ -262,7 +262,8 @@ serialises it. A *display string* is any string a body takes from the project �
 working-tree file (the DNA, a directive, a workflow, `memory.yaml`, `ui.yaml`, an element), a file
 or folder name, the project's `origin`, the user's git email, or the console's stored copy of one —
 that the page only shows; a *key* is a value the page sends back, builds an address from, or
-compares with another key, and stays raw; a value that is both is sent raw with a display sibling
+compares with another key, and stays raw in the body (the page escapes it where it renders it, task-085
+Process Note of 2026-11-27); a value that is both is sent raw with a display sibling
 (a document's `label` next to its `path`). Among the display strings: element **titles** (`/elements`, `/elements/:eid`, the Today rows, the candidates
 of spec-011 §3, spec-012's `ElementRef` and rows), the **pattern reference** values of
 `/progress` and `/traceability`, and the **`ui.yaml` strings** `/config` echoes in `ui`
@@ -585,3 +586,13 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   start (`server/src/http/csp.ts`); styles keep `'unsafe-inline'` (React Aria and `style` props set
   styles at run time; a nonce cannot cover style attributes), scripts stay strict. JSON and the
   event stream carry no policy.
+- 2026-11-27 — amended in task-085 (bug-041; design decision D85-1 of 2026-11-27): §5 *Repository
+  texts* — a key (element id, type, state, role, category, path key, directive id and path) stays
+  raw in every body, as before, and is no longer shown raw: the page escapes it where it renders it
+  (visible text and accessible names alike) with one function, `keyText` (`web/src/text/key-text.ts`),
+  the rule of `neutralise` restated for the web (a parity test, `test/web/text/key-text.test.ts`,
+  keeps the two equal). The raw value stays the address, filter value, React key and `data-*`. A
+  display field stays escaped once, by the server, and the page shows it as received — never
+  escaped twice (`dnaBody`: module paths, methodology phases and path values are display; role
+  names, a member's roles, an agent's `executes_as` and the path categories are keys). No response
+  body, schema or contract changes.

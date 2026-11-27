@@ -11,7 +11,9 @@
  * | (c) key | a value the page sends back, builds an address from, or compares with another key — an element id, type, state, a role, a path — whatever its source (an event's `type` and `id` come from the commit subject); a key that is also shown gets a display sibling (a documentation path's `label`) | as returned |
  * | (d) document content | a frontmatter value, an element or directive body, a working-tree file | as written: the page renders it as a document — but `rejection_reason`, which `memory reject` writes from its reason: class (a) ({@link frontmatterBody}) |
  *
- * Keys stay raw even where the page shows them (bug-041). The CLI adapter's own tool texts (its `stderr` warnings,
+ * Keys stay raw in the body even where the page shows them; the page escapes a key where it renders it
+ * (`keyText`, `web/src/text/key-text.ts`; task-085, bug-041), while a display field (class (b)) is escaped
+ * once, here, and shown as received — the web never escapes it again. The CLI adapter's own tool texts (its `stderr` warnings,
  * the `memory search` message, a refusal's message and reasons) are class (a) through the same
  * sanitiser, applied by the adapter (`toolLines`, `WingfoilCli.sanitise`); `test/server/http/text-sweep.test.ts`
  * holds the whole enumeration.
