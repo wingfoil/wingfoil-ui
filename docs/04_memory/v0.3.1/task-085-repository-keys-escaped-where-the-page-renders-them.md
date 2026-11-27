@@ -115,6 +115,70 @@ length growth linear: every unsafe char adds a bounded escape). **Strict identit
 JSX changes, one test per site; no split proposed. No gap or contradiction between the task and its
 specs beyond the AC-3 wording the Process Note resolves.
 
+### red / green / refactor (2026-11-27, developer; first pass and the rework after the review's park)
+
+Task branch `task/task-085-…`. First pass: `48933880` red (keyText unit + parity with `neutralise`,
+Memory list), `70d36ed5` green (helper, Memory list), `920b5803` red, `4ad3d498` green (DNA, Team,
+Directives). Rework after review F1–F4 (this session): `f418ebc9` red amendment
+(`test/web/text/key-sites.test.tsx`, the amendment the park authorises), `b5d9e277` green,
+`9c2d8184` docs. Refactor: none needed (one helper, call sites one-line; `npm run format` only).
+
+**F1 — the inventory completed, by class.** Method: `grep`/Grep over `web/src` for every JSX text
+node, `FormattedMessage`/`formatMessage` value and `textValue`/`aria-label` carrying a key
+(id, type, state/status, role, category, path, `to`, directive id, the address `eid`). `keyText`
+now covers: Today (`TodayView` rows, reasons, action label; `CardFilters` facet items;
+`RoleSummary`; `RecentActivity`; `RowParts` short id; `ProgressCard` scope line/state/texts),
+`Completion`, `NotificationBell` (type, id), `ProjectHeader` (role view items, user label/sub),
+element page and side panel (topline, bdi addresses), `StateMachine` (visible chip and hidden
+text), `Candidates` (type, id, state, heading address), `Directives`, `ElementFooter` (waiting,
+reserved, submit, outcome buttons), `WhoMustAct`, `reason.tsx`, `write-toast.tsx`, Traceability
+(`ReferenceTable`, `ReferenceDetail`, `MissingSection`, `MissingRefsBadge`, category toggles),
+Configuration (`ProgressView`, `TaxonomyView`), DNA (`AgentLine` `executes_as`, path categories).
+Left raw on purpose (display fields escaped once by the server, or addresses): titles, member
+names, history `from`/`to`, DNA module path / phase / path values, `href`, `data-eid`, React
+`key`, filter values. `grep` found no tag or workflow-name text node (D85-3 table last row).
+
+**F2 — single escape.** `DnaView` no longer applies `keyText` to module paths, methodology phases
+or path values (`dnaBody` escaped them: `displayLeaves`/`DNA_KEYS`); only role names, member
+roles, `executes_as` and the path category keys are escaped by the web. The red fixture now passes
+the body through the real `dnaBody` and `test/web/text/key-sites-screens.test.tsx` asserts exact
+single escape including backslashes (`src‮/\x1b​\\x`, never `\\\\`).
+
+**F3 — docs.** spec-004 Process Note 2026-11-27 (and the §5 sentence), `CHANGELOG.md`
+*[Unreleased]* › Fixed (v0.3.1), `serialise.ts` header comment: raw keys escaped at rendering vs
+display fields escaped once by the server.
+
+**Commands and results (task worktree, `9c2d8184`):**
+
+| Command | Result |
+|---------|--------|
+| red before green (the rework's tests against the first-pass `web/`) | `npm run test -- test/web/text`: Today/bell/element/traceability/footer sweeps failed on raw U+202E/ESC/U+200B; the DNA probe failed (doubled backslashes; raw category) — as reproduced by the review |
+| `npm run test -- test/web/text` after green | 3 files, 20 tests pass |
+| `npm run typecheck` / `npm run lint` / `npm run format:check` | exit 0 each |
+| `npm test` | 288 files passed, 1 skipped; 5265 tests passed, 3 skipped (the earlier `workflow-diagnostics` failure was the uncommitted spec edit, `W_UNCOMMITTED_INPUTS`; green after the commit) |
+| `npm run test:contract` | 24 files passed, 1 skipped; 501 tests passed, 3 skipped (no body or schema changed) |
+| existing address tests updated (`test/web/element/page.test.tsx`, `side-panel.test.tsx`) | they now expect the escaped address inside its `<bdi>` (a key was shown raw before) |
+| `npm run test:e2e:chromium` | not run: the step timed out at 45 minutes during this run (run `start/2`, exit 124); to be run by the next step |
+
+Heavy gates on CI (`.github/workflows/gates.yml`): no push is allowed to this session, so there is
+no CI run id for `9c2d8184`; the run is the hand-off to the approver's push (coverage, the own e2e
+specs on Firefox and WebKit, smokes).
+
+**Scenario → test closure (AC-1, AC-2, AC-3):**
+
+| Scenario | Test |
+|----------|------|
+| `keyText` rule, parity with `neutralise`, plain keys unchanged | `test/web/text/key-text.test.ts` |
+| Memory list rows/filters, raw id still addresses | `key-sites.test.tsx` (2 tests) |
+| DNA, Team, Directives | `key-sites.test.tsx`; DNA agents, path categories, single escape of display fields | `key-sites-screens.test.tsx` |
+| Today rows, role summary, waiting role, progress card, recent activity, filter menus | `key-sites-screens.test.tsx` (2 tests) |
+| Bell and header role view | `key-sites-screens.test.tsx` |
+| Element page topline, state machine, candidates | `key-sites-screens.test.tsx` (2 tests) |
+| Gate footer outcome / reserved / waiting | `key-sites-footer.test.tsx` (3 tests) |
+| Traceability, Configuration Progress and Taxonomy | `key-sites-screens.test.tsx` |
+| Plain keys unchanged (AC-2) | plain key assertion in each sweep; the 5 265 existing web/server tests |
+| AC-3 documentation | spec-004 Process Note, `CHANGELOG.md`, `serialise.ts` (diff `9c2d8184`) |
+
 ### review (2026-11-27, independent reviewer, Codex) — rejected
 
 Reviewed `trunk:task-085-repository-keys-escaped-where-the-page-renders-them` at task-branch
