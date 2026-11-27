@@ -195,3 +195,57 @@ passed; `npm run typecheck`, `npm run lint`, `npm run format:check` clean.
 dispatch, which this session may not do (no push). Run id, SHA and the three engines' results are
 still to be recorded: the reviewer or approver pushes the branch and dispatches `gates.yml` with
 `scope=wave`; the local three-engine run above is not a substitute for that evidence.
+
+### review, round 2 (2026-11-27)
+
+Independent review of task-branch head `b2c4a400b7fc905401753629ec05ddb02ed47e07` for
+`trunk:task-084-content-security-policy-on-the-console-pages`. Read the current task in the line
+checkout, the reviewer directives, bug-039, spec-004's dated Process Note, the complete change
+(`git diff design/dev-loop_v0.3.1...HEAD`), the screen inventory and the browser harness.
+
+**F-1 rechecked:** `test/e2e/content-security-policy.spec.ts` addresses the missing browser
+coverage class: it uses the normal server-served build, installs the collector before navigation,
+keeps reports across document loads, checks enforced response headers, opens every `SCREENS`
+entry, exercises theme changes and runtime inline styles, and checks detection of deliberately
+blocked operations. Searched the other cases with
+`rg -n 'content-security-policy|securitypolicyviolation|CSP' server/src web test/e2e`; the
+production hook and this spec are the matching implementation and browser coverage. No new code
+finding from this review. Browser execution and axe results remain unverified by this session:
+the earlier local 147-test result is green's evidence, not a hosted gate result.
+
+Checks run in the task worktree (all exited 0):
+
+- `npm run test -- test/server/http/csp.test.ts`: 1 file, 8 tests passed (AC-1).
+- `npm run test -- test/docs/public-text.test.ts`: 1 file, 67 tests passed (pre-push public text).
+- `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`.
+- `git diff --check design/dev-loop_v0.3.1...HEAD`: no output.
+
+AC-3's spec-004 Process Note is present in the line checkout (2026-11-26), and the task's
+`CHANGELOG.md` diff records the security fix under `[Unreleased]`. Both documents have no
+Version/Date marker to bump. The existing axe coverage in `test/e2e/accessibility.spec.ts` uses
+the same screen inventory; no passing axe result is claimed without CI.
+
+**Outcome: blocked decision, CI hand-off.** The GitHub connector's GET of
+`https://api.github.com/repos/wingfoil/wingfoil-ui/actions/runs?branch=task%2Ftask-084-content-security-policy-on-the-console-pages&per_page=10`
+returned `{"total_count":0,"workflow_runs":[]}`. Therefore no green hosted run exists for the
+reviewed task head. AC-2 requires the full three-engine suite on `gates.yml`; its `scope=wave`
+runs that suite and the other heavy gates. Directive `wingfoil-cli`, *The script runner*, rule 12
+requires the reviewer to ask the approver to push and dispatch, from the runner home; rule 11
+forbids this session to push. This is an outstanding gate, not a new code rejection. No park,
+task submit or bug submit was run; the review waits on the CI result.
+
+Approver hand-off, in the approver's own terminal, each command separately (runner home confirmed
+by its `config/runner.local.yaml`, `paths.runner`):
+
+```sh
+cd /home/robypomper/Workspaces/wingfoil_project/runner-homes/wingfoil-ui
+node scripts/runner/run.mjs --line trunk --check-git
+git fetch /home/robypomper/Workspaces/wingfoil_project/runner-lines/wingfoil-ui-trunk task/task-084-content-security-policy-on-the-console-pages
+git push origin FETCH_HEAD:refs/heads/task/task-084-content-security-policy-on-the-console-pages
+gh workflow run gates.yml --repo wingfoil/wingfoil-ui --ref task/task-084-content-security-policy-on-the-console-pages -f scope=wave
+gh run list --repo wingfoil/wingfoil-ui --workflow gates.yml --branch task/task-084-content-security-policy-on-the-console-pages
+```
+
+Before the push, follow the `--check-git` result and review any carried changes to the runner's
+own files (rule 14). Record the successful wave run's id, head SHA and results before review
+acceptance; its head must be `b2c4a400b7fc905401753629ec05ddb02ed47e07`.
