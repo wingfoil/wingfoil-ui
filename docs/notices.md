@@ -11,6 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-084-content-security-policy-on-the-console-pages -->
+### N-027 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
+
+- **Status:** open
+- **Kind:** gate
+- **Opened:** 2026-11-27T14:31:09Z
+- **Line:** trunk
+- **Element:** trunk:task-084-content-security-policy-on-the-console-pages
+- **Reason:** backlog-item.approve@task:task-084-content-security-policy-on-the-console-pages waits for the approver
+- **Ready:** yes
+- **Head:** 399b2afa
+- **Evidence:** run task-084-content-security-policy-on-the-console-pages/review/8 completed
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-027 --reason 'Approved backlog-item.approve@task:task-084-content-security-policy-on-the-console-pages at 399b2afa: run task-084-content-security-policy-on-the-console-pages/review/8 completed'`
+
 ## Closed
 
 <!-- runner:closed -->
