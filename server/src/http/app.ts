@@ -4,10 +4,11 @@
  */
 import fastifyStatic from '@fastify/static';
 import { fastify, type FastifyBaseLogger, type FastifyInstance, type FastifyReply } from 'fastify';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { STATUS_CODES } from 'node:http';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
+import { contentSecurityPolicy } from './csp.js';
 import { GitReadError } from '../git/git.js';
 import type { Logger } from 'pino';
 import {
@@ -147,6 +148,15 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerSessionRoute(app, options.security);
   const hasWebBuild = existsSync(path.join(options.staticDir, 'index.html'));
   if (hasWebBuild) {
+    // task-084 (bug-039): the policy on every HTML response, hashed from the index.html served.
+    const policy = contentSecurityPolicy(readFileSync(path.join(options.staticDir, 'index.html'), 'utf8'));
+    app.addHook('onSend', async (_request, reply, payload) => {
+      const type = reply.getHeader('content-type');
+      if (typeof type === 'string' && type.startsWith('text/html')) {
+        void reply.header('content-security-policy', policy);
+      }
+      return payload;
+    });
     // bug-031: a path the file system refuses as too long is missing — decided before the static
     // plugin runs (it would answer 403, and an answer re-sent from the error handler left its
     // stream's `close` listeners on the response: review round 1 F-3). The not-found handler
