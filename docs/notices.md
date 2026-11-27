@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:uncommitted-trunk-task-085-repository-keys-escaped-where-the-page-renders-them/start/2 -->
+### N-029 · 2026-11-27 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+
+- **Status:** open
+- **Kind:** uncommitted
+- **Opened:** 2026-11-27T19:34:05Z
+- **Line:** trunk
+- **Element:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+- **Reason:** backlog-item.start@task:task-085-repository-keys-escaped-where-the-page-renders-them left uncommitted files (it answered error): checkout:docs/04_memory/v0.3.1/task-085-repository-keys-escaped-where-the-page-renders-them.md
+- **Unblock:** `look at the file (cd <runner home> && node scripts/runner/run.mjs --line trunk --check-git && cd <trunk checkout> && git -c core.hooksPath=/dev/null -c core.fsmonitor=false -c protocol.ext.allow=never -c protocol.fd.allow=never status --short); commit what belongs to task:task-085-repository-keys-escaped-where-the-page-renders-them (a Memory body edit included) or discard it, then run the line again: the step runs again and this notice closes when nothing is left uncommitted`
+
 ## Closed
 
 <!-- runner:closed -->
