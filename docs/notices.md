@@ -11,10 +11,14 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-084-content-security-policy-on-the-console-pages -->
 ### N-027 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
 
-- **Status:** open
+- **Status:** closed 2026-11-27T14:39:06Z — the approver ruled the gate
 - **Kind:** gate
 - **Opened:** 2026-11-27T14:31:09Z
 - **Line:** trunk
@@ -24,10 +28,6 @@ command it names.
 - **Head:** 399b2afa
 - **Evidence:** run task-084-content-security-policy-on-the-console-pages/review/8 completed
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-027 --reason 'Approved backlog-item.approve@task:task-084-content-security-policy-on-the-console-pages at 399b2afa: run task-084-content-security-policy-on-the-console-pages/review/8 completed'`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:halt-trunk-forbidden-task-084-content-security-policy-on-the-console-pages-review-3 -->
 ### N-026 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
