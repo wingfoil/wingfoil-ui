@@ -246,3 +246,73 @@ empty. Product code and red's tests were not edited.
 All findings concern this task's own implementation or missing acceptance work and are tracked
 by its park commit; no separate bug is needed. Rejection moves no linked bug and does not submit
 the task. The runner owns the later review submit after acceptance.
+
+### review round 2 (2026-11-27, independent reviewer, Codex) — rejected
+
+Reviewed `trunk:task-085-repository-keys-escaped-where-the-page-renders-them` at task-branch
+`9c2d818425186cdce1990b9b9494fe269a637956` (`git rev-parse HEAD`) against this authoritative task
+body in the line's clone. Read the reviewer directives, the supplied reviewer session resource,
+spec-004 §5 and its Process Notes, bug-041, the relevant UX reference sections and the server
+serializers. `npx --no-install wingfoil workflow next sw-life-cycle-1-plan` identifies this review;
+`git var GIT_AUTHOR_IDENT` returned the required agent address.
+
+**Local checks in the task worktree:** `npm run typecheck`, `npm run lint` and
+`npm run format:check` each exited 0. `npm run test -- test/web/text` passed 4 files, 20 tests.
+These results do not establish complete rendering coverage or preservation of the API's display
+escapes. The task's recorded e2e and contract results were not independently re-run in this review;
+no coverage or three-engine CI run for this head is recorded. `wingfoil-cli` rule 12 requires the
+approver's CI hand-off before a later acceptance, once the implementation findings are fixed.
+
+**Independent boundary probes:** a temporary `test/web/text/key-review-boundary-probe.test.tsx`
+reused the screen fixtures, rendered the actual app and supplied Configuration with the real
+`uiConfigBody` output. Pattern references came from the actual server `referenceKey`
+(`server/src/project-state/figures.ts`); the shared completion explanation was also rendered.
+Inputs included U+202E, ESC, U+200B and a literal backslash. The final command
+`npm run test -- test/web/text/key-review-boundary-probe.test.tsx` exited 1: 8 review probes
+failed, 8 inherited tests deliberately skipped. The initial probe run had a wrong selector for
+Today's notices; it was corrected from `.today-progress-notes` to `.today-progress-note` before
+the final run. No product source or submitted test was changed; the temporary probe was removed.
+`git status --short` in the task worktree was then empty.
+
+- Configuration Progress's scope type and Taxonomy's type cell doubled the backslashes in the
+  already-escaped `uiConfigBody` value. A type shown elsewhere as `kind\u202e\x1b\u200b\\suffix`
+  was shown there as `kind\\u202e\\x1b\\u200b\\\\suffix`.
+- Traceability's pattern-reference row, detail toggle's accessible name and expanded detail
+  heading doubled the escaped pattern id; the shared completion explanation did the same.
+- Today's no-current scope line doubled the already-escaped scope type.
+- Traceability's current-scope toggle retained the current element id's raw U+202E, ESC and
+  U+200B; the unreadable and capped notices retained them on both Traceability and Today.
+
+**Findings (also recorded in the park reason):**
+
+- **R2-F1 — major; incomplete rendering-boundary coverage (AC-1).**
+  `TraceabilityView.tsx:186` passes the raw current short/full id into the scope toggle;
+  `:260,268` join raw unreadable/capped ids into notices. `ProgressCard.tsx:200,223,231` does
+  the same for Today's notices. The three corresponding probes fail with raw hostile characters
+  in the visible text. The repository sweep (`rg` for `keyText`, scope interpolation and joined
+  ids, followed by serializer inspection) found these other cases of the same class before
+  recording it. Complete the key inventory for conditional branches, apply the common escape
+  at each visible/accessible-name boundary while preserving operational values, and add
+  per-site hostile/plain-key tests exercising current scope and both notice kinds.
+- **R2-F2 — minor; duplicate display escaping and contract-inaccurate test fixtures (AC-2).**
+  `TaxonomyView.tsx:87`, `ProgressView.tsx:130,163,220,221` and
+  `ProgressCard.tsx:92,165` escape values already escaped by `uiConfigBody` or
+  `progressBody`. `ReferenceTable.tsx:98,153`, `ReferenceDetail.tsx:91` and
+  `Completion.tsx:61` escape pattern reference ids already escaped by the server's
+  `referenceKey`. The five corresponding probes fail with doubled backslashes. The accepted
+  distinction is explicit in spec-004 §5, `ECHOED_UI_FIELDS`,
+  `project-state/bodies.ts` and `project-state/figures.ts`. Preserve it throughout the class:
+  render server-escaped display values as received and escape raw element keys exactly once.
+  Make raw/display provenance explicit where a renderer mixes them (especially completion
+  references); do not infer it from whether a string happens to resemble an escape. Any response
+  change must be reflected in its specification and contracts. The Configuration and pattern
+  fixtures in `key-sites-screens.test.tsx` supply raw display values (and invalid category enums),
+  so their whole-screen sweep currently rewards the extra escape. Amend those fixtures to use
+  valid serialized responses; assert exact text and accessible names, including literal
+  backslashes, raw element references and server-escaped pattern references.
+
+  Red amendment (trunk:spec-004-server-http-api-and-event-stream): test/web/text/key-sites-screens.test.tsx
+
+Both findings concern this task's implementation or omitted acceptance work; its park commit is
+their tracked record, with no separate bug needed. Rejection submits neither the task nor its
+linked bug. The CI hand-off remains for a later review after the implementation and red amendment.
