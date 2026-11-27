@@ -5,6 +5,7 @@ import type { ElementList, ProjectConfig } from '@wingfoil-ui/contracts';
 import { cleanup, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
+import { dnaBody } from '../../../server/src/http/serialise.js';
 import { resetSession } from '../../../web/src/session/session.js';
 import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js';
 import { BASE, BO, config, DIRECTIVES, DNA, header, projectApi } from '../dna/data.js';
@@ -122,7 +123,9 @@ it('DNA: module path, methodology phase, role names and member role chips show t
       agents: [],
     },
   };
-  stubApi(projectApi({ [`${BASE}/config`]: { status: 200, body: config({ data: dna }) } }));
+  // The body as `/config` serves it (spec-004 §5, D72-2): display fields escaped once by the server,
+  // the role names raw (task-085 review F2).
+  stubApi(projectApi({ [`${BASE}/config`]: { status: 200, body: config({ data: dnaBody(dna) }) } }));
   const { container } = renderApp(`/p/${PID}/dna`);
   await screen.findByText('Method One');
   const main = container.querySelector('main') ?? container;

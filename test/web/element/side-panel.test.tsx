@@ -490,7 +490,9 @@ it('isolates the address value it shows from the surrounding text (review F-5)',
   const dialog = await screen.findByRole('dialog');
   await within(dialog).findByRole('alert');
   const isolated = [...dialog.querySelectorAll('bdi')].map((b) => b.textContent);
-  expect(isolated).toEqual([value, value]);
+  // Since task-085 the value is shown escaped (`keyText`), still inside its `<bdi>`.
+  const shown = 'x\\u202eevil';
+  expect(isolated).toEqual([shown, shown]);
 });
 
 // Review round 2, R2-5: the candidates' heading shows the address value isolated (as F-5).
