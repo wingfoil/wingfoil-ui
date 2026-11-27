@@ -3,12 +3,12 @@ id: bug-056-the-runner-s-notices-and-run-records-fail-the-public-text-check     
 type: bug
 title: "The runner's notices and run records fail the public-text check"              # REQUIRED — short description, e.g. "Approve dialog loses the reason on server error"
 status: draft          # auto-set by wingfoil; memory.submit → open
-severity: ""           # REQUIRED — critical | high | medium | low
-release-origin: ""     # optional — release where the bug was FOUND, e.g. "v0.1"
-release: ""            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
+severity: "medium"           # REQUIRED — critical | high | medium | low
+release-origin: "v0.3.1"     # optional — release where the bug was FOUND, e.g. "v0.1"
+release: "v0.3.1"            # optional — fix/implementation release, stamped by release-planning/build-backlog; required once closed, unless closed by a reject
 feature: ""            # optional — related feature ID from docs/01_vision/06_features.md
 module: ""             # optional — server | web | contracts
-wingfoil_version: ""   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
+wingfoil_version: "0.3.2"   # optional — `wingfoil --version` of the OBSERVED project (the UI drives its CLI)
 browser: ""            # optional — for `web`: browser name + version, e.g. "Firefox 131"
 contributor: ""        # optional — who originated this contribution, if not the git author; credited for AI-generated work derived from it
 credit: ""             # optional — free-text credit note
@@ -17,38 +17,48 @@ tmpl_version: 260703   # Orignal template version
 
 ## Summary
 
-<!-- One-sentence description of the defect. -->
+The public-text check (`test/docs/public-text.test.ts`) fails on the line's branch because the script
+runner writes the shell it saw, `/bin/bash`, into a notice and a run record, and the allow-list knows
+`/bin/sh` but not `/bin/bash`.
 
 ## Steps to Reproduce
 
-<!-- Start from the observed project's state (WingFoil version, branch, the elements involved),
-     then the numbered steps in the UI or against the server API.
-  1. ...
-  2. ...
-  3. ... -->
+1. On `design/dev-loop_v0.3.1` after the runner's halt N-026 of task-084's review (2026-11-27), whose
+   reason quotes the agent's command `/bin/bash -lc "…"` in `docs/notices.md` and, with the spaces as
+   `_`, in the run record `docs/runs/task-084-content-security-policy-on-the-console-pages.jsonl`.
+2. Rebase task-084's branch on it and run `npm test`.
 
 ## Expected Behavior
 
-<!-- What should happen. -->
+The suite passes: `/bin/bash` is a standard program location, the same on every machine, as `/bin/sh`.
 
 ## Actual Behavior
 
-<!-- What actually happens. Include error messages or stack traces if available. -->
+One test fails, *the tracked tree › names no absolute path outside the repository (AC-1)*, with two
+findings of rule `posix`: `docs/notices.md:51` `/bin/bash` and the run record's line 12
+`/bin/bash_-lc`. Task-084's `done` stopped on it (notice N-028, run `done/1`, 1 failed, 5243 passed).
+`main` passes, as it does not hold those two texts yet; it would fail once the line is merged.
 
 ## Evidence
 
-<!-- Screenshot or recording (web), browser console output, server log lines, the CLI command the
-     server ran and its JSON output. Never paste secrets (directive security-secrets). -->
+- Task-084 rebased on the line's branch in a scratch worktree, `npm test` on Node 22.23.5: 1 failed,
+  5243 passed, 3 skipped, the two findings above.
 
 ## Notes
 
-<!-- Optional: environment details, related ADRs, suspected root cause, or workaround. -->
+**Cause.** `test/docs/public-text.allow-list.ts` lists the standard program locations as
+`/usr/bin/env`, `/usr/bin/git`, `/usr/bin/wingfoil`, `/usr/local/bin`, `/bin`, `/bin/sh` and
+`/bin/wingfoil`. The runner quotes
+an agent's command in a notice's reason and, with `_` for spaces, in a run record's `reason=`; Codex
+runs every command through `/bin/bash -lc`.
+
+**Fix.** The program-locations entry also allows `/bin/bash`, and its run-record form `/bin/bash_-lc`
+or `/bin/bash_-c`. One entry stays one entry, so *uses every allow-list entry* holds on `main` as on
+the line. `test/docs/public-text.test.ts` gains the cases.
 
 ## Triage & Execution Notes
 
-<!-- Running log, not the retrospective itself.
-     - triage (bug-ingest): severity call, wontfix/duplicate rationale if rejected to `closed`.
-     - fix: once fix task(s) exist (release-planning/build-backlog), day-to-day execution notes
-       live on those tasks (docs/04_memory/{release}/{id}.md, `bug: {this id}`, their own
-       Execution Notes section) — this section only needs a pointer plus anything that doesn't
-       belong on a specific fix task (e.g. why 2 tasks were needed instead of 1). -->
+- capture (bug-ingest): severity `medium` — it stops the `done` of every Wave 2 task on the line once
+  the runner has quoted a `/bin/bash` command; no product code is involved. The fix is in the test's
+  allow-list, on `fix/bug-056-…`, merged into `main` and `design/dev-loop_v0.3.1`, with no fix task
+  (as bug-051 and bug-055).
