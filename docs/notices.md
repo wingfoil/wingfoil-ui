@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:blocked-trunk-task-084-content-security-policy-on-the-console-pages/done/1 -->
 ### N-028 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
 
-- **Status:** open
+- **Status:** closed 2026-11-27T17:38:50Z — bug-056: the public-text allow-list takes /bin/bash as the runner quotes it (merged into main 0b37b80c and design/dev-loop_v0.3.1 79a71cd7, pushed); the failing test was test/docs/public-text.test.ts on the runner's own N-026 text. Redo done: rebase on the updated line branch and run npm test again.
 - **Kind:** blocked
 - **Opened:** 2026-11-27T14:59:09Z
 - **Line:** trunk
 - **Element:** trunk:task-084-content-security-policy-on-the-console-pages
 - **Reason:** blocked (run task-084-content-security-policy-on-the-console-pages/done/1): `npm test` on the rebased integration branch failed: 1 test in 1 file (5243 passed); the failing test was not identified
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-028 --how "<what solved it>"`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-084-content-security-policy-on-the-console-pages -->
 ### N-027 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
