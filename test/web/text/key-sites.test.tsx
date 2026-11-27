@@ -7,14 +7,17 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
 import { resetSession } from '../../../web/src/session/session.js';
 import { renderApp, serverInfo, stubApi, type FakeApi } from '../shell/render.js';
+import { BASE, BO, config, DIRECTIVES, DNA, header, projectApi } from '../dna/data.js';
 
 const PID = 'p_fx';
 const BAD_ID = 'k-001-\u202eevil\x1bid\u200b';
 const BAD_TYPE = 'ty\u202epe';
 const BAD_STATE = 'st\x1bate\u200b';
 const SHOWN = (s: string): string =>
-  s.replace('\u202e', '\\u202e').replace('\x1b', '\\x1b').replace('\u200b', '\\u200b');
-const RAW = /[\u202e\x1b\u200b]/;
+  s.replaceAll('\u202e', '\\u202e').replaceAll('\x1b', '\\x1b').replaceAll('\u200b', '\\u200b');
+const RAW_CHARS = ['\u202e', '\x1b', '\u200b'];
+/** Whether `text` holds a raw hostile character (a list, not a regex: `no-control-regex`). */
+const hasRaw = (text: string | null | undefined): boolean => RAW_CHARS.some((c) => (text ?? '').includes(c));
 
 const LIST: ElementList = {
   elements: [
@@ -88,10 +91,10 @@ it('Memory list: the row and the filters show the escaped id, type and state; th
   expect(link.textContent).toContain(SHOWN(BAD_ID));
   expect(link.textContent).toContain(SHOWN(BAD_TYPE));
   expect(link.textContent).toContain(SHOWN(BAD_STATE));
-  expect(RAW.test(link.textContent ?? '')).toBe(false);
+  expect(hasRaw(link.textContent)).toBe(false);
   for (const name of ['Element types', 'States']) {
     const list = screen.getByRole('list', { name });
-    expect(RAW.test(list.textContent ?? ''), name).toBe(false);
+    expect(hasRaw(list.textContent), name).toBe(false);
   }
   expect(screen.getByRole('list', { name: 'Element types' }).textContent).toContain(SHOWN(BAD_TYPE));
 });
@@ -101,5 +104,82 @@ it('Memory list: no raw control, bidi or format character reaches any text node 
   const { container } = renderApp(`/p/${PID}/memory`);
   await screen.findByText('Plain title');
   const main = container.querySelector('main') ?? container;
-  expect(RAW.test(main.textContent ?? '')).toBe(false);
+  expect(hasRaw(main.textContent)).toBe(false);
+});
+
+const BAD_ROLE = 'r‮-dev\x1b​';
+const BAD_PHASE = 'ph\x1base​';
+const BAD_PATH = 'src‮/\x1b​';
+
+it('DNA: module path, methodology phase, role names and member role chips show the escaped keys', async () => {
+  const dna = {
+    ...DNA,
+    modules: [{ name: 'mod-a', path: BAD_PATH }],
+    stacks: { technologies: [], methodologies: [{ name: 'Method One', phase: BAD_PHASE }] },
+    team: {
+      members: [{ name: 'Ann Lee', email: 'ann@x.test', roles: [BAD_ROLE] }],
+      roles: [{ name: BAD_ROLE }],
+      agents: [],
+    },
+  };
+  stubApi(projectApi({ [`${BASE}/config`]: { status: 200, body: config({ data: dna }) } }));
+  const { container } = renderApp(`/p/${PID}/dna`);
+  await screen.findByText('Method One');
+  const main = container.querySelector('main') ?? container;
+  expect(hasRaw(main.textContent)).toBe(false);
+  for (const shown of [SHOWN(BAD_PATH), SHOWN(BAD_PHASE), SHOWN(BAD_ROLE)]) {
+    expect(main.textContent).toContain(shown);
+  }
+  expect(main.textContent).toContain('mod-a');
+});
+
+it('Team: the role chips and the role filter show the escaped role', async () => {
+  const dna = {
+    ...DNA,
+    team: { members: [{ name: 'Ann Lee', email: 'ann@x.test', roles: [BAD_ROLE, 'r-plain'] }], roles: [], agents: [] },
+  };
+  stubApi(
+    projectApi({
+      [BASE]: { status: 200, body: header(BO, 'r-dev') },
+      [`${BASE}/config`]: { status: 200, body: config({ data: dna }) },
+      [`${BASE}/elements`]: { status: 200, body: { elements: [], warnings: [] } },
+    }),
+  );
+  const { container } = renderApp(`/p/${PID}/team`);
+  await screen.findByText('Ann Lee');
+  const main = container.querySelector('main') ?? container;
+  expect(hasRaw(main.textContent)).toBe(false);
+  expect(main.textContent).toContain(SHOWN(BAD_ROLE));
+  expect(main.textContent).toContain('r-plain');
+});
+
+it('Directives: the list shows the escaped bound roles; the page toolbar shows the escaped path', async () => {
+  const base = DIRECTIVES.entries[0]!;
+  const entry = {
+    ...base,
+    path: `directives/${BAD_PATH}d-dev.md`,
+    roles: [BAD_ROLE],
+    assignment: BAD_ROLE,
+    mine: true,
+  };
+  stubApi(
+    projectApi({
+      [BASE]: { status: 200, body: header(BO, 'r-dev') },
+      [`${BASE}/directives`]: { status: 200, body: { entries: [entry], warnings: [] } },
+      [`${BASE}/directives/d-dev`]: {
+        status: 200,
+        body: { entry, frontmatter: entry.frontmatter, body: '# Title of d-dev\n\ntext\n' },
+      },
+    }),
+  );
+  renderApp(`/p/${PID}/directives`);
+  await screen.findByText('d-dev');
+  const rowList = screen.getByRole('list', { name: 'Directives' });
+  expect(hasRaw(rowList.textContent)).toBe(false);
+  expect(rowList.textContent).toContain(SHOWN(BAD_ROLE));
+  cleanup();
+  renderApp(`/p/${PID}/directives/d-dev`);
+  const path = await screen.findByText(/^\.wingfoil\/directives\//);
+  expect(hasRaw(path.textContent)).toBe(false);
+  expect(path.textContent).toContain(SHOWN(BAD_PATH));
 });
