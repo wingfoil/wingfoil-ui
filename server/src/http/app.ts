@@ -5,10 +5,10 @@
 import fastifyStatic from '@fastify/static';
 import { fastify, type FastifyBaseLogger, type FastifyInstance, type FastifyReply } from 'fastify';
 import { existsSync, readFileSync } from 'node:fs';
-import { contentSecurityPolicy } from './csp.js';
 import { STATUS_CODES } from 'node:http';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
+import { contentSecurityPolicy } from './csp.js';
 import { GitReadError } from '../git/git.js';
 import type { Logger } from 'pino';
 import {
