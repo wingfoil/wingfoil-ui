@@ -136,6 +136,8 @@ Checks run in the task worktree: `npm run test -- test/server/http/csp.test.ts` 
 tests; `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api` and
 `git diff --check` exited 0. The CSP tests map to AC-1; the spec-004 Process Note in the line
 checkout and `CHANGELOG.md` Security entry cover the documentation change of AC-3.
+The additional HTTP regression check `npm run test -- test/server/http` passed all 25 files
+and 673 tests (219.97 s).
 
 **F-1 — Test coverage: AC-2's browser CSP guarantee is not asserted.** The only tests this
 change adds are HTTP injection tests (`test/server/http/csp.test.ts`); they inspect a header
@@ -165,3 +167,6 @@ browser specs would skip Firefox and WebKit. No browser/axe result is claimed by
 
 Outcome: reject for F-1, tracked in the task's `memory park --reason`; no separate bug for a
 finding in this change. The task and bug are not submitted for review by this session.
+`npx --no-install wingfoil memory park task-084-content-security-policy-on-the-console-pages
+--reason "..."` returned `in-progress → backlog` (commit `15c7774c`); bug-039 remains
+`in-progress`, as required for a rejected review.
