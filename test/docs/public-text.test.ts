@@ -131,6 +131,13 @@ describe('the allow-list', () => {
     }
     expect(allowedBy('/home/alex/kanban/..state')).toBeDefined();
   });
+
+  it('allows the shell a runner notice or run record quotes (bug-056)', () => {
+    for (const quoted of ['/bin/bash', '/bin/bash_-lc', '/bin/bash_-c']) expect(allowedBy(quoted), quoted).toBeDefined();
+    // Built at run time: the probes are not allow-listed, so the tracked-tree check would flag them.
+    const probes = ['bash/x', 'bash_-lc/x', 'bashrc', 'bash_x'].map((leaf) => ['', 'bin', leaf].join('/'));
+    for (const probe of probes) expect(allowedBy(probe), probe).toBeUndefined();
+  });
 });
 
 describe('scanRepository', () => {
