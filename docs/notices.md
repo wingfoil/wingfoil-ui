@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-084-content-security-policy-on-the-console-pages/review/2 -->
 ### N-025 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
 
-- **Status:** open
+- **Status:** closed 2026-11-27T10:58:10Z — approved by the approver: CI hand-off done by the approver: task/task-084-content-security-policy-on-the-console-pages pushed at b2c4a400b7fc905401753629ec05ddb02ed47e07; gates.yml run 45983473359 (workflow_dispatch, scope=wave) concluded success on that head: e2e-wave Chromium 260+259, Firefox 252+251, WebKit 252+251 passed, no failure or flaky; checks, coverage, contract, smoke and publish-smoke green; e2e-chromium, own-specs and repeat skipped outside the task scope. The push run 45983455868 was cancelled by the workflow concurrency, not failed. Resume the review with this evidence. Before finishing, remove the absolute local paths from the task's review round 2 hand-off block (the cd and git fetch lines): write them as the runner home and the line clone, as committed text carries no local path.
 - **Kind:** decision
 - **Opened:** 2026-11-27T10:30:57Z
 - **Line:** trunk
 - **Element:** trunk:task-084-content-security-policy-on-the-console-pages
 - **Reason:** decision (run task-084-content-security-policy-on-the-console-pages/review/2): May the approver push task/task-084-content-security-policy-on-the-console-pages and dispatch gates.yml with scope=wave, then provide the run id, head SHA and results so review can finish?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-025 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:blocked-trunk-task-084-content-security-policy-on-the-console-pages/red/1 -->
 ### N-024 · 2026-11-25 · trunk:task-084-content-security-policy-on-the-console-pages
