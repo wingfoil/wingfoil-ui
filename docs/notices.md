@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-084-content-security-policy-on-the-console-pages/review/2 -->
+### N-025 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-27T10:30:57Z
+- **Line:** trunk
+- **Element:** trunk:task-084-content-security-policy-on-the-console-pages
+- **Reason:** decision (run task-084-content-security-policy-on-the-console-pages/review/2): May the approver push task/task-084-content-security-policy-on-the-console-pages and dispatch gates.yml with scope=wave, then provide the run id, head SHA and results so review can finish?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-025 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
