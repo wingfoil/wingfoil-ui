@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:halt-trunk-forbidden-task-084-content-security-policy-on-the-console-pages-review-3 -->
 ### N-026 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
 
-- **Status:** open
+- **Status:** closed 2026-11-27T12:07:39Z — resumed by the approver
 - **Kind:** halt
 - **Opened:** 2026-11-27T11:25:36Z
 - **Line:** trunk
 - **Element:** trunk:task-084-content-security-policy-on-the-console-pages
 - **Reason:** backlog-item.review@task:task-084-content-security-policy-on-the-console-pages ran a command no role may run: /bin/bash -lc "sed -n '1300,1345p' scripts/runner/run.mjs"
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:decision-trunk-task-084-content-security-policy-on-the-console-pages/review/2 -->
 ### N-025 · 2026-11-27 · trunk:task-084-content-security-policy-on-the-console-pages
