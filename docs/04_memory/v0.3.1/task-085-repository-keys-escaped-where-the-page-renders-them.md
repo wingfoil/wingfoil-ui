@@ -51,3 +51,66 @@ three engines; commands and results in the Execution Notes.
 
 <!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. -->
+
+### design (2026-11-27, developer as architect)
+
+**Read:** the task, bug-041, spec-004 §5 *Repository texts* (keys raw, D72-1) and the
+`serialise.ts` class table (c) "key … as returned", `server/src/git/redact.ts` (`neutralise`,
+`UNSAFE`). `depends_on` tasks (091, 092, 093) are tooling/dependency tasks: no constraint on this
+design was found in their scope. No new tech-spec is needed: no file format, schema, constant set or
+module API is added beyond a web-internal helper (spec-004 §5 gets a Process Note, AC-3).
+
+**D85-1 — web-side escape, not a display sibling (AC-1's choice).** A display sibling per key
+would change the bodies of `/elements`, `/today`, `/progress`, `/traceability`, `/config`,
+`/directives`, history and the events, plus their schemas, the contracts and the contract tests —
+and a key shown in several places would need a sibling in each. A web escape changes no response
+body and no contract (AC-2's "no regression" holds by construction: `npm run test:contract` is
+untouched), keeps the raw value as the key (addresses, filters, comparisons, React `key`,
+`data-eid`), and covers every site with one function. Chosen; the server side stays class (c).
+
+**D85-2 — one function, `keyText(raw: string): string`** in `web/src/text/key-text.ts` (new). It is
+the rule of `neutralise` (CR LF folded, backslash doubled, Cc/Cf/Cs/Zl/Zp but newline and tab as
+`\x1b`, `‮`, `\u{e0001}`): plain keys (ASCII ids, states, tags) pass through unchanged. The
+web cannot import `server/`, so the rule is restated in the helper; a parity test imports both
+(`neutralise` and `keyText`) and asserts equal output on a corpus (controls, bidi, format, lone
+surrogate, astral, backslash, CR LF, plain ASCII), so the two cannot drift. Applied at the
+rendering site only — in the JSX text node, never to a value used as key, `href`, address,
+filter value, `data-*`, or comparison. Rendering sites show the escaped text and, where a
+screen-reader/`aria-label` or `textValue` repeats the key, the same escaped text.
+
+**D85-3 — the rendering sites** (from `grep` over `web/src`, to be completed by green's sweep):
+
+| Site | Key shown |
+|------|-----------|
+| `memory/MemoryList.tsx` (Row: `element.type`, `element.id`, `element.status`; filter chips `t.type`, `s.state`) | type, id, state |
+| `today/TodayView.tsx` (rows, `reason.state`), `today/RecentActivity.tsx` (`line.id`), `today/CardFilters.tsx` (facet items), `today/RoleSummary.tsx` (`line.role`), `today/ProgressCard.tsx` (`current.status`) | type, id, state, role |
+| `shell/NotificationBell.tsx` (`element.type`, `line.id`) | type, id |
+| `element/ElementPage.tsx`, `ElementSidePanel.tsx` (`type`, `current` state), `element/StateMachine.tsx` (`chip.name`), `element/Candidates.tsx` (`c.type`, `c.id`, `c.status`), `element/Directives.tsx` (`frontmatter.id`), `element/ElementFooter.tsx` (`o.to`) and the element panel's `entry.path` | type, id, state, path |
+| `directives/DirectiveList.tsx`, `directives/pages.tsx` (`frontmatter.id`, toolbar `entry.path`), `dna/DnaView.tsx` (`RoleChips`, `m.path`, `m.phase`, `r.name`), `team/TeamView.tsx`, `project/HowToJoin.tsx` (role chips) | id, path, role, phase |
+| `traceability/ReferenceTable.tsx`, `ReferenceDetail.tsx`, `MissingSection.tsx` (`reference.id`, `element.status`, `element.type`) | id, state, type |
+| `configuration/ProgressView.tsx`, `TaxonomyView.tsx` (`row.type`, `h.type`, `h.state`, `current.status`), `progress/Completion.tsx` (`r.id`) | type, state, id |
+| tags and workflow names wherever the green sweep finds them (`grep` found no tag or workflow-name JSX text yet — `tags`/`workflow` hits are comments and capability ids) | tag, workflow |
+
+Green ends with a repository-wide sweep (a test that renders each screen with a hostile fixture, as
+red's per-site tests do) so a site this table missed fails by name, not by review.
+
+**D85-4 — AC classification and test plan (for red's session).**
+
+| AC | Class | Plan (scenario → spec file) |
+|----|-------|------------------------------|
+| AC-1 | red-first (new behaviour) | `test/web/text/key-text.test.ts`: `keyText` unit cases + parity with server `neutralise` on the corpus. One web test per rendering site of D85-3, each with a key holding U+202E, a control (`\x1b`) and a format character (U+200B): the rendered text shows `‮`, `\x1b`, `​` and no raw character; the raw value still reaches its address/filter (`href`/`data-eid`/filter value unchanged) — in `test/web/memory`, `today`, `shell`, `element`, `directives`, `dna`, `team`, `project`, `traceability`, `configuration`, `progress`, next to each screen's existing spec |
+| AC-2 | characterization (behaviour exists) | plain-key rendering: the existing web specs and e2e specs pass unchanged; `npm run test:contract` untouched (no body change); one plain-key assertion in each new site test (ASCII id/state/tag rendered identically) |
+| AC-3 | documentation, no test | spec-004 §5 *Process Note* (dated; `Version`/`Date` bumped, `doc-versioning`), the class table of `serialise.ts` comment ("Keys stay raw even where the page shows them" → escaped by the web where rendered), `CHANGELOG.md` *[0.3.1]*; `docs:api` if the comment is part of its output |
+
+**Security probes:** none required: display escaping only, the console runs nothing new on projects
+and reads/writes no git. **Parser/cost probe:** `keyText` is a single linear `String.replace`
+over the key (no nested quantifier, no backtracking), the same regex as `neutralise`; the unit
+test asserts time-independent output only, and one case compares a key of size N and 2N (output
+length growth linear: every unsafe char adds a bounded escape). **Strict identity:** not git-touching.
+
+**Accessibility:** the escaped text is the one text node, so visible and accessible names agree;
+`textValue`/`aria-label` of the filter and list-box items use the same escaped text.
+
+**Size:** about half a day (bug-041's estimate holds): one helper, one parity test, ~25 one-line
+JSX changes, one test per site; no split proposed. No gap or contradiction between the task and its
+specs beyond the AC-3 wording the Process Note resolves.
