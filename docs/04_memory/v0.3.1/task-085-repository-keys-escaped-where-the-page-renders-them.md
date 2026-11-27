@@ -158,7 +158,7 @@ display fields escaped once by the server.
 | `npm test` | 288 files passed, 1 skipped; 5265 tests passed, 3 skipped (the earlier `workflow-diagnostics` failure was the uncommitted spec edit, `W_UNCOMMITTED_INPUTS`; green after the commit) |
 | `npm run test:contract` | 24 files passed, 1 skipped; 501 tests passed, 3 skipped (no body or schema changed) |
 | existing address tests updated (`test/web/element/page.test.tsx`, `side-panel.test.tsx`) | they now expect the escaped address inside its `<bdi>` (a key was shown raw before) |
-| `npm run test:e2e:chromium` | not run: the step timed out at 45 minutes during this run (run `start/2`, exit 124); to be run by the next step |
+| `npm run test:e2e:chromium` (task worktree, `9c2d8184`, this resumed step) | 519 passed (29.3m), exit 0 (the earlier attempt had timed out at 45 minutes, run `start/2`) |
 
 Heavy gates on CI (`.github/workflows/gates.yml`): no push is allowed to this session, so there is
 no CI run id for `9c2d8184`; the run is the hand-off to the approver's push (coverage, the own e2e
