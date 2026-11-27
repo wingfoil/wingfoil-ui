@@ -234,13 +234,14 @@ requires the reviewer to ask the approver to push and dispatch, from the runner 
 forbids this session to push. This is an outstanding gate, not a new code rejection. No park,
 task submit or bug submit was run; the review waits on the CI result.
 
-Approver hand-off, in the approver's own terminal, each command separately (runner home confirmed
-by its `config/runner.local.yaml`, `paths.runner`):
+Approver hand-off, in the approver's own terminal, each command separately. Replace
+`<runner-home>` with the runner home and `<line-clone>` with the trunk line clone, as configured
+in the runner's `config/runner.local.yaml`:
 
 ```sh
-cd /home/robypomper/Workspaces/wingfoil_project/runner-homes/wingfoil-ui
+cd "<runner-home>"
 node scripts/runner/run.mjs --line trunk --check-git
-git fetch /home/robypomper/Workspaces/wingfoil_project/runner-lines/wingfoil-ui-trunk task/task-084-content-security-policy-on-the-console-pages
+git fetch "<line-clone>" task/task-084-content-security-policy-on-the-console-pages
 git push origin FETCH_HEAD:refs/heads/task/task-084-content-security-policy-on-the-console-pages
 gh workflow run gates.yml --repo wingfoil/wingfoil-ui --ref task/task-084-content-security-policy-on-the-console-pages -f scope=wave
 gh run list --repo wingfoil/wingfoil-ui --workflow gates.yml --branch task/task-084-content-security-policy-on-the-console-pages
@@ -249,3 +250,49 @@ gh run list --repo wingfoil/wingfoil-ui --workflow gates.yml --branch task/task-
 Before the push, follow the `--check-git` result and review any carried changes to the runner's
 own files (rule 14). Record the successful wave run's id, head SHA and results before review
 acceptance; its head must be `b2c4a400b7fc905401753629ec05ddb02ed47e07`.
+
+### review, round 2 — resumed after N-025 (2026-11-27)
+
+Resumed the independent review of `trunk:task-084-content-security-policy-on-the-console-pages`
+at `b2c4a400b7fc905401753629ec05ddb02ed47e07`. Read the reviewer session resource and current
+task in the line clone, the role directives, bug-039, spec-004's Process Note, the complete task
+diff, the shared screen inventory, the axe coverage and the CI workflow. The task worktree is
+still at that head (`git rev-parse HEAD`); no code or test file changed in this review.
+
+**CI evidence, now satisfied.** N-025 records the approver's push and `gates.yml` dispatch with
+`scope=wave`. Independently checked the GitHub connector's GET of
+`https://api.github.com/repos/wingfoil/wingfoil-ui/actions/runs/45983473359` and its
+`/jobs?per_page=100` subresource: run
+[45983473359](https://github.com/wingfoil/wingfoil-ui/actions/runs/45983473359), attempt 1,
+`workflow_dispatch`, completed successfully on the exact reviewed head. All six `e2e-wave`
+engine × shard jobs and `checks`, `coverage`, `contract`, `smoke`, `publish-smoke` succeeded.
+`e2e-chromium`, `own-specs` and `repeat` were skipped as the wave scope specifies. N-025 supplies
+the passing test counts: Chromium 260 + 259, Firefox 252 + 251, WebKit 252 + 251, with no failure
+or flaky test. GET of run `45983455868` confirms the earlier push run was cancelled; N-025
+attributes that cancellation to workflow concurrency.
+
+**Acceptance evidence and F-1 closure.**
+
+- AC-1: `npm run test -- test/server/http/csp.test.ts test/docs/public-text.test.ts` passed
+  both files, all 75 tests (8 CSP, 67 public-text). The CSP tests check page routes, the
+  independently computed theme hash, denied sources and the JSON/event-stream scope.
+- AC-2: the successful wave run executes `test/e2e/content-security-policy.spec.ts` on every
+  engine. Rechecked its collector, real document response headers, every `SCREENS` entry, both
+  themes, runtime inline styles and deliberately blocked script/connection controls. The same
+  run includes `accessibility.spec.ts`'s per-screen serious/critical axe assertions. F-1's
+  missing browser coverage class is resolved. The search
+  `rg -n 'content-security-policy|securitypolicyviolation|CSP' server/src web test/e2e` found the
+  production hook, policy module and this browser spec; no new finding.
+- AC-3: spec-004's 2026-11-26 Process Note records the enforced policy and style choice;
+  `git diff design/dev-loop_v0.3.1...HEAD` records the security fix in `CHANGELOG.md`
+  `[Unreleased]` for the next patch. Neither document carries a Version/Date marker.
+
+Other local checks, all exited 0: `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm run docs:api`, `git diff --check design/dev-loop_v0.3.1...HEAD`.
+As N-025 requests, the earlier hand-off now names the runner home and line clone using
+placeholders, with no absolute local path in the task text.
+
+**Outcome: completed.** The CI blocker is resolved and no review finding remains. The step's
+linked-bug action is `memory submit bug-039-the-console-serves-its-pages-without-a-content-security-policy`
+(`in-progress → in-review`). The task's own submit is left to the runner after this session's
+completed answer; this session does not submit the task or finalize the workflow.
