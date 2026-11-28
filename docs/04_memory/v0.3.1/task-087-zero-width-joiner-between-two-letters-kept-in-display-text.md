@@ -47,3 +47,33 @@ Execution Notes.
 
 <!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. -->
+
+### Design (2026-11-28, developer)
+
+Read: `server/src/git/redact.ts` — `UNSAFE` (line 137) is shared by `neutralise`, `neutraliseKeepingBackslashes`
+and, through `UNSAFE.source`, by two redaction patterns in `sanitise` (the folder-end lookahead, line
+111, and the `user:password@` start, line 126). `web/src/project/join.ts` holds `shellWord`.
+
+- **Two patterns, not one.** `UNSAFE` stays as it is (every Cc/Cf/Cs/Zl/Zp but newline and tab): it is
+  the *boundary* class of the redaction patterns, where loosening it would let `<joiner>user:pw@host`
+  or `<folder><joiner>x` escape redaction (a weaker sanitiser, AC-2). A new `ESCAPED` =
+  `(?!<joiner between letters>)UNSAFE` is used only where text is written as an escape:
+  `neutralise` (hence `sanitise`'s last step and every caller). The joiner exception is
+  `(?<=[\p{L}\p{M}])[‌‍](?=[\p{L}\p{M}])` as a negative lookahead in front of the class.
+- **Cases (AC-1).** Kept: letter·ZWJ·letter, letter·ZWNJ·letter, mark·joiner·letter, letter·joiner·mark.
+  Escaped: at the start or end, beside a digit/space/punctuation, repeated (each joiner has a joiner
+  neighbour, not a letter/mark), and every other Cf (U+202E, U+2066, U+200B, U+FEFF, U+00AD, U+200E/F…).
+- **Why safe.** U+200C/D are not bidi controls: they do not reorder, hide or change direction of
+  text; they only affect glyph joining, and only between two letters/marks. Every bidi control stays
+  escaped. A joiner between letters is invisible, but so are the letters' own combining marks; the
+  spelling of a name (Persian, Indic) needs it. `neutraliseKeepingBackslashes` (ui.yaml regex
+  sources) stays strict: a pattern is not a name, and what the user reads there must be the exact escape.
+- **Shell (AC-2).** `shellWord` single-quotes any word; a test row with a joiner in a name asserts the
+  quoted command holds the joiner inside the quotes, unescaped by the shell.
+- **Tests (red first).** `test/server/git/redact.test.ts` (or the existing neutralise suite): one row
+  per side — kept between letters; escaped at start, at end, beside a digit, repeated, and U+202E,
+  U+200B stay escaped; a redaction row: `<joiner>user:pw@host` and `<folder><joiner>x` behave as before.
+  `test/web/project/join.test.ts`: joiner row. Existing suites unchanged.
+- **Docs (AC-3).** spec-004 §5 *Process Note* dated, naming the exception; `CHANGELOG.md` *[0.3.1]*;
+  `Version`/`Date` bumped (doc-versioning).
+- Not touched: server/web contracts, git reads/writes, the capability table.
