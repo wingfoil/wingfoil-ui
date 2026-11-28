@@ -125,10 +125,7 @@ function Current({ pid, scope }: { pid: string; scope: UiConfig['progress']['sco
         </>
       ) : (
         <span className="config-none">
-          <FormattedMessage
-            id="settings.progress.scope.noCurrent"
-            values={{ type: keyText(scope.value?.type ?? '') }}
-          />
+          <FormattedMessage id="settings.progress.scope.noCurrent" values={{ type: scope.value?.type ?? '' }} />
         </span>
       )}
       <Origin origin="derived" />
@@ -160,7 +157,7 @@ function ProgressRows({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode {
                 <FormattedMessage id="settings.progress.scope.whole" />
               </span>
             ) : (
-              <code>{keyText(scope.value.type)}</code>
+              <code>{scope.value.type}</code>
             )}
             <Origin origin={scope.origin} />
           </span>
@@ -217,8 +214,8 @@ function ProgressRows({ pid, ui }: { pid: string; ui: UiConfig }): ReactNode {
                       id="settings.progress.hold"
                       values={{
                         code,
-                        type: keyText(h.type),
-                        state: keyText(h.state),
+                        type: h.type,
+                        state: h.state,
                         rule: selectorOf(h.approve),
                         approve: h.approve,
                       }}

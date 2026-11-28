@@ -21,7 +21,7 @@ import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/co
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Link as AriaLink, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { keyText } from '../text/key-text.js';
+import { keyText, referenceText } from '../text/key-text.js';
 import { Bar } from './Figures.js';
 import { referenceKey } from './model.js';
 import { ReferenceDetail, StatePill } from './ReferenceDetail.js';
@@ -95,7 +95,7 @@ function ReferenceCell({
           {element && <StatePill element={element} />}
         </span>
       ) : (
-        <span className="trace-ref-id">{keyText(reference.id)}</span>
+        <span className="trace-ref-id">{referenceText(reference)}</span>
       )}
     </td>
   );
@@ -150,7 +150,7 @@ function ReferenceRow({
               ref={toggleRef}
               type="button"
               className="trace-row-toggle"
-              aria-label={intl.formatMessage({ id: 'traceability.detail.toggle' }, { id: keyText(reference.id) })}
+              aria-label={intl.formatMessage({ id: 'traceability.detail.toggle' }, { id: referenceText(reference) })}
               aria-expanded={expanded}
               {...(expanded ? { 'aria-controls': detailId } : {})}
               onClick={() => onToggle(key)}

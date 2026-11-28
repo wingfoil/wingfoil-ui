@@ -24,7 +24,14 @@ export interface ReadOnlyFigure {
 
 /** One reference counted by `completion` (spec-012 §3): its in-scope linked elements. */
 export interface CompletionReference {
+  /** An element reference's raw element id, or a pattern reference's value as served (escaped, §9). */
   id: string;
+  /**
+   * Provenance of `id`: `true` for an element reference (a key: the page escapes it where it shows it),
+   * `false` for a pattern reference (a display value, escaped once by the server; shown as served) —
+   * as `TraceabilityReference.element` (task-085 round 2, R2-F2).
+   */
+  element: boolean;
   done: number;
   total: number;
   percent: number;

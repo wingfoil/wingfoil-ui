@@ -84,7 +84,7 @@ function Types({ taxonomy }: { taxonomy: UiConfig['taxonomy'] }): ReactNode {
               return (
                 <tr key={row.type}>
                   <th scope="row">
-                    <code>{keyText(row.type)}</code>
+                    <code>{row.type}</code>
                   </th>
                   <td>
                     <span className="config-value">

@@ -24,7 +24,10 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
   accessible name — Memory, Today, the notification bell, the header's role view, the element page
   and side panel, Traceability, Configuration, DNA, Team and Directives — through one function,
   `keyText`; the raw value still addresses and filters. Display fields stay escaped once by the
-  server. No response body or contract changes (spec-004 *Process Notes*, 2026-11-27).
+  server, and the page shows them as served. One additive contract change: each reference of
+  `/progress` and `/traceability` `figures.completion.references[]` carries `element` (`true` for an
+  element reference, a raw key; `false` for a pattern reference, an escaped display value), so the
+  page escapes the one and never the other twice (spec-004 and spec-012 *Process Notes*, 2026-11-28).
 
 ### Changed
 

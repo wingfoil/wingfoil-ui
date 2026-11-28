@@ -24,3 +24,12 @@ function visibleEscape(ch: string): string {
 export function keyText(raw: string): string {
   return raw.replace(/\r\n/g, '\n').replace(ESCAPED, (ch) => (ch === '\\' ? '\\\\' : visibleEscape(ch)));
 }
+
+/**
+ * A reference's id as the page shows it. Provenance is the response's `element` flag, never the
+ * text: an element reference's id is a raw key (escaped here, once); a pattern reference's id is a
+ * display value the server already escaped (`referenceKey`, spec-012 §9), shown as served.
+ */
+export function referenceText(reference: { id: string; element: boolean }): string {
+  return reference.element ? keyText(reference.id) : reference.id;
+}
