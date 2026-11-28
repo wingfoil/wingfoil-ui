@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:blocked-trunk-task-085-repository-keys-escaped-where-the-page-renders-them/done/1 -->
 ### N-034 · 2026-11-28 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
 
-- **Status:** open
+- **Status:** closed 2026-11-28T10:39:17Z — The two absolute local paths that review/5 copied into task-085's Memory body (lines 575, 577) now read <runner home> and <trunk checkout>: line commit 64b0c613; test/docs/public-text.test.ts 68/68 on the line. Re-run the done step.
 - **Kind:** blocked
 - **Opened:** 2026-11-28T09:59:09Z
 - **Line:** trunk
 - **Element:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them
 - **Reason:** blocked (run task-085-repository-keys-escaped-where-the-page-renders-them/done/1): docs test public-text AC-1 fails on the task element's own text (absolute paths at lines 575 and 577 of task-085 document); fix it on the task branch, then re-run the integration
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-034 --how "<what solved it>"`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-085-repository-keys-escaped-where-the-page-renders-them -->
 ### N-033 · 2026-11-28 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
