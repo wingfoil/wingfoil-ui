@@ -19,6 +19,7 @@ import { directivesQuery, projectHeaderQuery } from '../api/queries.js';
 import { ElementPage } from '../element/ElementPage.js';
 import { elementKeys, elementQuery, historyQuery, isPathSyntaxId, notFound } from '../element/queries.js';
 import { TITLES, usePageTitle, useProjectName } from '../shell/page-title.js';
+import { keyText } from '../text/key-text.js';
 import { projectRoute } from './project.js';
 
 declare module '@tanstack/history' {
@@ -53,7 +54,7 @@ function ElementRoutePage(): ReactNode {
     delete next['gateFocus'];
     router.history.replace(href, next);
   }, [router]);
-  usePageTitle(TITLES.projectElement, { project: useProjectName(pid), element: eid });
+  usePageTitle(TITLES.projectElement, { project: useProjectName(pid), element: keyText(eid) });
   const queryClient = useQueryClient();
   const read = useQuery(elementQuery(pid, eid));
   const answered = read.data;

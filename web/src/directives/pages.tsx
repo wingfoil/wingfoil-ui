@@ -27,7 +27,7 @@ export function DirectivePage(): ReactNode {
   const hash = useLocation({ select: (l) => l.hash });
   const router = useRouter();
   // The directive's id is the view (project data, W5-5).
-  useProjectTitle(pid, did);
+  useProjectTitle(pid, keyText(did));
   const detail = useQuery(directiveQuery(pid, did));
   const list = useQuery(directivesQuery(pid));
   const header = useQuery(projectHeaderQuery(pid));
