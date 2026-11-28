@@ -514,6 +514,7 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
   it('says "and <n> more" past the listed references', async () => {
     const references = Array.from({ length: 10 }, (_, i) => ({
       id: `US-${String(i + 1).padStart(2, '0')}`,
+      element: false,
       done: 1,
       total: 1,
       percent: 100,

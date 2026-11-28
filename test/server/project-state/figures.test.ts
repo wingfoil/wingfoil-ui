@@ -299,7 +299,10 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
     rows = withRow(rows, 'bug-001-toast-overlap', { unreadable: true });
     const i = await inputs(rows);
     expect(completionFigure(i)).toMatchObject({
-      references: [{ id: 'US-M-01', element: false, done: 1, total: 1 }, { id: 'US-S-01', element: false }],
+      references: [
+        { id: 'US-M-01', element: false, done: 1, total: 1 },
+        { id: 'US-S-01', element: false },
+      ],
     });
     expect(iteratedFigure(i)).toMatchObject({ total: 3 });
     expect(openDefectsFigure(i)).toMatchObject({ count: 1 });

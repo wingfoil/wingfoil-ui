@@ -431,7 +431,8 @@ it('Traceability: a pattern reference is shown as served (row, toggle name, deta
   const patternRow = [...container.querySelectorAll('tr')].find((r) => r.querySelector('.trace-ref-id:not(a)'));
   expect(patternRow?.querySelector('.trace-ref-id')?.textContent).toBe(PATTERN);
   const toggle = within(patternRow as HTMLElement).getByRole('button', { name: `Details of ${PATTERN}` });
-  expect(container.querySelector('a.trace-ref-id')?.textContent).toBe(SHOWN(ID));
+  // The element reference shows its element's short id (raw key `k-001` + U+202E), escaped once.
+  expect(container.querySelector('a.trace-ref-id')?.textContent).toBe(SHOWN('k-001‮'));
   await user.click(toggle);
   expect(container.querySelector('.trace-detail-heading')?.textContent).toBe(PATTERN);
   expect(rawHits(container)).toEqual([]);
