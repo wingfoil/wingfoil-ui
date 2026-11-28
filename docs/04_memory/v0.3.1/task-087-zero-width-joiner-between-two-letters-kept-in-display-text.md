@@ -47,3 +47,95 @@ Execution Notes.
 
 <!-- Running log of what actually happened while working this task (`backlog-item`) — filled in
      incrementally per phase, not written after the fact. -->
+
+### Design (2026-11-28, developer)
+
+Read: `server/src/git/redact.ts` — `UNSAFE` (line 137) is shared by `neutralise`, `neutraliseKeepingBackslashes`
+and, through `UNSAFE.source`, by two redaction patterns in `sanitise` (the folder-end lookahead, line
+111, and the `user:password@` start, line 126). `web/src/project/join.ts` holds `shellWord`.
+
+- **Two patterns, not one.** `UNSAFE` stays as it is (every Cc/Cf/Cs/Zl/Zp but newline and tab): it is
+  the *boundary* class of the redaction patterns, where loosening it would let `<joiner>user:pw@host`
+  or `<folder><joiner>x` escape redaction (a weaker sanitiser, AC-2). A new `ESCAPED` =
+  `(?!<joiner between letters>)UNSAFE` is used only where text is written as an escape:
+  `neutralise` (hence `sanitise`'s last step and every caller). The joiner exception is
+  `(?<=[\p{L}\p{M}])[‌‍](?=[\p{L}\p{M}])` as a negative lookahead in front of the class.
+- **Cases (AC-1).** Kept: letter·ZWJ·letter, letter·ZWNJ·letter, mark·joiner·letter, letter·joiner·mark.
+  Escaped: at the start or end, beside a digit/space/punctuation, repeated (each joiner has a joiner
+  neighbour, not a letter/mark), and every other Cf (U+202E, U+2066, U+200B, U+FEFF, U+00AD, U+200E/F…).
+- **Why safe.** U+200C/D are not bidi controls: they do not reorder, hide or change direction of
+  text; they only affect glyph joining, and only between two letters/marks. Every bidi control stays
+  escaped. A joiner between letters is invisible, but so are the letters' own combining marks; the
+  spelling of a name (Persian, Indic) needs it. `neutraliseKeepingBackslashes` (ui.yaml regex
+  sources) stays strict: a pattern is not a name, and what the user reads there must be the exact escape.
+- **Shell (AC-2).** `shellWord` single-quotes any word; a test row with a joiner in a name asserts the
+  quoted command holds the joiner inside the quotes, unescaped by the shell.
+- **Tests (red first).** `test/server/git/redact.test.ts` (or the existing neutralise suite): one row
+  per side — kept between letters; escaped at start, at end, beside a digit, repeated, and U+202E,
+  U+200B stay escaped; a redaction row: `<joiner>user:pw@host` and `<folder><joiner>x` behave as before.
+  `test/web/project/join.test.ts`: joiner row. Existing suites unchanged.
+- **Docs (AC-3).** spec-004 §5 *Process Note* dated, naming the exception; `CHANGELOG.md` *[0.3.1]*;
+  `Version`/`Date` bumped (doc-versioning).
+- Not touched: server/web contracts, git reads/writes, the capability table.
+
+### Review (2026-11-28, independent reviewer) — rejected
+
+Reviewed `trunk:task-087-zero-width-joiner-between-two-letters-kept-in-display-text` at
+`4fbefc7219f6ce03e287b289cefc39f06c40f17e`. The branch diff against
+`design/dev-loop_v0.3.1` contains only `server/src/git/redact.ts` and the two test files;
+`git diff --stat design/dev-loop_v0.3.1...HEAD` and the full diff establish that scope.
+The current element on the line was read, rather than the older worktree copy.
+
+- **AC-1 / AC-2:** `npm run test -- test/server/git/redact.test.ts
+  test/web/project/join.test.ts test/server/http/serialise.test.ts
+  test/server/tool-messages.test.ts` passed 4 files, 97 tests. The joiner exception is used by
+  `neutralise`; both redaction boundary expressions still use the strict `UNSAFE`, and
+  `neutraliseKeepingBackslashes` still escapes all format characters (`rg -n
+  'UNSAFE|neutraliseKeepingBackslashes|neutralise\(' server web test/server/git
+  test/server/http/serialise.test.ts`).
+- Added independent characterization in `test/server/git/redact-joiner-review.test.ts`, committed
+  on the task branch as `76f7469c`: both joiners after a local folder and before scheme-less
+  credentials, supplementary letters, and two combining marks. The redaction probes distinguish
+  the strict boundary class from the display exception; no product source or existing red test
+  was changed. `npm run test -- test/server/git/redact-joiner-review.test.ts
+  test/server/git/redact.test.ts test/web/project/join.test.ts
+  test/server/http/serialise.test.ts test/server/tool-messages.test.ts
+  test/docs/public-text.test.ts` passed 6 files, 171 tests, including all six new cases.
+- `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run docs:api`, and
+  `git diff --check` exited 0. Typecheck, lint and formatting were checked again after adding the
+  review tests. No heavy gate was run locally, no push or CI dispatch was performed, and no
+  task-head CI run was verified in this review.
+- The committed run record `docs/runs/task-087-zero-width-joiner-between-two-letters-kept-in-display-text.jsonl`
+  establishes separate red, green and refactor sessions. Its `red/2` entry and
+  `git show --format=full 4fbefc72 -- test/server/git/redact.test.ts` establish that the old
+  U+200D row was changed by the red amendment, not green/refactor. The green/refactor entries
+  record `tests-green:pass` and `red-tests-untouched:pass`; those are the runner's results,
+  distinct from this review's targeted test results.
+
+**R1 — documentation/contract drift (AC-3, documentation).** There is no dated joiner Process
+Note in spec-004 and no v0.3.1 fix entry in CHANGELOG. Class search (`rg -n -g '*.md'
+'categories Cc|Cc, Cf|every (unsafe|format)|U\+200C|U\+200D|\\p\{Cf\}' docs server/src`, plus
+`rg -n 'Cc|U\+200|Unicode|escape|unsafe' server/src/git/redact.ts`) also finds the live blanket
+escape rule in spec-010 §4, the user guide's git-message description, and the source module's
+table and `neutralise` API comment. The new implementation makes these descriptions incomplete.
+Structural solution: document the single display exception in spec-004 §5 with a dated Process
+Note; align spec-010 and the source API comments, and add release-scoped user documentation and
+the v0.3.1 changelog fix. Distinguish the still-strict redaction boundaries and regex-source
+escape. Preserve historical v0.3.0 limitations as history, and do not describe v0.3.1 as shipped.
+Update Version/Date only for edited documents that carry them.
+
+**R2 — missing execution/gate evidence (definition-of-done, claim-evidence).** Before this review
+the line's current task text ended at Design (`cat
+docs/04_memory/v0.3.1/task-087-zero-width-joiner-between-two-letters-kept-in-display-text.md`):
+no Red, Green or Refactor notes, local gate outputs or task-head CI run were recorded there.
+The runner's pass summaries do not supply the missing per-step Execution Notes or the required
+`gates.yml` evidence. Reconstruct the missing notes honestly from commits/run records, explicitly
+labeling retrospective reconstruction and unchecked results; record actual check commands and
+results. After the documentation is corrected and the phase branch integrated, rerun the local
+gates and obtain the required task-scope CI evidence (run id, full head SHA, conclusion and jobs)
+through the approver's hand-off, per `wingfoil-cli` rule 12, before acceptance.
+
+Both findings are omitted work within this task, tracked by the following `memory park --reason`
+commit; no new bug is needed. No new red amendment is requested. This rejection submits neither
+the task nor its linked bug; bug-045 remains `in-progress`. The review body is committed before
+parking because park refuses uncommitted target content (`wingfoil-cli` W-24).
