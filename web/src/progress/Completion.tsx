@@ -57,7 +57,7 @@ export function CompletionExplanation({ figure }: { figure: CompletionFigure }):
     <span className="progress-references intl-list">
       {intl.formatList(
         figure.references.map((r) => (
-          <span key={r.id} className="progress-reference">
+          <span key={`${r.element ? 'e' : 'p'}\0${r.id}`} className="progress-reference">
             <FormattedMessage
               id="progress.completion.reference"
               values={{ id: referenceText(r), percent: r.percent }}

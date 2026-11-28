@@ -27,9 +27,9 @@ export interface CompletionReference {
   /** An element reference's raw element id, or a pattern reference's value as served (escaped, §9). */
   id: string;
   /**
-   * Provenance of `id`: `true` for an element reference (a key: the page escapes it where it shows it),
-   * `false` for a pattern reference (a display value, escaped once by the server; shown as served) —
-   * as `TraceabilityReference.element` (task-085 round 2, R2-F2).
+   * Provenance of `id`: `true` when an element reference contributes (a key: the page escapes it where
+   * it shows it), `false` for pattern references only (a display value, escaped once by the server;
+   * shown as served). One reference per id: it changes no grouping (task-085 R2-F2, R3-F1).
    */
   element: boolean;
   done: number;
