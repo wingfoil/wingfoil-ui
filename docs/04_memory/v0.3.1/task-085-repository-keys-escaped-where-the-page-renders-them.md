@@ -355,3 +355,73 @@ Not re-run in this session: `npm run test:e2e:chromium` (the completion fixtures
 `9c2d8184`), `test:contract` as a separate command (`test/contracts` ran inside the targeted run, all
 passed), coverage and the three-engine run: the CI hand-off to the approver's push (`gates.yml`,
 `wingfoil-cli` rule 12). No push from this session.
+
+### review round 3 (2026-11-28, independent reviewer, Codex) — rejected
+
+Reviewed `trunk:task-085-repository-keys-escaped-where-the-page-renders-them` at task-branch
+`e1d45b92b92237b7d6a69043c5e8214bf77cd157` (`git rev-parse HEAD`), against this authoritative
+task body and the supplied reviewer session resource. Read the reviewer directives, bug-041,
+spec-004 §5, spec-005 §4, spec-012 §3/§9 and Process Notes, the affected UX reference sections,
+and the serializers. `npx --no-install wingfoil workflow next sw-life-cycle-1-plan` in the line's
+clone names this review; `git var GIT_AUTHOR_IDENT` returned the required agent address.
+
+**Checks in the task worktree:** `npm run typecheck`, `npm run lint`, `npm run format:check`
+and `npm run docs:api` exited 0. `npm run test -- test/web/text test/web/today
+test/web/traceability test/web/configuration test/web/progress test/server/project-state
+test/server/http/progress-routes.test.ts test/contracts/progress-api-schema.test.ts` passed
+27 files, 362 tests. `git diff --check` exited 0. These checks do not establish the new collision
+case below. Coverage, the full contract gate and the required e2e gates were not independently
+run; the preceding notes record no CI run for this head. The CI hand-off under `wingfoil-cli`
+rule 12 remains required after implementation findings are fixed.
+
+**Class sweeps:** inspected the complete task diff, raw-key text and accessible-name sites,
+the raw/display boundaries of `dnaBody`, `uiConfigBody`, `progressBody` and `referenceKey`,
+and both reference consumers. The previously reported conditional notices and scope sites are
+covered by passing tests. For the new identity class, `rg` over `web/src/progress`,
+`web/src/today` and `web/src/traceability` found the shared completion explanation still keyed
+by `r.id`, whereas Traceability's rows already use kind plus id (`referenceKey`). Both
+`/progress` and `/traceability` use the changed `completionFigure`; both screens share the
+completion explanation. A search of the line's plans and decision logs for task-085 and
+completion provenance found no approver decision changing completion aggregation.
+
+**Independent probes:** temporary tests imported the real `completionFigure` and reference
+index (`test/server/project-state/key-review-round3-probe.test.ts`), and rendered/rerendered
+the real `CompletionExplanation` (`test/web/text/key-review-round3-probe.test.tsx`). The final
+command `npm run test -- test/server/project-state/key-review-round3-probe.test.ts
+test/web/text/key-review-round3-probe.test.tsx` exited 1: 2 files, 3 tests failed. An initial
+combined jsdom probe failed during a server-contract import; separating the server probe into
+the normal node environment produced the three assertion failures below. The temporary files
+were removed; `git status --short` in the task worktree was empty. No product source or
+submitted test was changed.
+
+- **R3-F1 — major; display provenance changes the business calculation (AC-2).**
+  `server/src/project-state/figures.ts:55–86` changes completion's identity from id to kind plus
+  id. With `task` categorized as `requirement` and pattern `^task-` also `requirement`, a done
+  `task-001-shared` carrying its own id makes a pattern reference; two backlog tasks carrying
+  that id make element references. The accepted one-id aggregation is one reference with
+  1/3 done, 33%. The probe receives two references and 50% (mean of 100% and 0%). This occurs
+  with plain ASCII keys and affects both endpoints and both completion displays. The prior
+  implementation (`git show 9c2d8184:server/src/project-state/figures.ts`) and spec-012's
+  2026-11-12 Process Note, explicitly decided by the approver in task-074 Q3(a), keep one
+  completion key per id even when Traceability splits rows by kind. The new §3 sentence changes
+  that rule without a ruling; the new Process Note and changelog describe an additive field
+  without identifying the changed percentage. Preserve the accepted grouping and numerical
+  results while carrying display provenance separately (for example, a display sibling for an
+  aggregated reference). Add a collision regression with unequal linked-group sizes. A change
+  to the computation needs the approver's decision before implementation and corresponding
+  specification/UX documentation; the display fix alone does not authorize it.
+- **R3-F2 — minor; reference identity is lost at a stateful rendering boundary (AC-2).**
+  `web/src/progress/Completion.tsx:59–65` still uses `key={r.id}` although the new response can
+  contain an element reference and a pattern reference with the same id. The render probe
+  records React's duplicate-key warning for `task-001-shared`. Rerendering those two entries
+  as `task-004-new` and `task-005-new` leaves three `.progress-reference` nodes: the stale
+  `task-001-shared 0 %` plus the two new entries. This shared renderer affects Today and
+  Traceability. Preserve the complete identity of each returned entry in its React key;
+  Traceability's kind-plus-id key is the existing structural example if distinct kinds remain
+  separate entries. Restoring R3-F1's unique-id completion grouping also removes this collision
+  for completion. Cover replacement/removal during a refresh, not just the initial text.
+
+Both findings are in this task's change; their tracked record is the park reason, with no
+separate bug needed. Neither finding is caused by a red assertion that forces the calculation
+change, so no red amendment is requested. This rejection submits neither the task nor its linked
+bug; the runner owns submission after a later accepting review.
