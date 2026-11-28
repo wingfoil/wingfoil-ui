@@ -572,9 +572,9 @@ Chromium suite, coverage, contracts and both smokes. These commands are for a te
 by the approver, after reviewing the check-git result; none was run by this reviewer:
 
 ```sh
-cd /home/robypomper/Workspaces/wingfoil_project/runner-homes/wingfoil-ui
+cd <runner home>
 node scripts/runner/run.mjs --line trunk --check-git
-git fetch /home/robypomper/Workspaces/wingfoil_project/runner-lines/wingfoil-ui-trunk task/task-085-repository-keys-escaped-where-the-page-renders-them
+git fetch <trunk checkout> task/task-085-repository-keys-escaped-where-the-page-renders-them
 git rev-parse FETCH_HEAD
 git push origin FETCH_HEAD:refs/heads/task/task-085-repository-keys-escaped-where-the-page-renders-them
 gh workflow run gates.yml --repo wingfoil/wingfoil-ui --ref task/task-085-repository-keys-escaped-where-the-page-renders-them -f scope=task -f specs='test/e2e/memory-list.spec.ts test/e2e/memory-filters.spec.ts test/e2e/today.spec.ts test/e2e/today-cards.spec.ts test/e2e/today-progress.spec.ts test/e2e/recent-activity.spec.ts test/e2e/notification-bell.spec.ts test/e2e/project-header.spec.ts test/e2e/element-page.spec.ts test/e2e/side-panel.spec.ts test/e2e/element-panel.spec.ts test/e2e/gate-footer.spec.ts test/e2e/submit-footer.spec.ts test/e2e/state-limit.spec.ts test/e2e/held-gates.spec.ts test/e2e/traceability.spec.ts test/e2e/configuration-tabs.spec.ts test/e2e/dna.spec.ts test/e2e/team.spec.ts test/e2e/directives.spec.ts test/e2e/how-to-join.spec.ts test/e2e/accessibility.spec.ts'
