@@ -584,3 +584,68 @@ gh run list --repo wingfoil/wingfoil-ui --workflow gates.yml --branch task/task-
 Before pushing, `FETCH_HEAD` must equal `e68a1174b0dd7e05555731ac39fdaa83e444da43`.
 Record the dispatched run's id, head SHA and conclusion, inspect failures/artifacts, then resume
 review. This step leaves the task and bug states unchanged: no park, submit, approval or push.
+
+### review round 6 (2026-11-28, independent reviewer, Codex) — PASS
+
+Reviewed `trunk:task-085-repository-keys-escaped-where-the-page-renders-them` at task-branch
+`e68a1174b0dd7e05555731ac39fdaa83e444da43` (`git rev-parse HEAD`), using this authoritative
+task body, the supplied reviewer session resource and the approver's N-032 ruling. Read the
+reviewer directives, bug-041, spec-004's repository-text classes and Process Notes, spec-012's
+reference/completion rules and Process Notes, and the affected UX reference sections.
+`npx --no-install wingfoil workflow next sw-life-cycle-1-plan` identifies this review;
+`git var GIT_AUTHOR_IDENT` returned the required agent address in both checkouts.
+
+**Review:** inspected the complete task diff (`git diff design/dev-loop_v0.3.1...HEAD`) and
+swept `web/src` for key text, message parameters, accessible names, title hooks and operational
+values. Compared those sites with the DNA, UI configuration and project-state serializers and
+`referenceKey`. The hostile-key suites cover the rendered text and accessible names, raw
+addresses, served display values containing backslashes, both browser-title routes, and the
+completion provenance boundary. The unequal-group regression preserves one reference and 33%
+completion; the refresh regression covers replacement and removal. AC-3's dated Process Notes,
+the contract addition and the changelog are present in the diff. No new finding; the earlier
+findings are closed by the reviewed changes and passing tests below.
+
+**Local checks in the task worktree:**
+
+| Command | Result |
+|---------|--------|
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm run format:check` | exit 0 |
+| `npm run docs:api` | exit 0, HTML generated |
+| `npm run test -- test/web/text test/web/today test/web/traceability test/web/configuration test/web/progress test/server/project-state test/server/http/progress-routes.test.ts test/contracts/progress-api-schema.test.ts test/web/element/page.test.tsx test/web/element/side-panel.test.tsx test/docs/public-text.test.ts` | 32 files, 491 tests passed |
+| `git diff --check design/dev-loop_v0.3.1...HEAD` | exit 0 |
+
+The component run emitted jsdom's unimplemented scroll/navigation notices and exited 0.
+No product source or submitted test was changed in this review.
+
+**CI evidence independently verified:** `gh run view 46127380128 --repo wingfoil/wingfoil-ui
+--json databaseId,headSha,headBranch,event,status,conclusion,url,jobs` reports a completed,
+successful `workflow_dispatch` on the exact reviewed head and task branch. N-032 records
+`scope=task`; `gh run view 46127380128 --repo wingfoil/wingfoil-ui --log` confirms the same 22
+explicit spec paths recorded in round 5 for both own-spec jobs. The task jobs all succeeded:
+
+| Gate | Result from the run's logs |
+|------|----------------------------|
+| checks | typecheck, lint and format check succeeded |
+| coverage | 290 files passed, 1 skipped; 5278 tests passed, 3 skipped |
+| contract | 24 files passed, 1 skipped; 501 tests passed, 3 skipped |
+| e2e-chromium, shards 1 and 2 | 260 + 259 = 519 tests passed |
+| own-specs, Firefox and WebKit | 314 tests passed on each engine |
+| smoke / publish-smoke | 4 / 11 tests passed |
+
+`gh run view 46127380128 --repo wingfoil/wingfoil-ui --log-failed` exited 0 with no output.
+`gh run download 46127380128 --repo wingfoil/wingfoil-ui --name coverage-totals --dir
+<scratch>` supplied `coverage-totals.json`: its commit matches the reviewed head, statements
+96.78%, branches 92.1%, functions 97.47%, lines 98.45%. The successful browser suites include
+the accessibility spec's light/dark axe scans (`test/e2e/accessibility.spec.ts`,
+`test/e2e/support/axe.ts`). Playwright failure-report uploads were skipped on success, as
+`gates.yml` specifies. Run: https://github.com/wingfoil/wingfoil-ui/actions/runs/46127380128.
+
+**Step actions:** `memory search bug-041-repository-keys-shown-on-the-page-are-not-escaped`
+listed that bug once at `planned`; `git ls-files -v` showed normal `H` entries for it and this
+task. Two `npx --no-install wingfoil memory submit
+bug-041-repository-keys-shown-on-the-page-are-not-escaped` calls synchronized the linked bug
+`planned → in-progress → in-review` (W-55; commits `87f69d92`, `601ce707`). This reviewer
+accepts with `completed`; the runner owns this task's `memory submit` after the answer.
+No task submit, workflow finalization, approval or push was run by this reviewer.
