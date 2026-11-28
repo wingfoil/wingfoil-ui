@@ -137,13 +137,21 @@ function sanitise(text: string, roots: LocalRoots): string {
 const UNSAFE = /(?![\n\t])[\p{Cc}\p{Cf}\p{Cs}\p{Zl}\p{Zp}]/u;
 
 /**
+ * What `neutralise` writes as an escape: `UNSAFE` except a zero width (non-)joiner (U+200C, U+200D)
+ * between two letters or marks, where it is part of a name's spelling (task-087). It is no bidi
+ * control: it reorders and hides nothing. `UNSAFE` itself stays the strict boundary class of the
+ * redaction patterns above.
+ */
+const ESCAPED = new RegExp(`(?!(?<=[\\p{L}\\p{M}])[\\u200c\\u200d](?=[\\p{L}\\p{M}]))${UNSAFE.source}`, 'u');
+
+/**
  * `text` with CR LF folded to a newline, a backslash doubled and every unsafe character (Cc, Cf,
  * Cs, Zl, Zp but newline and tab) written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`).
  */
 export function neutralise(text: string): string {
   return text
     .replace(/\r\n/g, '\n')
-    .replace(new RegExp(`\\\\|${UNSAFE.source}`, 'gu'), (ch) => (ch === '\\' ? '\\\\' : visibleEscape(ch)));
+    .replace(new RegExp(`\\\\|${ESCAPED.source}`, 'gu'), (ch) => (ch === '\\' ? '\\\\' : visibleEscape(ch)));
 }
 
 /** The visible escape of one unsafe character: `\x1b`, `\u202e`, `\u{e0001}`. */
