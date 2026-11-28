@@ -283,6 +283,29 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
     });
   });
 
+  it('task-085 R3-F1: an element and a pattern reference of one id stay one reference (task-074 Q3 (a)), unequal groups', async () => {
+    const ui = uiOf(
+      'version: 1\ntaxonomy: { categories: { task: requirement }, patterns: [{ match: "^task-", category: requirement }] }\n',
+    );
+    let rows: Row[] = [
+      { id: 'task-001-shared', type: 'task', status: 'done', values: ['task-001-shared'] },
+      { id: 'task-002-a', type: 'task', status: 'backlog', values: ['task-001-shared'] },
+      { id: 'task-003-b', type: 'task', status: 'backlog', values: ['task-001-shared'] },
+    ];
+    let c = completionFigure(await inputs(rows, ui));
+    expect(c).toMatchObject({
+      state: 'shown',
+      percent: 33,
+      references: [{ id: 'task-001-shared', element: true, done: 1, total: 3, percent: 33 }],
+      referencesCount: 1,
+    });
+    // A second, smaller group: the mean stays over distinct ids, not over provenance.
+    rows = [...rows, { id: 'task-004-c', type: 'task', status: 'done', values: ['task-009-other'] }];
+    c = completionFigure(await inputs(rows, ui));
+    expect(c).toMatchObject({ state: 'shown', referencesCount: 2 });
+    if (c.state === 'shown') expect(c.references.map((r) => r.id)).toEqual(['task-001-shared', 'task-009-other']);
+  });
+
   it('at most 10 references in natural order, referencesCount all of them', async () => {
     let rows: Row[] = withRow(CUSTOM, 'minor-v0.1', { status: 'draft' });
     for (let n = 1; n <= 12; n += 1) rows = withRow(rows, `task-1${n}`, { values: [`US-X-${n}`] });

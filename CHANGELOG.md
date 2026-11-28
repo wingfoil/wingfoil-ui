@@ -26,7 +26,8 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
   `keyText`; the raw value still addresses and filters. Display fields stay escaped once by the
   server, and the page shows them as served. One additive contract change: each reference of
   `/progress` and `/traceability` `figures.completion.references[]` carries `element` (`true` for an
-  element reference, a raw key; `false` for a pattern reference, an escaped display value), so the
+  element reference contributes, a raw key; `false` for pattern references only, an escaped display
+  value; completion's one-reference-per-id aggregation and percentages are unchanged), so the
   page escapes the one and never the other twice (spec-004 and spec-012 *Process Notes*, 2026-11-28).
 
 ### Changed

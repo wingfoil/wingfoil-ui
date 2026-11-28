@@ -52,37 +52,39 @@ export function completionFigure(inputs: Pick<FigureInputs, 'index' | 'ui' | 'cu
   const categorised =
     [...ui.categories.value.values()].some(counted) || ui.patterns.value.some((p) => counted(p.category));
   if (!categorised) return { state: 'unavailable', reason: { code: 'no-reference-categories' } };
-  // An element reference (a raw key) and a pattern reference (an escaped display value) of the same text
-  // are two references: `element` is the provenance the page needs to escape the one and not the other.
-  const linked = new Map<string, { id: string; element: boolean; elements: IndexedElement[] }>();
+  // One completion reference per id (spec-012 §3, task-074 Q3 (a)): an element reference and a pattern
+  // reference of the same text are one, as before. `element` is only the provenance of `id` for the
+  // page — `true` when an element reference contributes (a raw key, escaped where shown); it changes
+  // no grouping and no number.
+  const linked = new Map<string, { element: boolean; elements: IndexedElement[] }>();
   for (const element of inScopeElements(inputs)) {
     if (element.unreadable !== undefined) continue;
-    const seen = new Map<string, { id: string; element: boolean }>();
+    const seen = new Map<string, boolean>();
     for (const r of element.references) {
       if (!counted(r.category)) continue;
-      const id = referenceKey(r);
-      const isElement = r.kind === 'element';
-      seen.set(`${isElement ? 'e' : 'p'}\0${id}`, { id, element: isElement });
+      const key = referenceKey(r);
+      seen.set(key, (seen.get(key) ?? false) || r.kind === 'element');
     }
-    for (const [key, ref] of seen) {
+    for (const [key, isElement] of seen) {
       const entry = linked.get(key);
-      if (entry) entry.elements.push(element);
-      else linked.set(key, { ...ref, elements: [element] });
+      if (entry) {
+        entry.elements.push(element);
+        entry.element ||= isElement;
+      } else linked.set(key, { element: isElement, elements: [element] });
     }
   }
   if (linked.size === 0) return { state: 'unavailable', reason: { code: 'no-linked-elements' } };
-  const references = [...linked.values()]
-    .sort((a, b) => naturalCompare(a.id, b.id) || Number(b.element) - Number(a.element))
-    .map(({ id, element, elements }) => {
-      const finished = elements.filter((e) => e.finished).length;
-      return {
-        id,
-        element,
-        [DONE_FIELD]: finished,
-        total: elements.length,
-        percent: percentOf(finished, elements.length),
-      };
-    });
+  const references = [...linked.keys()].sort(naturalCompare).map((id) => {
+    const { element, elements } = linked.get(id)!;
+    const finished = elements.filter((e) => e.finished).length;
+    return {
+      id,
+      element,
+      [DONE_FIELD]: finished,
+      total: elements.length,
+      percent: percentOf(finished, elements.length),
+    };
+  });
   const mean = meanOf(references.map((r) => ({ finished: r[DONE_FIELD], total: r.total })));
   return {
     state: 'shown',
