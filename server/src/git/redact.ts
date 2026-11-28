@@ -31,7 +31,7 @@
  * |-------|---------|
  * | CR LF | a newline |
  * | a backslash | `\\` (so that every `\x…`/`\u…` in the output is an escape made here) |
- * | a character of the Unicode categories Cc, Cf, Cs, Zl, Zp other than newline and tab (ESC, CR, NUL, DEL, the C1 controls, the bidi controls and marks, U+FEFF, U+200B, U+00AD, a lone surrogate, U+2028, U+2029, …) | a visible escape: `\xHH` up to U+00FF, `\uHHHH` up to U+FFFF, `\u{HHHHH}` beyond |
+ * | a character of the Unicode categories Cc, Cf, Cs, Zl, Zp other than newline and tab (ESC, CR, NUL, DEL, the C1 controls, the bidi controls and marks, U+FEFF, U+200B, U+00AD, a lone surrogate, U+2028, U+2029, …) — except a zero width (non-)joiner (U+200C, U+200D) between two letters or marks (task-087; spec-004 §5) | a visible escape: `\xHH` up to U+00FF, `\uHHHH` up to U+FFFF, `\u{HHHHH}` beyond |
  *
  * Last, the text is capped at {@link MAX_MESSAGE} characters by keeping its head and its tail
  * around a `…` line — git's own concluding lines (`! [rejected]`, `error:`, `fatal:`) come after a
@@ -146,7 +146,9 @@ const ESCAPED = new RegExp(`(?!(?<=[\\p{L}\\p{M}])[\\u200c\\u200d](?=[\\p{L}\\p{
 
 /**
  * `text` with CR LF folded to a newline, a backslash doubled and every unsafe character (Cc, Cf,
- * Cs, Zl, Zp but newline and tab) written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`).
+ * Cs, Zl, Zp but newline and tab) written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`),
+ * except a zero width (non-)joiner (U+200C, U+200D) between two letters or marks, kept as written
+ * (task-087). The redaction boundaries and {@link neutraliseKeepingBackslashes} stay strict.
  */
 export function neutralise(text: string): string {
   return text
@@ -165,7 +167,7 @@ function visibleEscape(ch: string): string {
 
 /**
  * `text` with CR LF folded to a newline and every unsafe character written as a visible escape, as
- * {@link neutralise}, but a backslash left as written (task-068 Q4-b, spec-012 §9 amended
+ * {@link neutralise} — with no joiner exception: a pattern is not a name — but a backslash left as written (task-068 Q4-b, spec-012 §9 amended
  * 2026-11-06): for a `ui.yaml` pattern, a regular-expression source, where `\u202e` and the raw
  * character are the same expression and a doubled backslash would change what the user reads.
  */
