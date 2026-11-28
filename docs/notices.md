@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:decision-trunk-task-085-repository-keys-escaped-where-the-page-renders-them/review/5 -->
 ### N-032 · 2026-11-28 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
 
-- **Status:** open
+- **Status:** closed 2026-11-28T09:05:57Z — approved by the approver: Push of e68a1174 authorized and done; gates.yml run 46127380128 (workflow_dispatch, scope=task, the 22 recorded specs) on head e68a1174b0dd7e05555731ac39fdaa83e444da43 concluded success: checks, coverage, contract, e2e-chromium 1-2, own-specs firefox and webkit, smoke, publish-smoke. The push run 46127375655 was cancelled by the concurrency, as expected. Resume the review with this evidence.
 - **Kind:** decision
 - **Opened:** 2026-11-28T07:59:00Z
 - **Line:** trunk
 - **Element:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them
 - **Reason:** decision (run task-085-repository-keys-escaped-where-the-page-renders-them/review/5): Authorize pushing e68a1174 for trunk:task-085-repository-keys-escaped-where-the-page-renders-them and running the recorded gates.yml dispatch?
 - **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-032 --reason "<ruling>" [--reject]`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:halt-trunk-rejected-task-085-repository-keys-escaped-where-the-page-renders-them -->
 ### N-031 · 2026-11-28 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
