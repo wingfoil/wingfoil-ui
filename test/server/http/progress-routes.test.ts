@@ -305,8 +305,8 @@ describe('GET /api/p/:pid/progress — the figures on the fixtures (TT-STATE-08)
       value: 0.25,
       percent: 25,
       references: [
-        { id: 'US-M-01', done: 1, total: 2, percent: 50 },
-        { id: 'US-S-01', done: 0, total: 1, percent: 0 },
+        { id: 'US-M-01', element: false, done: 1, total: 2, percent: 50 },
+        { id: 'US-S-01', element: false, done: 0, total: 1, percent: 0 },
       ],
       referencesCount: 2,
       ids: ['task-001-cli-adapter', 'task-002-memory-list', 'task-003-element-panel'],
@@ -345,7 +345,7 @@ describe('GET /api/p/:pid/progress — the figures on the fixtures (TT-STATE-08)
     expect(body.figures.completion).toMatchObject({
       state: 'shown',
       percent: 40,
-      references: [{ id: 'US-01', done: 2, total: 5, percent: 40 }],
+      references: [{ id: 'US-01', element: false, done: 2, total: 5, percent: 40 }],
       referencesCount: 1,
     });
   }, 300_000);

@@ -548,8 +548,8 @@ const PROGRESS_SCREEN_BODY = {
       value: 0.25,
       percent: 25,
       references: [
-        { id: 'US-M-01', done: 1, total: 2, percent: 50 },
-        { id: 'US-S-01', done: 0, total: 1, percent: 0 },
+        { id: 'US-M-01', element: false, done: 1, total: 2, percent: 50 },
+        { id: 'US-S-01', element: false, done: 0, total: 1, percent: 0 },
       ],
       referencesCount: 2,
       ids: ['task-001-cli-adapter'],

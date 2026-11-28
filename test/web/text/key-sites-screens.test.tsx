@@ -14,11 +14,14 @@ import type {
   Today,
   Traceability,
 } from '@wingfoil-ui/contracts';
-import { cleanup, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { stopEventStream } from '../../../web/src/api/events.js';
+import { AppIntlProvider } from '../../../web/src/i18n/index.js';
+import { CompletionExplanation } from '../../../web/src/progress/Completion.js';
 import { resetSession } from '../../../web/src/session/session.js';
+import { neutralise } from '../../../server/src/git/redact.js';
 import { dnaBody } from '../../../server/src/http/serialise.js';
 import { UI_DECLARED, uiApi } from '../configuration/data.js';
 import { BASE, config, DNA, projectApi } from '../dna/data.js';
@@ -53,6 +56,18 @@ const STATE = 'st\x1bate\u200b';
 const ROLE = 'r\u202e-dev\x1b\u200b';
 const PID = 'p_a';
 
+// Display values reach the page as the server serialised them (`neutralise`: a backslash doubled, each
+// unsafe character a visible escape); the page shows them as served. A raw element key (ID, TYPE, …)
+// is escaped once by the page. The served literals are written out and checked against `neutralise`.
+const DISPLAY_RAW = 'kind‮\x1b​\\suffix';
+const DISPLAY = 'kind\\u202e\\x1b\\u200b\\\\suffix';
+const PATTERN_RAW = 'US-‮01\x1b\\';
+const PATTERN = 'US-\\u202e01\\x1b\\\\';
+it('the served literals are the server escape of the raw display values', () => {
+  expect(neutralise(DISPLAY_RAW)).toBe(DISPLAY);
+  expect(neutralise(PATTERN_RAW)).toBe(PATTERN);
+});
+
 beforeEach(() => {
   resetSession();
   vi.stubGlobal(
@@ -84,7 +99,7 @@ const PROGRESS: Progress = {
   ui: { source: 'none' },
   mode: 'sequence',
   scope: {
-    type: TYPE,
+    type: DISPLAY,
     current: { id: ID, shortId: ID, title: 'Current', type: TYPE, status: STATE, tone: 'active' },
     basis: null,
   },
@@ -96,8 +111,15 @@ const PROGRESS: Progress = {
     openDefects: { state: 'unavailable', reason: { code: 'no-defects-type' } },
     pendingGates: { state: 'shown', count: 0, ids: [] },
   },
-  unreadable: [],
-  capped: [],
+  unreadable: [ID, 'k-009-plain'],
+  capped: [ID],
+} as unknown as Progress;
+
+/** No current element: the scope line names the served type. */
+const PROGRESS_NO_CURRENT = {
+  ...PROGRESS,
+  scope: { type: DISPLAY, current: null, basis: null },
+  figures: { ...PROGRESS.figures, completion: { state: 'unavailable', reason: { code: 'no-linked-elements' } } },
 } as unknown as Progress;
 
 const row = (id: string, type: string, status: string, actor: unknown, action?: 'approve') => ({
@@ -134,7 +156,7 @@ const EVENTS: MemoryEventsPage = {
   more: false,
 };
 
-function todayApi(): FakeApi {
+function todayApi(progress: Progress = PROGRESS): FakeApi {
   return base({
     [`/api/p/${PID}`]: {
       status: 200,
@@ -147,9 +169,31 @@ function todayApi(): FakeApi {
     [`/api/p/${PID}/today?view=approver`]: { status: 200, body: TODAY },
     [`/api/p/${PID}/events/memory?limit=5`]: { status: 200, body: EVENTS },
     [`/api/p/${PID}/events/memory?limit=10`]: { status: 200, body: EVENTS },
-    [`/api/p/${PID}/progress`]: { status: 200, body: PROGRESS },
+    [`/api/p/${PID}/progress`]: { status: 200, body: progress },
   });
 }
+
+it('Today progress card: unreadable and capped notices show each raw element id escaped once', async () => {
+  stubApi(todayApi());
+  const { container } = renderApp(`/p/${PID}/today`);
+  await screen.findByText('Row title k-001');
+  const notes = [...container.querySelectorAll('.today-progress-note')].map((n) => n.textContent ?? '');
+  expect(notes).toHaveLength(2);
+  expect(notes[0]).toContain(`${SHOWN(ID)}, k-009-plain`);
+  expect(notes[1]).toContain(`— ${SHOWN(ID)}`);
+  expect(notes.every((n) => !hasRaw(n))).toBe(true);
+  expect(rawHits(container.querySelector('main') ?? container)).toEqual([]);
+});
+
+it('Today progress card: the served scope type is shown as served, never escaped a second time', async () => {
+  stubApi(todayApi(PROGRESS_NO_CURRENT));
+  const { container } = renderApp(`/p/${PID}/today`);
+  await screen.findByText('Row title k-001');
+  const card = container.querySelector('.today-progress') ?? container;
+  expect(card.textContent).toContain(`No current ${DISPLAY}`);
+  expect(card.textContent).not.toContain('\\\\\\\\\\\\');
+  expect(rawHits(card)).toEqual([]);
+});
 
 it('Today: rows, role summary, waiting role, progress card and recent activity show escaped keys; the raw id addresses', async () => {
   stubApi(todayApi());
@@ -256,19 +300,29 @@ it('Element page: the candidates of an ambiguous short id show the escaped keys'
   expect(main.textContent).toContain(SHOWN(TYPE));
 });
 
+/** A shown completion: an element reference (raw id) and a pattern reference (id served escaped). */
+const COMPLETION = {
+  state: 'shown',
+  value: 0.5,
+  percent: 50,
+  references: [
+    { id: ID, element: true, done: 1, total: 2, percent: 50 },
+    { id: PATTERN, element: false, done: 0, total: 1, percent: 0 },
+  ],
+  referencesCount: 2,
+  ids: [ID],
+} as const;
+
 const TRACE = {
   ui: { source: 'file' },
   patterns: true,
-  scope: { type: null, current: null, applied: 'project' },
+  scope: {
+    type: DISPLAY,
+    current: { id: ID, shortId: ID, title: 'Current', type: TYPE, status: STATE, tone: 'active' },
+    applied: 'current',
+  },
   figures: {
-    completion: {
-      state: 'shown',
-      value: 0.5,
-      percent: 50,
-      references: [{ id: ID, done: 1, total: 2, percent: 50 }],
-      referencesCount: 1,
-      ids: [ID],
-    },
+    completion: COMPLETION,
     phaseCompletion: READ_ONLY,
     coverage: { state: 'shown', carrying: 1, total: 2, percent: 50 },
     referencesWithoutElements: 0,
@@ -276,7 +330,7 @@ const TRACE = {
   references: [
     {
       id: ID,
-      category: 'cat\u202e\x1b',
+      category: 'requirement',
       element: true,
       linked: [ID],
       done: 1,
@@ -285,8 +339,8 @@ const TRACE = {
       status: 'in-progress',
     },
     {
-      id: 'US-\u202e01',
-      category: 'cat\u200b',
+      id: PATTERN,
+      category: 'feature',
       element: false,
       linked: [ID],
       done: 0,
@@ -319,8 +373,8 @@ const TRACE = {
       inScope: true,
     },
   ],
-  unreadable: [],
-  capped: [],
+  unreadable: [ID],
+  capped: [ID, 'k-009-plain'],
 } as unknown as Traceability;
 
 it('Traceability: table, chips, tooltip ids and the missing section show escaped keys', async () => {
@@ -340,32 +394,106 @@ it('Traceability: table, chips, tooltip ids and the missing section show escaped
   expect(main.textContent).toContain(SHOWN(TYPE));
 });
 
-it('Configuration: Progress and Taxonomy show escaped types, states, ids and categories', async () => {
-  const ui = {
-    ...UI_DECLARED,
-    taxonomy: {
-      ...UI_DECLARED.taxonomy,
-      categories: [{ type: TYPE, category: 'cat\u202e\x1b', origin: 'declared' as const }],
-      requires: { value: [{ type: TYPE, categories: ['re\x1bq'] }], origin: 'declared' as const },
+function traceApi(): FakeApi {
+  const T = `/api/p/${PID}/traceability`;
+  return base({
+    [`/api/p/${PID}`]: { status: 200, body: header() },
+    [`${T}?scope=current`]: { status: 200, body: TRACE },
+    [`${T}?scope=project`]: { status: 200, body: TRACE },
+  });
+}
+
+it('Traceability: the current-scope toggle shows the raw element id escaped once and the served type as served', async () => {
+  stubApi(traceApi());
+  const { container } = renderApp(`/p/${PID}/traceability`);
+  await screen.findAllByText('Traced element');
+  const toggle = container.querySelector('.trace-scope');
+  expect(toggle?.textContent).toContain(`${SHOWN(ID)} (current ${DISPLAY})`);
+  expect(rawHits(toggle!)).toEqual([]);
+});
+
+it('Traceability: the unreadable and capped notices show each raw element id escaped once', async () => {
+  stubApi(traceApi());
+  const { container } = renderApp(`/p/${PID}/traceability`);
+  await screen.findAllByText('Traced element');
+  const notes = [...container.querySelectorAll('.trace-notice')].map((n) => n.textContent ?? '');
+  expect(notes).toHaveLength(2);
+  expect(notes[0]).toMatch(new RegExp(`counted \u2014 ${SHOWN(ID).replaceAll('\\', '\\\\')}$`));
+  expect(notes[1]).toContain(`${SHOWN(ID)}, k-009-plain`);
+  expect(notes.some(hasRaw)).toBe(false);
+});
+
+it('Traceability: a pattern reference is shown as served (row, toggle name, detail), an element reference escaped once', async () => {
+  stubApi(traceApi());
+  const user = userEvent.setup();
+  const { container } = renderApp(`/p/${PID}/traceability`);
+  await screen.findAllByText('Traced element');
+  const patternRow = [...container.querySelectorAll('tr')].find((r) => r.querySelector('.trace-ref-id:not(a)'));
+  expect(patternRow?.querySelector('.trace-ref-id')?.textContent).toBe(PATTERN);
+  const toggle = within(patternRow as HTMLElement).getByRole('button', { name: `Details of ${PATTERN}` });
+  expect(container.querySelector('a.trace-ref-id')?.textContent).toBe(SHOWN(ID));
+  await user.click(toggle);
+  expect(container.querySelector('.trace-detail-heading')?.textContent).toBe(PATTERN);
+  expect(rawHits(container)).toEqual([]);
+  await user.click(
+    within(container.querySelector('tbody') as HTMLElement).getByRole('button', { name: `Details of ${SHOWN(ID)}` }),
+  );
+  expect([...container.querySelectorAll('.trace-detail-heading')].map((h) => h.textContent)).toContain(SHOWN(ID));
+});
+
+it('Completion explanation: element references escaped once, pattern references as served', () => {
+  render(
+    <AppIntlProvider>
+      <CompletionExplanation figure={COMPLETION as never} />
+    </AppIntlProvider>,
+  );
+  const items = [...document.querySelectorAll('.progress-reference')].map((n) => n.textContent);
+  expect(items).toEqual([`${SHOWN(ID)} 50 %`, `${PATTERN} 0 %`]);
+});
+
+/** A `/config` answer as the server serialised it (`uiConfigBody`): display strings already escaped. */
+const SERVED_UI = {
+  ...UI_DECLARED,
+  taxonomy: {
+    categories: [{ type: DISPLAY, category: 'work', origin: 'declared' as const }],
+    patterns: { value: [{ match: '^(P\\d|Journey)', category: 'feature' as const }], origin: 'declared' as const },
+    requires: { value: [{ type: DISPLAY, categories: ['requirement' as const] }], origin: 'declared' as const },
+  },
+  progress: {
+    ...UI_DECLARED.progress,
+    scope: {
+      value: { type: DISPLAY },
+      origin: 'declared' as const,
+      current: { id: ID, shortId: ID, title: 'Cur', type: TYPE, status: STATE, tone: 'active' as const },
     },
-    progress: {
-      ...UI_DECLARED.progress,
-      scope: {
-        value: { type: TYPE },
-        origin: 'declared' as const,
-        current: { id: ID, shortId: ID, title: 'Cur', type: TYPE, status: STATE, tone: 'active' as const },
-      },
-    },
-    holds: { value: [{ type: TYPE, state: STATE, approve: 'never' as const }], origin: 'declared' as const },
-  };
-  stubApi(uiApi(ui as never));
+    phases: { value: [DISPLAY], origin: 'declared' as const },
+    iterates: { value: DISPLAY, origin: 'declared' as const },
+    defects: { value: null, origin: 'declared' as const },
+  },
+  holds: {
+    value: [{ type: DISPLAY, state: DISPLAY, approve: 'never' as const }],
+    origin: 'declared' as const,
+  },
+  artifacts: { value: [{ path: DISPLAY, phase: DISPLAY }], origin: 'declared' as const },
+};
+
+it('Configuration: served display values are shown as served, the current element\u2019s raw keys escaped once', async () => {
+  stubApi(uiApi(SERVED_UI as never));
   for (const tab of ['progress', 'taxonomy']) {
     const { container } = renderApp(`/p/p_fx/configuration/${tab}`);
     await screen.findByRole('heading', { level: 1 });
     await screen.findByText(/./, { selector: 'code' });
     const main = container.querySelector('main') ?? container;
     expect(rawHits(main), tab).toEqual([]);
-    expect(main.textContent, tab).toContain(SHOWN(TYPE));
+    const text = main.textContent ?? '';
+    expect(text, tab).toContain(DISPLAY);
+    // The served escape is not escaped again: it would double each of its backslashes.
+    expect(text, tab).not.toContain('kind\\\\u202e');
+    expect(text, tab).not.toContain('\\\\\\\\suffix');
+    if (tab === 'progress') {
+      expect(main.querySelector('.element-id')?.textContent).toBe(SHOWN(ID));
+      expect(text).toContain(SHOWN(STATE));
+    }
     cleanup();
   }
 });

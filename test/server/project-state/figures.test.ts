@@ -181,8 +181,8 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
       value: 0.25,
       percent: 25,
       references: [
-        { id: 'US-M-01', done: 1, total: 2, percent: 50 },
-        { id: 'US-S-01', done: 0, total: 1, percent: 0 },
+        { id: 'US-M-01', element: false, done: 1, total: 2, percent: 50 },
+        { id: 'US-S-01', element: false, done: 0, total: 1, percent: 0 },
       ],
       referencesCount: 2,
       ids: ['task-001-cli-adapter', 'task-002-memory-list', 'task-003-element-panel'],
@@ -278,7 +278,7 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
     const i = await inputs(rows, ui);
     expect(completionFigure(i)).toMatchObject({
       state: 'shown',
-      references: [{ id: 'dl-002-use-fastify', done: 0, total: 1, percent: 0 }],
+      references: [{ id: 'dl-002-use-fastify', element: true, done: 0, total: 1, percent: 0 }],
       referencesCount: 1,
     });
   });
@@ -299,7 +299,7 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
     rows = withRow(rows, 'bug-001-toast-overlap', { unreadable: true });
     const i = await inputs(rows);
     expect(completionFigure(i)).toMatchObject({
-      references: [{ id: 'US-M-01', done: 1, total: 1 }, { id: 'US-S-01' }],
+      references: [{ id: 'US-M-01', element: false, done: 1, total: 1 }, { id: 'US-S-01', element: false }],
     });
     expect(iteratedFigure(i)).toMatchObject({ total: 3 });
     expect(openDefectsFigure(i)).toMatchObject({ count: 1 });
