@@ -180,7 +180,9 @@ cancelled process group or the server) and `--no-optional-locks`.
   remote's path wherever it is → `<remote>`, the home folder → `~`), URL userinfo removed (also a
   `user:password@host` without a scheme, also after a control character), then CR LF folded to a
   newline, a backslash written `\\` and every character of the Unicode categories Cc, Cf, Cs, Zl
-  and Zp other than newline and tab written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`),
+  and Zp other than newline and tab written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`) \u2014
+  except, from v0.3.1, a zero width (non-)joiner U+200C / U+200D between two letters or marks, kept
+  as written (spec-004 \u00a75, task-087); the redaction boundaries above keep the strict class \u2014,
   then at most 4 000 characters kept as the head and the tail around a `…` line, a cut never
   splitting an escape, a redaction token or a surrogate pair (bug-017) — also in `lastError`. This
   one sanitiser (`server/src/git/redact.ts`) makes every verbatim tool message the API sends: the
@@ -195,7 +197,8 @@ cancelled process group or the server) and `--no-optional-locks`.
   reads the raw names. The web shows such text
   left to right without bidi reordering, wrapped, clipped to its box, and the names a catalogue text
   quotes (files, upstream, branch) the same way: right-to-left words (Hebrew, Arabic) read reversed
-  there, and the zero-width joiners U+200C / U+200D show as escapes.
+  there; the zero-width joiners U+200C / U+200D showed as escapes through v0.3.0, and from v0.3.1
+  show as written between two letters or marks (and stay escapes anywhere else).
   Declared residual (task-040, D40-9): other absolute paths that git or a hook prints (a folder
   outside the project, the repository, a local remote and the home folder) are shown as printed —
   git's text stays verbatim (REQ-INT-06); the console is the user's own, on loopback. A literal
@@ -568,3 +571,7 @@ Rows 7–9 do not apply (no element).
 - 2026-11-03 — amended in `release-planning` v0.3 (step 5, RP3-14; C1, aligned with spec-005 §5):
   §6 the auto-push also follows a preset write, as after a governed write. Decided by the approver
   with the C1 scope (RP3-7).
+- 2026-11-28 — v0.3.1, task-087 (bug-045): §4's character escape follows spec-004 §5's exception
+  (Process Note of 2026-11-28): a zero width (non-)joiner U+200C / U+200D between two letters or
+  marks is no longer written as an escape in a tool message or a quoted git name; every other
+  Cc, Cf, Cs, Zl, Zp character stays an escape, and the redaction boundaries keep the strict class.

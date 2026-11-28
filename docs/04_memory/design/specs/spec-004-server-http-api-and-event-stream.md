@@ -258,7 +258,9 @@ Repository texts (v0.3, release-planning v0.3 step 5c K1, spec-012 §9; implemen
 task, the same class; widened to the whole class by bug-035's task): every display string a read
 body takes from the repository passes through
 the sanitiser's character escape (`neutralise`, without the folder redaction) where the route
-serialises it. A *display string* is any string a body takes from the project — a committed or
+serialises it. The escape keeps one character it would otherwise write: a zero width non-joiner or
+joiner (U+200C, U+200D) whose two neighbours are letters or marks (`\p{L}`, `\p{M}`), where it is
+part of a name's spelling (v0.3.1, task-087, bug-045; Process Note of 2026-11-28). A *display string* is any string a body takes from the project — a committed or
 working-tree file (the DNA, a directive, a workflow, `memory.yaml`, `ui.yaml`, an element), a file
 or folder name, the project's `origin`, the user's git email, or the console's stored copy of one —
 that the page only shows; a *key* is a value the page sends back, builds an address from, or
@@ -603,3 +605,17 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   `progress.scope.type`, pattern reference ids — are shown as received, never escaped a second time;
   raw element keys — ids, types, states, the current element's `ElementRef`, the `unreadable` and
   `capped` id lists — are escaped exactly once.
+- 2026-11-28 — v0.3.1, task-087 (bug-045): the character escape of §5 (`neutralise`) keeps one
+  character it wrote as an escape before: a zero width non-joiner or joiner (U+200C, U+200D) whose
+  preceding and following characters are both letters or marks (`\p{L}`, `\p{M}`), where it is part
+  of a name's spelling (Persian, several Indic scripts). It is no bidirectional control: it reorders,
+  hides and re-directs nothing. At the start or end of a text, beside a digit, a space or
+  punctuation, or repeated, it stays an escape (`‌`, `‍`), and every other format
+  character — the bidi controls and marks, U+200B, U+FEFF, U+00AD — stays an escape. The exception
+  belongs to the display escape only: the redaction boundaries of `server/src/git/redact.ts` (the
+  folder end, the scheme-less `user:password@` start) and the regular-expression-source escape
+  (`neutraliseKeepingBackslashes`, `ui.yaml` patterns) keep the strict class, and *How to join*'s
+  `shellWord` single-quotes a name that holds a joiner. No response body, schema or contract changes.
+  Proved by `test/server/git/redact.test.ts`, `test/server/git/redact-joiner-review.test.ts` and
+  `test/web/project/join.test.ts`. v0.3.0 behaviour (the joiner shown as an escape) is recorded as a
+  known limitation in the user guide and CHANGELOG *[0.3.0]*.

@@ -30,6 +30,14 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
   value; completion's one-reference-per-id aggregation and percentages are unchanged), so the
   page escapes the one and never the other twice (spec-004 and spec-012 *Process Notes*, 2026-11-28).
 
+- **A zero width joiner between two letters of a name is shown as written** (task-087, bug-045): the
+  display escape (`neutralise`) keeps U+200C and U+200D when both neighbours are letters or marks
+  (Persian, several Indic scripts) instead of writing `‌`; at the start or end, beside a
+  digit, a space or punctuation, or repeated they stay escapes, as does every other format
+  character (the bidirectional controls among them). The redaction boundaries and the
+  regular-expression-source escape keep the strict class; no response body or contract changes
+  (spec-004 §5 and spec-010 §4, Process Notes of 2026-11-28).
+
 ### Changed
 
 - **Development dependencies refreshed** (task-092): `npm update` within ranges and `verdaccio`
