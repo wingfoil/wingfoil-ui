@@ -178,7 +178,6 @@ describe('bug-017 — review round 2', () => {
     [0x061c, '\\u061c'],
     [0xfeff, '\\ufeff'],
     [0x200b, '\\u200b'],
-    [0x200d, '\\u200d'],
     [0x2028, '\\u2028'],
     [0x2029, '\\u2029'],
     [0x00ad, '\\xad'],
@@ -186,6 +185,12 @@ describe('bug-017 — review round 2', () => {
     [0xe0001, '\\u{e0001}'],
   ])('code point %d (Cf, Zl, Zp) becomes a visible escape', (code, escaped) => {
     expect(redactLocalPaths(`a${c(code)}b`, { home: null })).toBe(`a${escaped}b`);
+  });
+
+  // task-087: U+200D between two letters is kept (see 'task-087 — joiners between letters'); beside
+  // a non-letter it is still escaped.
+  it('U+200D beside digits (not between two letters) becomes a visible escape', () => {
+    expect(redactLocalPaths(`1${c(0x200d)}2`, { home: null })).toBe('1\\u200d2');
   });
 
   it('a lone surrogate (Cs) becomes a visible escape; a pair (an emoji) and a combining mark stay', () => {
