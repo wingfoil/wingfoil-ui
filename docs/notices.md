@@ -11,20 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+## Closed
+
+<!-- runner:closed -->
+
 <!-- key:halt-trunk-rejected-task-085-repository-keys-escaped-where-the-page-renders-them -->
 ### N-030 · 2026-11-27 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
 
-- **Status:** open
+- **Status:** closed 2026-11-28T05:44:43Z — resumed by the approver
 - **Kind:** halt
 - **Opened:** 2026-11-27T22:16:31Z
 - **Line:** trunk
 - **Element:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them
 - **Reason:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them rejected 2 times in review: rule it first (npx wingfoil memory history task-085-repository-keys-escaped-where-the-page-renders-them)
 - **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --resume`
-
-## Closed
-
-<!-- runner:closed -->
 
 <!-- key:uncommitted-trunk-task-085-repository-keys-escaped-where-the-page-renders-them/start/2 -->
 ### N-029 · 2026-11-27 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
