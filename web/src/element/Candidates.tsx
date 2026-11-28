@@ -11,6 +11,7 @@ import { useId, type ReactNode } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { isPathSyntaxId } from './queries.js';
+import { keyText } from '../text/key-text.js';
 import { panelLinkOptions } from './side-panel.js';
 
 function isText(value: unknown): value is string {
@@ -41,12 +42,12 @@ export function ambiguousDetail(error: unknown): AmbiguousIdDetail | undefined {
 function CandidateText({ candidate: c }: { candidate: AmbiguousCandidate }): ReactNode {
   return (
     <>
-      <span className="type-tag">{c.type}</span>
+      <span className="type-tag">{keyText(c.type)}</span>
       <span className="candidate-names">
         <span className="candidate-title">{c.title}</span>
-        <span className="element-id">{c.id}</span>
+        <span className="element-id">{keyText(c.id)}</span>
       </span>
-      <span className="state-pill">{c.status}</span>
+      <span className="state-pill">{keyText(c.status)}</span>
     </>
   );
 }
@@ -64,7 +65,7 @@ export interface CandidatesProps {
 /** The list of candidates, each a link to its element page. */
 export function Candidates({ pid, eid, detail, linkTo = 'page' }: CandidatesProps): ReactNode {
   const headingId = useId();
-  const heading = <FormattedMessage id="element.candidates.title" values={{ id: <bdi>{eid}</bdi> }} />;
+  const heading = <FormattedMessage id="element.candidates.title" values={{ id: <bdi>{keyText(eid)}</bdi> }} />;
   return (
     <section className="element-section element-candidates">
       {/* The address's value isolated from the text around it (bidi; task-077 F-5, R2-5); the list is

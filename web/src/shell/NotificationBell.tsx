@@ -28,6 +28,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { memoryEventsQuery, todayQuery } from '../api/queries.js';
 import { forgetOpener, panelLinkOptions, usePanelOpen } from '../element/side-panel.js';
+import { keyText } from '../text/key-text.js';
 import { durationOf } from '../today/model.js';
 import { ErrorText } from './ErrorText.js';
 import { Bell } from './icons.js';
@@ -190,7 +191,7 @@ function ToUnblock({ pid, today, onNavigate }: BellPanelProps): ReactNode {
     <ul className="bell-list">
       {rows.map(({ element, action }) => (
         <li key={element.id} className="bell-item" data-eid={element.id}>
-          <span className="type-tag bell-tag">{element.type}</span>
+          <span className="type-tag bell-tag">{keyText(element.type)}</span>
           <span className="bell-verb">
             <FormattedMessage id="today.action" values={{ action }} />
           </span>
@@ -261,7 +262,7 @@ function UpdateItem({
     <li className="bell-update" data-sha={line.sha}>
       <span className="bell-update-main">
         <ElementLink pid={pid} eid={line.id} className="bell-link bell-update-id" onNavigate={onNavigate}>
-          {line.id}
+          {keyText(line.id)}
         </ElementLink>
         <span className="bell-update-what">
           <FormattedMessage id="element.history.entry" values={{ operation: line.operation, name: line.name }} />

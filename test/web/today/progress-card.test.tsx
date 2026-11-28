@@ -56,8 +56,8 @@ function progress(over: Partial<Progress> = {}, figures: Partial<Progress['figur
         value: 0.25,
         percent: 25,
         references: [
-          { id: 'US-M-01', done: 1, total: 2, percent: 50 },
-          { id: 'US-S-01', done: 0, total: 1, percent: 0 },
+          { id: 'US-M-01', element: false, done: 1, total: 2, percent: 50 },
+          { id: 'US-S-01', element: false, done: 0, total: 1, percent: 0 },
         ],
         referencesCount: 2,
         ids: ['k-001-a', 'k-002-b'],
@@ -495,7 +495,7 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
               state: 'shown',
               value: 0.5,
               percent: 50,
-              references: [{ id: 'US-M-01', done: 1, total: 2, percent: 50 }],
+              references: [{ id: 'US-M-01', element: false, done: 1, total: 2, percent: 50 }],
               referencesCount: 1,
               ids: ['k-001-a'],
             },
@@ -514,6 +514,7 @@ describe('US-T-14 — the completion explanation (web/src/progress/)', () => {
   it('says "and <n> more" past the listed references', async () => {
     const references = Array.from({ length: 10 }, (_, i) => ({
       id: `US-${String(i + 1).padStart(2, '0')}`,
+      element: false,
       done: 1,
       total: 1,
       percent: 100,

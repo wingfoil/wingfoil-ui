@@ -16,6 +16,20 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
   `index.html`), no object, frame or remote image; styles keep `'unsafe-inline'` (spec-004 *Process
   Notes*, 2026-11-26).
 
+### Fixed
+
+- **Repository keys are escaped where the page renders them** (task-085, bug-041): an element id,
+  type, state, role, category, path key or directive id holding control, bidirectional or format
+  characters is shown as a visible escape (`\x1b`, `‮`, `​`) on every screen and in every
+  accessible name — Memory, Today, the notification bell, the header's role view, the element page
+  and side panel, Traceability, Configuration, DNA, Team and Directives — through one function,
+  `keyText`; the raw value still addresses and filters. Display fields stay escaped once by the
+  server, and the page shows them as served. One additive contract change: each reference of
+  `/progress` and `/traceability` `figures.completion.references[]` carries `element` (`true` for an
+  element reference contributes, a raw key; `false` for pattern references only, an escaped display
+  value; completion's one-reference-per-id aggregation and percentages are unchanged), so the
+  page escapes the one and never the other twice (spec-004 and spec-012 *Process Notes*, 2026-11-28).
+
 ### Changed
 
 - **Development dependencies refreshed** (task-092): `npm update` within ranges and `verdaccio`

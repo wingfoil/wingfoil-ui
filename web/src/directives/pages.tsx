@@ -14,6 +14,7 @@ import { RenderedArticle, useRenderTexts } from '../docs/RenderedArticle.js';
 import { finishDocument, markdownToSafeHtml, type FinishOptions } from '../docs/render.js';
 import { directiveQuery } from '../routes/directives.js';
 import { useProjectTitle } from '../shell/page-title.js';
+import { keyText } from '../text/key-text.js';
 import { DirectiveRoles } from './DirectiveList.js';
 import { classifyDirectiveLink, directiveHref, directiveRepoPath } from './model.js';
 import '../docs/docs.css';
@@ -26,7 +27,7 @@ export function DirectivePage(): ReactNode {
   const hash = useLocation({ select: (l) => l.hash });
   const router = useRouter();
   // The directive's id is the view (project data, W5-5).
-  useProjectTitle(pid, did);
+  useProjectTitle(pid, keyText(did));
   const detail = useQuery(directiveQuery(pid, did));
   const list = useQuery(directivesQuery(pid));
   const header = useQuery(projectHeaderQuery(pid));
@@ -63,7 +64,7 @@ export function DirectivePage(): ReactNode {
         <Link className="button" to="/p/$pid/directives" params={{ pid }}>
           <FormattedMessage id="directives.page.back" />
         </Link>
-        {entry && <span className="docs-path">{path}</span>}
+        {entry && <span className="docs-path">{keyText(path)}</span>}
       </div>
       {detail.error ? (
         <RulesError error={detail.error} />
@@ -72,7 +73,7 @@ export function DirectivePage(): ReactNode {
           <div className="rules-head">
             {/* A body that starts with its own title keeps the page's only level-1 heading. */}
             {!/^<h1[\s>]/.test(safeHtml.trim()) && <h1 className="page-title">{detail.data.frontmatter.title}</h1>}
-            <span className="rules-path">{entry.frontmatter.id}</span>
+            <span className="rules-path">{keyText(entry.frontmatter.id)}</span>
             <DirectiveRoles entry={{ ...entry, mine: false }} current={current} />
           </div>
           <RenderedArticle

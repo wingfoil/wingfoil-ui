@@ -52,21 +52,38 @@ export function completionFigure(inputs: Pick<FigureInputs, 'index' | 'ui' | 'cu
   const categorised =
     [...ui.categories.value.values()].some(counted) || ui.patterns.value.some((p) => counted(p.category));
   if (!categorised) return { state: 'unavailable', reason: { code: 'no-reference-categories' } };
-  const linked = new Map<string, IndexedElement[]>();
+  // One completion reference per id (spec-012 §3, task-074 Q3 (a)): an element reference and a pattern
+  // reference of the same text are one, as before. `element` is only the provenance of `id` for the
+  // page — `true` when an element reference contributes (a raw key, escaped where shown); it changes
+  // no grouping and no number.
+  const linked = new Map<string, { element: boolean; elements: IndexedElement[] }>();
   for (const element of inScopeElements(inputs)) {
     if (element.unreadable !== undefined) continue;
-    const keys = new Set(element.references.filter((r) => counted(r.category)).map(referenceKey));
-    for (const key of keys) {
-      const list = linked.get(key);
-      if (list) list.push(element);
-      else linked.set(key, [element]);
+    const seen = new Map<string, boolean>();
+    for (const r of element.references) {
+      if (!counted(r.category)) continue;
+      const key = referenceKey(r);
+      seen.set(key, (seen.get(key) ?? false) || r.kind === 'element');
+    }
+    for (const [key, isElement] of seen) {
+      const entry = linked.get(key);
+      if (entry) {
+        entry.elements.push(element);
+        entry.element ||= isElement;
+      } else linked.set(key, { element: isElement, elements: [element] });
     }
   }
   if (linked.size === 0) return { state: 'unavailable', reason: { code: 'no-linked-elements' } };
   const references = [...linked.keys()].sort(naturalCompare).map((id) => {
-    const elements = linked.get(id)!;
+    const { element, elements } = linked.get(id)!;
     const finished = elements.filter((e) => e.finished).length;
-    return { id, [DONE_FIELD]: finished, total: elements.length, percent: percentOf(finished, elements.length) };
+    return {
+      id,
+      element,
+      [DONE_FIELD]: finished,
+      total: elements.length,
+      percent: percentOf(finished, elements.length),
+    };
   });
   const mean = meanOf(references.map((r) => ({ finished: r[DONE_FIELD], total: r.total })));
   return {
@@ -75,7 +92,7 @@ export function completionFigure(inputs: Pick<FigureInputs, 'index' | 'ui' | 'cu
     percent: mean.percent,
     references: references.slice(0, COMPLETION_REFERENCES_SHOWN),
     referencesCount: references.length,
-    ids: naturalOrder([...linked.values()].flat().map((e) => e.id)),
+    ids: naturalOrder([...linked.values()].flatMap((l) => l.elements).map((e) => e.id)),
   };
 }
 

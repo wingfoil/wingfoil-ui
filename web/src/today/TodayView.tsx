@@ -47,6 +47,7 @@ import { ErrorText } from '../shell/ErrorText.js';
 import { greetingName, identityNote, rowReason } from './model.js';
 import { RoleSummary } from './RoleSummary.js';
 import { CardRows } from './CardRows.js';
+import { keyText } from '../text/key-text.js';
 import { RowId, RowSince } from './RowParts.js';
 import './today.css';
 
@@ -87,7 +88,10 @@ function Reason({ row, now }: { row: TodayActionRow; now: number }): ReactNode {
     case 'undeclared':
       return (
         <span className="today-reason">
-          <FormattedMessage id="today.reason.undeclared" values={{ state: reason.state, type: reason.type }} />
+          <FormattedMessage
+            id="today.reason.undeclared"
+            values={{ state: keyText(reason.state), type: keyText(reason.type) }}
+          />
         </span>
       );
     case 'age':
@@ -96,7 +100,7 @@ function Reason({ row, now }: { row: TodayActionRow; now: number }): ReactNode {
           <FormattedMessage
             id="today.reason.age"
             values={{
-              state: reason.state,
+              state: keyText(reason.state),
               // Its own element: the age is a message of its own (the catalogue check reads it alone).
               age: (
                 <span>
@@ -108,7 +112,7 @@ function Reason({ row, now }: { row: TodayActionRow; now: number }): ReactNode {
         </span>
       );
     case 'state':
-      return <span className="today-reason">{reason.state}</span>;
+      return <span className="today-reason">{keyText(reason.state)}</span>;
   }
 }
 
@@ -121,7 +125,7 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
   const sinceId = useId();
   return (
     <li className="today-row" data-eid={element.id}>
-      <span className="type-tag today-tag">{element.type}</span>
+      <span className="type-tag today-tag">{keyText(element.type)}</span>
       <RowId element={element} />
       <span className="today-names">
         <Link
@@ -139,10 +143,10 @@ function RequiresYouRow({ pid, row, now }: { pid: string; row: TodayActionRow; n
           <RowSince since={descriptor.since} descriptionId={sinceId} />
         </span>
       </span>
-      <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
+      <span className={`state-pill tone-${descriptor.tone}`}>{keyText(element.status)}</span>
       <Button
         className="button button-primary today-action"
-        aria-label={intl.formatMessage({ id: 'today.actionLabel' }, { action, id: element.id })}
+        aria-label={intl.formatMessage({ id: 'today.actionLabel' }, { action, id: keyText(element.id) })}
         onPress={() => {
           // The focus comes back here when the panel closes (bug-018).
           rememberOpener(pid, element.id, 'today-action');
@@ -171,10 +175,10 @@ function WaitingRow({ pid, row }: { pid: string; row: TodayRow }): ReactNode {
           rememberOpener(pid, element.id, 'today-waiting-row', event);
         }}
       >
-        <span className="type-tag today-tag">{element.type}</span>
+        <span className="type-tag today-tag">{keyText(element.type)}</span>
         <RowId element={element} />
         <span className="today-waiting-title">{element.title}</span>
-        <span className={`state-pill tone-${descriptor.tone}`}>{element.status}</span>
+        <span className={`state-pill tone-${descriptor.tone}`}>{keyText(element.status)}</span>
         <RowSince since={descriptor.since} descriptionId={sinceId} />
         <span className="today-who">
           <WhoMustAct descriptor={descriptor} />

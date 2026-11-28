@@ -19,6 +19,7 @@ import { ElementDirectives } from './Directives.js';
 import { ElementFooter } from './ElementFooter.js';
 import { ElementContent, QueryError } from './ElementView.js';
 import { isFinal } from './footer.js';
+import { keyText } from '../text/key-text.js';
 import { StateMachine } from './StateMachine.js';
 
 /** Props of {@link ElementSidePanel}. */
@@ -96,15 +97,21 @@ export function ElementSidePanel({
       <Dialog className="drawer-dialog" data-element-view="">
         <div className="drawer-header">
           <div className="drawer-topline">
-            {shown && <span className="type-tag">{shown.element.type}</span>}
+            {shown && <span className="type-tag">{keyText(shown.element.type)}</span>}
             {/* The address's value is isolated from the text around it (bidi, review F-5). */}
-            <span className="element-id">{shown ? shown.element.id : <bdi>{eid}</bdi>}</span>
+            <span className="element-id">{shown ? keyText(shown.element.id) : <bdi>{keyText(eid)}</bdi>}</span>
             <Button className="button button-quiet" onPress={onClose}>
               <FormattedMessage id="common.action.close" />
             </Button>
           </div>
           <Heading slot="title" level={2} ref={heading} className="drawer-title" tabIndex={-1}>
-            {shown ? shown.element.title : element.error ? <bdi>{eid}</bdi> : <FormattedMessage id="element.loading" />}
+            {shown ? (
+              shown.element.title
+            ) : element.error ? (
+              <bdi>{keyText(eid)}</bdi>
+            ) : (
+              <FormattedMessage id="element.loading" />
+            )}
           </Heading>
           {shown && (
             <StateMachine

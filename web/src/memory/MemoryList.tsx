@@ -19,6 +19,7 @@ import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } f
 import { FormattedMessage, useIntl } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
+import { keyText } from '../text/key-text.js';
 import { FIGURE_LABELS, figureCode, shownFigure } from './figure.js';
 import { MissingRefsBadge } from './MissingRefsBadge.js';
 import {
@@ -225,10 +226,10 @@ function Row({ pid, element, now }: { pid: string; element: ListedElement; now: 
           if (navigatesHere(event)) returnRow = { pid, eid: element.id };
         }}
       >
-        <span className="type-tag memory-tag">{element.type}</span>
+        <span className="type-tag memory-tag">{keyText(element.type)}</span>
         <span className="memory-names">
           <span className="memory-title">{element.title}</span>
-          <span className="memory-id">{element.id}</span>
+          <span className="memory-id">{keyText(element.id)}</span>
         </span>
         {element.localChanges && (
           <span className="memory-badge">
@@ -237,7 +238,7 @@ function Row({ pid, element, now }: { pid: string; element: ListedElement; now: 
         )}
         {missing !== undefined && <MissingRefsBadge categories={missing} descriptionId={descriptionId} />}
         <Age since={element.descriptor?.since} now={now} />
-        <span className={tone === undefined ? 'state-pill' : `state-pill tone-${tone}`}>{element.status}</span>
+        <span className={tone === undefined ? 'state-pill' : `state-pill tone-${tone}`}>{keyText(element.status)}</span>
       </Link>
     </li>
   );
@@ -365,7 +366,7 @@ export function MemoryList({
           ? filters.state !== undefined
             ? intl.formatMessage(
                 { id: 'memory.active.bucketState' },
-                { bucket: intl.formatMessage(bucketLabel), state: filters.state },
+                { bucket: intl.formatMessage(bucketLabel), state: keyText(filters.state) },
               )
             : intl.formatMessage(bucketLabel)
           : undefined;
@@ -456,7 +457,7 @@ export function MemoryList({
                 key={t.type}
                 pid={pid}
                 search={{ type: t.type }}
-                name={t.type}
+                name={keyText(t.type)}
                 count={t.count}
               />
             ))}
@@ -476,7 +477,7 @@ export function MemoryList({
                   key={s.state}
                   pid={pid}
                   search={{ type: selected, state: s.state }}
-                  name={s.state}
+                  name={keyText(s.state)}
                   count={s.count}
                   tone={s.tone}
                 />
@@ -520,7 +521,7 @@ export function MemoryList({
                   key={s.state}
                   pid={pid}
                   search={{ bucket: selectedBucket.key, state: s.state }}
-                  name={s.state}
+                  name={keyText(s.state)}
                   count={s.count}
                   tone={s.tone}
                 />
@@ -565,7 +566,7 @@ export function MemoryList({
           {rows.length === 0 && (selected === undefined || configSettled) && (
             <p className="memory-empty">
               {selected !== undefined && !unknownType && ofType.length === 0 ? (
-                <FormattedMessage id="memory.empty.type" values={{ type: selected }} />
+                <FormattedMessage id="memory.empty.type" values={{ type: keyText(selected) }} />
               ) : (
                 <FormattedMessage id="memory.empty.filter" />
               )}

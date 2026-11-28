@@ -181,8 +181,8 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
       value: 0.25,
       percent: 25,
       references: [
-        { id: 'US-M-01', done: 1, total: 2, percent: 50 },
-        { id: 'US-S-01', done: 0, total: 1, percent: 0 },
+        { id: 'US-M-01', element: false, done: 1, total: 2, percent: 50 },
+        { id: 'US-S-01', element: false, done: 0, total: 1, percent: 0 },
       ],
       referencesCount: 2,
       ids: ['task-001-cli-adapter', 'task-002-memory-list', 'task-003-element-panel'],
@@ -278,9 +278,32 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
     const i = await inputs(rows, ui);
     expect(completionFigure(i)).toMatchObject({
       state: 'shown',
-      references: [{ id: 'dl-002-use-fastify', done: 0, total: 1, percent: 0 }],
+      references: [{ id: 'dl-002-use-fastify', element: true, done: 0, total: 1, percent: 0 }],
       referencesCount: 1,
     });
+  });
+
+  it('task-085 R3-F1: an element and a pattern reference of one id stay one reference (task-074 Q3 (a)), unequal groups', async () => {
+    const ui = uiOf(
+      'version: 1\ntaxonomy: { categories: { task: requirement }, patterns: [{ match: "^task-", category: requirement }] }\n',
+    );
+    let rows: Row[] = [
+      { id: 'task-001-shared', type: 'task', status: 'done', values: ['task-001-shared'] },
+      { id: 'task-002-a', type: 'task', status: 'backlog', values: ['task-001-shared'] },
+      { id: 'task-003-b', type: 'task', status: 'backlog', values: ['task-001-shared'] },
+    ];
+    let c = completionFigure(await inputs(rows, ui));
+    expect(c).toMatchObject({
+      state: 'shown',
+      percent: 33,
+      references: [{ id: 'task-001-shared', element: true, done: 1, total: 3, percent: 33 }],
+      referencesCount: 1,
+    });
+    // A second, smaller group: the mean stays over distinct ids, not over provenance.
+    rows = [...rows, { id: 'task-004-c', type: 'task', status: 'done', values: ['task-009-other'] }];
+    c = completionFigure(await inputs(rows, ui));
+    expect(c).toMatchObject({ state: 'shown', referencesCount: 2 });
+    if (c.state === 'shown') expect(c.references.map((r) => r.id)).toEqual(['task-001-shared', 'task-009-other']);
   });
 
   it('at most 10 references in natural order, referencesCount all of them', async () => {
@@ -299,7 +322,10 @@ describe('the figures (spec-012 §3, §11 Figures on the fixtures)', () => {
     rows = withRow(rows, 'bug-001-toast-overlap', { unreadable: true });
     const i = await inputs(rows);
     expect(completionFigure(i)).toMatchObject({
-      references: [{ id: 'US-M-01', done: 1, total: 1 }, { id: 'US-S-01' }],
+      references: [
+        { id: 'US-M-01', element: false, done: 1, total: 1 },
+        { id: 'US-S-01', element: false },
+      ],
     });
     expect(iteratedFigure(i)).toMatchObject({ total: 3 });
     expect(openDefectsFigure(i)).toMatchObject({ count: 1 });

@@ -174,7 +174,7 @@ origin = "declared" | "inferred" | "derived"
            current: ElementRef | null,                  # the derived current element (spec-005 §4)
            basis: "derived" | null },                   # "derived" when current is set (v0.4 adds "workflow-status")
   figures: {
-    completion:      Shown<{ value, percent, references: [{ id, done, total, percent }],
+    completion:      Shown<{ value, percent, references: [{ id, element, done, total, percent }],
                              referencesCount, ids }> | Unavailable<"no-reference-categories" | "no-linked-elements">,
     phase:           ReadOnly,
     phaseCompletion: ReadOnly,
@@ -196,7 +196,10 @@ ReadOnly = { state: "read-only", reason: <the reason of capability workflow-posi
   in-scope `done`/`total`; `value` their unweighted mean (0 … 1), `percent` =
   `round(100 × value)` (half up), each reference's `percent` the same rule on `done/total`.
   `references` holds at most 10 entries in natural id order (digit runs compared as numbers),
-  `referencesCount` the number of contributing references — the explanation of T-14.1 ("Mean of
+  `element` says what `id` is — `true`: an element reference contributes, `id` its raw element id (a
+  key); `false`: only pattern references, `id` their value as escaped by §9 (a display value) — one
+  reference per id as before (an element and a pattern reference of the same text are one; `element`
+  changes no grouping and no number); `referencesCount` the number of contributing references — the explanation of T-14.1 ("Mean of
   reference completion over 2 references with at least 1 linked element: US-M-01 50 %, US-S-01
   0 %", then "and <n> more" past 10). `ids` = the in-scope linked elements of every contributing
   reference. Unavailable: `no-reference-categories` when no effective category is `requirement`
@@ -631,3 +634,11 @@ every object `additionalProperties: false`, as the other API schemas.
   for the card and that this section's text still shows: read "Iterated: task 1/4" for "Tasks 1/4"
   and "Open: bug 1" for "Open bugs 1". The 2026-11-16 note is the rule; the figures' code, shapes
   and the endpoint are unchanged. No shape changes.
+- 2026-11-28 — amended in task-085 round 2 (bug-041, R2-F2): §3 `figures.completion.references[]`
+  gains `element: boolean` (additive; `contracts/api/progress.schema.json`, `CompletionReference`),
+  the provenance of `id` that `/traceability` `references[]` already had: an element reference's `id`
+  is a raw key the page escapes where it renders it (`keyText`), a pattern reference's `id` is a
+  display value §9 already escaped, shown as served. The page never infers provenance from the text.
+  Round 3 (R3-F1): the completion aggregation is unchanged — one reference per id (task-074 Q3 (a),
+  the 2026-11-12 note), so no percentage changes; `element` is `true` when any element reference of
+  that id contributes.

@@ -22,6 +22,7 @@ import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { Focusable, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { keyText, referenceText } from '../text/key-text.js';
 import './progress.css';
 
 /** Props of {@link ProgressCompletion}. */
@@ -56,8 +57,11 @@ export function CompletionExplanation({ figure }: { figure: CompletionFigure }):
     <span className="progress-references intl-list">
       {intl.formatList(
         figure.references.map((r) => (
-          <span key={r.id} className="progress-reference">
-            <FormattedMessage id="progress.completion.reference" values={{ id: r.id, percent: r.percent }} />
+          <span key={`${r.element ? 'e' : 'p'}\0${r.id}`} className="progress-reference">
+            <FormattedMessage
+              id="progress.completion.reference"
+              values={{ id: referenceText(r), percent: r.percent }}
+            />
           </span>
         )),
         { type: 'unit', style: 'short' },
@@ -102,7 +106,7 @@ export function ProgressCompletion({
         ) : scopeName === null ? (
           <FormattedMessage id="progress.completion.noLinkedProject" />
         ) : (
-          <FormattedMessage id="progress.completion.noLinked" values={{ scope: scopeName }} />
+          <FormattedMessage id="progress.completion.noLinked" values={{ scope: keyText(scopeName) }} />
         )}
       </span>
     );

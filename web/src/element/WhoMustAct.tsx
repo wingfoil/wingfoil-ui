@@ -10,6 +10,7 @@
 import type { ActionDescriptor, HoldReason } from '@wingfoil-ui/contracts';
 import type { ReactNode } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { keyText } from '../text/key-text.js';
 import { HoldText } from './HoldText.js';
 
 /** Who must act (D36-6). */
@@ -63,12 +64,12 @@ export function WhoMustAct({ descriptor }: { descriptor: ActionDescriptor }): Re
       );
     case 'role':
       return who.members.length === 0 ? (
-        <FormattedMessage id="today.waiting.roleNoMember" values={{ role: who.role }} />
+        <FormattedMessage id="today.waiting.roleNoMember" values={{ role: keyText(who.role) }} />
       ) : (
         <FormattedMessage
           id="today.waiting.role"
           values={{
-            role: who.role,
+            role: keyText(who.role),
             members: (
               <span className="today-members">{intl.formatList(who.members, { type: 'unit', style: 'short' })}</span>
             ),

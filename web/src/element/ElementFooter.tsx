@@ -34,6 +34,7 @@ import { useHowToJoin } from '../project/HowToJoin.js';
 import { footerView, isBlank, type FooterView, type GateOutcome } from './footer.js';
 import { HoldText } from './HoldText.js';
 import { ReasonLink, reasonMessage } from './reason.js';
+import { keyText } from '../text/key-text.js';
 import { elementKeys } from './queries.js';
 
 /** A reason's identity: its code and parameters, whatever the order of its keys. */
@@ -254,7 +255,7 @@ function FooterContent({
     case 'waiting':
       return (
         <p className="element-footer element-footer-note">
-          <FormattedMessage id="element.waiting.engine" values={{ state: view.state }} />
+          <FormattedMessage id="element.waiting.engine" values={{ state: keyText(view.state) }} />
         </p>
       );
     case 'final':
@@ -271,12 +272,12 @@ function FooterContent({
               <FormattedMessage
                 id="element.gate.reserved"
                 values={{
-                  role: view.role,
+                  role: keyText(view.role),
                   members: <span className="element-footer-members">{view.members.join(', ')}</span>,
                 }}
               />
             ) : (
-              <FormattedMessage id="element.gate.reservedNoMember" values={{ role: view.role }} />
+              <FormattedMessage id="element.gate.reservedNoMember" values={{ role: keyText(view.role) }} />
             )}
           </p>
           {view.engineAdvance && (
@@ -352,7 +353,7 @@ function SubmitFooter({
             if (!disabled) onSubmit(() => setSubmitted(true));
           }}
         >
-          <FormattedMessage id="element.submit.action" values={{ to: view.to }} />
+          <FormattedMessage id="element.submit.action" values={{ to: keyText(view.to) }} />
         </button>
         <span className="gate-spacer" />
         <Button className="button button-quiet" onPress={onClose}>
@@ -539,7 +540,7 @@ function GateFooter({
                 if (!disabled) onDecide(o, reason, () => setDecided(true));
               }}
             >
-              <FormattedMessage id="element.gate.outcome" values={{ verb: o.verb, to: o.to }} />
+              <FormattedMessage id="element.gate.outcome" values={{ verb: o.verb, to: keyText(o.to) }} />
             </button>
           );
         })}

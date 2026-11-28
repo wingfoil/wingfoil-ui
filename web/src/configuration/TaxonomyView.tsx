@@ -10,6 +10,7 @@
 import type { UiConfig } from '@wingfoil-ui/contracts';
 import { useId, type ReactNode } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
+import { keyText } from '../text/key-text.js';
 import { Origin, UiFrame } from './UiFrame.js';
 import { UsePreset } from './UsePreset.js';
 
@@ -92,7 +93,7 @@ function Types({ taxonomy }: { taxonomy: UiConfig['taxonomy'] }): ReactNode {
                           <FormattedMessage id="settings.taxonomy.noCategory" />
                         </span>
                       ) : (
-                        <code>{row.category}</code>
+                        <code>{keyText(row.category)}</code>
                       )}
                       <Origin origin={row.origin} />
                     </span>
@@ -103,7 +104,7 @@ function Types({ taxonomy }: { taxonomy: UiConfig['taxonomy'] }): ReactNode {
                         <FormattedMessage id="settings.taxonomy.noRequires" />
                       </span>
                     ) : (
-                      intl.formatList(required, { type: 'unit', style: 'short' })
+                      intl.formatList(required.map(keyText), { type: 'unit', style: 'short' })
                     )}
                   </td>
                 </tr>

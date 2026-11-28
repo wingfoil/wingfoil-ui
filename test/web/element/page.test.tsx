@@ -320,12 +320,14 @@ it('AC-7 — isolates the address value on the element page (topline and a refus
   const hostile = 'task-‮46';
   stubApi(api());
   renderApp(`/p/${PID}/e/${encodeURIComponent(hostile)}`);
-  const page = await screen.findByRole('region', { name: hostile });
+  // Since task-085 the address value is also shown escaped (`keyText`): no raw bidi character is left.
+  const shown = hostile.replace('‮', '\\u202e');
+  const page = await screen.findByRole('region', { name: shown });
   await within(page).findByRole('alert');
   const topline = page.querySelector('.drawer-topline .element-id')!;
-  expect([...topline.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([hostile]);
+  expect([...topline.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([shown]);
   const heading = within(page).getByRole('heading', { level: 1 });
-  expect([...heading.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([hostile]);
+  expect([...heading.querySelectorAll('bdi')].map((b) => b.textContent)).toEqual([shown]);
 });
 
 // task-078 AC-7, Q3 (a): the candidates' list is named by its heading, which holds the `<bdi>`.

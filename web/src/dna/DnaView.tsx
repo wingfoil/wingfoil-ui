@@ -12,6 +12,7 @@ import { useId, type ReactNode } from 'react';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { ApiError } from '../api/client.js';
 import { ErrorText } from '../shell/ErrorText.js';
+import { keyText } from '../text/key-text.js';
 import './rules.css';
 
 /** Props of {@link DnaView}. */
@@ -82,7 +83,7 @@ export function RoleChips({ roles, current }: { roles: readonly string[]; curren
     <ul className="role-chips">
       {roles.map((r) => (
         <li key={r} className="role-chip" {...(r === current ? { 'data-current': 'true' } : {})}>
-          {r}
+          {keyText(r)}
         </li>
       ))}
     </ul>
@@ -92,7 +93,7 @@ export function RoleChips({ roles, current }: { roles: readonly string[]; curren
 /** "executes as … · never approves" for an agent (ux-reference §4.10). */
 export function AgentLine({ agent, area }: { agent: DnaAgent; area: 'dna' | 'team' }): ReactNode {
   const intl = useIntl();
-  const roles = intl.formatList(agent.executes_as, { type: 'unit', style: 'short' });
+  const roles = intl.formatList(agent.executes_as.map(keyText), { type: 'unit', style: 'short' });
   const approves = agent.approval_authority === true;
   const message =
     area === 'dna' ? (approves ? AGENT.dnaApproves : AGENT.dna) : approves ? AGENT.teamApproves : AGENT.team;
@@ -189,7 +190,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
           <ul className="rules-list">
             {dna.team.roles.map((r) => (
               <li key={r.name} className="rules-item">
-                <span className="role-chip">{r.name}</span>
+                <span className="role-chip">{keyText(r.name)}</span>
                 {r.description !== undefined && <span className="rules-text">{r.description}</span>}
               </li>
             ))}
@@ -221,7 +222,7 @@ function DnaSections({ dna }: { dna: DnaShow }): ReactNode {
           <dl className="rules-paths">
             {paths.map(([category, values]) => (
               <div key={category} className="rules-item">
-                <dt className="rules-name">{category}</dt>
+                <dt className="rules-name">{keyText(category)}</dt>
                 {values.length === 0 ? (
                   <dd className="muted">
                     <FormattedMessage id="dna.paths.none" />
