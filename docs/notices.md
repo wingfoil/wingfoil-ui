@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:blocked-trunk-task-085-repository-keys-escaped-where-the-page-renders-them/done/1 -->
+### N-034 · 2026-11-28 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+
+- **Status:** open
+- **Kind:** blocked
+- **Opened:** 2026-11-28T09:59:09Z
+- **Line:** trunk
+- **Element:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+- **Reason:** blocked (run task-085-repository-keys-escaped-where-the-page-renders-them/done/1): docs test public-text AC-1 fails on the task element's own text (absolute paths at lines 575 and 577 of task-085 document); fix it on the task branch, then re-run the integration
+- **Unblock:** `cd <runner home> && node scripts/runner/run.mjs --line trunk --close N-034 --how "<what solved it>"`
+
 ## Closed
 
 <!-- runner:closed -->
