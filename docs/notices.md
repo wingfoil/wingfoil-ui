@@ -11,6 +11,17 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:decision-trunk-task-085-repository-keys-escaped-where-the-page-renders-them/review/5 -->
+### N-032 · 2026-11-28 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+
+- **Status:** open
+- **Kind:** decision
+- **Opened:** 2026-11-28T07:59:00Z
+- **Line:** trunk
+- **Element:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+- **Reason:** decision (run task-085-repository-keys-escaped-where-the-page-renders-them/review/5): Authorize pushing e68a1174 for trunk:task-085-repository-keys-escaped-where-the-page-renders-them and running the recorded gates.yml dispatch?
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-032 --reason "<ruling>" [--reject]`
+
 ## Closed
 
 <!-- runner:closed -->
