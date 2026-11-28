@@ -88,8 +88,7 @@ function scopeTexts(intl: IntlShape, progress: Progress, texts: Map<string, stri
       ),
     );
     texts.set('scopeState', keyText(current.status));
-  } else if (type !== null)
-    texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.none' }, { type: keyText(type) }));
+  } else if (type !== null) texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.none' }, { type }));
   else texts.set('scope', intl.formatMessage({ id: 'today.progress.scope.whole' }));
 }
 
@@ -162,7 +161,7 @@ function Scope({ progress }: { progress: Progress }): ReactNode {
           <span className={`state-pill tone-${current.tone}`}>{keyText(current.status)}</span>
         </>
       ) : type !== null ? (
-        <FormattedMessage id="today.progress.scope.none" values={{ type: keyText(type) }} />
+        <FormattedMessage id="today.progress.scope.none" values={{ type }} />
       ) : (
         <FormattedMessage id="today.progress.scope.whole" />
       )}
@@ -197,7 +196,7 @@ function Figures({
 }): ReactNode {
   const intl = useIntl();
   const { completion, phase, phaseCompletion } = progress.figures;
-  const ids = (list: string[]) => intl.formatList(list, { type: 'unit', style: 'short' });
+  const ids = (list: string[]) => intl.formatList(list.map(keyText), { type: 'unit', style: 'short' });
   return (
     <>
       <ul className="today-progress-figures" aria-label={intl.formatMessage({ id: 'today.progress.figures' })}>

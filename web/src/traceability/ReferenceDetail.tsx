@@ -12,7 +12,7 @@ import type { TraceabilityElement, TraceabilityReference } from '@wingfoil-ui/co
 import type { ReactNode } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { namesSomeone, WhoMustAct } from '../element/WhoMustAct.js';
-import { keyText } from '../text/key-text.js';
+import { keyText, referenceText } from '../text/key-text.js';
 
 /** The state pill of an element, its tone as data. */
 export function StatePill({ element }: { element: TraceabilityElement }): ReactNode {
@@ -88,7 +88,7 @@ export function ReferenceDetail({ pid, id, reference, elements }: ReferenceDetai
     <tr className="trace-detail-row" id={id}>
       <td colSpan={3}>
         <div className="trace-detail">
-          <h2 className="trace-detail-heading">{keyText(reference.id)}</h2>
+          <h2 className="trace-detail-heading">{referenceText(reference)}</h2>
           <div className="trace-detail-head">
             <span className="type-tag trace-category">{keyText(reference.category)}</span>
             {target && <span className="trace-ref-title">{target.title}</span>}

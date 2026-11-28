@@ -184,7 +184,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
   };
   const current = shown?.scope.current ?? null;
   const scopeElement = current
-    ? { element: current.shortId ?? current.id, type: shown?.scope.type ?? current.type }
+    ? { element: keyText(current.shortId ?? current.id), type: shown?.scope.type ?? keyText(current.type) }
     : undefined;
   const wholeProject = filters.scope === 'project';
 
@@ -257,7 +257,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
               <p className="trace-notice">
                 <FormattedMessage
                   id="traceability.notice.unreadable"
-                  values={{ count: data.unreadable.length, ids: data.unreadable.join(', ') }}
+                  values={{ count: data.unreadable.length, ids: data.unreadable.map(keyText).join(', ') }}
                 />
               </p>
             )}
@@ -265,7 +265,7 @@ export function TraceabilityView({ pid, filters, answer, header }: TraceabilityV
               <p className="trace-notice">
                 <FormattedMessage
                   id="traceability.notice.capped"
-                  values={{ count: data.capped.length, ids: data.capped.join(', ') }}
+                  values={{ count: data.capped.length, ids: data.capped.map(keyText).join(', ') }}
                 />
               </p>
             )}

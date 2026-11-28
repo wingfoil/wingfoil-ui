@@ -596,3 +596,10 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   escaped twice (`dnaBody`: module paths, methodology phases and path values are display; role
   names, a member's roles, an agent's `executes_as` and the path categories are keys). No response
   body, schema or contract changes.
+- 2026-11-28 — corrects the 2026-11-27 note (task-085 round 2, R2-F2): "no response body, schema or
+  contract changes" holds but for one additive field — `element` on each `figures.completion.references[]`
+  entry (spec-012 §3), the provenance of a reference id: raw key (`true`, escaped by the page) or escaped
+  display value (`false`, shown as served). Server-escaped display values — the `/config` `ui` strings,
+  `progress.scope.type`, pattern reference ids — are shown as received, never escaped a second time;
+  raw element keys — ids, types, states, the current element's `ElementRef`, the `unreadable` and
+  `capped` id lists — are escaped exactly once.

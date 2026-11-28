@@ -52,22 +52,37 @@ export function completionFigure(inputs: Pick<FigureInputs, 'index' | 'ui' | 'cu
   const categorised =
     [...ui.categories.value.values()].some(counted) || ui.patterns.value.some((p) => counted(p.category));
   if (!categorised) return { state: 'unavailable', reason: { code: 'no-reference-categories' } };
-  const linked = new Map<string, IndexedElement[]>();
+  // An element reference (a raw key) and a pattern reference (an escaped display value) of the same text
+  // are two references: `element` is the provenance the page needs to escape the one and not the other.
+  const linked = new Map<string, { id: string; element: boolean; elements: IndexedElement[] }>();
   for (const element of inScopeElements(inputs)) {
     if (element.unreadable !== undefined) continue;
-    const keys = new Set(element.references.filter((r) => counted(r.category)).map(referenceKey));
-    for (const key of keys) {
-      const list = linked.get(key);
-      if (list) list.push(element);
-      else linked.set(key, [element]);
+    const seen = new Map<string, { id: string; element: boolean }>();
+    for (const r of element.references) {
+      if (!counted(r.category)) continue;
+      const id = referenceKey(r);
+      const isElement = r.kind === 'element';
+      seen.set(`${isElement ? 'e' : 'p'}\0${id}`, { id, element: isElement });
+    }
+    for (const [key, ref] of seen) {
+      const entry = linked.get(key);
+      if (entry) entry.elements.push(element);
+      else linked.set(key, { ...ref, elements: [element] });
     }
   }
   if (linked.size === 0) return { state: 'unavailable', reason: { code: 'no-linked-elements' } };
-  const references = [...linked.keys()].sort(naturalCompare).map((id) => {
-    const elements = linked.get(id)!;
-    const finished = elements.filter((e) => e.finished).length;
-    return { id, [DONE_FIELD]: finished, total: elements.length, percent: percentOf(finished, elements.length) };
-  });
+  const references = [...linked.values()]
+    .sort((a, b) => naturalCompare(a.id, b.id) || Number(b.element) - Number(a.element))
+    .map(({ id, element, elements }) => {
+      const finished = elements.filter((e) => e.finished).length;
+      return {
+        id,
+        element,
+        [DONE_FIELD]: finished,
+        total: elements.length,
+        percent: percentOf(finished, elements.length),
+      };
+    });
   const mean = meanOf(references.map((r) => ({ finished: r[DONE_FIELD], total: r.total })));
   return {
     state: 'shown',
@@ -75,7 +90,7 @@ export function completionFigure(inputs: Pick<FigureInputs, 'index' | 'ui' | 'cu
     percent: mean.percent,
     references: references.slice(0, COMPLETION_REFERENCES_SHOWN),
     referencesCount: references.length,
-    ids: naturalOrder([...linked.values()].flat().map((e) => e.id)),
+    ids: naturalOrder([...linked.values()].flatMap((l) => l.elements).map((e) => e.id)),
   };
 }
 

@@ -219,10 +219,13 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["id", "done", "total", "percent"],
+                "required": ["id", "element", "done", "total", "percent"],
                 "properties": {
                   "id": {
                     "type": "string"
+                  },
+                  "element": {
+                    "type": "boolean"
                   },
                   "done": {
                     "type": "integer",
