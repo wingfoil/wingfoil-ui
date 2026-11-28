@@ -523,3 +523,64 @@ Task branch commit: `e68a1174` (`fix(task-085): browser tab titles escape the ra
 | `npm run typecheck`, `lint`, `format:check` | exit 0 each |
 
 Not re-run: coverage, full contract, e2e, three engines — the CI hand-off (`wingfoil-cli` rule 12). No push.
+
+### review round 5 (2026-11-28, independent reviewer, Codex) — CI decision required
+
+Reviewed `trunk:task-085-repository-keys-escaped-where-the-page-renders-them` at task-branch
+`e68a1174b0dd7e05555731ac39fdaa83e444da43` (`git rev-parse HEAD`), against the authoritative
+task in the line's clone and the supplied reviewer session resource. Read the reviewer directives,
+bug-041, spec-004's repository-text classes and Process Notes, spec-012's reference/completion
+rules and Process Notes, and the affected sections of the UX reference.
+`npx --no-install wingfoil workflow next sw-life-cycle-1-plan` in the line's clone identifies
+this review. `git var GIT_AUTHOR_IDENT` returned the required agent address.
+
+**Review:** inspected the full task diff (`git diff design/dev-loop_v0.3.1...HEAD`) and swept
+`web/src` for key text, message parameters, accessible names, title hooks and operational values.
+Compared the rendering boundaries with `serialise.ts`, `project-state/bodies.ts`, `referenceKey`
+and the UI configuration serializers. The browser-title change escapes the raw `eid`/`did` at
+their interpolation sites; it leaves served project names and document labels alone. The title
+tests cover both real routes with hostile/plain ids and a served project name containing a
+backslash. The passing completion tests cover the previously rejected unequal-group collision
+(one reference, 33%) and replacement/removal on refresh. The schema, contract type, spec Process
+Notes and changelog record the additive completion provenance flag. No new implementation finding
+was identified in this review; this is not acceptance without the outstanding CI gates.
+
+**Commands in the task worktree:**
+
+| Command | Result |
+|---------|--------|
+| `npm run typecheck` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm run format:check` | exit 0 |
+| `npm run docs:api` | exit 0, HTML generated |
+| `npm run test -- test/web/text test/web/today test/web/traceability test/web/configuration test/web/progress test/server/project-state test/server/http/progress-routes.test.ts test/contracts/progress-api-schema.test.ts` | 29 files, 368 tests passed |
+| `npm run test -- test/web/element/page.test.tsx test/web/element/side-panel.test.tsx test/docs/public-text.test.ts` | 3 files, 123 tests passed |
+| `git diff --check design/dev-loop_v0.3.1...HEAD` | exit 0 |
+
+The component runs emitted jsdom's unimplemented scroll/navigation notices and exited 0.
+No product source or submitted test was changed. Coverage, the full contract gate, the browser
+gates and their axe scans remain unverified at this head: the preceding execution notes supply
+no current-head CI run. `git branch -r --list origin/task/task-085-repository-keys-escaped-where-the-page-renders-them`
+returned no local remote-tracking ref; `git ls-remote --heads origin task/task-085-repository-keys-escaped-where-the-page-renders-them`
+was refused with `fatal: transport 'ssh' not allowed`, so it establishes no remote state.
+
+**Decision requested (`wingfoil-cli` rules 11–14):** authorize the approver's push of the reviewed
+task head and the following `gates.yml` dispatch from the runner home. The explicit specs input
+covers the affected screens on Firefox and WebKit; an automatic run would find no changed e2e
+spec file (only `test/e2e/support/screens.ts` changed). The task scope also runs the whole
+Chromium suite, coverage, contracts and both smokes. These commands are for a terminal started
+by the approver, after reviewing the check-git result; none was run by this reviewer:
+
+```sh
+cd /home/robypomper/Workspaces/wingfoil_project/runner-homes/wingfoil-ui
+node scripts/runner/run.mjs --line trunk --check-git
+git fetch /home/robypomper/Workspaces/wingfoil_project/runner-lines/wingfoil-ui-trunk task/task-085-repository-keys-escaped-where-the-page-renders-them
+git rev-parse FETCH_HEAD
+git push origin FETCH_HEAD:refs/heads/task/task-085-repository-keys-escaped-where-the-page-renders-them
+gh workflow run gates.yml --repo wingfoil/wingfoil-ui --ref task/task-085-repository-keys-escaped-where-the-page-renders-them -f scope=task -f specs='test/e2e/memory-list.spec.ts test/e2e/memory-filters.spec.ts test/e2e/today.spec.ts test/e2e/today-cards.spec.ts test/e2e/today-progress.spec.ts test/e2e/recent-activity.spec.ts test/e2e/notification-bell.spec.ts test/e2e/project-header.spec.ts test/e2e/element-page.spec.ts test/e2e/side-panel.spec.ts test/e2e/element-panel.spec.ts test/e2e/gate-footer.spec.ts test/e2e/submit-footer.spec.ts test/e2e/state-limit.spec.ts test/e2e/held-gates.spec.ts test/e2e/traceability.spec.ts test/e2e/configuration-tabs.spec.ts test/e2e/dna.spec.ts test/e2e/team.spec.ts test/e2e/directives.spec.ts test/e2e/how-to-join.spec.ts test/e2e/accessibility.spec.ts'
+gh run list --repo wingfoil/wingfoil-ui --workflow gates.yml --branch task/task-085-repository-keys-escaped-where-the-page-renders-them --limit 5
+```
+
+Before pushing, `FETCH_HEAD` must equal `e68a1174b0dd7e05555731ac39fdaa83e444da43`.
+Record the dispatched run's id, head SHA and conclusion, inspect failures/artifacts, then resume
+review. This step leaves the task and bug states unchanged: no park, submit, approval or push.
