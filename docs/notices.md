@@ -11,6 +11,20 @@ command it names.
 
 <!-- runner:open -->
 
+<!-- key:gate-trunk-sw-life-cycle-1-plan-backlog-item.approve@task:task-085-repository-keys-escaped-where-the-page-renders-them -->
+### N-033 · 2026-11-28 · trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+
+- **Status:** open
+- **Kind:** gate
+- **Opened:** 2026-11-28T09:16:03Z
+- **Line:** trunk
+- **Element:** trunk:task-085-repository-keys-escaped-where-the-page-renders-them
+- **Reason:** backlog-item.approve@task:task-085-repository-keys-escaped-where-the-page-renders-them waits for the approver
+- **Ready:** yes
+- **Head:** fb649831
+- **Evidence:** run task-085-repository-keys-escaped-where-the-page-renders-them/review/6 completed
+- **Unblock:** `cd <runner home> && node scripts/runner/gate.mjs --line trunk N-033 --reason 'Approved backlog-item.approve@task:task-085-repository-keys-escaped-where-the-page-renders-them at fb649831: run task-085-repository-keys-escaped-where-the-page-renders-them/review/6 completed'`
+
 ## Closed
 
 <!-- runner:closed -->
