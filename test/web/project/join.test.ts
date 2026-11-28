@@ -84,6 +84,12 @@ describe('shellWord (D35-7)', () => {
     expect(shellWord('a;b`c`@x.test')).toBe("'a;b`c`@x.test'");
     expect(shellWord('')).toBe("''");
   });
+
+  // task-087 (bug-045): a joiner kept in a name stays inside the single quotes.
+  it('single-quotes a word holding a zero width joiner between letters', () => {
+    expect(shellWord('a‍b@x.test')).toBe("'a‍b@x.test'");
+    expect(shellWord('a‌b@x.test')).toBe("'a‌b@x.test'");
+  });
 });
 
 describe('doubleQuoted (review F4)', () => {

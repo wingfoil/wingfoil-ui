@@ -365,3 +365,55 @@ describe('neutraliseKeepingBackslashes', () => {
     expect(neutraliseKeepingBackslashes('^(P\\d|Journey)')).toBe('^(P\\d|Journey)');
   });
 });
+
+// task-087 (bug-045): U+200C / U+200D are part of a name's spelling between two letters or marks;
+// everything else keeps its escape.
+describe('task-087 — joiners between letters', () => {
+  const ZWNJ = '‌';
+  const ZWJ = '‍';
+
+  it('keeps ZWNJ and ZWJ between two letters', () => {
+    expect(neutralise(`a${ZWNJ}b`)).toBe(`a${ZWNJ}b`);
+    expect(neutralise(`a${ZWJ}b`)).toBe(`a${ZWJ}b`);
+    expect(neutralise(`می${ZWNJ}خواهم`)).toBe(`می${ZWNJ}خواهم`);
+  });
+
+  it('keeps a joiner beside a combining mark', () => {
+    expect(neutralise(`á${ZWJ}b`)).toBe(`á${ZWJ}b`);
+    expect(neutralise(`a${ZWJ}́b`)).toBe(`a${ZWJ}́b`);
+  });
+
+  it('escapes a joiner at the start', () => {
+    expect(neutralise(`${ZWJ}a`)).toBe('\\u200da');
+    expect(neutralise(`${ZWNJ}a`)).toBe('\\u200ca');
+  });
+
+  it('escapes a joiner at the end', () => {
+    expect(neutralise(`a${ZWJ}`)).toBe('a\\u200d');
+    expect(neutralise(`a${ZWNJ}`)).toBe('a\\u200c');
+  });
+
+  it('escapes a joiner beside a digit, a space or punctuation', () => {
+    expect(neutralise(`1${ZWJ}a`)).toBe('1\\u200da');
+    expect(neutralise(`a${ZWJ}1`)).toBe('a\\u200d1');
+    expect(neutralise(`a ${ZWNJ}b`)).toBe('a \\u200cb');
+    expect(neutralise(`a-${ZWJ}b`)).toBe('a-\\u200db');
+  });
+
+  it('escapes repeated joiners', () => {
+    expect(neutralise(`a${ZWJ}${ZWJ}b`)).toBe('a\\u200d\\u200db');
+    expect(neutralise(`a${ZWNJ}${ZWJ}b`)).toBe('a\\u200c\\u200db');
+  });
+
+  it('keeps every other format character escaped between letters', () => {
+    expect(neutralise('a‮b')).toBe('a\\u202eb');
+    expect(neutralise('a⁦b')).toBe('a\\u2066b');
+    expect(neutralise('a​b')).toBe('a\\u200bb');
+    expect(neutralise('a﻿b')).toBe('a\\ufeffb');
+    expect(neutralise('a‎b')).toBe('a\\u200eb');
+  });
+
+  it('keeps the strict escape for regex sources', () => {
+    expect(neutraliseKeepingBackslashes(`a${ZWJ}b`)).toBe('a\\u200db');
+  });
+});
