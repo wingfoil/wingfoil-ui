@@ -425,3 +425,26 @@ Both findings are in this task's change; their tracked record is the park reason
 separate bug needed. Neither finding is caused by a red assertion that forces the calculation
 change, so no red amendment is requested. This rejection submits neither the task nor its linked
 bug; the runner owns submission after a later accepting review.
+
+### rework after review round 3 (2026-11-28, developer)
+
+Task branch commit: the one after `e1d45b92` (`fix(task-085): completion keeps one reference per id …`).
+
+- **R3-F1 — the accepted aggregation restored.** `completionFigure` groups by `referenceKey` alone again
+  (one reference per id, task-074 Q3 (a), spec-012 2026-11-12 note): an element and a pattern reference of
+  one text are one, so no percentage changes. `element` stays an additive provenance sibling of `id`: `true`
+  when an element reference of that id contributes. spec-012 §3 and its Process Note, the spec-004 note, the
+  contract comment and `CHANGELOG.md` say so; no computation change, so no approver decision is needed.
+  Regression with unequal groups (`figures.test.ts`: done `task-001-shared` carrying its own id plus two
+  backlog tasks carrying it → one reference, 1/3, 33 %; a second group adds a distinct id).
+- **R3-F2 — identity in the React key.** `Completion.tsx` keys entries by provenance plus id; refresh test
+  `test/web/text/completion-refresh.test.tsx` (replacement and removal leave exactly the returned entries,
+  no duplicate-key warning).
+
+| Command | Result |
+|---------|--------|
+| `npm run test -- test/web/text test/server/project-state test/server/http/progress-routes.test.ts` | 8 files, 112 tests pass |
+| `npm run test -- test/web/today test/web/traceability test/web/progress test/contracts` | 38 files passed (1 skipped), 684 tests pass |
+| `npm run typecheck`, `lint`, `format:check`, `docs:api` | exit 0 each |
+
+Not re-run: e2e, coverage, full contract, three engines — the CI hand-off (`wingfoil-cli` rule 12). No push.
