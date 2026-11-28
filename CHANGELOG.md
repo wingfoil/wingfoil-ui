@@ -20,7 +20,7 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
 
 - **Repository keys are escaped where the page renders them** (task-085, bug-041): an element id,
   type, state, role, category, path key or directive id holding control, bidirectional or format
-  characters is shown as a visible escape (`\x1b`, `‮`, `​`) on every screen and in every
+  characters is shown as a visible escape (`\x1b`, `\u202e`, `\u200b`) on every screen and in every
   accessible name — Memory, Today, the notification bell, the header's role view, the element page
   and side panel, Traceability, Configuration, DNA, Team and Directives — through one function,
   `keyText`; the raw value still addresses and filters. Display fields stay escaped once by the
@@ -32,7 +32,7 @@ tag `v0.3.0` and the npm version `wingfoil-ui@0.3.0`.
 
 - **A zero width joiner between two letters of a name is shown as written** (task-087, bug-045): the
   display escape (`neutralise`) keeps U+200C and U+200D when both neighbours are letters or marks
-  (Persian, several Indic scripts) instead of writing `‌`; at the start or end, beside a
+  (Persian, several Indic scripts) instead of writing `\u200c`; at the start or end, beside a
   digit, a space or punctuation, or repeated they stay escapes, as does every other format
   character (the bidirectional controls among them). The redaction boundaries and the
   regular-expression-source escape keep the strict class; no response body or contract changes

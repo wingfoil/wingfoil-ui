@@ -610,7 +610,7 @@ goes away by itself when the stream reconnects. A network failure is not rendere
   preceding and following characters are both letters or marks (`\p{L}`, `\p{M}`), where it is part
   of a name's spelling (Persian, several Indic scripts). It is no bidirectional control: it reorders,
   hides and re-directs nothing. At the start or end of a text, beside a digit, a space or
-  punctuation, or repeated, it stays an escape (`‌`, `‍`), and every other format
+  punctuation, or repeated, it stays an escape (`\u200c`, `\u200d`), and every other format
   character — the bidi controls and marks, U+200B, U+FEFF, U+00AD — stays an escape. The exception
   belongs to the display escape only: the redaction boundaries of `server/src/git/redact.ts` (the
   folder end, the scheme-less `user:password@` start) and the regular-expression-source escape

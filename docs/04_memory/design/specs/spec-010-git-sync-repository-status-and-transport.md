@@ -180,9 +180,9 @@ cancelled process group or the server) and `--no-optional-locks`.
   remote's path wherever it is → `<remote>`, the home folder → `~`), URL userinfo removed (also a
   `user:password@host` without a scheme, also after a control character), then CR LF folded to a
   newline, a backslash written `\\` and every character of the Unicode categories Cc, Cf, Cs, Zl
-  and Zp other than newline and tab written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`) \u2014
+  and Zp other than newline and tab written as a visible escape (`\x1b`, `\u202e`, `\u{e0001}`) —
   except, from v0.3.1, a zero width (non-)joiner U+200C / U+200D between two letters or marks, kept
-  as written (spec-004 \u00a75, task-087); the redaction boundaries above keep the strict class \u2014,
+  as written (spec-004 §5, task-087); the redaction boundaries above keep the strict class —,
   then at most 4 000 characters kept as the head and the tail around a `…` line, a cut never
   splitting an escape, a redaction token or a surrogate pair (bug-017) — also in `lastError`. This
   one sanitiser (`server/src/git/redact.ts`) makes every verbatim tool message the API sends: the
