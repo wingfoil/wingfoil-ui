@@ -448,3 +448,57 @@ Task branch commit: the one after `e1d45b92` (`fix(task-085): completion keeps o
 | `npm run typecheck`, `lint`, `format:check`, `docs:api` | exit 0 each |
 
 Not re-run: e2e, coverage, full contract, three engines — the CI hand-off (`wingfoil-cli` rule 12). No push.
+
+### review round 4 (2026-11-28, independent reviewer, Codex) — rejected
+
+Reviewed `trunk:task-085-repository-keys-escaped-where-the-page-renders-them` at task-branch
+`660c43cd74cf9ccc600d1426d303631cfc6829dc` (`git rev-parse HEAD`), using this authoritative
+task body and the supplied reviewer session resource. Read the reviewer directives, bug-041,
+spec-004's text classes and Process Notes, spec-012's completion rule and Process Notes, the
+affected UX reference sections, and the raw/display serializers. The line's
+`npx --no-install wingfoil workflow next sw-life-cycle-1-plan` names this review;
+`git var GIT_AUTHOR_IDENT` returned the required agent address.
+
+**Checks in the task worktree:** `npm run typecheck`, `npm run lint`, `npm run format:check`
+and `npm run docs:api` exited 0. `npm run test -- test/web/text test/web/today
+test/web/traceability test/web/configuration test/web/progress test/server/project-state
+test/server/http/progress-routes.test.ts test/contracts/progress-api-schema.test.ts` passed
+28 files, 364 tests, including the unequal-group completion regression and the refresh test.
+`git diff --check design/dev-loop_v0.3.1...HEAD` exited 0. The new `completionFigure` retains
+the accepted id-only grouping and numerical result in the previously failing case; the
+provenance flag no longer splits completion references. Coverage, full contract and required
+e2e gates were not independently run; the preceding execution notes record no CI run for this
+head. The CI hand-off under `wingfoil-cli` rule 12 remains required after the finding below.
+
+**Class sweeps:** inspected the task diff, raw key text and accessible-name sites, the
+raw/display boundaries of the serializers, and both completion consumers. A search for
+`usePageTitle`, `useProjectTitle` and `document.title` across `web/src` found two raw repository
+key interpolations outside JSX: the element route's `eid` and the directive page's `did`.
+Documentation already passes its server-escaped `label` to the title; project names are also
+server-escaped display text. Applying another escape to all title values would regress those
+display fields. Traceability's chip fallback was also checked against the server's assembly
+of the complete `elements` map; it is not a missing-element response path.
+
+**Independent probes:** a temporary `test/web/text/key-review-round4-probe.test.tsx` rendered
+the actual app at element and directive routes, with successful API responses and ids holding
+U+202E, ESC and U+200B, plus a plain id for each route. After each heading appeared, it asserted
+the tab title contained the server-equivalent visible escape (`neutralise`) and no raw hostile
+character. `npm run test -- test/web/text/key-review-round4-probe.test.tsx` exited 1: the two
+hostile-id cases failed, the two plain-id cases passed. The temporary file was removed;
+`git status --short` in the task worktree was empty. No product source or submitted test changed.
+
+- **R4-F1 — minor; incomplete rendering-boundary coverage in browser titles (AC-1).**
+  `web/src/routes/element.tsx:56` passes raw `eid` into `usePageTitle`, and
+  `web/src/directives/pages.tsx:30` passes raw `did` into `useProjectTitle`; the shared hook
+  writes them unchanged to `document.title` (`web/src/shell/page-title.ts:30`). The element
+  title is `demo · k-001-` + raw U+202E + `evil` + raw ESC/U+200B + ` — WingFoil UI`; the
+  directive title has the same raw characters. The body text is escaped, but the browser tab
+  remains another visible and accessible rendering of the same repository key. Escape the
+  raw id at each title interpolation with the common helper, preserving operational route
+  values and the already-escaped project names/document labels. Add hostile/plain-id tests
+  asserting `document.title` on both actual routes, including a display value containing a
+  literal backslash so the solution cannot escape an entire composed title twice.
+
+This is an omitted rendering site required by this task's AC-1; the park reason is its tracked
+record, with no separate bug needed. No existing red assertion contradicts an accepted decision,
+so no red amendment is requested. This rejection submits neither the task nor its linked bug.
